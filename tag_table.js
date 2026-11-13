@@ -69,7 +69,7 @@ function combatBossFoes(){
     if(mh>=ratio*pm||(named&&mh>=pm))out.push(f);}
   return out;
 }
-var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","ITEM_RENAMED","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","COMBAT_GROUP","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_CHECK","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","WARES","WANTED","DOWNED_RESOLVED","DEATH_ANSWER","WHISPER","LOCATION_HOURS","SHOP_KEEPER","LAYOUT","EXIT","SUGGEST","CHECK","COMPANION_AGENDA","COMPANION_AGENDA_DONE","COMPANION_AGENDA_BEAT","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_ITEM_RENAMED","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_SKILL_SUCCESS","COMPANION_GROWTH","COMPANION_INITIATIVE","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","NO_CHANGE","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED","WORN","EQUIPPED","OUTFIT","SOUNDSCAPE","MAP_PLACE"];/* #599 (d): EQUIPPED is the taught spelling, WORN its permanent alias — both stripped *//* #388: attire tags join the strip vocabulary. #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
+var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","ITEM_RENAMED","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","COMBAT_GROUP","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_CHECK","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","WARES","WANTED","DOWNED_RESOLVED","DEATH_ANSWER","WHISPER","LOCATION_HOURS","SHOP_KEEPER","LAYOUT","EXIT","SUGGEST","CHECK","COMPANION_AGENDA","COMPANION_AGENDA_DONE","COMPANION_AGENDA_BEAT","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_ITEM_RENAMED","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_SKILL_SUCCESS","COMPANION_GROWTH","COMPANION_INITIATIVE","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","NO_CHANGE","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED","WORN","EQUIPPED","OUTFIT","SOUNDSCAPE","MAP_PLACE","MAP_REVEAL"];/* #599 (d): EQUIPPED is the taught spelling, WORN its permanent alias — both stripped *//* #388: attire tags join the strip vocabulary. #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
 var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE","NO_CHANGE"];/* bare ENEMY_SLAIN is UNSUPPORTED (warn, no-op) but must still strip — an unstripped bare tag leaks to the story. #211: bare [NO_CHANGE] is the audit ack's minimal form */
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
 // DICE: display-only, rendered by diceTxt. ACTIONS: legacy pre-v1.110 format, replay-only.
@@ -117,6 +117,7 @@ function tagRestoreBareMarkers(text,quiet){
 // exactly (engine-tested against a frozen golden + a pre/post stable-half capture). Wording
 // changes are their own deliberate, A/B-tested commits — never bundled with mechanics.
 var TAG_DOC_LINES=[
+"[MAP_REVEAL:new|public label|kind|bearing|observed] -- a PUBLIC narrated discovery receipt; only when the MAP block asks; reported for a report, f-number for an existing feature\n",
 "[MAP_PLACE:story place|near Map Name] or [MAP_PLACE:story place|between A and B] or [MAP_PLACE:story place|at Map Name] -- where a place you named belongs on the drawn map; only when the MAP block asks\n",
 "[SOUNDSCAPE:place|enclosure=open;setting=wilderness;biome=temperate;quiet=normal;allows=birds,insects,wind;forbid=none] -- cosmetic classification only when the engine asks; no hidden facts, URLs or file names\n",
 "STATE TAGS (use in responses, never shown to player):\n",
@@ -223,7 +224,7 @@ var TAG_DOC_LINES=[
 // carries the syntax (contract-pinned in run-tests: every name here appears inside a builder's text).
 // They stay in TAG_TABLE: parsed, stripped, documented at ask time. Measured: 1,187 chars off the cached
 // half — small money, zero attention cost, and the standing vocabulary reads as what the GM may do unasked.
-var TAG_DOC_ENGINE_ONLY=["MAP_PLACE","SOUNDSCAPE","NPC_SUPERSEDE","NPC_MERGE","ALIAS","MERGE","ITEM_RENAMED","COMPANION_ITEM_RENAMED","WHISPER","LAYOUT","EXIT","DEATH_ANSWER","ITEM_KEPT","COMPANION_ITEM_KEPT","SHOP_KEEPER"];/* #481 B4: taught by buildKeeperNote (api.js) *//* audit A13: the three note-taught tags that sat outside the #311 phantom check *//* #415: EXIT is taught by the geo block's standing volatile line — a door is filed at narration time, not on request *//* #408: taught by buildLayoutNote where a record is wanted; the standing doc stays byte-identical */
+var TAG_DOC_ENGINE_ONLY=["MAP_REVEAL","MAP_PLACE","SOUNDSCAPE","NPC_SUPERSEDE","NPC_MERGE","ALIAS","MERGE","ITEM_RENAMED","COMPANION_ITEM_RENAMED","WHISPER","LAYOUT","EXIT","DEATH_ANSWER","ITEM_KEPT","COMPANION_ITEM_KEPT","SHOP_KEEPER"];/* #481 B4: taught by buildKeeperNote (api.js) *//* audit A13: the three note-taught tags that sat outside the #311 phantom check *//* #415: EXIT is taught by the geo block's standing volatile line — a door is filed at narration time, not on request *//* #408: taught by buildLayoutNote where a record is wanted; the standing doc stays byte-identical */
 function _docLineEngineOnly(line){
   var m,re=/\[([A-Z][A-Z_]+)(?=[:\]|])/g,names=[];
   while((m=re.exec(line)))if(names.indexOf(m[1])<0)names.push(m[1]);
@@ -613,6 +614,7 @@ var TAG_TABLE=[
 /* You are here (owner rulings 2026-11-06): the GM says where a place it names belongs on the drawn map — "near A", "between A and B",
    or "at A" (the story's place IS the map's A). RECORDED here as worldState.placeDecls for the turn's map follow (game.js, after
    the parser), which reads, acts and clears them; the parser never touches the map. ENGINE-ONLY tier: taught by the MAP block. */
+{t:"MAP_REVEAL",apply:function(text,R){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive())R.mapReveals=atlasKnowledgeRead(text,R);}},
 {t:"MAP_PLACE",apply:function(text,R){var mpTags=text.match(/\[MAP_PLACE:([^|\]]+)\|([^\]]+)\]/g)||[],mpi,mpm;if(!mpTags.length)return;worldState.placeDecls=[];
   for(mpi=0;mpi<mpTags.length;mpi++){mpm=mpTags[mpi].match(/\[MAP_PLACE:([^|\]]+)\|([^\]]+)\]/);if(!mpm)continue;worldState.placeDecls.push({name:mpm[1].trim(),where:mpm[2].trim(),turn:R.turn});R.muts.push("Map place: "+mpm[1].trim()+" — "+mpm[2].trim());}}},
 {t:"SCENE_REF",apply:function(text,R){var ts=text.match(/\[SCENE_REF:([^|\]]+)\|([^\]]+)\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[SCENE_REF:([^|\]]+)\|([^\]]+)\]/);if(m)sceneRefBind(m[1].trim(),m[2].trim(),R);}}},
@@ -672,7 +674,7 @@ var TAG_TABLE=[
 /* #415: the narrated door — [EXIT:name|note] files a way the GM described that has no place on record, write-once on the
    CURRENT node (after LOCATION/SUBLOCATION so it lands on the new node). ENGINE-ONLY tier: the geo block's UNEXPLORED WAYS
    line teaches it every turn. Every refusal is loud and files nothing; a duplicate is a benign skip; the note is display only. */
-{t:"EXIT",apply:function(text,R){var exs=text.match(/\[EXIT:([^\]]*)\]/g)||[],xi;for(xi=0;xi<exs.length;xi++){var xb=exs[xi].slice(6,-1),xp=xb.indexOf("|"),xn=xp<0?xb:xb.slice(0,xp),xt=(xp<0?"":xb.slice(xp+1)).trim();
+{t:"EXIT",apply:function(text,R){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){atlasKnowledgeExitApply(text,R);return;}var exs=text.match(/\[EXIT:([^\]]*)\]/g)||[],xi;for(xi=0;xi<exs.length;xi++){var xb=exs[xi].slice(6,-1),xp=xb.indexOf("|"),xn=xp<0?xb:xb.slice(0,xp),xt=(xp<0?"":xb.slice(xp+1)).trim();
   var xr=(typeof fileExit==="function")?fileExit(xn,xt,R.turn):{ok:false,reason:"fileExit missing"};
   if(!xr.ok){R.muts.push("⚠ [EXIT:] refused — "+xr.reason);if(typeof console!=="undefined")console.warn("[tags] EXIT refused at "+(xr.key||"the current node")+": "+xr.reason+" — nothing filed (#415)");continue;}
   if(xr.dup){if(typeof console!=="undefined"&&console.debug)console.debug("[tags] EXIT '"+xr.name+"' already on record at "+xr.key+" — skipped (#415)");continue;}
@@ -2034,6 +2036,7 @@ function applyShopKeeper(entry,text,R,settled){
 }
 function applyMutsTable(text,opts){
   var R={muts:[],turn:worldState.turn};/* audit A15: R.text had no consumer anywhere */
+  R.mapSource=opts&&opts.mapSource!=null?opts.mapSource:text;/* Public exit authority is checked before its known-way write. */
   R.aliasClaims=identityResponseClaims(text);R.aliasDeferred=identityDeferredAliasPlan(R.aliasClaims);
   R.departKey=(typeof currentNodeKey==="function")?currentNodeKey():null;/* #415: where the party stood BEFORE any handler moves it — the doors live there */
   R.places=(typeof placeTimeline==="function"&&worldState.world)?placeTimeline(text):null;/* #481 A4: ONE place timeline per call — its first state is departKey's place */
@@ -2234,6 +2237,7 @@ function applyMutsTable(text,opts){
     mutsSummaryEmit(R);
     syncUI();saveAll();
   }
+  delete R.mapSource;/* Original source is parser-private; mutation results expose public labels only. */
   return R;
 }
 // (v1.261: the shadow/parity machinery that lived here — __tagCloneWS, __tagShadowRun,

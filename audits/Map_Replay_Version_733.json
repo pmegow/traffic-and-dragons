@@ -1,0 +1,85 @@
+{
+  "task": 733,
+  "reason": "SAVE_VER 11 to 12; map knowledge remains inactive for frozen replay fixtures",
+  "createdUtc": "2026-11-12T22:15:18.697530+00:00",
+  "scratch": "C:\\Users\\hannu\\AppData\\Local\\Temp\\tnd-map-replay-733-egdbsk0r",
+  "cases": [
+    {
+      "corpus": "dev/corpus_playtest_v1238.json",
+      "responses": 40,
+      "beforeSha256": "f338b2f72308a78eec0bef4cb5e69d3ce9fcc0765fadcf6aa62176ff5fd3daf1",
+      "afterSha256": "4a25913fc874a1ff2c58ee0632ff56084b7feab52252d0e5f4a57e2c525cd728",
+      "bytesBefore": 13955,
+      "bytesAfter": 13955,
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 11,
+          "after": 12
+        }
+      ],
+      "handlerErrors": 0,
+      "copiedOracleCheckRejected": true,
+      "copiedOraclePreservedByCheck": true,
+      "allNonVersionBytesIdentical": true
+    },
+    {
+      "corpus": "dev/corpus_playtest_v1258.json",
+      "responses": 100,
+      "beforeSha256": "1a3e29d1e212b8f3579239d620dacaa6fae4a17a144c49410d5dc0ff205c5c50",
+      "afterSha256": "9b6d283a091ba3909f29b4d3a1833da64f0f293b3166fe7e9d8b87d31453e855",
+      "bytesBefore": 27531,
+      "bytesAfter": 27531,
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 11,
+          "after": 12
+        }
+      ],
+      "handlerErrors": 0,
+      "copiedOracleCheckRejected": true,
+      "copiedOraclePreservedByCheck": true,
+      "allNonVersionBytesIdentical": true
+    },
+    {
+      "corpus": "dev/corpus_playtest_v1271.json",
+      "responses": 29,
+      "beforeSha256": "5e8a66bec81a17281d74b58d587be976b4e897c63a68e332bcbda98d3cb06a9e",
+      "afterSha256": "620339a05152c61f55865f35d42b1255d8e20e0ef41211f64d7cfb0affd5b0ca",
+      "bytesBefore": 19697,
+      "bytesAfter": 19697,
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 11,
+          "after": 12
+        }
+      ],
+      "handlerErrors": 0,
+      "copiedOracleCheckRejected": true,
+      "copiedOraclePreservedByCheck": true,
+      "allNonVersionBytesIdentical": true
+    },
+    {
+      "corpus": "dev/corpus_playtest_v1276.json",
+      "responses": 12,
+      "beforeSha256": "1ac376fe555aa3e1efe8544ab5a384501bae1b7214a95eeba512ca4e9a2a840d",
+      "afterSha256": "14e8fde2698a4e990ef1d9fdecb881cc3adcbe20eb35cdd72027b432925af705",
+      "bytesBefore": 13476,
+      "bytesAfter": 13476,
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 11,
+          "after": 12
+        }
+      ],
+      "handlerErrors": 0,
+      "copiedOracleCheckRejected": true,
+      "copiedOraclePreservedByCheck": true,
+      "allNonVersionBytesIdentical": true
+    }
+  ],
+  "updatedBaselinesChecked": true
+}

@@ -56,7 +56,6 @@ function consumeHomeQuickStart(){
   worldState=null;sessionLog=[];memory=blankMemory();
   var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");if(sn)sn.innerHTML="";if(st)st.innerHTML="";
   pendingBlueprint=bp;/* startGame applies it — skeleton, seeded NPCs and places, rules */
-  pendingAtlas=false;/* #684: the quick start has no Draw a world map switch — a switch left on by an abandoned Review step must not map this campaign */
   char._campName=bp.name||char.name;char._startLoc=bp.startingLocation||"The Crossroads of Ashenveil";
   if(bp.proseAuthor)startGame(char,tone.nm,tone.vc,bp.proseAuthor);else startGame(char,tone.nm,tone.vc);
   showToast("Quick start: "+char.name+" in "+(bp.name||"the story"));
@@ -613,7 +612,6 @@ function _startImportedCampaign(char){
     +"<label style='"+lblCss+"'>Starting location</label>"
     +"<select id='is-loc' style='"+inpCss+"'>"+locOpts+"</select>"
     +"<input id='is-loc-text' type='text' placeholder='Describe your starting place…' style='display:none;"+inpCss+"margin-top:6px;'/>"
-    +"<label style='display:flex;align-items:center;gap:8px;font-size:12px;color:var(--t1);margin-top:12px;cursor:pointer;'><input type='checkbox' id='is-atlas'/> Draw a world map <span style='color:var(--t2);font-size:11px;'>(new &mdash; tap the location name to open it)</span></label>"
     +"<div style='font-size:10px;color:var(--t2);margin:12px 0 16px;'>Companions can be added once in-game: File &gt; Import Character &gt; Add as companion.</div>"
     +"<div style='display:flex;gap:10px;'>"
     +"<button id='is-go' style='flex:1;padding:11px;font-size:13px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Begin your journey</button>"
@@ -627,7 +625,6 @@ function _startImportedCampaign(char){
     var tone=TONES[parseInt(document.getElementById("is-tone").value)||0]||TONES[2];
     var loc=document.getElementById("is-loc").value;
     if(loc==="custom"){var lt=document.getElementById("is-loc-text").value.trim();loc=lt||"A place of your choosing";}
-    pendingAtlas=!!document.getElementById("is-atlas").checked;/* #684: read before the modal goes; startGame consumes it */
     modal.remove();
     if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);

@@ -106,7 +106,7 @@ rc |= sabotage.prove({ file: "atlas.js", command: ENGINE, only: "FAIL #684 ", ca
     replace: "    if(!A.zones[keys[i]])continue;",
     mustFail: "FAIL #684 #717 a campaign mapped before the fog starts from now" },
   { label: "a campaign mapped before the fog gets no record at the load door",
-    find: "  if(atlasSeenHeal(A))changed=true;",
+    find: "  if(!(typeof atlasKnowledgeActive===\"function\"&&atlasKnowledgeActive())&&atlasSeenHeal(A))changed=true;",
     replace: "  ",
     mustFail: "FAIL #684 #717 a campaign mapped before the fog starts from now" },
   { label: "review finding 1: a walk made wholly inside a zone beneath a sheet is recorded on it (grate to grate under the town: a leg along the streets)",

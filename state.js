@@ -347,7 +347,7 @@ function saveCore(){try{inventoryStampWorld(worldState);/* #599 (c2), review 3 *
 // detectable by memoryOwnerMismatch on the next load instead of being silently adopted.
 function memoryOwnerMismatch(ws,mem){return !!(ws&&mem&&ws.campId&&mem.campId&&ws.campId!==mem.campId);}
 function memoryOwnerStamp(){if(typeof worldState!=="undefined"&&worldState&&worldState.campId&&memory&&!memory.campId)memory.campId=worldState.campId;}
-function saveMem(){try{memoryOwnerStamp();store.set(MEM_KEY,JSON.stringify(memory));return true;}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);return false;}}
+function saveMem(){try{if(typeof atlasKnowledgeCanSaveMemory==="function"&&!atlasKnowledgeCanSaveMemory())return false;memoryOwnerStamp();store.set(MEM_KEY,JSON.stringify(memory));return true;}catch(e){if(typeof showToast==="function")showToast("⚠ Memory save failed — storage full.");console.error("[save] saveMem failed:",e);return false;}}
 // #2 (quota): snapshotActiveCamp() removed from saveAll — it duplicated the ENTIRE active state (incl. portraits)
 // into tnd_camp_<id>_* on every turn, redundant with tnd_core_v10. The active campaign is still snapshotted on
 // switch-away, beforeunload, and campaign ops — the moments the snapshot is actually read. ~halves the per-turn write.
@@ -893,7 +893,7 @@ function checkpointRestore(snap,opts){
   return {ok:true,turn:liveTurn,camp:where,respawn:ws.respawns};
 }
 function loadState(){
-  var ws,sl,mm;try{ws=store.get(WSK);sl=store.get(SLK);mm=store.get(MEM_KEY);}catch(e){return false;}
+  var ws,sl,mm,_mapHealed=false;try{ws=store.get(WSK);sl=store.get(SLK);mm=store.get(MEM_KEY);}catch(e){return false;}
   // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
   // campaign switch, so the ACK baseline / failure count don't carry across campaigns.
   if(typeof storageAdapter!=="undefined"&&storageAdapter.resetSyncState)storageAdapter.resetSyncState();
@@ -908,11 +908,13 @@ function loadState(){
        the reason is kept for the boot, which shows the refusal screen instead of the wizard (ui-boot initState). */
     if(e&&e.incompatible){_versionRefusedLoad=e.message;console.error("[version] local load REFUSED — "+e.message+"; nothing was changed, reload to update");if(typeof showToast==="function")showToast("⚠ "+e.message+VERSION_RELOAD_HINT,9000);}
     return false;}
-  try{if(mm){memory=JSON.parse(mm);healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore("mem",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */
+  try{if(mm){memory=JSON.parse(mm);_mapHealed=healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore("mem",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */
   if(memoryOwnerMismatch(worldState,memory)){/* #365: loud, attributable, never silent */var _own=(typeof campDisplayName==="function"&&campDisplayName(memory.campId))||memory.campId;console.error("[load] MEMORY OWNER MISMATCH — the live memory is stamped for "+memory.campId+" but the worldState is "+worldState.campId+" (#365). Play would run this campaign on another campaign's canon.");if(typeof showToast==="function")showToast("\u26a0 This campaign's memory belongs to \""+_own+"\" \u2014 Load a saved copy of "+(worldState.campName||"this campaign")+" before playing on (#365).");if(typeof reportError==="function")reportError("memory-owner","memory "+memory.campId+" under worldState "+worldState.campId,{turn:worldState.turn});}
   /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
      memory first prevents the previously active campaign from re-keying the incoming save. */
   try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;return false;}
+  /* Persist the pre-image in the world before replacing the stored geography. */
+  if(_mapHealed)saveMem();
   if(typeof audioScenePublish==="function")audioScenePublish("load");
   return !!ws&&!!worldState;
 }
@@ -1024,6 +1026,8 @@ function healMemory(){
     var _swK=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location,_swN=memory.map.nodes[_swK];
     if(_swN&&!(_swN.visits>0)){_swN.visits=1;if(_swN.firstVisit==null)_swN.firstVisit=0;if(typeof console!=="undefined")console.warn("[heal] #618 start world \""+_swK+"\" stamped visited — a campaign begun before #481 C11 kept it at 0 visits");}
   }
+  if(typeof atlasKnowledgeMigrate==="function"){var _km=atlasKnowledgeMigrate();if(!_km.ok)atlasKnowledgeSay(_km.reason+"; existing map data was preserved");return _km.ok&&_km.changed;}
+  return false;
 }
 // ── Campaign management ───────────────────────────────────────────────────────
 var CAMP_META_K="tnd_camps_v1";var ACTIVE_CAMP_K="tnd_active_v1";var LEGACY_ON_K="tnd_legacy_on_v1";var LEGACY_PCT_K="tnd_legacy_pct_v1";

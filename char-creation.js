@@ -315,7 +315,6 @@ function _rvSyncBlueprintLocation(){
 }
 function confirmChar(){
   var nameEl=document.getElementById("char-name"),enteredName=nameEl?nameEl.value.trim():"";
-  var _atlasEl=document.getElementById("rv-atlas");pendingAtlas=!!(_atlasEl&&_atlasEl.checked);/* #684: read at every confirm (the pickers below may run startGame later); startGame consumes it */
   // Imported character path: skip normal build, just apply review-step fields and start game
   if(pendingImportChar){
     var ic=pendingImportChar;pendingImportChar=null;

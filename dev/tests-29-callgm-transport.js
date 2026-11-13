@@ -206,6 +206,51 @@ tAsync("a network reject is never auto-retried (request state ambiguous — a re
   });
 });
 
+section("#733 transport — caller-owned one-attempt budget");
+
+tAsync("noRetry ends a transient 503 after one primary request", function () {
+  reset(); fastKnobs();
+  script.push(httpErr(503, '{"error":{"message":"The model is overloaded."}}'));
+  script.push(anthropicOk("Must not be consumed"));
+  return raceCall(["Extract public landmarks", "SYS", 60, null, { noHistory: true, kind: "map-discovery", noRetry: true }]).then(function (r) {
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "noRetry silently consumed a second paid request";
+    if (calls.length !== 1 || script.length !== 1) return "expected exactly one attempted request, got " + calls.length;
+    if (toasts.length) return "a skipped retry still displayed a retry toast";
+    return r.e.message === "HTTP 503: The model is overloaded." ? true : "first failure reason changed: " + r.e.message;
+  });
+});
+
+tAsync("noRetry suppresses the configured Gemini fallback on a gateway 503", function () {
+  reset("gemini"); fastKnobs(); serverOn();
+  script.push(httpErr(503, '{"error":{"message":"The model is overloaded."}}'));
+  script.push(geminiOk("Must not fall back"));
+  return raceCall(["Extract public landmarks", "SYS", 60, null, { noHistory: true, kind: "map-discovery", noRetry: true }]).then(function (r) {
+    serverOff();
+    if (r.sentinel) return "callGM never settled";
+    if (r.ok) return "noRetry silently fell back to a second model";
+    if (calls.length !== 1 || script.length !== 1) return "fallback/retry attempted " + calls.length + " requests";
+    if (calls[0].url.indexOf("https://tnd.test/") !== 0 || calls[0].url.indexOf("gemini-3.8-flash") < 0) return "fixture did not exercise the primary through the gateway";
+    if (toasts.length) return "a skipped fallback still displayed a fallback toast";
+    return r.e.message === "HTTP 503: The model is overloaded." ? true : "first gateway failure reason changed: " + r.e.message;
+  });
+});
+
+tAsync("noRetry is per call and false preserves ordinary retry and fallback", function () {
+  reset("gemini"); fastKnobs();
+  script.push(httpErr(503, '{"error":{"message":"One attempt only"}}'));
+  return raceCall(["Extract", "SYS", 60, null, { noHistory: true, kind: "map-discovery", noRetry: true }]).then(function (first) {
+    if (first.sentinel || first.ok || calls.length !== 1) return "the initial one-attempt request did not fail once";
+    calls.length = 0; script.length = 0;
+    script.push(httpErr(503, "{}")); script.push(httpErr(503, "{}")); script.push(httpErr(503, "{}")); script.push(geminiOk("Ordinary recovery"));
+    return raceCall(["Continue the turn", "SYS", 60, null, { noHistory: true, kind: "turn", noRetry: false }]).then(function (r) {
+      if (r.sentinel || !r.ok || r.v !== "Ordinary recovery") return "ordinary recovery was disabled after noRetry";
+      if (calls.length !== 4 || calls[2].url.indexOf("gemini-3.8-flash") < 0 || calls[3].url.indexOf("gemini-3.6-flash") < 0) return "ordinary retries and one fallback did not run";
+      return calls[0].opts.body === calls[3].opts.body ? true : "ordinary fallback payload changed";
+    });
+  });
+});
+
 section("#29 transport — the deadline (the t25 busy-freeze class)");
 
 tAsync("a hung request aborts at CALLGM_TIMEOUT_MS: loud, terminal, NO auto-retry", function () {

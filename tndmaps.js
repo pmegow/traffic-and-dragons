@@ -1,11 +1,11 @@
-/* TnD Maps 0.18.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.21.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.18.0";
+  NS.VERSION = "0.21.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6591,6 +6591,7 @@
     var ink = "#2a2219", paper = "#f2e8d3", sea = "#e8dcc0", land = "#f6efdc", soft = "#5a4a38", ward = "#e4d8bc", house = "#d3c4a4", stone = "#bfae8c", pond = "#d9cba8", red = "#8a2e1e";
     return {
       name: "ink", paper: paper, ink: ink,
+      ui: { unplaced: { background: paper, color: ink, border: soft, divider: house, selected: ward, status: soft, font: SERIF, size: 14 } },
       paths: {
         sea: { fill: sea },
         ripple0: { stroke: ink, width: 0.75, alpha: 0.5 },
@@ -6613,6 +6614,7 @@
         frame: { stroke: ink, width: 2.2 },
         frameInner: { stroke: ink, width: 0.7 },
         rule: { stroke: ink, width: 0.9 },
+        schematicLeader: { stroke: soft, width: 0.75, alpha: 0.65 },
         scaleBox: { fill: ink, stroke: ink, width: 0.8 },
         scaleBoxEmpty: { fill: land, stroke: ink, width: 0.8 },
         compass: { fill: land, stroke: ink, width: 0.9 },
@@ -6736,6 +6738,9 @@
         labelFloor: { font: SERIF, size: 11, style: "italic", letterSpacing: 2.5, fill: soft, halo: paper, haloWidth: 2.6 },
         labelDistrict: { font: SERIF, size: 13, style: "italic", letterSpacing: 3, fill: soft, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
         /* the town's own label sizes: its sheet is 800 × 550 at 1.25 m a unit, half the region's, so its labels are three quarters the size */
+        /* Sparse public sheets are usually viewed whole in a narrow game pane. Their labels must survive fit. */
+        schematicLabel: { font: SERIF, size: 22, letterSpacing: 0.4, fill: ink, halo: paper, haloWidth: 2.1, back: { shape: "banner", s: "slip" } },
+        schematicList: { font: SERIF, size: 18, letterSpacing: 0.3, fill: ink, halo: paper, haloWidth: 2.5 },
         townLandmark: { font: SERIF, size: 8, letterSpacing: 0.5, fill: ink, halo: paper, haloWidth: 2.1, back: { shape: "banner", s: "slip" } },
         townGate: { font: SERIF, size: 7.2, style: "italic", letterSpacing: 0.4, fill: soft, halo: paper, haloWidth: 1.9, back: { shape: "plain", s: "slip" } },
         townShop: { font: SERIF, size: 6.5, style: "italic", fill: soft, halo: paper, haloWidth: 1.8, back: { shape: "plaque", s: "slip" } },
@@ -6746,6 +6751,8 @@
         townLake: { font: SERIF, size: 8, style: "italic", letterSpacing: 0.8, fill: soft, halo: sea, haloWidth: 2, back: { shape: "plain", s: "slipSea" } },
         labelRoad: { font: SERIF, size: 9.5, style: "italic", letterSpacing: 0.5, fill: soft, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
         wildFeature: { font: SERIF, size: 7.5, style: "italic", letterSpacing: 0.3, fill: ink, halo: paper, haloWidth: 2, back: { shape: "plaque", s: "slip" } },
+        schematicMarker: { font: SERIF, size: 22, weight: "bold", letterSpacing: 0.4, fill: red, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
+        schematicNote: { font: SERIF, size: 18, style: "italic", fill: ink, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
         labelMarker: { font: SERIF, size: 11, weight: "bold", letterSpacing: 0.4, fill: red, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
         labelMarkerNote: { font: SERIF, size: 9.5, style: "italic", fill: ink, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
         compass: { font: SERIF, size: 11, weight: "bold", fill: ink, halo: land, haloWidth: 2.5 },
@@ -7139,7 +7146,7 @@
     out.push(plainText(subtitle, "subtitle", X + W / 2, Y + 72, style));
     lay.block(X + W / 2, Y + 48, tw + 60, 70);
     compassRose(X + W - 62, Y + 68, 34, out, style); lay.block(X + W - 62, Y + 66, 90, 100);
-    scaleBar(frame, X + 34, Y + H - 42, out, lay, style);
+    if (frame.precision !== "schematic") scaleBar(frame, X + 34, Y + H - 42, out, lay, style);
   }
 
   /* the view's HUD (v0.15.0): the sheet's title and subtitle, a compass and a scale bar drawn SCREEN-FIXED in CSS pixels —
@@ -7200,6 +7207,11 @@
     /* the compass, top right — below the title's plaque when that would reach it */
     cy = (w / 2 + pw / 2 > w - 56) ? 8 + ph + 28 : 32;
     compassRose(w - 30, cy, 17, out, style);
+    if (doc.frame.precision === "schematic") {
+      out.push(plaque(8, h - 38, 176, 30));
+      out.push(plainText("Schematic — not to scale", "hudSmall", 96, h - 18, style));
+      return out;
+    }
     /* the scale bar, bottom left: a fifth of the view wide, re-measured at this zoom */
     bw = Math.max(48, Math.min(220, w * 0.2));
     c = scaleChoice(doc.frame.kmPerUnit / T.k, bw, doc.frame.travelKmPerDay);
@@ -7298,6 +7310,7 @@
     var name = doc.generator && doc.generator.name, builder = NS.own(BUILDERS, name), rv, style, sc;
     NS.assert(builder, "no scene builder for this document kind", { generator: doc.generator, known: Object.keys(BUILDERS) });
     rv = NS.scene.fog.spec(opts ? opts.reveal : null); style = NS.style.get(styleName);
+    NS.assert(!(rv && rv.area && builder.areaFog === false), "this scene has no measured ground for area fog");
     sc = builder(doc, style, U.extend({}, opts || {}, { reveal: rv ? rv.ids : (opts ? opts.reveal : undefined) }));
     return rv && rv.area ? NS.scene.fog.apply(sc, doc, rv.area) : sc;
   }
@@ -7514,7 +7527,7 @@
   "use strict";
   var NS = root.TnDMaps, G = NS.geom;
 
-  var MAX_LABEL = 40, MAX_NOTE = 400, NOTE_ON_MAP = 44;
+  var MAX_LABEL = 40, MAX_NOTE = 400, NOTE_ON_MAP = 44, LAYOUTS = {};
 
   function arc(cx, cy, r, a0, a1, n, out) { var k, a; for (k = 0; k <= n; k++) { a = a0 + (a1 - a0) * k / n; out.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]); } return out; }
   /* the party: a dagger, blade tip on the spot */
@@ -7582,6 +7595,8 @@
   function apply(scene, markers, styleName) {
     NS.assert(scene && scene.layers, "apply needs a scene", { got: scene });
     validate(markers, { width: (scene.x0 || 0) + scene.width, height: (scene.y0 || 0) + scene.height });
+    var layout = NS.own(LAYOUTS, scene.precision);
+    if (layout) return layout(scene, markers, styleName);
     var style = NS.style.get(styleName || scene.style), C = NS.scene.common, items = [], hits = [];
     markers.forEach(function (m) {
       var K = KINDS[m.kind], label = m.label || K.label, meta = { kind: "marker", id: m.id };
@@ -7605,6 +7620,7 @@
   /* what a marker is near, per generator: the reference points and how a distance reads at that scale */
   function fmtKm(k) { return k < 1 ? Math.max(50, Math.round(k * 20) * 50) + " m" : NS.digest.fmtKm(k); }
   var REFERENCES = {
+    schematic: function (doc) { NS.schematic.validate(doc); return { points: [], closeUnits: 0 }; },
     region: function (doc) {
       return { points: doc.places.map(function (p) { return { name: p.name, x: p.x, y: p.y, at: "at" }; }).concat((doc.caves || []).map(function (c) { return { name: c.name, x: c.x, y: c.y, at: "at the mouth of" }; })), closeUnits: 1 / doc.frame.kmPerUnit,
         dist: function (u) { var k = u * doc.frame.kmPerUnit; return { value: Math.round(k * 10) / 10, unit: "km", text: fmtKm(k) + (doc.frame.travelKmPerDay ? " (" + NS.digest.fmtDays(k / doc.frame.travelKmPerDay) + " on foot)" : "") }; } };
@@ -7646,7 +7662,7 @@
     return { text: lines.length ? "Pins:\n" + lines.join("\n") : "", facts: facts };
   }
 
-  NS.markers = { KINDS: KINDS, kinds: function () { return Object.keys(KINDS); }, validate: validate, apply: apply, describe: describe, MAX_LABEL: MAX_LABEL, MAX_NOTE: MAX_NOTE };
+  NS.markers = { KINDS: KINDS, LAYOUTS: LAYOUTS, kinds: function () { return Object.keys(KINDS); }, validate: validate, apply: apply, describe: describe, MAX_LABEL: MAX_LABEL, MAX_NOTE: MAX_NOTE };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 73-scene-dungeon.js ───── */
@@ -8420,6 +8436,189 @@
   NS.scene.fog = { spec: spec, apply: apply, FEATHER: FEATHER };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
+/* ───── 78-schematic.js ───── */
+/* 78-schematic.js — a public map is made only from the caller's accepted facts. No generated document, terrain,
+   private candidate, or metric unit enters this boundary. Anchors arrange facts; they never measure the world. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, C = NS.scene.common, WIDTH = 800, HEIGHT = 550;
+  var SCALES = { region: 1, town: 1, wild: 1, interior: 1, dungeon: 1 };
+  var BEARINGS = { N: [0, -1], NE: [1, -1], E: [1, 0], SE: [1, 1], S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1], unknown: [0, 0] };
+  var MODES = { observed: 1, reported: 1 };
+  var ICONS = { hut: "door", building: "door", room: "door", door: "door", arch: "door", cave: "cave", camp: "tent", stairs: "stairs", settlement: "tower", ruin: "tower", spring: "well", tree: "tree", bridge: "bridge" };
+  var MAX_FEATURES = 256;
+  function object(o) { return o && typeof o === "object" && !Array.isArray(o); }
+  function fields(o, allowed, where) {
+    NS.assert(object(o), where + " must be an object");
+    Object.keys(o).forEach(function (k) { NS.assert(allowed.indexOf(k) >= 0, where + " has an unsupported field: " + k); });
+  }
+  function string(s, max, where) { NS.assert(typeof s === "string" && s.length > 0 && s.length <= max && s.trim() === s && !/[\x00-\x1f\x7f]/.test(s), where + " must be nonempty text of at most " + max + " characters"); }
+  function point(p, height) { NS.assert(Array.isArray(p) && p.length === 2 && p.every(function (v) { return typeof v === "number" && isFinite(v); }) && p[0] >= 0 && p[0] <= WIDTH && p[1] >= 0 && p[1] <= (height || 450), "schematic anchor must be a point inside the frame"); }
+  function feature(f, input, height) {
+    fields(f, input ? ["id", "name", "kind", "bearing", "mode", "at"] : ["id", "name", "kind", "bearing", "mode", "x", "y", "unplaced"], "schematic feature");
+    string(f.id, 120, "schematic feature id"); string(f.name, 240, "schematic feature name"); string(f.kind, 40, "schematic feature kind");
+    NS.assert(NS.own(BEARINGS, f.bearing), "unknown schematic bearing", { bearing: f.bearing });
+    NS.assert(NS.own(MODES, f.mode), "unknown schematic knowledge mode", { mode: f.mode });
+    if (input) { if (f.at !== undefined) { NS.assert(f.bearing !== "unknown", "an unplaced schematic feature cannot carry an accepted anchor"); point(f.at); } }
+    else { point([f.x, f.y], height); NS.assert(f.unplaced === (f.bearing === "unknown"), "schematic unplaced flag must follow bearing knowledge"); }
+  }
+  function list(features, input, height) {
+    NS.assert(Array.isArray(features) && features.length <= MAX_FEATURES, "schematic features must be an array of at most " + MAX_FEATURES + " entries");
+    var ids = Object.create(null);
+    features.forEach(function (f) { feature(f, input, height); NS.assert(!NS.own(ids, f.id), "duplicate schematic feature id", { id: f.id }); ids[f.id] = true; });
+  }
+  /* Integer arithmetic keeps these illustrative anchors identical across engines. Only the feature's own id and
+     bearing choose its position, so adding another fact cannot move an accepted anchor. */
+  function anchor(f) {
+    if (f.at) return f.at.slice();
+    var h = NS.hash32(f.id, 733), b = NS.own(BEARINGS, f.bearing), r = 120 + h % 46, side = ((h >>> 8) % 45) - 22;
+    NS.assert(f.bearing !== "unknown", "unplaced features have list rows, not geographic anchors");
+    return [WIDTH / 2 + b[0] * r - b[1] * side, HEIGHT / 2 + b[1] * r + b[0] * side];
+  }
+  function schematic(spec) {
+    fields(spec, ["scale", "title", "features"], "schematic specification");
+    NS.assert(NS.own(SCALES, spec.scale), "unknown schematic scale", { scale: spec.scale }); string(spec.title, 240, "schematic title"); list(spec.features, true);
+    var unplaced = spec.features.filter(function (f) { return f.bearing === "unknown"; }).map(function (f) { return f.id; }).sort(), height = Math.max(HEIGHT, 520 + unplaced.length * 26);
+    return { format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "schematic", version: NS.VERSION },
+      frame: { width: WIDTH, height: height, precision: "schematic" }, title: { name: spec.title }, scale: spec.scale,
+      features: spec.features.map(function (f) { var unknown = f.bearing === "unknown", p = unknown ? [40, 510 + unplaced.indexOf(f.id) * 26] : anchor(f); return { id: f.id, name: f.name, kind: f.kind, bearing: f.bearing, mode: f.mode, x: p[0], y: p[1], unplaced: unknown }; }),
+      portals: [], warnings: [] };
+  }
+  function validate(doc) {
+    fields(doc, ["format", "ver", "generator", "frame", "title", "scale", "features", "portals", "warnings"], "schematic document");
+    fields(doc.frame, ["width", "height", "precision"], "schematic frame"); fields(doc.title, ["name"], "schematic title"); fields(doc.generator, ["name", "version"], "schematic generator");
+    string(doc.generator.version, 40, "schematic generator version");
+    NS.assert(doc.format === NS.DOC_FORMAT && doc.ver === NS.DOC_VER && doc.generator.name === "schematic", "not a supported schematic document");
+    NS.assert(doc.frame.width === WIDTH && doc.frame.height >= HEIGHT && doc.frame.height <= 520 + MAX_FEATURES * 26 && doc.frame.precision === "schematic", "schematic frame must be the unitless 800-wide sheet");
+    NS.assert(NS.own(SCALES, doc.scale), "unknown schematic scale", { scale: doc.scale }); string(doc.title.name, 240, "schematic title"); list(doc.features, false, doc.frame.height);
+    var unplaced = doc.features.filter(function (f) { return f.unplaced; }).map(function (f) { return f.id; }).sort();
+    NS.assert(doc.frame.height === Math.max(HEIGHT, 520 + unplaced.length * 26), "schematic frame must fit only its public unplaced list");
+    doc.features.forEach(function (f) { NS.assert(!f.unplaced || (f.x === 40 && f.y === 510 + unplaced.indexOf(f.id) * 26), "unplaced schematic feature must stay in the labelled list"); if (!f.unplaced) point([f.x, f.y]); });
+    NS.assert(Array.isArray(doc.portals) && doc.portals.length === 0 && Array.isArray(doc.warnings) && doc.warnings.length === 0, "schematic documents cannot carry generated portals or warnings");
+    return doc;
+  }
+  function label(f) { return f.name + (f.mode === "reported" ? " (reported)" : "") + (f.bearing === "unknown" ? " (position unknown)" : ""); }
+  /* Keep a long label readable instead of squeezing all its letters into the list. The hit record and digest
+     still expose the complete caller-supplied name; the suffix remains visible so reported knowledge stays clear. */
+  function fitText(text, suffix, key, width, style) {
+    var trimmed = text;
+    if (NS.style.textWidth(text + suffix, style.text[key]) <= width) return text + suffix;
+    while (trimmed.length && NS.style.textWidth(trimmed + "..." + suffix, style.text[key]) > width) trimmed = trimmed.slice(0, -1);
+    return trimmed + "..." + suffix;
+  }
+  function build(doc, style, opts) {
+    validate(doc); NS.assert(!opts || opts.reveal == null, "schematic maps take public features, not metric or room fog");
+    var layers = [], hits = [], lay = C.Layout(WIDTH, doc.frame.height, style), unknown = doc.features.some(function (f) { return f.unplaced; });
+    function layer(name) { var items = []; layers.push({ name: name, items: items }); return items; }
+    var frame = layer("frame"), furn = layer("furniture"), marks = layer("features"), labels = layer("labels");
+    C.furniture(doc.frame, fitText(doc.title.name, "", "title", WIDTH - 80, style), "Schematic — distances and sizes are not established", style, furn, lay, frame);
+    if (unknown) {
+      frame.push({ t: "path", pts: [[20, 465], [WIDTH - 20, 465], [WIDTH - 20, doc.frame.height - 18], [20, doc.frame.height - 18]], closed: true, s: "frameInner", meta: { kind: "unplaced-list" } });
+      var heading = C.plainText("Position not established", "schematicList", WIDTH / 2, 488, style); heading.meta = { kind: "unplaced-list" }; labels.push(heading);
+      lay.block(WIDTH / 2, (465 + doc.frame.height) / 2, WIDTH, doc.frame.height - 465);
+    }
+    doc.features.forEach(function (f) { if (!f.unplaced) lay.block(f.x, f.y, 22, 22); });
+    doc.features.forEach(function (f) {
+      var icon = NS.own(ICONS, f.kind), cmd;
+      if (f.unplaced) {
+        cmd = C.plainText(fitText(f.name, label(f).slice(f.name.length), "schematicList", WIDTH - 80, style), "schematicList", f.x, f.y, style); cmd.anchor = "start"; cmd.meta = { kind: "feature", id: f.id }; cmd.box = [f.x - 3, f.y - 21, f.x + cmd.width + 3, f.y + 5]; labels.push(cmd);
+        hits.push({ t: "hit", kind: "feature", id: f.id, x: f.x, y: f.y, r: 0, box: cmd.box }); return;
+      }
+      if (icon && NS.own(NS.icons.ICONS, icon)) NS.icons.draw(icon, f.x, f.y, 22, marks);
+      else marks.push({ t: "circle", x: f.x, y: f.y, r: 4, s: "placeRing" });
+      hits.push({ t: "hit", kind: "feature", id: f.id, x: f.x, y: f.y, r: 12 });
+      cmd = lay.place(label(f), "schematicLabel", [{ x: f.x + 18, y: f.y + 7, anchor: "start" }, { x: f.x - 18, y: f.y + 7, anchor: "end" }, { x: f.x, y: f.y - 38 }, { x: f.x, y: f.y + 42 }], { kind: "feature", id: f.id });
+      if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
+    });
+    layers.push({ name: "hits", items: hits });
+    return NS.markers.apply({ width: WIDTH, height: doc.frame.height, style: style.name, layers: layers, dropped: lay.dropped, unit: 1, precision: "schematic" }, [], style.name);
+  }
+  function digest(doc) {
+    validate(doc);
+    return { text: doc.title.name + ". Schematic: no distances or travel times are established." + (doc.features.length ? "\n" + doc.features.map(function (f) { return label(f) + " — " + (f.bearing === "unknown" ? "position unknown" : f.bearing) + "."; }).join("\n") : "\nNo landmarks have been supplied."),
+      facts: doc.features.map(function (f) { return { kind: "feature", id: f.id, name: f.name, featureKind: f.kind, bearing: f.bearing, mode: f.mode, precision: "schematic" }; }) };
+  }
+  NS.schematic = schematic; NS.schematic.validate = validate; NS.schematic.SCALES = SCALES; NS.schematic.BEARINGS = BEARINGS; NS.schematic.MAX_FEATURES = MAX_FEATURES;
+  build.areaFog = false;
+  NS.scene.BUILDERS.schematic = build; NS.digest.DIGESTS.schematic = digest;
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
+/* ───── 79-schematic-layout.js ───── */
+/* 79-schematic-layout.js — public annotations share one collision layout. Reflow moves only
+   labels: accepted anchors, marker positions and the caller's document stay unchanged. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, C = NS.scene.common, U = NS.util;
+  function layout(scene, markers, styleName) {
+    var style = NS.style.get(styleName || scene.style), lay = C.Layout(scene.width, scene.height, style);
+    var words = Object.create(null), originals = Object.create(null), featureHits = [], fixed = [], labels = [], markerItems = [], markerHits = [], leaders = [], extent = null, spatial = null, unplaced = false;
+    function include(b, placed) { if (!b) return; extent = extent ? [Math.min(extent[0], b[0]), Math.min(extent[1], b[1]), Math.max(extent[2], b[2]), Math.max(extent[3], b[3])] : b.slice(); if (placed !== false) spatial = spatial ? [Math.min(spatial[0], b[0]), Math.min(spatial[1], b[1]), Math.max(spatial[2], b[2]), Math.max(spatial[3], b[3])] : b.slice(); }
+    function block(b) { lay.block((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, b[2] - b[0], b[3] - b[1]); }
+    scene.layers.forEach(function (l) {
+      if (l.name === "labels") l.items.forEach(function (c) {
+        if (c.meta && c.meta.kind === "feature") { words[c.meta.id] = { text: c.text, style: c.s }; originals[c.meta.id] = c; }
+        else if (!c.meta || c.meta.kind !== "marker") fixed.push(c);
+      });
+      if (l.name === "hits") l.items.forEach(function (h) { if (h.kind === "feature") featureHits.push(U.extend({}, h)); });
+    });
+    (scene.dropped || []).forEach(function (c) { if (c.meta && c.meta.kind === "feature") words[c.meta.id] = { text: c.text, style: c.style }; });
+    /* The exported sheet still carries its own title and compass. Their reserved band is
+       separate from the view's screen-sized HUD clearance. */
+    lay.block(scene.width / 2, 55, scene.width, 110);
+    featureHits.forEach(function (h) {
+      if (h.r === 0) { unplaced = true; return; }
+      delete h.box; block([h.x - 11, h.y - 11, h.x + 11, h.y + 11]); include([h.x - 11, h.y - 11, h.x + 11, h.y + 11]);
+    });
+    if (unplaced) { block([0, 465, scene.width, scene.height]); include([20, 465, scene.width - 20, scene.height - 18], false); }
+    markers.forEach(function (m) { var b = [m.x - 14, m.y - 27, m.x + 18, m.y + 5]; block(b); include(b); });
+    function leader(x, y, cmd) {
+      if (!cmd) return;
+      var b = cmd.box, end = [U.clamp(x, b[0], b[2]), U.clamp(y, b[1], b[3])], dx = end[0] - x, dy = end[1] - y;
+      if (dx * dx + dy * dy > 100) leaders.push({ t: "path", pts: [[x, y], end], closed: false, s: "schematicLeader", meta: { kind: "annotation", id: cmd.meta.id } });
+    }
+    function candidates(x, y, marker) {
+      var side = [{ x: x + 18, y: y + 7, anchor: "start" }, { x: x - 18, y: y + 7, anchor: "end" }];
+      var vertical = [{ x: x, y: y + 42 }, { x: x, y: y - 38 }];
+      return marker ? vertical.concat(side) : side.concat(vertical.reverse());
+    }
+    markers.forEach(function (m) {
+      var K = NS.own(NS.markers.KINDS, m.kind), word = m.label || K.label, hit = { t: "hit", kind: "marker", id: m.id, x: m.x, y: m.y, r: K.hitR }, cmd, note;
+      K.draw(m.x, m.y, markerItems); markerHits.push(hit);
+      if (word) {
+        cmd = lay.place(word, "schematicMarker", candidates(m.x, m.y, true), { kind: "marker", id: m.id }, { icon: m.icon || null });
+        if (cmd) { markerItems.push(cmd); hit.box = cmd.box.slice(); include(cmd.box); leader(m.x, m.y, cmd); }
+      }
+      if (m.note) {
+        note = String(m.note).replace(/\s+/g, " "); if (note.length > 44) note = note.slice(0, 43).replace(/\s+\S*$/, "") + "…";
+        cmd = lay.place(note, "schematicNote", [{ x: m.x, y: cmd ? cmd.box[3] + 29 : m.y + 42 }, { x: m.x, y: m.y - 70 }], { kind: "marker", id: m.id });
+        if (cmd) { markerItems.push(cmd); include(cmd.box); hit.boxes = hit.box ? [hit.box.slice(), cmd.box.slice()] : [cmd.box.slice()]; if (!hit.box) hit.box = cmd.box.slice(); }
+      }
+    });
+    featureHits.forEach(function (h) {
+      var word = NS.own(words, h.id), cmd;
+      NS.assert(word, "schematic hit has no public annotation", { id: h.id });
+      if (h.r === 0) {
+        cmd = NS.own(originals, h.id); NS.assert(cmd && cmd.box, "unplaced schematic row has no label box", { id: h.id });
+        labels.push(cmd); include(cmd.box, false); return;
+      }
+      cmd = lay.place(word.text, word.style, candidates(h.x, h.y, false), { kind: "feature", id: h.id });
+      if (cmd) { labels.push(cmd); h.box = cmd.box.slice(); include(cmd.box); leader(h.x, h.y, cmd); }
+    });
+    var layers = [];
+    scene.layers.forEach(function (l) {
+      if (["labels", "markers", "hits", "leaders"].indexOf(l.name) >= 0) return;
+      if (l.name === "features") layers.push({ name: "leaders", items: leaders });
+      layers.push(l);
+    });
+    layers.push({ name: "labels", items: fixed.concat(labels) });
+    if (markers.length) layers.push({ name: "markers", items: markerItems });
+    layers.push({ name: "hits", items: markerHits.concat(featureHits) });
+    var out = U.extend({}, scene); out.layers = layers; out.dropped = lay.dropped; out.contentBounds = extent; out.spatialBounds = spatial; out.markers = markers.length;
+    return out;
+  }
+  NS.markers.LAYOUTS.schematic = layout;
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
 /* ───── 80-render-svg.js ───── */
 /* 80-render-svg.js — scene → SVG string. One <g> per layer; every colour and width comes from the style table. A text
    command is drawn at the width the layout gave it (textLength), so the letters always sit inside their slip even
@@ -8605,15 +8804,19 @@
 /* ───── 90-view.js ───── */
 /* 90-view.js — the interactive map component: pan, zoom (wheel, pinch), hover and click on markers, layer toggles,
    pins (markers composed over the document scene), PNG export. Draws a crisp render at rest and pans/zooms a bitmap of
-   it during gestures. DOM lives only here. */
+   it during gestures. Optional list UI is dispatched through viewLists. */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps, U = NS.util;
+  NS.viewLists = NS.viewLists || {};
 
   function view(canvas, doc, opts) {
     NS.assert(canvas && canvas.getContext, "view needs a <canvas> element", { canvas: String(canvas) });
     opts = opts || {};
-    var styleName = opts.style || "ink", scene = null, baseScene = null, markers = [], layers = {}, listeners = {}, hits = [];
+    var fitMode = opts.fit || "sheet", listMode = opts.unplaced || "sheet";
+    NS.assert(listMode === "sheet" || listMode === "list", "view unplaced must be sheet or list");
+    NS.assert(fitMode === "sheet" || fitMode === "content", "view fit must be sheet or content");
+    var styleName = opts.style || "ink", scene = null, baseScene = null, exportScene = null, listUi = null, listFactory = null, markers = [], layers = {}, listeners = {}, hits = [];
     var bounds = !!opts.bounds;   /* v0.16.0: the sheet fills the view — on an axis where the sheet is larger than the view no paper edge comes inside it, on one where it is smaller the sheet sits centred; every move (a pan, a zoom, a pinch, center, pan(), a resize) is clamped (clampT) */
     var hudTrail = null, hudHits = [], hudPress = null;   /* v0.17.0: the plaque's trail (setHudTrail) — its tiers' boxes in CSS px as last drawn, and the tier a pointer went down on */
     var MARGIN = 0.5, MAX_BASE_PX = 12e6, lastMidRender = 0;   /* v0.17.0: the base bitmap is drawn with a margin of half the view each side (bounded by MAX_BASE_PX), so a pan or a zoom out shows map, not background, until the crisp redraw; a gesture that runs past the margin redraws at once, at most every 120 ms */
@@ -8635,21 +8838,53 @@
       bw = Math.round(w * (1 + 2 * m)); bh = Math.round(h * (1 + 2 * m));
       if (canvas.width !== w || canvas.height !== h || base.width !== bw || base.height !== bh) { canvas.width = w; canvas.height = h; base.width = bw; base.height = bh; baseM = { x: m * s.w, y: m * s.h }; baseDirty = true; clampT(); }
     }
+    /* CSS viewport clearance is shared by the map camera and the nonspatial list. */
+    function usableArea(pad) {
+      var s = cssSize(), top = pad, bottom = s.h - pad;
+      if (hud) hudItems().forEach(function (c) {
+        var lo, hi, size;
+        if (c.t === "path" && c.pts && c.pts.length) { lo = Math.min.apply(null, c.pts.map(function (p) { return p[1]; })); hi = Math.max.apply(null, c.pts.map(function (p) { return p[1]; })); }
+        else if (c.t === "circle") { lo = c.y - c.r; hi = c.y + c.r; }
+        else if (c.t === "text") { size = NS.style.get(styleName).text[c.s].size; lo = c.y - size * 1.1; hi = c.y + size * 0.4; }
+        else return;
+        if ((lo + hi) / 2 < s.h / 2) top = Math.max(top, hi + 10); else bottom = Math.min(bottom, lo - 10);
+      });
+      var area = { left: pad, right: Math.max(pad + 1, s.w - pad), top: Math.min(top, s.h / 2 - 8), bottom: Math.max(bottom, s.h / 2 + 8) };
+      if (listUi) area.bottom -= listUi.layout(s, area);
+      return area;
+    }
+    function framing(pad) {
+      var b = fitMode === "content" && scene && scene.precision === "schematic" && scene.contentBounds;
+      if (!b) return null;
+      NS.assert(Array.isArray(b) && b.length === 4 && b.every(function (v) { return typeof v === "number" && isFinite(v); }) && b[2] > b[0] && b[3] > b[1], "invalid public content bounds");
+      var area = usableArea(pad);
+      return U.extend(area, { x: b[0], y: b[1], w: b[2] - b[0], h: b[3] - b[1] });
+    }
     /* the bounds: the box the scene draws (a dungeon draws a window of its town's coordinates), in CSS px at T */
     function clampT() {
       if (!bounds || !scene) return;
-      var s = cssSize(), W = scene.width * T.k, H = scene.height * T.k, X = (scene.x0 || 0) * T.k, Y = (scene.y0 || 0) * T.k;
-      T.x = W <= s.w ? (s.w - W) / 2 - X : U.clamp(T.x, s.w - W - X, -X);
-      T.y = H <= s.h ? (s.h - H) / 2 - Y : U.clamp(T.y, s.h - H - Y, -Y);
+      var f = framing(16), s = cssSize(), W = (f ? f.w : scene.width) * T.k, H = (f ? f.h : scene.height) * T.k, X = (f ? f.x : scene.x0 || 0) * T.k, Y = (f ? f.y : scene.y0 || 0) * T.k;
+      var left = f ? f.left : 0, right = f ? f.right : s.w, top = f ? f.top : 0, bottom = f ? f.bottom : s.h;
+      T.x = W <= right - left ? (left + right - W) / 2 - X : U.clamp(T.x, right - W - X, left - X);
+      T.y = H <= bottom - top ? (top + bottom - H) / 2 - Y : U.clamp(T.y, bottom - H - Y, top - Y);
     }
     var reveal = null;   /* the fog of war (setReveal): a list of ids (a dungeon's, a building's rooms), a spec {ids} | {points, paths, radiusM} (the area fog on any sheet, v0.18.0), or null for all */
     function rebuildScene() { baseScene = NS.scene.build(doc, styleName, { reveal: reveal }); compose(); }
     /* the drawn scene is the document scene plus the markers; changing the markers never rebuilds the document scene */
     function compose() {
-      scene = markers.length ? NS.markers.apply(baseScene, markers, styleName) : baseScene; hits = [];
+      exportScene = markers.length ? NS.markers.apply(baseScene, markers, styleName) : baseScene;
+      var factory = listMode === "list" ? NS.own(NS.viewLists, doc.generator.name) : null;
+      if (factory !== listFactory) { if (listUi) listUi.destroy(); listFactory = factory; listUi = factory ? factory(canvas, activateUnplaced) : null; }
+      if (listUi) { listUi.update(doc, styleName); listUi.select(selected); }
+      scene = listUi ? listUi.project(exportScene) : exportScene; hits = [];
       tipOf = {};
       scene.layers.forEach(function (L) { if (L.name === "hits") hits = L.items; if (L.name === "tips") L.items.forEach(function (c) { if (c.meta) tipOf[c.meta.kind + "/" + c.meta.id] = c; }); });
       baseDirty = true;
+    }
+    function activateUnplaced(id) {
+      var h = { kind: "feature", id: id, unplaced: true }, identity = { id: id, unplaced: true };
+      selected = { kind: "feature", id: id }; if (listUi) listUi.select(selected); schedule();
+      emit("click", identity, h); emit("mapclick", identity, h);
     }
     /* the crisp render of the whole visible canvas at transform T, into the base bitmap */
     function renderBase() {
@@ -8665,6 +8900,7 @@
     function present() {
       raf = 0; if (destroyed) return;
       if (!scene) rebuildScene();
+      if (listUi) usableArea(16);
       if (!baseDirty && !covered()) { var now = Date.now(); if (now - lastMidRender > 120) { baseDirty = true; lastMidRender = now; } }   /* the gesture ran past the margin: redraw now rather than show background */
       if (baseDirty) renderBase();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -8737,8 +8973,10 @@
     function fit(pad) {
       pad = pad === undefined ? 16 : pad;
       if (!scene) rebuildScene();
-      var s = cssSize(), W = scene.width, H = scene.height, X = scene.x0 || 0, Y = scene.y0 || 0, k = Math.min((s.w - 2 * pad) / W, (s.h - 2 * pad) / H);
-      T = { k: k, x: (s.w - W * k) / 2 - X * k, y: (s.h - H * k) / 2 - Y * k };
+      var f = framing(pad), s = cssSize(), W = f ? f.w : scene.width, H = f ? f.h : scene.height, X = f ? f.x : scene.x0 || 0, Y = f ? f.y : scene.y0 || 0;
+      var left = f ? f.left : pad, right = f ? f.right : s.w - pad, top = f ? f.top : pad, bottom = f ? f.bottom : s.h - pad;
+      var k = Math.min((right - left) / W, (bottom - top) / H, f ? 1.25 : Infinity);
+      T = { k: k, x: (left + right - W * k) / 2 - X * k, y: (top + bottom - H * k) / 2 - Y * k };
       userMoved = false; baseDirty = true; schedule(); emit("view", { x: T.x, y: T.y, k: T.k });
     }
     function zoomAt(factor, sx, sy) {
@@ -8749,10 +8987,12 @@
     function toMap(sx, sy) { return [(sx - T.x) / T.k, (sy - T.y) / T.k]; }
     function hitTest(sx, sy) {
       var m = toMap(sx, sy), best = null, bd = 1e9, i, h, d;
-      var slack = 2 / T.k, inBox;
+      var slack = 2 / T.k, inBox, boxes, j, b;
       for (i = 0; i < hits.length; i++) {
         h = hits[i]; d = Math.sqrt(Math.pow(h.x - m[0], 2) + Math.pow(h.y - m[1], 2));
-        inBox = !!h.box && m[0] >= h.box[0] - slack && m[0] <= h.box[2] + slack && m[1] >= h.box[1] - slack && m[1] <= h.box[3] + slack;
+        /* Separate annotation rectangles never make the empty space between a label and note clickable. */
+        boxes = h.boxes || (h.box ? [h.box] : []); inBox = false;
+        for (j = 0; j < boxes.length && !inBox; j++) { b = boxes[j]; inBox = m[0] >= b[0] - slack && m[0] <= b[2] + slack && m[1] >= b[1] - slack && m[1] <= b[3] + slack; }
         if ((d <= h.r / Math.min(1, T.k) + slack || inBox) && d < bd) { bd = d; best = h; }
       }
       return best;
@@ -8822,11 +9062,11 @@
       off: function (ev, fn) { listeners[ev] = (listeners[ev] || []).filter(function (f) { return f !== fn; }); return api; },
       /* setDoc(doc, keepView) — a new document; keepView holds the current pan and zoom (the same map, regenerated) */
       /* select(kind, id) keeps a ring on that thing until select(null); it survives setDoc and setMarkers */
-      select: function (kind, id) { selected = kind ? { kind: kind, id: id } : null; schedule(); return api; },
+      select: function (kind, id) { selected = kind ? { kind: kind, id: id } : null; if (listUi) listUi.select(selected); schedule(); return api; },
       selected: function () { return selected; },
-      setDoc: function (d, keepView) { doc = d; hover = null; clearPress(); markers = []; reveal = null; rebuildScene(); if (keepView) { baseDirty = true; schedule(); } else fit(); return api; },
+      setDoc: function (d, keepView) { var nextScene = NS.scene.build(d, styleName, { reveal: null }); doc = d; hover = null; clearPress(); markers = []; reveal = null; baseScene = nextScene; compose(); if (keepView) { baseDirty = true; schedule(); } else fit(); return api; },
       /* setMarkers(list) — the pins drawn over this document (see TnDMaps.markers); a bad list is refused here, loudly */
-      setMarkers: function (list) { list = (list || []).slice(); NS.markers.validate(list, doc.frame); markers = list; hover = null; if (baseScene) compose(); schedule(); return api; },
+      setMarkers: function (list) { list = (list || []).slice(); NS.markers.validate(list, doc.frame); markers = list; hover = null; if (baseScene) compose(); if (fitMode === "content" && !userMoved) fit(); else schedule(); return api; },
       markers: function () { return markers; },
       setStyle: function (name) { NS.style.get(name); styleName = name; rebuildScene(); schedule(); return api; },
       setLayerVisible: function (name, visible) { layers[name] = visible !== false; baseDirty = true; schedule(); return api; },
@@ -8847,8 +9087,8 @@
          is baked into the base bitmap: a pan or a zoom costs nothing more */
       setReveal: function (r) {
         NS.scene.fog.spec(r);
-        reveal = r === undefined || r === null ? null : Array.isArray(r) ? r.slice() : JSON.parse(JSON.stringify(r));
-        rebuildScene(); schedule(); return api;
+        var next = r === undefined || r === null ? null : Array.isArray(r) ? r.slice() : JSON.parse(JSON.stringify(r)), nextScene = NS.scene.build(doc, styleName, { reveal: next });
+        reveal = next; baseScene = nextScene; compose(); schedule(); return api;
       },
       reveal: function () { return reveal === null ? null : Array.isArray(reveal) ? reveal.slice() : JSON.parse(JSON.stringify(reveal)); },
       fit: function () { fit(); return api; },
@@ -8869,15 +9109,15 @@
       /* toPNG(widthPx, cb) — the whole map at the given pixel width; cb(blob) */
       toPNG: function (widthPx, cb) {
         if (!scene) rebuildScene();
-        var k = widthPx / scene.width, off = document.createElement("canvas"), c;
-        off.width = Math.round(widthPx); off.height = Math.round(scene.height * k);
-        c = off.getContext("2d"); c.setTransform(k, 0, 0, k, -(scene.x0 || 0) * k, -(scene.y0 || 0) * k); NS.renderCanvas(c, scene, { layers: layers });
+        var whole = exportScene || scene, k = widthPx / whole.width, off = document.createElement("canvas"), c;
+        off.width = Math.round(widthPx); off.height = Math.round(whole.height * k);
+        c = off.getContext("2d"); c.setTransform(k, 0, 0, k, -(whole.x0 || 0) * k, -(whole.y0 || 0) * k); NS.renderCanvas(c, whole, { layers: layers });
         if (off.toBlob) off.toBlob(cb, "image/png"); else { var url = off.toDataURL("image/png"); cb(url); }
         return api;
       },
-      toSVG: function (o) { if (!scene) rebuildScene(); return NS.renderSVG(scene, U.extend({ layers: layers }, o || {})); },
+      toSVG: function (o) { if (!scene) rebuildScene(); return NS.renderSVG(exportScene || scene, U.extend({ layers: layers }, o || {})); },
       destroy: function () { clearPress();
-        destroyed = true;
+        destroyed = true; if (listUi) { listUi.destroy(); listUi = null; }
         canvas.removeEventListener("mousedown", onDown); root.removeEventListener("mousemove", onMove); root.removeEventListener("mouseup", onUp);
         canvas.removeEventListener("dblclick", onDbl); canvas.removeEventListener("wheel", onWheel); canvas.removeEventListener("touchstart", onTouchStart); canvas.removeEventListener("touchmove", onTouchMove); canvas.removeEventListener("touchend", onTouchEnd);
         root.removeEventListener("resize", onResize);
@@ -8888,6 +9128,88 @@
   }
 
   NS.view = view;
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
+/* ───── 91-unplaced-list.js ───── */
+/* 91-unplaced-list.js — unknown positions are a screen-sized, scrollable list. The interactive
+   projection omits their ledger geometry; the complete scene remains available for export. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, U = NS.util;
+  function create(canvas, activate) {
+    NS.assert(canvas.parentNode, "an unplaced list needs a mounted canvas");
+    var panel = document.createElement("section"), heading = document.createElement("div"), body = document.createElement("div");
+    var entries = [], ids = Object.create(null), buttons = [], signature = null, selection = null, palette = null;
+    panel.setAttribute("data-tnd-unplaced", ""); panel.setAttribute("aria-label", "Position not established");
+    panel.style.cssText = "display:none;position:absolute;z-index:2;box-sizing:border-box;border:1px solid;line-height:1.4;overflow:hidden;";
+    heading.textContent = "Position not established"; heading.style.cssText = "font-weight:bold;font-size:14px;padding:8px 10px;border-bottom:1px solid;";
+    body.style.cssText = "overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;";
+    panel.appendChild(heading); panel.appendChild(body); canvas.parentNode.appendChild(panel);
+    function buttonFrom(node) { while (node && node !== panel) { if (node.getAttribute && node.hasAttribute("data-tnd-unplaced-id")) return node; node = node.parentNode; } return null; }
+    function onClick(e) { var b = buttonFrom(e.target); if (!b) return; e.stopPropagation(); activate(b.getAttribute("data-tnd-unplaced-id")); }
+    function onKey(e) {
+      var b = buttonFrom(e.target), i, n;
+      if (b && (e.key === "Enter" || e.key === " ")) { e.stopPropagation(); return; }
+      if (!b || ["ArrowDown", "ArrowUp", "Home", "End"].indexOf(e.key) < 0) return;
+      i = buttons.indexOf(b); n = e.key === "Home" ? 0 : e.key === "End" ? buttons.length - 1 : Math.max(0, Math.min(buttons.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)));
+      e.preventDefault(); e.stopPropagation(); buttons[n].focus();
+    }
+    panel.addEventListener("click", onClick); panel.addEventListener("keydown", onKey);
+    function select(s) {
+      selection = s;
+      buttons.forEach(function (b) { var on = !!s && s.kind === "feature" && s.id === b.getAttribute("data-tnd-unplaced-id"); b.setAttribute("aria-pressed", on ? "true" : "false"); b.style.background = on ? palette.selected : "transparent"; });
+    }
+    function update(doc, styleName) {
+      var uiStyle = NS.style.get(styleName).ui; NS.assert(uiStyle && uiStyle.unplaced, "style has no unplaced list palette"); palette = uiStyle.unplaced;
+      panel.style.background = palette.background; panel.style.color = palette.color; panel.style.borderColor = palette.border; panel.style.font = palette.size + "px " + palette.font; heading.style.borderColor = palette.divider;
+      var next = doc.features.filter(function (f) { return f.unplaced; }).map(function (f) { return { id: f.id, name: f.name, mode: f.mode }; }), sig = JSON.stringify([styleName, next]), active, focusId, scroll;
+      if (sig === signature) return;
+      active = buttonFrom(document.activeElement); focusId = active && active.getAttribute("data-tnd-unplaced-id"); scroll = body.scrollTop;
+      entries = next; signature = sig; ids = Object.create(null); buttons = []; body.textContent = "";
+      entries.forEach(function (f) {
+        var b = document.createElement("button"), name = document.createElement("span"), status = document.createElement("span");
+        ids[f.id] = true; b.type = "button"; b.setAttribute("data-tnd-unplaced-id", f.id);
+        b.style.cssText = "display:block;width:100%;box-sizing:border-box;min-height:44px;margin:0;padding:9px 10px;border:0;border-bottom:1px solid;border-radius:0;text-align:left;font:inherit;font-size:14px;color:inherit;line-height:1.4;white-space:normal;overflow-wrap:anywhere;cursor:pointer;";
+        b.style.borderColor = palette.divider; b.style.fontSize = palette.size + "px"; b.setAttribute("aria-label", f.name + " — " + (f.mode === "reported" ? "Reported" : "Observed"));
+        name.textContent = f.name; name.style.display = "block";
+        status.textContent = f.mode === "reported" ? "Reported" : "Observed"; status.style.cssText = "display:block;font-size:14px;";
+        status.style.color = palette.status;
+        b.appendChild(name); b.appendChild(status); body.appendChild(b); buttons.push(b);
+      });
+      heading.textContent = "Position not established (" + entries.length + ")";
+      panel.style.display = entries.length ? "block" : "none"; select(selection);
+      buttons.forEach(function (b) { if (b.getAttribute("data-tnd-unplaced-id") === focusId) b.focus({ preventScroll: true }); });
+      body.scrollTop = scroll;
+    }
+    function project(scene) {
+      if (!entries.length) return scene;
+      var out = U.extend({}, scene);
+      out.layers = scene.layers.map(function (l) { return { name: l.name, items: l.items.filter(function (c) {
+        if (c.meta && c.meta.kind === "unplaced-list") return false;
+        if (c.meta && c.meta.kind === "feature" && NS.own(ids, c.meta.id)) return false;
+        return !(c.t === "hit" && c.kind === "feature" && NS.own(ids, c.id));
+      }) }; });
+      out.contentBounds = scene.spatialBounds;
+      return out;
+    }
+    function layout(size, area) {
+      if (!entries.length) return 0;
+      var cap = Math.max(44, Math.min(240, (area.bottom - area.top) * 0.42)), headingHeight, height, r, offset, origin, left, top;
+      panel.style.width = Math.max(1, area.right - area.left) + "px";
+      headingHeight = heading.offsetHeight;
+      body.style.maxHeight = Math.max(20, cap - headingHeight - 2) + "px";
+      height = panel.offsetHeight;
+      r = canvas.getBoundingClientRect(); offset = panel.offsetParent;
+      origin = offset ? offset.getBoundingClientRect() : { left: 0, top: 0 };
+      left = r.left - origin.left + (offset ? offset.scrollLeft - offset.clientLeft : root.pageXOffset || 0) + area.left;
+      top = r.top - origin.top + (offset ? offset.scrollTop - offset.clientTop : root.pageYOffset || 0) + area.bottom - height;
+      panel.style.left = left + "px"; panel.style.top = top + "px";
+      return height + 12;
+    }
+    function destroy() { panel.removeEventListener("click", onClick); panel.removeEventListener("keydown", onKey); if (panel.parentNode) panel.parentNode.removeChild(panel); entries = []; buttons = []; }
+    return { update: update, project: project, layout: layout, select: select, destroy: destroy };
+  }
+  NS.viewLists.schematic = create;
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 99-api.js ───── */
@@ -8901,6 +9223,7 @@
   var NS = root.TnDMaps;
 
   NS.GENERATORS = {
+    schematic: { generate: NS.schematic, validate: NS.schematic.validate, metric: false, defaults: {}, describe: "Public schematic: supplied features only, without measured distances." },
     region: { generate: NS.region.generate, defaults: NS.region.DEFAULTS, validate: NS.region.validate, describe: "Region or continent: coast, rivers, relief, settlements, roads, names." },
     town: { generate: NS.town.generate, defaults: NS.town.DEFAULTS, validate: NS.town.validate, describe: "Town plan for one settlement: wards, streets, walls, landmarks, buildings, fields; nests in a region place via TnDMaps.town.fromRegion." },
     dungeon: { generate: NS.dungeon.generate, defaults: NS.dungeon.DEFAULTS, validate: NS.dungeon.validate, describe: "What lies beneath or beyond: the sewers under a town's streets (TnDMaps.dungeon.fromTown), the catacombs beneath them and the caves behind a region's cave mouth (TnDMaps.dungeon.fromRegion), each level with its chambers and its portals up and down (TnDMaps.dungeon.fromDungeon)." },
@@ -8932,11 +9255,12 @@
     NS.assert(doc && typeof doc === "object", "document must be an object", { got: typeof doc });
     NS.assert(doc.format === NS.DOC_FORMAT, "document format must be " + NS.DOC_FORMAT, { format: doc.format });
     NS.assert(doc.ver === NS.DOC_VER, "document ver " + doc.ver + " is not " + NS.DOC_VER + " — run TnDMaps.migrate first", { ver: doc.ver });
-    NS.assert(doc.frame && doc.frame.width > 0 && doc.frame.height > 0 && doc.frame.kmPerUnit > 0, "document frame is malformed", { frame: doc.frame });
+    NS.assert(doc.frame && doc.frame.width > 0 && doc.frame.height > 0, "document frame is malformed", { frame: doc.frame });
     NS.assert(doc.title && typeof doc.title.name === "string", "document.title.name must be a string", { title: doc.title });
     var gen = doc.generator && NS.own(NS.GENERATORS, doc.generator.name);
     NS.assert(gen, "document.generator.name must be a known generator", { generator: doc.generator, known: Object.keys(NS.GENERATORS) });
     NS.assert(Array.isArray(doc.warnings), "document.warnings must be an array", { warnings: doc.warnings });
+    NS.assert(gen.metric === false || doc.frame.kmPerUnit > 0, "metric document frame needs kmPerUnit", { frame: doc.frame });
     return gen.validate(doc);
   }
   /* migrations: a table from version → the function that lifts a document to version + 1 */

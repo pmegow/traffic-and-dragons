@@ -1,0 +1,210 @@
+{
+  "version": 1,
+  "id": "kaelon-t7-public-evidence-733-v1",
+  "authority": "reviewed-public-transcript",
+  "source": {
+    "sha256": "f6f8d24f141594652339a1ecb2486c4c141005c35ce2e45a4704c59e1761d559",
+    "campId": "camp_1794326088911_2138",
+    "turn": 7,
+    "atlasSHA256": "786312f6bfb5e1d8760d07ed43395ac99b3c6cb60c5f54ec88383075a2e9a749"
+  },
+  "copy": {
+    "campId": "camp_1794326088911_2138_map733",
+    "campName": "The Silence Between Leaves (Kaelon Sky-Breaker) — Public map copy"
+  },
+  "sources": [
+    {
+      "id": "t0",
+      "index": 0,
+      "turn": 0,
+      "location": "The Boundary Clearing",
+      "text": "Cold wind brings the smell of wet reed and burnt horn when your eyes snap open against the crushed clover. At the edge of the First Pact stones, an elf scout with sweeping stag antlers drops to one knee under the assault of a snarling goblin warrior draped in forged marsh silk. Above them in the dead boughs of an alder, a raven with eyes like polished jet watches the clash in utter silence. The goblin raider spots your massive, scaled frame rising from the grass, bares sharp teeth, and wheels around with a notched cleaver raised to split your skull."
+    },
+    {
+      "id": "t3",
+      "index": 5,
+      "turn": 3,
+      "location": "The Boundary Clearing",
+      "text": "You plant one heavy boot on the moss beside his chest and lean down. The sky rumbles faintly behind your ribs, tasting of copper and hail. \n\nThe goblin looks at your jaws and pulls his knees to his chin. The false dragonfly badge pinned to his breast shivers like a dying moth.\n\n\"Nobody from the water,\" the goblin croaks, eyes darting to the northern trees. \"The deep shafts pay better than the marsh ever did. We only wear the blue rags so the green ones shoot south.\"\n\nTheron steps closer, his bow still resting across his forearm. He points two long fingers toward the western canopy where the shadows gather earliest.\n\n\"He speaks of the Down Below,\" the scout says to you. \"My king sits beneath the great oak three miles west. If you can carry this one, the court will want to hear his voice before the sun drops.\"\n\nIn the alder branch above, the black raven tilts its head, lets out a dry rasp, and takes flight toward the west without stirring a leaf."
+    },
+    {
+      "id": "t4",
+      "index": 7,
+      "turn": 4,
+      "location": "The Boundary Clearing",
+      "text": "The goblin stays flat against the moss, hands clasped over his neck, perfectly still.\n\nYou turn to the elf. Theron leans back against the First Pact stone, wiping sweat and sap from his forehead with the side of an arm. His stag antlers glint where blood has dried along the velvet. \n\n\"A torn tunic and a bruised shoulder,\" Theron says, tapping his breastplate with two fingers. \"Nothing a draft of mint water will not mend before moonrise.\"\n\nHe reaches into his leather coat and draws out a small talisman carved from pale ash, shaped like a curling leaf. He holds it out to you with steady fingers.\n\n\"Take this. The border wardens will drop their bowstrings when they see the grain. Walk with me toward the Ironwood Heart, stranger, and bring the little forge-rat before his glamour falls to dust.\""
+    },
+    {
+      "id": "t5",
+      "index": 9,
+      "turn": 5,
+      "location": "The Boundary Clearing",
+      "text": "You reach down and take the carved ash leaf. It feels cool, like river stone kept in a cellar. \n\nYou offer a broad, scaled forearm to Theron, hauling the elf to his boots with a dry heave. He winces as his bruised shoulder settles, then adjusts his quiver with his good arm. \n\n\"The border wardens are already muttering that a dragon fell through the clouds and flattened three marsh assassins beneath an oak. It is good to see you are only mostly scales.\"\n\nYou bend over, seize the goblin by the waistband of his false silk trousers, and swing him over your shoulder like a sack of turnips. The raider lets out a squeak, goes limp, and stares at your tail with wide, round eyes.\n\n\"The path west is clear for the moment,\" Theron says, pointing into the deep shadows beneath the silver firs. \"Walk close. The boughs do not like strangers who carry iron.\""
+    },
+    {
+      "id": "t6",
+      "index": 11,
+      "turn": 6,
+      "location": "The Ironwood Heart",
+      "text": "The forest path smells like crushed needles and wet slate. \n\nNo birds sing in the branches. The silence here is thick enough to catch in your throat, unbroken even when your heavy boots grind into the loam.\n\nTheron parts a hanging curtain of lichen and leads you beneath four enormous silver firs. Their roots form a high, twisted chair. A tall elf sits upon it, wrapped in a cloak of living moss that drops brown needles onto his lap whenever he draws breath. His crown is made of woven rowan twigs, dry and pale.\n\n\"My liege. A border raider from the disputed verge, and the traveler who broke his line.\"\n\nThe Forest King looks at your horns, then down at the limp goblin dangling over your shoulder. His eyes are the gray of winter ice, cold and tired.\n\n\"The green boughs wither because my son is not beneath them. Throw the rat upon the earth, stranger, and tell me whose badge he wore when you took him.\""
+    },
+    {
+      "id": "t7",
+      "index": 13,
+      "turn": 7,
+      "location": "The Ironwood Heart",
+      "text": "You let go of the raider's belt. The goblin hits the moss with a dull thump and curls into a ball. \n\nYou pinch the blue cloth badge from his torn collar and hold it out. The dragonfly is sewn with stiff silver thread, cheap enough to tarnish at the edges.\n\n\"Fen silk,\" the king whispers, leaning forward until dry needles tumble from his boughs. \"Stillwater's marsh-runners wear the same blue.\"\n\n\"It is painted linen, liege. He smelled of shaft grease, not peat.\"\n\nA shadow slips between the gray fir trunks. A figure walks into the root-hall without stepping on a twig, wrapped in charcoal cloth and wearing a mask of baked ash. They drop a parchment scroll sealed with black wax upon the king's knees, turn on their heel, and melt back into the dusk without speaking a syllable. \n\nThe king breaks the soot-dark seal. Above his head, a thick fir bough turns yellow and drops half its needles all at once.\n\n\"The courier brings word from the border post. My son Auden is held in the sunken prison of Reedglass Keep. Stillwater means to bleed him until our boughs break.\"\n\nThe king looks at your broad shoulders and the great axe at your back.\n\n\"Bring Auden back to these roots unharmed. Do that in good faith, and I will open the Waystone Arch so you may step back to your own sky.\""
+    }
+  ],
+  "facts": [
+    {
+      "label": "First Pact stones",
+      "container": "The Boundary Clearing",
+      "bearing": "unknown",
+      "mode": "observed",
+      "source": "t0",
+      "start": 107,
+      "end": 143,
+      "attributeSources": {
+        "label": [
+          "t0"
+        ],
+        "bearing": [],
+        "mode": [
+          "t0"
+        ]
+      },
+      "rationale": "The narrator places the character at these stones. No position beyond the current clearing is established.",
+      "canonicalKey": null
+    },
+    {
+      "label": "The Down Below",
+      "container": "The Boundary Clearing",
+      "bearing": "unknown",
+      "mode": "reported",
+      "source": "t3",
+      "start": 625,
+      "end": 652,
+      "attributeSources": {
+        "label": [
+          "t3"
+        ],
+        "bearing": [],
+        "mode": [
+          "t3"
+        ]
+      },
+      "rationale": "Theron names the destination in dialogue. The raider looking north does not establish its direction.",
+      "canonicalKey": "The Down Below"
+    },
+    {
+      "label": "The Ironwood Heart",
+      "container": "The Boundary Clearing",
+      "bearing": "W",
+      "mode": "reported",
+      "source": "t4",
+      "start": 685,
+      "end": 733,
+      "attributeSources": {
+        "label": [
+          "t4"
+        ],
+        "bearing": [
+          "t3",
+          "t4",
+          "t5",
+          "t6"
+        ],
+        "mode": [
+          "t3",
+          "t4"
+        ]
+      },
+      "rationale": "The same escort offers the western court at t3, names Ironwood at t4, directs the path west at t5, and arrives at Ironwood at t6. Direction is a report; no measured map distance is inferred.",
+      "canonicalKey": "The Ironwood Heart"
+    },
+    {
+      "label": "high, twisted chair",
+      "container": "The Ironwood Heart",
+      "bearing": "unknown",
+      "mode": "observed",
+      "source": "t6",
+      "start": 298,
+      "end": 337,
+      "attributeSources": {
+        "label": [
+          "t6"
+        ],
+        "bearing": [],
+        "mode": [
+          "t6"
+        ]
+      },
+      "rationale": "Fixed roots form the seat immediately occupied by the king. Keep the exact generic public label and unknown position.",
+      "canonicalKey": null
+    },
+    {
+      "label": "Reedglass Keep",
+      "container": "The Ironwood Heart",
+      "bearing": "unknown",
+      "mode": "reported",
+      "source": "t7",
+      "start": 954,
+      "end": 1014,
+      "attributeSources": {
+        "label": [
+          "t7"
+        ],
+        "bearing": [],
+        "mode": [
+          "t7"
+        ]
+      },
+      "rationale": "The king reads an allegation in a message. This establishes a reported destination, not truth of the alleged imprisonment.",
+      "canonicalKey": "Reedglass Keep"
+    },
+    {
+      "label": "The Waystone Arch",
+      "container": "The Ironwood Heart",
+      "bearing": "unknown",
+      "mode": "reported",
+      "source": "t7",
+      "start": 1213,
+      "end": 1280,
+      "attributeSources": {
+        "label": [
+          "t7"
+        ],
+        "bearing": [],
+        "mode": [
+          "t7"
+        ]
+      },
+      "rationale": "The king offers to open this named arch. Its private southern location is not disclosed here.",
+      "canonicalKey": "The Waystone Arch"
+    }
+  ],
+  "withheld": [
+    {
+      "label": "Stalgind's Hut",
+      "reason": "Procedural candidate; no supporting public disclosure or note in this save."
+    },
+    {
+      "label": "The Green",
+      "reason": "Overlap with green people and green boughs is not an established village green."
+    },
+    {
+      "label": "Bear Spring / Boar Tree",
+      "reason": "No public source in the retained turn7 transcript; later screenshot context is outside this save."
+    },
+    {
+      "label": "Other procedural candidates and seeded-only nodes",
+      "reason": "Remain in preserved legacy atlas and nodes; no generator or blueprint fields feed the public projection."
+    }
+  ],
+  "limitations": [
+    "The reviewed set is deliberately conservative, not exhaustive extraction of scenery.",
+    "Legacy fingerprints and all procedural recipes are preserved, not asserted to be true surveyed geography.",
+    "Checkpoint metadata has no nested snapshot; this copy cannot reconstruct that missing checkpoint."
+  ]
+}

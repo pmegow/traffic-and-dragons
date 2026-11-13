@@ -1,0 +1,58 @@
+{
+  "task": 733,
+  "reason": "SAVE_VER12 to13 protects geography schema2 from older clients; frozen legacy replay state otherwise unchanged",
+  "cases": [
+    {
+      "path": "dev/corpus_playtest_v1238.json.endstate.json",
+      "beforeSha256": "4a25913fc874a1ff2c58ee0632ff56084b7feab52252d0e5f4a57e2c525cd728",
+      "afterSha256": "8707d19515b855715ea8e96555a327b7249478c5ad13f25134b664835bbccceb",
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 12,
+          "after": 13
+        }
+      ],
+      "allNonVersionBytesIdentical": true
+    },
+    {
+      "path": "dev/corpus_playtest_v1258.json.endstate.json",
+      "beforeSha256": "9b6d283a091ba3909f29b4d3a1833da64f0f293b3166fe7e9d8b87d31453e855",
+      "afterSha256": "0bd1b5ea072e0f10b3dfc89983dd7f165c809d46c0daef9cccb8812b6a3689d5",
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 12,
+          "after": 13
+        }
+      ],
+      "allNonVersionBytesIdentical": true
+    },
+    {
+      "path": "dev/corpus_playtest_v1271.json.endstate.json",
+      "beforeSha256": "620339a05152c61f55865f35d42b1255d8e20e0ef41211f64d7cfb0affd5b0ca",
+      "afterSha256": "552bf72b832f48740b5f7d68256645b08ef7ead8b19cde0a6a3a67affbb79298",
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 12,
+          "after": 13
+        }
+      ],
+      "allNonVersionBytesIdentical": true
+    },
+    {
+      "path": "dev/corpus_playtest_v1276.json.endstate.json",
+      "beforeSha256": "14e8fde2698a4e990ef1d9fdecb881cc3adcbe20eb35cdd72027b432925af705",
+      "afterSha256": "7c007ce57766763e3ce8957c6901a85f40a22f92b6c02b6f6b00e4efa63faff6",
+      "changes": [
+        {
+          "path": "ws.ver",
+          "before": 12,
+          "after": 13
+        }
+      ],
+      "allNonVersionBytesIdentical": true
+    }
+  ]
+}

@@ -26,7 +26,8 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
     await page.goto('http://127.0.0.1/index.html');
     await page.waitForFunction(()=>typeof showDiceRoll==='function'&&typeof showGame==='function');
     await page.evaluate(()=>{document.getElementById('api-screen').style.display='none';showGame();});
-    await page.waitForFunction(()=>!!window.DiceSim,null,{timeout:20000});
+    /* named, so a refusal grown too wide (B60: only a local file is refused) is read as that and not as a timeout */
+    await page.waitForFunction(()=>!!window.DiceSim,null,{timeout:20000}).catch(e=>{throw new Error('FAIL the dice module loads on an http page (localhost keeps its dice) — '+e.message);});
 
     await check('a check\'s d20 is thrown live and lands on the engine\'s face; the click dismisses it and runs onClose',async()=>{
       const shown=await page.evaluate(()=>{window.__closed=0;return showDiceRoll(17,{onClose:function(){window.__closed++;}});});
@@ -167,6 +168,62 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.deepEqual(r,{offered:false,selected:'fade',worn:'fade',started:1,remaining:0,closed:1});
     });
 
+    /* B60 / B59 (field reports, 2026-11-13). Each check puts the session's dice state back as it found it. */
+    const stash=()=>page.evaluate(()=>{window.__dl={state:_diceLive.state,overlay:_diceLive.overlay,reported:_diceLive.reported,sim:window.DiceSim,report:window.reportError,toast:window.showToast,refusal:window.diceLivePageRefusal,warn:console.warn};
+      window.__reports=[];window.__toasts=[];window.__warns=[];window.reportError=function(ctx,msg,detail){__reports.push({ctx:ctx,msg:String(msg),detail:detail});};window.showToast=function(m){__toasts.push(String(m));};console.warn=function(m){__warns.push(String(m));};
+      _diceLive.overlay=null;_diceLive.reported=false;_diceLive.tries=0;_diceLive.said=false;_diceLive.why=null;[].forEach.call(document.querySelectorAll('#dice-look-modal'),m=>m.remove());});
+    const unstash=()=>page.evaluate(()=>{const d=window.__dl;window.DiceSim=d.sim;window.reportError=d.report;window.showToast=d.toast;console.warn=d.warn;if(d.refusal)window.diceLivePageRefusal=d.refusal;
+      _diceLive.state=d.state;_diceLive.overlay=d.overlay;_diceLive.reported=d.reported;_diceLive.tries=0;_diceLive.said=false;_diceLive.why=null;[].forEach.call(document.querySelectorAll('#dice-look-modal'),m=>m.remove());});
+    await check('B60 a page opened as a local file refuses the dice before the module is asked for: nothing is fetched, nothing is reported to the bug feed, the console says why, the first roll says it once on screen, and Dice appearance names the cause',async()=>{
+      assert.equal(await page.evaluate(()=>typeof diceLivePageRefusal),'function','the one refusal rule');
+      const pure=await page.evaluate(()=>({file:diceLivePageRefusal('file:'),http:diceLivePageRefusal('http:'),https:diceLivePageRefusal('https:'),here:diceLivePageRefusal()}));
+      assert.match(String(pure.file),/hosted game or localhost/);assert.equal(pure.http,null,'localhost keeps its dice');assert.equal(pure.https,null);assert.equal(pure.here,null,'this page is http');
+      await stash();
+      try{
+        const r=await page.evaluate(()=>{const real=window.diceLivePageRefusal;window.diceLivePageRefusal=function(){return real('file:');};_diceLive.state='idle';
+          const tags=()=>document.querySelectorAll('script[src*="roller/embed/global.js"]').length,before=tags();diceLivePreload();
+          const o={state:_diceLive.state,tags:tags()-before,reports:__reports.length,warns:__warns.slice()};
+          o.roll=showDiceRoll(5);o.present=diceLivePresent([{type:'d20'}],'x');o.roll2=showDiceRoll(6);o.toasts=__toasts.slice();o.reportsAfter=__reports.length;
+          showDiceLookModal();o.list=document.getElementById('dice-look-list').textContent;return o;});
+        assert.equal(r.state,'failed','the dice are off for this page');assert.equal(r.tags,0,'the module is never asked for');assert.equal(r.reports,0,'a local file is no crash: nothing goes to the bug feed');
+        assert.equal(r.warns.filter(w=>/hosted game or localhost/.test(w)).length,1,'said once on the console: '+JSON.stringify(r.warns));
+        assert.equal(r.roll,false);assert.equal(r.present,false);assert.equal(r.roll2,false);assert.equal(r.reportsAfter,0);
+        assert.equal(r.toasts.length,1,'said once on screen, at the first roll: '+JSON.stringify(r.toasts));assert.match(r.toasts[0],/hosted game or localhost/);
+        assert.match(r.list,/hosted game or localhost/,'Dice appearance names the page, not the device: '+r.list);
+      }finally{await unstash();}
+    });
+    await check('B59 a dice start that fails at preload is not final: the report\'s detail is readable, the first roll tries again and the dice are thrown',async()=>{
+      await stash();
+      try{
+        const r=await page.evaluate(()=>{const sim=window.DiceSim;window.__made=0;window.DiceSim=Object.assign({},sim,{createDiceOverlay:function(o){__made++;if(__made===1)throw new Error('context lost (injected)');return sim.createDiceOverlay(o);}});
+          _diceLive.state='ready';diceLiveWarm();return {state:_diceLive.state,reports:__reports.slice(),toasts:__toasts.length};});
+        assert.equal(r.state,'ready','one failed start does not switch the dice off for the session');assert.equal(r.reports.length,1,'reported');assert.match(r.reports[0].msg,/could not start \(context lost \(injected\)\)/);
+        assert.equal(typeof r.reports[0].detail,'string','the detail is text, never an object the reporter prints as [object Object]');assert.match(r.reports[0].detail,/"at":"preload"/);assert.match(r.reports[0].detail,/"attempt":1/);
+        assert.equal(r.toasts,0,'a preload failure the next roll may mend is not announced');
+        assert.equal(await page.evaluate(()=>showDiceRoll(9)),true);
+        await page.waitForFunction(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:9';},null,{timeout:30000});
+        const after=await page.evaluate(()=>({made:__made,reports:__reports.length,toasts:__toasts.length,overlay:diceLiveState().overlay}));
+        assert.deepEqual(after,{made:2,reports:1,toasts:0,overlay:true},'the retry made the overlay and nothing more was said');
+        await page.evaluate(()=>{document.getElementById('dice-layer').click();});await page.waitForFunction(()=>!diceLiveState().showing,null,{timeout:DISMISS_MS});
+        await page.evaluate(()=>{try{_diceLive.overlay.clear();}catch(e){}const l=document.getElementById('dice-layer');if(l)l.innerHTML='';});
+      }finally{await unstash();}
+    });
+    await check('B59 a device that cannot start the dice: three tries and no more, one report, the player told that rolls still count, and Dice appearance keeps its presets',async()=>{
+      await stash();
+      try{
+        const r=await page.evaluate(()=>{window.__made=0;window.DiceSim=Object.assign({},window.DiceSim,{createDiceOverlay:function(){__made++;throw new Error('no context (injected)');}});
+          _diceLive.state='ready';diceLiveWarm();const o={afterWarm:_diceLive.state};o.r1=showDiceRoll(3);o.after1=_diceLive.state;o.toasts1=__toasts.length;o.r2=showDiceRoll(4);o.after2=_diceLive.state;
+          o.r3=showDiceRoll(5);o.p=diceLivePresent([{type:'d20'}],'x');o.made=__made;o.reports=__reports.length;o.toasts=__toasts.slice();
+          showDiceLookModal();o.radios=document.querySelectorAll('#dice-look-list input[name="dice-look"]').length;o.list=document.getElementById('dice-look-list').textContent;
+          document.getElementById('dice-look-test').style.display='';document.getElementById('dice-look-test').click();o.toastsAfterTest=__toasts.length;return o;});
+        assert.equal(r.afterWarm,'ready');assert.equal(r.r1,true,'the first roll tries');assert.equal(r.after1,'ready','two failures are not yet final');assert.equal(r.toasts1,1,'the roll that showed no dice says so');
+        assert.equal(r.after2,'failed','the third failure is final for this page');assert.equal(r.r3,false);assert.equal(r.p,false);
+        assert.equal(r.made,3,'three starts and no more (each makes a canvas and a context): '+r.made);assert.equal(r.reports,1,'one report a session');
+        assert.equal(r.toasts.length,2,'told at the first roll that showed nothing, and once more when it is final: '+JSON.stringify(r.toasts));assert.match(r.toasts[0],/this roll still counts/i);assert.match(r.toasts[1],/rolls still count/i);assert.match(r.toasts[1],/reload/i);
+        assert.ok(r.radios>0,'the module loaded, so the presets are listed (the list was overwritten with "could not load"): '+r.list);
+        assert.equal(r.toastsAfterTest,3,'Roll a test d20 says why nothing rolls instead of doing nothing');
+      }finally{await unstash();}
+    });
     await check('no page errors',async()=>{assert.deepEqual(errors,[]);});
   }finally{await browser.close();}
   process.exitCode=failed?1:0;

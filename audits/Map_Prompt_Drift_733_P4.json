@@ -1,0 +1,310 @@
+{
+  "task": 733,
+  "phase": "P4 neutral landmarks",
+  "startedUtc": "2026-11-12T23:21:46.764Z",
+  "finishedUtc": "2026-11-12T23:21:48.943Z",
+  "appVersion": "v1.1403",
+  "baseline": {
+    "commit": "95ede0e99e76610ee0703b0ef3e5ab4521cd2822",
+    "sourceFilesVerifiedByteForByte": 40,
+    "sourceFiles": [
+      {
+        "file": "dev/load-engine.js",
+        "sha256": "36273e41665c49ae7945d6d5941c2bb6edfd4fb0482b3923c8b74bad1b80d702"
+      },
+      {
+        "file": "dev/engine-manifest.js",
+        "sha256": "dbf29043e65ecb1d36b850df010acba9d7eb055a1b7d679bf62da6f5e6f99ad0"
+      },
+      {
+        "file": "globals.js",
+        "sha256": "eb61a50fb3dd8f37223a51dd116483db4ff9464f5b978ce865b79bfbf515da9a"
+      },
+      {
+        "file": "error-report.js",
+        "sha256": "b8d3c8f5b105f5ba2d20b9d8e7d59f5c38df8865d67ca45fd9b79f60e5f6dfe5"
+      },
+      {
+        "file": "compress.js",
+        "sha256": "76cdfd9513ab7feb93c07b584cbff4fbb026ec226f70a5e3880d8214d908cca6"
+      },
+      {
+        "file": "data.js",
+        "sha256": "af27189de5d77727988780a8e28afd2a236833038a94f07a906a1812d45dd7c1"
+      },
+      {
+        "file": "capability_bible.js",
+        "sha256": "78c2d29d07d89e59faa3f32f5ee7e33211b36145ddb6cfb92e3c5c79515144ca"
+      },
+      {
+        "file": "class_bible.js",
+        "sha256": "b3cd380f8e3654bdae22e91e2f70bfb1acd248f3987c3571e72b151a0544c9af"
+      },
+      {
+        "file": "skills_bible.js",
+        "sha256": "ffd1f7d7f6c3c0296e62337da7281ed01ea49e7f00be16b279c5a503b5757684"
+      },
+      {
+        "file": "item_bible.js",
+        "sha256": "7f6febbd4f4d0fb464563b753930273c34989b6411ad1e63f8a8e45d41269999"
+      },
+      {
+        "file": "blueprint-edition.js",
+        "sha256": "ad666c07b90cf11dfedc6c9b04577e226468aefa9da04aa328078d068294a5cc"
+      },
+      {
+        "file": "library-slug.js",
+        "sha256": "4d02b9b6a528903f58771ad101a36c0b6d627f0306324c28adc78afde2afd872"
+      },
+      {
+        "file": "car-commands.js",
+        "sha256": "110bde784520cbf6b5a39fdf94fc72a3794444029b37ac57f85ef0385b84561c"
+      },
+      {
+        "file": "conversation.js",
+        "sha256": "f10052347228a93cacb474bac72592bc8f8ae083d347a561ce6a02ef06fadcb9"
+      },
+      {
+        "file": "tndmaps.js",
+        "sha256": "770b24c13a0eba2af2ba73d9700ac24750f3bcb20a0992106832e08cde37d443"
+      },
+      {
+        "file": "helpers.js",
+        "sha256": "c8d04b5184301bfe6402a5a09275b9f1c13bed5f728a053bbb335e90d9c130ba"
+      },
+      {
+        "file": "inventory.js",
+        "sha256": "5900b8c2de453d22aa6dd9bb8cf1975393acf9185ba2984d5fc126ebbe965b9c"
+      },
+      {
+        "file": "state.js",
+        "sha256": "fd7ff7bbd2b1b2940dc2758509c1ddeeb7a6a668ae0ee2ad8929516a21bf1841"
+      },
+      {
+        "file": "storage-adapter.js",
+        "sha256": "6f769ab21de4fe037425ff4e5c6b009da3028b6358ad7e00bb8d31817576de85"
+      },
+      {
+        "file": "memory.js",
+        "sha256": "e1e8d86691b17c64214f72e3306e08a61a8b48aec155b4415b6bd3016ee6da43"
+      },
+      {
+        "file": "clock.js",
+        "sha256": "3277b982697da89c488990ad4d3a139b1e4dc76a06fce9763889c4441a1935bd"
+      },
+      {
+        "file": "identity.js",
+        "sha256": "f30e557e9e3b458decf0fe232a67ae07ac59b3dc21987b961ed8e121fb4559e5"
+      },
+      {
+        "file": "atlas.js",
+        "sha256": "4e087076295998ee5fb089b03cb09d4a9820f7bcc2f0b9982e3a4d281ab69ffd"
+      },
+      {
+        "file": "admission.js",
+        "sha256": "d10b08b1beb84d3d857ab38d94e318d6bf7dda54c867c95f98fa658a6aa59210"
+      },
+      {
+        "file": "tag_table.js",
+        "sha256": "911f4331b6ba28c13209b77946491d3e92e991da43990b1ffdf1bf54585b6fa3"
+      },
+      {
+        "file": "api.js",
+        "sha256": "f752279bf51a5c325e2837cd863ceec466df19749c640fc629cdc28520d1bb7a"
+      },
+      {
+        "file": "table-talk.js",
+        "sha256": "0d38fda05fcd2fb0c3a8dc953899147a8a1f7931f719a86ce03bedf3899dcf80"
+      },
+      {
+        "file": "campaign_generator.js",
+        "sha256": "055bf2040acf7419ca38b9d8d1a339d3daedbc8f785cda2d801b5884ef01da4c"
+      },
+      {
+        "file": "game.js",
+        "sha256": "fca49e9fc3252408451a40a7f343597c8e829ed119109b577fd7ac1500199105"
+      },
+      {
+        "file": "audio-master.js",
+        "sha256": "eb19a5220003d37c7d66edd693823ad654cef6c10b664700d4b7e3bd1e555618"
+      },
+      {
+        "file": "audio-events.js",
+        "sha256": "e14695600865921c9b2aa622c47f214b4fe9fa5cacf1ccae9a37806ed4a645ae"
+      },
+      {
+        "file": "audio-session.js",
+        "sha256": "9347b6f6bb76912ce166fac06e804181d62432a786003e4d3a49e0e26a9a3f64"
+      },
+      {
+        "file": "tts.js",
+        "sha256": "2acb0dbb825c9972e9715d5cf6b9404a8338986d03e11ac9467ee869166e5bde"
+      },
+      {
+        "file": "sound.js",
+        "sha256": "9643b555ff98d6a9f4db190988ba1fbe45446712468d89dcb9c1caf3d013b4a3"
+      },
+      {
+        "file": "audio-catalog.js",
+        "sha256": "670587987a025a4e7ea4337b612e9c94491d103a7bb3b5486a79af5c86403912"
+      },
+      {
+        "file": "audio-profile.js",
+        "sha256": "8bd088ec508eda03a0cfa6d3fe17b12ca4fba232db1f2143213de3a02c4f3860"
+      },
+      {
+        "file": "audio-scenes.js",
+        "sha256": "d579c8593b331b4adc1593a129f8cd42d935610f92e784d77cb75b5326d7326f"
+      },
+      {
+        "file": "ambient.js",
+        "sha256": "edd9413de1a5f1ebaf2f59268da3abcaa50f08b85b7602b8b6ceeb9d5b34ef56"
+      },
+      {
+        "file": "audio-accents.js",
+        "sha256": "10a0fa992a49db7102de8467f0b14ed8129648f351053acfb8d84c0bea75a0d8"
+      },
+      {
+        "file": "audio-loader.js",
+        "sha256": "6987a9b9dba23df29b93655f4ed86c2be580ba7e2e69adedb897bb03d92a1ec1"
+      }
+    ]
+  },
+  "fixture": {
+    "path": "Campaigns/The_Silence_Between_Leaves__Kaelon_Sky-Breaker_/saves/The_Silence_Between_Leaves__Kaelon_Sky-Breaker__Kaelon_Sky-Breaker_t7.tnd",
+    "sha256": "f6f8d24f141594652339a1ecb2486c4c141005c35ce2e45a4704c59e1761d559",
+    "savedTurn": 7,
+    "rawGmResponses": 8,
+    "unchangedOnDisk": true
+  },
+  "method": {
+    "probeSha256": "407cf8c901ab97348b2c8af8ddb276df1c616a6577cc397bffd8a4f3ce32f00e",
+    "probePath": "C:\\Users\\hannu\\.codex\\visualizations\\2026\\11\\12\\01a1d096-0998-7b81-a3b3-3543ea7c5dca\\733-drift-probe.cjs",
+    "scratchOutputs": "C:\\Users\\hannu\\.codex\\visualizations\\2026\\11\\12\\01a1d096-0998-7b81-a3b3-3543ea7c5dca\\733-drift-P4",
+    "mutationComparisons": "Each of eight saved raw GM responses is applied independently to the same restored turn-7 snapshot using applyMuts; this is not a sequential replay or a live-model compliance test.",
+    "publicPrompt": "The same saved snapshot is explicitly activated only in the disposable Node process. The public prompt has no discovered landmarks in its new ledger.",
+    "noProductionChanges": true,
+    "noPaidCalls": true
+  },
+  "prompt": {
+    "stable": {
+      "bytes": 59157,
+      "characters": 58963,
+      "sha256": "4eaa1d72b0ae28721555b4dbd0d42552cd7e27a376430eef4ceace49f374d3b9"
+    },
+    "legacyStableByteIdentical": true,
+    "publicStableByteIdentical": true,
+    "legacyVolatile": {
+      "bytes": 26819,
+      "characters": 26659,
+      "sha256": "4a3212fda7c2bf9833eea731e491224206bf91c2fc143ae27875ada7779db9e1"
+    },
+    "legacyVolatileByteIdentical": true,
+    "publicVolatile": {
+      "bytes": 27552,
+      "characters": 27396,
+      "sha256": "f61e546b03c11336142abb4968b969d6d4003d8c874e6dc5f3aa5234df17b2ab"
+    },
+    "publicChangesConfinedToMapBlock": true,
+    "mapBlock": {
+      "legacyCharacters": 1696,
+      "publicCharacters": 2433,
+      "unchangedPrefixCharacters": 21059,
+      "unchangedSuffixCharacters": 3904,
+      "legacySha256": "a534eec84dc08d2bfa049a2f54d9b79b667cc10ee1d2bba52d7d63dc35b828cd",
+      "publicSha256": "4637c88bbe0d72697802804d338ccebe96831ee7844d6fed176a91f34ff47dcf",
+      "fourFieldNeutralDirectivePresent": true
+    }
+  },
+  "historicalMutationDiffs": {
+    "frames": 8,
+    "differences": [
+      {
+        "path": "[0].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[0].world.atlas.v",
+        "before": 1,
+        "after": 2
+      },
+      {
+        "path": "[1].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[1].world.atlas.v",
+        "before": 1,
+        "after": 2
+      },
+      {
+        "path": "[2].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[2].world.atlas.v",
+        "before": 1,
+        "after": 2
+      },
+      {
+        "path": "[3].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[3].world.atlas.v",
+        "before": 1,
+        "after": 2
+      },
+      {
+        "path": "[4].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[4].world.atlas.v",
+        "before": 1,
+        "after": 2
+      },
+      {
+        "path": "[5].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[5].world.atlas.v",
+        "before": 1,
+        "after": 2
+      },
+      {
+        "path": "[6].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[6].world.atlas.v",
+        "before": 1,
+        "after": 2
+      },
+      {
+        "path": "[7].world.ver",
+        "before": 11,
+        "after": 13
+      },
+      {
+        "path": "[7].world.atlas.v",
+        "before": 1,
+        "after": 2
+      }
+    ],
+    "allowedOnly": "world.ver 11->13 and world.atlas.v 1->2",
+    "passed": true
+  },
+  "limitations": [
+    "The stable-byte proof covers this concrete saved campaign context; it is not a proof that a live model follows the map protocol.",
+    "No saved campaign or production source was written; evidence files were generated in scratch and the audit directory."
+  ]
+}

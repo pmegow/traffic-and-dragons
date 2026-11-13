@@ -1,5 +1,5 @@
 // dev/tests-684-atlas-browser.js — #684: the atlas PANE in the real page (ui-atlas.js over atlas.js and TnDMaps.view).
-// Owner rulings 2026-11-04: the door is the location name; new campaigns opt in; exact names. The player's hand tie (We are
+// The location name opens the map. New campaigns always use public knowledge (#735, owner 2026-11-13). The player's hand tie (We are
 // here, then Current location) was RETIRED 2026-11-08 (#711 round 4): party movement is the narrative's; a card offers Add note
 // instead, and the plaque's subtitle is the party's location trail (a click on a tier shows that sheet). #711: the pane lives in the side drawer's Map tab (the DOCK) and an enlarge button
 // lifts it to full screen; the view draws the library's HUD (title, compass, a scale bar re-measured at the zoom) screen-fixed.
@@ -17,8 +17,8 @@
 //   ⑦ open water says why it cannot be stood on and offers nothing;
 //   ⑧ Escape closes the full pane, the view lets go of the window, and the dock takes the map back;
 //   ⑨ a phone (375×667): the place label is the door, the dock fits beside the tabs, the full pane fits, the card sits inside it;
-//   ⑩ the opt-in: off by default at both Begin doors, each driven for real and handing startGame its own switch; the
-//     next campaign is not mapped; a village and a failed realm begin without a map, loudly;
+//   ⑩ all new-campaign doors start empty public maps, including villages, before saving or opening; stationary
+//     opening narration adds a landmark, consecutive starts are isolated, and creation failure is loud;
 //   ⑪ a turn sent after the pointer moved outside a turn (a Sync edit) is played on the followed map: the prompt the
 //     model is sent carries the MAP block for the NEW place, right after GEOGRAPHY;
 //   ⑫ a turn landing under an open pane repaints it; a party off the map is drawn as its last mapped place, and that
@@ -167,39 +167,38 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
    await page.evaluate(()=>{atlasPaneClose();atlasPaneClose();mobileDrawerWidth(0);});await page.setViewportSize({width:1280,height:800});
  });
 
- await check('⑩ the opt-in: off by default at both Begin doors; each door hands startGame its OWN switch; Begin draws the realm once, only for an adventure, and starts the campaign even when the realm fails',async()=>{
-   const r=await page.evaluate(()=>{
-     const out={},rv=document.getElementById('rv-atlas'),H=JSON.stringify(worldState.character),hero=()=>JSON.parse(H);
-     out.rv=rv?{type:rv.type,checked:rv.checked}:null;out.pending0=pendingAtlas;
-     /* the two doors, driven for real, with startGame recording the switch it was handed */
-     const realStart=startGame,realSnap=snapshotActiveCamp,seen=[];
-     startGame=function(){seen.push(pendingAtlas);pendingAtlas=false;};snapshotActiveCamp=function(){return true;};
+ await check('⑩ new campaigns always begin with public maps at every creation door',async()=>{
+   const r=await page.evaluate(async()=>{
+     const out={rv:!!document.getElementById('rv-atlas')},H=JSON.stringify(worldState.character),hero=()=>JSON.parse(H),saved={},stubs=['generateSkeleton','beginAdventure','showStakeModal','saveAll','takeCheckpoint','snapshotActiveCamp','populateVillageFromLibrary','generateActions','speakNarration','processPendingCompanionSheets','showFirstTurnOverlay','_promptCampaignFolder'];
+     stubs.forEach(k=>saved[k]=window[k]);const realGenerate=TnDMaps.generate,realCreate=atlasCreate,realGM=callGM;let saves=[],checkpoints=[],openings=[],calls=[];
+     const state=()=>({active:atlasKnowledgeActive(),valid:!!(memory.map.geography&&!MapKnowledge.problem(memory.map.geography)),features:memory.map.geography?Object.keys(memory.map.geography.features).length:null,location:worldState.world.location});
+     generateSkeleton=function(){return new Promise(function(){});};beginAdventure=function(){openings.push(state());};showStakeModal=function(){};saveAll=function(){saves.push(state());};takeCheckpoint=function(){checkpoints.push(state());};snapshotActiveCamp=function(){return true;};populateVillageFromLibrary=function(next){next();};
+     ['generateActions','speakNarration','processPendingCompanionSheets','showFirstTurnOverlay','_promptCampaignFolder'].forEach(k=>window[k]=function(){});
+     TnDMaps.generate=function(){throw Error('private generator must not run');};
+     const blueprint=(kind)=>({format:'tnd-blueprint-v1',name:'Map default test',kind:kind||'adventure',premise:'PRIVATE_SEEDED_HUT',startingLocation:'The Clearing',acts:[{title:'Start',goal:'Explore',arcs:[{title:'First',objective:'Explore'}]}],locations:[{name:'The Clearing',description:'PRIVATE_SEEDED_HUT'}],npcs:[],rules:[]});
+     function run(kind,fail){saves=[];checkpoints=[];openings=[];__toasts.length=0;pendingBlueprint=blueprint(kind);const h=hero();h._startLoc='The Clearing';
+       if(fail)atlasCreate=function(){worldState.atlas={partial:true};throw Error('public map boom');};
+       try{startGame(h,'Sword and Sorcery','');}finally{atlasCreate=realCreate;busy=false;}
+       return {state:state(),seed:worldState.atlas&&worldState.atlas.seed,atlas:!!worldState.atlas,saves:saves.slice(),checkpoints:checkpoints.slice(),openings:openings.slice(),toasts:__toasts.slice(),door:document.getElementById('hud-loc').getAttribute('role'),serialized:JSON.stringify(worldState.atlas)};}
      try{
-       rv.checked=true;pendingImportChar=hero();confirmChar();rv.checked=false;pendingImportChar=hero();confirmChar();
-       _startImportedCampaign(hero());out.isDefault=document.getElementById('is-atlas').checked;document.getElementById('is-atlas').checked=true;document.getElementById('is-go').click();
-       _startImportedCampaign(hero());document.getElementById('is-go').click();
-       out.seen=seen.slice();
-     }finally{startGame=realStart;snapshotActiveCamp=realSnap;}
-     /* the real startGame */
-     const boot=function(set,opts){const gs=generateSkeleton,ba=beginAdventure,sm=showStakeModal,kd=kindDef,ac=atlasCreate;generateSkeleton=function(){return new Promise(function(){});};beginAdventure=function(){};showStakeModal=function(){};
-       if(opts&&opts.village)kindDef=function(){const o=Object.assign({},kd());o.atlas=false;return o;};if(opts&&opts.fail)atlasCreate=function(){throw new Error('realm boom');};
-       if(set!==undefined)pendingAtlas=set;__toasts.length=0;
-       try{startGame(hero(),'Sword and Sorcery','');}finally{generateSkeleton=gs;beginAdventure=ba;showStakeModal=sm;kindDef=kd;atlasCreate=ac;busy=false;}
-       return {atlas:worldState.atlas?{seed:worldState.atlas.seed,zones:Object.keys(worldState.atlas.zones).length}:null,pending:pendingAtlas,door:document.getElementById('hud-loc').getAttribute('role'),toasts:__toasts.slice(),started:!!(worldState&&worldState.character&&worldState.world)};};
-     out.on=boot(true);out.next=boot(undefined);out.village=boot(true,{village:true});out.fail=boot(true,{fail:true});
-     return out;});
-   assert.deepEqual(r.rv,{type:'checkbox',checked:false},'the Review step carries the switch, off');assert.equal(r.pending0,false);assert.equal(r.isDefault,false,'the setup modal carries the switch, off');
-   assert.deepEqual(r.seen,[true,false,true,false],'each door hands startGame the switch as the player left it: Review on, Review off, setup on, setup off');
-   assert.ok(r.on.atlas&&/^[a-z0-9]{12}$/.test(r.on.atlas.seed)&&r.on.atlas.zones>=1&&r.on.atlas.zones<=2,'Begin with the switch on mints a seed and draws the region (and, You are here being on, adds the start place as a village — a second zone): '+JSON.stringify(r.on));
-   assert.equal(r.on.pending,false,'the switch is consumed by the campaign it started');assert.equal(r.on.door,'button');
-   assert.equal(r.next.atlas,null,'the NEXT campaign, begun with no door touching the switch, is not mapped');assert.equal(r.next.door,null);
-   assert.equal(r.village.atlas,null,'a kind without a drawn map begins without one');assert.ok(r.village.toasts.some(t=>/A drawn map is for adventures/.test(t)),'and says so: '+JSON.stringify(r.village.toasts));assert.equal(r.village.started,true);
-   assert.equal(r.fail.atlas,null,'a realm that could not be drawn leaves no half atlas');assert.ok(r.fail.toasts.some(t=>/drawing the realm failed — realm boom/.test(t)),'loudly: '+JSON.stringify(r.fail.toasts));assert.equal(r.fail.started,true,'and the campaign still begins');
-   /* every door that reaches startGame sets the switch itself: the quick start has none, so it clears it; a NEW door fails here until it is listed */
-   const qs=fs.readFileSync(path.join(root,'ui-browsers.js'),'utf8'),q0=qs.indexOf('function consumeHomeQuickStart('),q1=qs.indexOf('\nfunction ',q0+10),quick=qs.slice(q0,q1);
-   assert.ok(quick.indexOf('pendingAtlas=false;')>0&&quick.indexOf('pendingAtlas=false;')<quick.indexOf('startGame('),'the quick start clears the switch before it starts the game');
-   const calls=['char-creation.js','ui-browsers.js','ui-campaigns.js','ui-files.js','ui-boot.js','ui-modals.js','ui-sheets.js','companion-talk.js','ui-carmode.js','game.js'].map(f=>[f,(fs.readFileSync(path.join(root,f),'utf8').match(/[^A-Za-z_.]startGame\(/g)||[]).length]).filter(x=>x[1]);
-   assert.deepEqual(calls,[['char-creation.js',7],['ui-browsers.js',4],['game.js',1]],'the doors into startGame are the known ones (the wizard through confirmChar, the quick start, the setup modal; game.js is its definition) — a new one must set pendingAtlas itself: '+JSON.stringify(calls));
+       pendingBlueprint=null;pendingImportChar=hero();confirmChar();out.wizard=state();busy=false;
+       _startImportedCampaign(hero());out.setup=!!document.getElementById('is-atlas');document.getElementById('is-go').click();out.imported=state();busy=false;
+       localStorage.setItem(HOME_PENDING_QS_K,JSON.stringify({at:Date.now(),char:hero(),bp:blueprint()}));out.quickConsumed=consumeHomeQuickStart();out.quick=state();busy=false;if(!out.wizard.active||!out.imported.active||!out.quick.active)return out;
+       out.first=run();const firstGeo=memory.map.geography;worldState.atlas.publicNotes.some='earlier campaign note';out.next=run();out.separate=firstGeo!==memory.map.geography&&!worldState.atlas.publicNotes.some;
+       out.village=run('village');out.villageNodes=Object.keys(memory.map.nodes);out.villagePublic=atlasKnowledgeProjection().features.length;
+       out.opening=run();calls=[];callGM=async function(msg,sys,max,model,opts){calls.push(opts&&opts.kind||'gm');if(opts&&opts.kind==='atlas'){const p=JSON.parse(msg),seg=p.segments.find(s=>s.text.includes('A spring wells beside the clearing.'));return JSON.stringify({discoveries:[{source:seg.id,label:'spring',quote:'A spring wells beside the clearing.',mode:'observed',bearing:'unknown',bearingQuote:''}],overflow:false});}return 'A spring wells beside the clearing.';};
+       await saved.beginAdventure();out.opening.calls=calls;out.opening.turn=worldState.turn;out.opening.features=atlasKnowledgeProjection().features.map(f=>f.label);out.opening.afterLocation=worldState.world.location;
+       const roundtrip=JSON.parse(JSON.stringify({worldState,memory}));worldState=roundtrip.worldState;memory=roundtrip.memory;atlasHeal();out.roundtrip=state();
+       out.failed=run(null,true);
+     }finally{stubs.forEach(k=>window[k]=saved[k]);TnDMaps.generate=realGenerate;atlasCreate=realCreate;callGM=realGM;busy=false;}
+     return out;
+   });
+   assert.equal(r.rv,false,'#735 wizard has no map checkbox');assert.equal(r.setup,false,'#735 imported-character setup has no map checkbox');
+   for(const name of ['wizard','imported','quick'])assert(r[name].active&&r[name].valid&&r[name].features===0,'#735 '+name+' creates an empty public map');assert(r.quickConsumed,'#735 quick start consumes its valid blueprint payload');
+   for(const name of ['first','next','village']){const s=r[name];assert(s.state.active&&s.state.valid&&s.state.features===0,'#735 '+name+' starts public without private generation');assert.equal(s.door,'button');assert(s.saves.length&&s.saves.every(x=>x.active&&x.valid),'#735 first save already contains public knowledge');assert(s.checkpoints.length&&s.checkpoints.every(x=>x.active&&x.valid),'#735 first checkpoint already contains public knowledge');assert(s.openings.length&&s.openings.every(x=>x.active&&x.valid),'#735 opening starts with public knowledge');assert(!s.serialized.includes('PRIVATE_SEEDED_HUT'));}
+   assert(r.separate&&r.first.seed!==r.next.seed,'#735 consecutive campaigns own fresh map state');assert(r.villageNodes.length>1&&r.villagePublic===0,'#735 village commons stay off the map until narrated');
+   assert.equal(r.opening.turn,0);assert.equal(r.opening.afterLocation,'The Clearing');assert.deepEqual(r.opening.calls,['gm','atlas'],'#735 opening needs no legacy map classifier');assert.deepEqual(r.opening.features,['spring'],'#735 opening landmark appears without movement');assert(r.roundtrip.active&&r.roundtrip.valid&&r.roundtrip.features===1,'#735 saved public map survives load healing');
+   assert(!r.failed.atlas&&!r.failed.state.valid,'#735 failed initialization leaves no half map');assert(r.failed.toasts.some(t=>/starting the public map failed.*public map boom/.test(t)),'#735 map initialization failure is visible');
  });
  await check('⑪ a turn sent after the pointer moved outside a turn is played on the followed map: the prompt carries the MAP block for the new place, after GEOGRAPHY',async()=>{
    const r=await page.evaluate(async()=>{atlasForget();atlasCreate('campaign-1');const p1=atlasDoc('campaign-1').places[1];worldState.world.location=p1.name;worldState.world.sublocation=null;

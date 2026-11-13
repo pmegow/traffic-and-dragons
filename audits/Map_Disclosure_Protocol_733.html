@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Public map disclosure protocol — #733</title>
+<style>
+:root{color-scheme:light;--paper:#f6f3ec;--ink:#242d2b;--muted:#59635e;--rule:#d5d1c5;--acc:#91601a}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:17px/1.65 system-ui,"Segoe UI",sans-serif}main{max-width:1000px;padding:56px 26px 80px;margin:auto}h1,h2{font-family:Georgia,serif;font-weight:500;line-height:1.2}h1{font-size:clamp(36px,6vw,58px);margin:10px 0 22px}h2{font-size:29px;margin:42px 0 15px}p{margin:0 0 18px}.meta{font-size:13px;color:var(--muted)}a{color:var(--acc)}code,pre{font-family:ui-monospace,Consolas,monospace}code{font-size:.85em;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;padding:20px;background:#eee7d7;font-size:14px}.decision{border-left:4px solid var(--acc);padding:18px 24px;background:#fffdf8}.table{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}td,th{padding:12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--rule)}th{background:#eee7d7}li{margin:9px 0}footer{border-top:1px solid var(--rule);margin-top:40px;padding-top:20px}@media print{main{padding:0}body{background:white;font-size:11pt}h1{font-size:30pt}h2{font-size:20pt}.decision,pre{break-inside:avoid}}
+</style>
+</head>
+<body><main>
+<p class="meta">Traffic and Dragons · #733 · Implementation decision record · 12 November 2026</p>
+<h1>A discovery must be public narration.</h1>
+<div class="decision"><strong>Historical decision record — foundation through P3.</strong> The typed examples and counts below describe the earlier canary contract. The current implementation uses geography schema 2 and <code>[MAP_REVEAL:new|public label|bearing|observed]</code> (or <code>reported</code>), with neutral pins. Old five-field type proposals remain private evidence. Unique repeated labels use the same monotonic guards as explicit handles. See the <a href="Map_Implementation_733.html">current implementation review</a> and <a href="Map_Live_Trial_733.html">completed fifty-turn trial</a> for the authoritative current behavior and rollout limits.</div>
+<p>This records the first milestone’s admission protocol, alongside the <a href="Map_Review_Astra.html">map review</a> and <a href="Map_Transition_Plan_Astra.html">transition plan</a>. It is a technical contract for the development canary, not an assertion that every rollout gate has passed.</p>
+<div class="decision"><strong>Decision:</strong> use an explicit public discovery directive. A successful canonical GM commit expands it into a readable sentence at the directive’s original position in the displayed and spoken reply. That exact sentence is retained as the feature’s source receipt. Private preparation, procedural geometry, proximity, and plain noun detection cannot introduce a feature.</div>
+
+<h2>Why a quote alone is insufficient</h2>
+<p>Substring checks cannot distinguish “there is no hut,” “if there were a hut,” or a guide denying a hut from an actual discovery. The pure store checks that a cited sentence occurs in the published narration; this establishes textual provenance, not semantic truth. The adapter therefore accepts a deliberate public directive rather than inferring discoveries from prose or treating an arbitrary matching quotation as authorization.</p>
+<p>The GM still owns which fact is introduced. A missed directive leaves a prose-mentioned landmark unmapped and must be counted as a compliance failure in the live corpus. A contradictory or mistaken GM declaration also remains a model-quality failure; this implementation does not claim a natural-language truth checker.</p>
+
+<h2>What the GM emits and the player reads</h2>
+<pre>[MAP_REVEAL:new|a hut|hut|W|observed]
+
+Player sees and hears:
+You see a hut to the west.</pre>
+<pre>[MAP_REVEAL:new|Bear Spring|spring|SW|reported]
+
+Player sees and hears:
+You hear of Bear Spring, a spring, to the southwest.</pre>
+<p>The five fields are handle, public label, kind, bearing, and mode. A handle is <code>new</code> or an existing <code>f1</code>-style identifier. Supported kinds are landmark, hut, building, spring, tree, arch, ruin, cave, road, bridge, stone, and camp. Bearings are N, NE, E, SE, S, SW, W, NW, and unknown. Modes are observed and reported.</p>
+<ul>
+<li>Use the label and type the party actually learns. A generic hut does not establish its owner, proper name, occupants, or interior.</li>
+<li>An unknown bearing produces “its precise position is not established.” A direction never establishes metres, routes, or exploration.</li>
+<li>Place directives at the top level of the GM reply. A directive nested inside a private tag, including a truncated outer tag, rejects the disclosure group.</li>
+<li>Put location tags before disclosures belonging to that location. The parser’s location timeline supplies the containing place at each directive’s source offset.</li>
+<li>For a new room, supply its full building — room path. A bare room label does not establish a containing building.</li>
+<li>Use the existing handle to reveal a proper label or refine an unknown bearing. An update cannot change an established kind, replace an established bearing, or downgrade observation to a report.</li>
+</ul>
+
+<h2>One admission boundary</h2>
+<ol>
+<li><code>applyMuts</code> queues parsed disclosures and their source scopes. Parsing, sync, Table Talk, imported raw text, and <code>cleanTxt</code> cannot admit knowledge or manufacture a positive sentence.</li>
+<li><code>commitGmTurn</code> calls <code>atlasKnowledgeCommit</code> only for a non-refused canonical narration. This runs before atlas refresh and a due camp snapshot, so stationary discoveries appear in the same committed turn.</li>
+<li>The adapter constructs provisional readable receipts and asks <code>MapKnowledge.prepare</code> for detached candidates. All scoped groups must pass schema, handle, source, and capacity checks. The final candidate also rejects duplicate labels across aliases that resolve to one public place.</li>
+<li>The queue must match the exact original raw reply and directive fields. Receipts are inserted directly after their raw directives before any later location change; an existing quoted or negated occurrence never suppresses a deliberate receipt. After every check and response formatting succeeds, the adapter installs the candidate in <code>memory.map.geography</code> and returns the reply with its accepted receipts. The normal commit path publishes it to session history, the transcript, display, and voice.</li>
+</ol>
+<p>Malformed directives, unsupported fields, missing scope, ambiguous labels, or store failures preserve prior knowledge and produce a reason in the console and player toast. A group that fails never publishes its provisional positive receipt. Ordinary non-geographic effects of the GM turn keep their existing engine behavior.</p>
+
+<h2>Identity and player access</h2>
+<p><strong>Exact repeat contract:</strong> the public namespace already allows one folded label per containing place. A new declaration with that same label, kind, bearing and mode renews evidence on the existing handle; it does not allocate another identity or block independent discoveries. Conflicting attributes still refuse atomically. A canonical alias may restore the original filing container only when one public match exists; ambiguous matches are refused. Distinct generic huts require distinct public labels.</p><p>Feature handles and receipt filing keys remain stable. Location merges and reparents resolve container identity at the read boundary; they do not rewrite old evidence. <code>atlasKnowledgeProjection</code> supplies one explicit player projection to the schematic, cards, and prompt consumers. A single validated store scan resolves aliases. The final admission check prevents a new or renamed handle from duplicating another public label in the resolved containing place.</p>
+<p>Table Talk requests <code>buildGeoBlock("player")</code>, which uses this projection in activated campaigns. The default GM geography block can still contain private world preparation; that is separate from the retired whole-generated-map prompt. Activated atlas prompts, identity resolution, and player maps must not use generated private geometry as authority. Their dispatch belongs to the public atlas adapter.</p>
+
+<h2>Replay, reroll, restore, and activation</h2>
+<div class="table"><table><thead><tr><th>Path</th><th>Contract</th></tr></thead><tbody>
+<tr><td>Ordinary parse or sync</td><td>May parse a directive but cannot file knowledge or publish its readable receipt.</td></tr>
+<tr><td>Refused canonical reply</td><td>No geographic admission. Existing refusal provenance remains intact.</td></tr>
+<tr><td>Successful prose reroll</td><td>No map writes. Strip new structured declarations, constrain the prompt to the committed geography, and append a retained-discoveries block with each original source place and receipt sentence. Existing quoted occurrences never suppress this block.</td></tr>
+<tr><td>Refused prose reroll</td><td>In activated mode, retain the exact previous narration and report that the reroll was refused. The original admitted source must not become noncanon merely because a replacement was declined.</td></tr>
+<tr><td>Camp restore</td><td>The snapshot contains admitted knowledge. The existing restore preserves the live transcript, keeps the snapshot turn’s public source, and marks later turns dead. Later discoveries disappear with the restored knowledge store.</td></tr>
+<tr><td>Prompt history after restore</td><td>The existing camp snapshot is captured before that turn is appended to its session-log copy. The live transcript retains the public source and the knowledge block retains its attributes; this milestone does not reorder the general death/camp transaction.</td></tr>
+<tr><td>Activation</td><td>Require <code>worldState.atlas.knowledge === 1</code>. Old-format data is not automatically trusted as public discovery. Explicit migration and backups belong to the activation workflow.</td></tr>
+</tbody></table></div>
+<p>Free-form reroll prose is constrained by instructions rather than a semantic parser. The engine can block new structured admission and keep authoritative receipts; it cannot prove that every rewritten sentence avoids contradiction. This is a required live review dimension.</p>
+
+<h2>Resources and bounds</h2>
+<div class="table"><table><thead><tr><th>Scope</th><th>What accumulates or is retained</th></tr></thead><tbody>
+<tr><td>Per call</td><td>Temporary parse arrays, provisional sentences, detached candidate copies, and projections. At most 16 disclosures per turn; failed candidates are discarded.</td></tr>
+<tr><td>Per turn</td><td>Engine-issued commit receipts and accepted events. One receipt group per source container in that turn. No extra model call is introduced.</td></tr>
+<tr><td>Per session</td><td>No additional adapter cache, timer, listener, or retained stream. The normal transcript and session history contain the visible source.</td></tr>
+<tr><td>Per campaign</td><td>At most 4,096 features and 8,192 receipt groups, with no silent eviction. Capacity exhaustion refuses additions and preserves evidence. Checkpoints and existing save machinery carry the store.</td></tr>
+<tr><td>Per device</td><td>No new independent store, credential slot, or unbounded adapter log. Existing campaign backups and save retention remain their owning systems’ responsibility.</td></tr>
+</tbody></table></div>
+<p>The volatile public brief is capped at 40 features and explicitly says when additional known features are omitted. Searching or paging larger known regions is later work; the cap must not be mistaken for deletion or loss of knowledge.</p>
+
+<h2>Evidence at the P3 checkpoint</h2>
+<p><code>node dev/tests-733-map-protocol.js</code> passes 30 named groups. They cover three discoveries without movement; private and hypothetical non-admission; nested private directives; malformed groups; parser-only non-admission; source-position scope; save/reroll behavior; actual Table Talk privacy; actual canonical/refused commits; checkpoint restoration; alias projection and collision cases; and actual refused-reroll transcript behavior.</p>
+<p>Failure-first assertions reproduced the missing adapter/privacy boundary, installation before receipt formatting, canonical duplicate labels after merges, nested private disclosure, and refused-reroll source replacement before the corresponding fix.</p>
+<p><code>node dev/sabotage-733-map-protocol.js</code> proves 21 named clauses and restores each mutated file byte-identically. Its first run exposed a missing explicit strip-vocabulary assertion: generic cleanup still stripped the tag, so a registry removal was initially missed. That assertion was added, and all 15 initial clauses then passed; four further source-position and publication clauses and two alias-repeat clauses were added.</p>
+<p>The existing stable STATE TAGS documentation remains byte-identical because the directive is taught in the volatile activated-map block. The deliberate strip-registry extension changes its pinned regex hash to 359050111 and length to 1852. The filtered tag-table gate passed 11 assertions. Full integration, browser evidence, live GM compliance, migration, and release status are recorded by the parent implementation workstream.</p>
+<footer class="meta">Implementation: <a href="../atlas-knowledge.js">atlas-knowledge.js</a> · Pure store: <a href="../map-knowledge.js">map-knowledge.js</a> · Tests: <a href="../dev/tests-733-map-protocol.js">protocol suite</a> · Proof: <a href="../dev/sabotage-733-map-protocol.js">sabotage battery</a><br>Independent review informed the public-receipt boundary, checkpoint test, canonical duplicate guard, nested-tag refusal, and refused-reroll preservation. The overall milestone still requires its integration and rollout gates.</footer>
+</main></body></html>

@@ -43,6 +43,23 @@ var SPECS = [
     mustFail: "LF-authored multi-line find matches a CRLF target",
     label: "meta suite detects a dead newline normalizer"
   },
+  // Caller-owned request budgets must bypass both retry paths, independently.
+  {
+    suite: "tests-29-callgm-transport.js",
+    file: "api.js",
+    find: '      if(!(opts&&opts.noRetry)&&_retries<CALLGM_RETRY_MAX){',
+    replace: '      if(_retries<CALLGM_RETRY_MAX){',
+    mustFail: "#733 transport — caller-owned one-attempt budget › noRetry ends a transient 503 after one primary request",
+    label: "#733 detects an ignored noRetry transient-retry guard"
+  },
+  {
+    suite: "tests-29-callgm-transport.js",
+    file: "api.js",
+    find: '      if(!(opts&&opts.noRetry)&&!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){',
+    replace: '      if(!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){',
+    mustFail: "#733 transport — caller-owned one-attempt budget › noRetry suppresses the configured Gemini fallback on a gateway 503",
+    label: "#733 detects an ignored noRetry fallback guard"
+  },
   // #29b fallback-rung clauses: field deleted, attribution inverted, self-fall guard dropped.
   {
     suite: "tests-29-callgm-transport.js",
@@ -63,8 +80,8 @@ var SPECS = [
   {
     suite: "tests-29-callgm-transport.js",
     file: "api.js",
-    find: '      if(!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){',
-    replace: '      if(!_fellBack&&prov.fallbackModel){',
+    find: '      if(!(opts&&opts.noRetry)&&!_fellBack&&prov.fallbackModel&&model!==prov.fallbackModel){',
+    replace: '      if(!(opts&&opts.noRetry)&&!_fellBack&&prov.fallbackModel){',
     mustFail: "no self-fall",
     label: "#29b detects a dropped self-fall guard (a call already on the fallback would burn a 4th attempt on itself)"
   },

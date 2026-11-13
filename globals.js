@@ -182,7 +182,7 @@ var CHECKPOINT_VER=1;
    raised both to 11 (v1.1202): a v11 sheet carries ROWS {name, qty, equipped} and no worn list; the load heals a v10 save
    into v11 (state.js inventoryAdmitWorld) and a v10 build refuses a v11 save before any write (DOC/DESIGN_599_inventory_rows.md
    §5.4, §12). */
-var SAVE_VER=11,SHEET_VER=11;
+var SAVE_VER=13,SHEET_VER=11;
 // #301 (owner design 2026-09-02): DEATH AS A CHARACTER. On a true death Death arrives, states the terms in
 // voice, and walks the player back to the last camp or onward. ONE question per death — the first
 // player turn in the scene IS the question, whatever it says; Death answers from what the world already
@@ -443,7 +443,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1400";
+var APP_VERSION="v1.1410";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -571,7 +571,6 @@ var pendingSpellPool={};
 var pendingCompanions=[];
 var pendingImportChar=null;
 var pendingBlueprint=null; // loaded .campaign blueprint; consumed by startGame
-var pendingAtlas=false; // #684: the "Draw a world map" switch at Begin; consumed by startGame
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;
 var proseAuthor=""; // selected prose-style voice id ("" = house default); see AUTHORS in data.js

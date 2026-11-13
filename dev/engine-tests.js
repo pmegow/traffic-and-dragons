@@ -59,6 +59,337 @@ function runEngineTests(R){
   // Fresh minimal world for state tests — mirrors the harness character shape.
   function makeWorld(){ __makeWorldState();__toasts.length=0; }
 
+  section("#735 public map creation");
+  function fresh735(){makeWorld();worldState.ver=SAVE_VER;worldState.turn=0;worldState.campId="new735";memory.campId="new735";worldState.world.location="The Final Clearing";worldState.world.sublocation="The Stone Circle";atlasForget();}
+  function refused735(change){
+    fresh735();change();var w=worldState,m=memory,before=JSON.stringify([w,m]),reason="";
+    try{atlasCreate("new-735",{knowledge:true});}catch(e){reason=e.message;}
+    return reason&&worldState===w&&memory===m&&JSON.stringify([worldState,memory])===before?true:"public creation did not refuse atomically: "+reason;
+  }
+  t("#735 public creation never invokes a procedural generator or fingerprint",function(){
+    fresh735();var generate=TnDMaps.generate,fingerprint=atlasFingerprint;
+    TnDMaps.generate=function(){throw new Error("procedural generator invoked");};atlasFingerprint=function(){throw new Error("procedural fingerprint invoked");};
+    try{var A=atlasCreate(null,{knowledge:true}),d=atlasDoc(A.seed);atlasFollow();return /^[A-Za-z0-9-]{4,40}$/.test(A.seed)&&d.generator.name==="schematic"&&d.features.length===0?true:"public creation did not produce an empty schematic";}
+    finally{TnDMaps.generate=generate;atlasFingerprint=fingerprint;}
+  });
+  t("#735 public creation installs one valid empty store at the final starting place",function(){
+    fresh735();var A=atlasCreate("new-735",{knowledge:true}),d=atlasDoc(A.seed),g=memory.map.geography,r=A.zones[A.seed];
+    if(A!==worldState.atlas||A.knowledge!==1||A.v!==ATLAS_VER||A.at!==A.seed||A.ptr!==JSON.stringify(["The Final Clearing","The Stone Circle"]))return "public mode or final pointer missing";
+    if(MapKnowledge.problem(g)||g.revision!==0||Object.keys(g.features).length||Object.keys(g.receipts).length||atlasShapeProblem(A))return "prepared store is not valid and empty";
+    if(!A.publicNotes||Object.keys(A.publicNotes).length||r.kind!=="region"||r.parent!==null||JSON.stringify(r.params)!==JSON.stringify({seed:A.seed})||r.fp)return "neutral compatibility record or notes missing";
+    return d.title.name==="The Stone Circle"&&d.features.length===0&&worldState.ver===SAVE_VER?true:"the public document missed the final starting location";
+  });
+  t("#735 private blueprint nodes NPCs and village houses cannot seed public features",function(){
+    fresh735();worldState.skeleton={premise:"PRIVATE_BLUEPRINT"};worldState.npcs=[{name:"PRIVATE_NPC",location:"PRIVATE_HUT"}];worldState.village={houses:[{name:"PRIVATE_HOUSE"}]};memory.map.nodes.Hidden=newMapNode(0,null,{description:"PRIVATE_CANDIDATE"});
+    var privateBefore=JSON.stringify([worldState.skeleton,worldState.npcs,worldState.village,memory.map.nodes]),A=atlasCreate("new-735",{knowledge:true}),d=atlasDoc(A.seed);
+    var surfaces=JSON.stringify([d,TnDMaps.digest(d),TnDMaps.renderSVG(TnDMaps.scene.build(d,"ink")),atlasMapBlock(),atlasZones()]);
+    return d.features.length===0&&!/PRIVATE_/.test(surfaces)&&JSON.stringify([worldState.skeleton,worldState.npcs,worldState.village,memory.map.nodes])===privateBefore?true:"private seed content escaped or was rewritten";
+  });
+  t("#735 null incomplete and malformed memory refuse before either store is installed",function(){
+    var cases=[null,undefined,[],{}, {map:null},{map:[]},{map:{nodes:[],edges:[]}},{map:{nodes:{},edges:{}}}],i,r;
+    for(i=0;i<cases.length;i++){r=refused735((function(v){return function(){memory=v;};})(cases[i]));if(r!==true)return "memory case "+i+": "+r;}return true;
+  });
+  t("#735 a mismatched memory owner refuses without changing either campaign record",function(){return refused735(function(){memory.campId="another735";});});
+  t("#735 no campaign or no valid final place refuses atomically",function(){
+    var changes=[function(){worldState=null;},function(){worldState=[];},function(){worldState.world=null;},function(){worldState.world.location="";},function(){worldState.world.location={name:"invalid"};},function(){worldState.world.sublocation={name:"invalid"};}],i,r;
+    for(i=0;i<changes.length;i++){r=refused735(changes[i]);if(r!==true)return "context case "+i+": "+r;}return true;
+  });
+  t("#735 any existing atlas is preserved including damaged and newer evidence",function(){
+    var values=[null,false,{}, {v:99,private:"preserve"}],i,r;
+    for(i=0;i<values.length;i++){r=refused735((function(v){return function(){worldState.atlas=v;};})(values[i]));if(r!==true)return "atlas case "+i+": "+r;}
+    fresh735();var A=atlasCreate("legacy-735"),before=JSON.stringify([worldState,memory]),reason="";try{atlasCreate("new-735",{knowledge:true});}catch(e){reason=e.message;}
+    return reason&&worldState.atlas===A&&JSON.stringify([worldState,memory])===before?true:"the legacy atlas was overwritten";
+  });
+  t("#735 existing geography is never overwritten even when null undefined or newer",function(){
+    var values=[MapKnowledge.create(),null,undefined,{v:99},{v:2,features:[]}],i,r;
+    for(i=0;i<values.length;i++){r=refused735((function(v){return function(){memory.map.geography=v;};})(values[i]));if(r!==true)return "geography case "+i+": "+r;}
+    return refused735(function(){var inherited=Object.create({geography:MapKnowledge.create()});inherited.nodes=keyedDict();inherited.edges=[];memory.map=inherited;});
+  });
+  t("#735 unsupported save or atlas compatibility refuses without version stamping",function(){
+    var save=SAVE_VER,atlas=ATLAS_VER,r;try{r=refused735(function(){SAVE_VER=12;});if(r!==true)return r;SAVE_VER=save;r=refused735(function(){ATLAS_VER=1;});if(r!==true)return r;ATLAS_VER=atlas;return refused735(function(){worldState.ver=SAVE_VER+1;});}finally{SAVE_VER=save;ATLAS_VER=atlas;}
+  });
+  t("#735 missing public library refuses without installing either store",function(){
+    fresh735();var schematic=TnDMaps.schematic,w=worldState,m=memory,before=JSON.stringify([w,m]),reason="";TnDMaps.schematic=null;
+    try{try{atlasCreate("new-735",{knowledge:true});}catch(e){reason=e.message;}return /public map libraries are unavailable/.test(reason)&&worldState===w&&memory===m&&JSON.stringify([worldState,memory])===before?true:"missing library was not refused atomically: "+reason;}
+    finally{TnDMaps.schematic=schematic;}
+  });
+  t("#735 invalid prepared geography refuses before either install",function(){
+    var create=MapKnowledge.create;try{return refused735(function(){MapKnowledge.create=function(){return {v:99};};});}finally{MapKnowledge.create=create;}
+  });
+  t("#735 a refused prepared atlas shape leaves geography untouched",function(){
+    var shape=atlasShapeProblem;try{return refused735(function(){atlasShapeProblem=function(){return "injected shape refusal";};});}finally{atlasShapeProblem=shape;}
+  });
+  t("#735 nonwritable destinations refuse before partial installation",function(){
+    var changes=[function(){Object.preventExtensions(worldState);},function(){Object.preventExtensions(memory.map);},function(){Object.defineProperty(worldState,"ver",{value:SAVE_VER,writable:false});}],i,r;
+    for(i=0;i<changes.length;i++){r=refused735(changes[i]);if(r!==true)return "nonwritable case "+i+": "+r;}return true;
+  });
+  t("#735 the public atlas and empty knowledge survive serialize and heal",function(){
+    fresh735();var A=atlasCreate("new-735",{knowledge:true}),before=JSON.stringify(memory.map.geography),saved=parseWorldState(serializeWorldState(worldState)),mem=JSON.parse(JSON.stringify(memory));worldState=saved;memory=mem;atlasForget();atlasHeal();healMemory();
+    return !worldState.atlasJunk&&worldState.atlas.knowledge===1&&worldState.atlas.seed===A.seed&&!atlasShapeProblem(worldState.atlas)&&JSON.stringify(memory.map.geography)===before&&atlasDoc(A.seed).features.length===0?true:"public map lost its mode or gained content during roundtrip";
+  });
+  t("#735 the legacy constructor still draws and fingerprints exactly once",function(){
+    fresh735();var generate=TnDMaps.generate,fingerprint=atlasFingerprint,draws=0,hashes=0;
+    TnDMaps.generate=function(){draws++;return generate.apply(this,arguments);};atlasFingerprint=function(){hashes++;return fingerprint.apply(null,arguments);};
+    try{var A=atlasCreate("legacy-735");return draws===1&&hashes===1&&A.knowledge===undefined&&A.at===null&&A.ptr===null&&Object.keys(A.zones[A.seed].params).length>1&&!Object.prototype.hasOwnProperty.call(memory.map,"geography")?true:"legacy constructor behavior changed";}
+    finally{TnDMaps.generate=generate;atlasFingerprint=fingerprint;}
+  });
+
+  section("#734 authored NPC portraits");
+  var portrait734="data:image/png;base64,aGVsbG8=",otherPortrait734="https://example.test/chosen.png";
+  function seed734(p){makeWorld();var n={name:"Princess Willow",role:"ally",pronouns:"she/her",notes:"A marsh guide."};if(p!==undefined)n.portrait=p;var bp={name:"Portrait test",npcs:[n]},before=JSON.stringify(bp);applyBlueprint(bp);return {npc:wsNpcByName(n.name),bp:bp,before:before};}
+  t("#734 authored portrait enters the roster without changing the blueprint",function(){var r=seed734(portrait734);return r.npc.portrait===portrait734&&npcPortrait(r.npc)===portrait734&&JSON.stringify(r.bp)===r.before&&r.npc.met===0&&!r.npc.introduced&&r.npc.rel==="ally"?true:"authored portrait was dropped or source/discovery state changed";});
+  t("#734 portraitless blueprints keep the original roster shape",function(){var n=seed734().npc;return !Object.prototype.hasOwnProperty.call(n,"portrait")&&!npcPortrait(n)?true:"invented image or changed legacy shape";});
+  t("#734 malformed authored image is diagnosed and not retained",function(){var r=seed734("javascript:bad()");return !npcPortrait(r.npc)&&__toasts.some(function(s){return s.indexOf("Princess Willow")>=0&&s.indexOf("portrait")>=0;})&&JSON.stringify(r.bp)===r.before?true:"malformed authored portrait was retained or dropped silently";});
+  t("#734 authored portraits never change either GM prompt half",function(){seed734();var a=buildSysPrompt();seed734(portrait734);var b=buildSysPrompt();return a.stable===b.stable&&a.volatile===b.volatile?true:"portrait changed the GM prompt";});
+  t("#734 automatic companion attachment makes the sheet the portrait owner",function(){var r=seed734();r.npc.portrait=portrait734;var s=buildCompanionSheetStub(r.npc.name);if(!attachCompanionSheet(r.npc.name,s))return "attachment refused";var saved=JSON.parse(JSON.stringify(r.npc));return saved.charSheet.portrait===portrait734&&!saved.portrait&&npcPortrait(saved)===portrait734?true:"portrait remained outside the saved sheet";});
+  t("#734 chosen sheet portrait wins and repeated attachment is inert",function(){var r=seed734();r.npc.portrait=portrait734;var s=buildCompanionSheetStub(r.npc.name);s.portrait=otherPortrait734;attachCompanionSheet(r.npc.name,s);var before=JSON.stringify(r.npc);attachCompanionSheet(r.npc.name,buildCompanionSheetStub(r.npc.name));return r.npc.charSheet.portrait===otherPortrait734&&!r.npc.portrait&&JSON.stringify(r.npc)===before?true:"chosen image was replaced or wrapper not retired";});
+  t("#734 refused sheet leaves the roster portrait intact",function(){var r=seed734();r.npc.portrait=portrait734;var s=buildCompanionSheetStub(r.npc.name);s.sheetVer=99999;var result=attachCompanionSheet(r.npc.name,s);return !result&&!r.npc.charSheet&&r.npc.portrait===portrait734?true:"failed attachment consumed the image";});
+  t("#734 malformed candidate cannot erase a valid roster portrait",function(){var r=seed734();r.npc.portrait=portrait734;var s=buildCompanionSheetStub(r.npc.name);s.portrait="javascript:bad()";return attachCompanionSheet(r.npc.name,s)&&s.portrait===portrait734&&!r.npc.portrait&&__toasts.some(function(x){return x.indexOf("portrait")>=0;})?true:"invalid candidate erased the authored fallback or failed silently";});
+  t("#734 missing sheet is refused without consuming the portrait",function(){var r=seed734();r.npc.portrait=portrait734;return !attachCompanionSheet(r.npc.name,null)&&!r.npc.charSheet&&r.npc.portrait===portrait734?true:"empty attachment consumed the image";});
+  t("#734 malformed roster image cannot bypass companion admission",function(){var r=seed734();r.npc.portrait="javascript:bad()";attachCompanionSheet(r.npc.name,buildCompanionSheetStub(r.npc.name));return !npcPortrait(r.npc)&&__toasts.some(function(s){return s.indexOf("portrait")>=0;})?true:"malformed image survived or was silently dropped";});
+
+  section("#733 map knowledge");
+  function geo733(events,ctx,store){return MapKnowledge.prepare(store||MapKnowledge.create(),events,ctx||{channel:"gm",commit:"turn-9",turn:9,container:"The Boundary Clearing",text:"Bear Spring lies southwest. The Boar Tree stands north. The Waystone Arch stands south."});}
+  function spring733(){return {op:"disclose",id:"new",label:"Bear Spring",proposalKind:"spring",bearing:"SW",mode:"observed",quote:"Bear Spring lies southwest."};}
+  t("K01 no disclosed features means an empty public projection",function(){return MapKnowledge.project(MapKnowledge.create(),"The Boundary Clearing","player").features.length===0;});
+  t("K03 three stationary discoveries need no location mutation",function(){
+    makeWorld();var before=JSON.stringify(worldState),r=geo733([spring733(),{op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},{op:"disclose",id:"new",label:"The Waystone Arch",proposalKind:"arch",bearing:"S",mode:"observed",quote:"The Waystone Arch stands south."}]);
+    return r.ok&&MapKnowledge.project(r.state,"The Boundary Clearing","player").features.length===3&&JSON.stringify(worldState)===before;
+  });
+  t("K02 a generic hut carries no private owner or interior",function(){
+    var e={op:"disclose",id:"new",label:"a hut",proposalKind:"hut",bearing:"unknown",mode:"observed",quote:"You see a hut."},r=geo733([e],{channel:"gm",commit:"h",turn:1,container:"Clearing",text:e.quote});
+    if(!r.ok)return r.reason;var p=MapKnowledge.project(r.state,"Clearing","player");p.features[0].label="changed";
+    return r.state.features.f1.label==="a hut"&&JSON.stringify(p).indexOf("Stalgind")<0&&!p.features[0].owner;
+  });
+  t("K05 hidden tag with absent source refuses without mutating input",function(){var s=MapKnowledge.create(),before=JSON.stringify(s),r=geo733([spring733()],{channel:"gm",commit:"x",turn:9,container:"Clearing",text:"Night settles."},s);return !r.ok&&/source/.test(r.reason)&&JSON.stringify(s)===before;});
+  t("K05 a private attribute is not smuggled through a disclosure",function(){var e=spring733();e.owner="Stalgind";var r=geo733([e]);return !r.ok&&/owner/.test(r.reason);});
+  t("K05 a later malformed event leaves the entire prepared group uninstalled",function(){var s=MapKnowledge.create(),bad=spring733();bad.bearing="constructor";var r=geo733([spring733(),bad],null,s);return !r.ok&&Object.keys(s.features).length===0;});
+  t("K08 Table Talk and sync cannot authorize disclosure",function(){var channels=["tabletalk","sync","import","constructor"],i;for(i=0;i<channels.length;i++)if(geo733([spring733()],{channel:channels[i],commit:"c",turn:9,container:"Clearing",text:spring733().quote}).ok)return "accepted "+channels[i];return true;});
+  t("K08 retry is idempotent and a changed payload under the same receipt refuses",function(){var e=spring733(),a=geo733([e]);if(!a.ok)return a.reason;var b=geo733([e],null,a.state);e.bearing="N";var c=geo733([e],null,a.state);return b.ok&&b.duplicate&&JSON.stringify(a.state)===JSON.stringify(b.state)&&!c.ok;});
+  t("K04 a reported site remains reported, without a visited flag",function(){var e=spring733();e.mode="reported";var r=geo733([e]);if(!r.ok)return r.reason;var f=MapKnowledge.project(r.state,"The Boundary Clearing","player").features[0];return f.mode==="reported"&&!f.visited&&!f.metres;});
+  t("K12 scope and audience are closed boundaries",function(){var r=geo733([spring733()]);if(!r.ok)return r.reason;try{MapKnowledge.project(r.state,"The Boundary Clearing","constructor");return "unknown audience accepted";}catch(e){}return MapKnowledge.project(r.state,"Elsewhere","player").features.length===0;});
+  t("K10 round trip retains receipts and projection; reads are pure",function(){var r=geo733([spring733()]);if(!r.ok)return r.reason;var s=JSON.parse(JSON.stringify(r.state)),before=JSON.stringify(s),p=MapKnowledge.project(s,"The Boundary Clearing","player");return p.features[0].source.commit==="turn-9"&&p.features[0].source.turn===9&&s.receipts["turn-9"].events[0].quote===spring733().quote&&MapKnowledge.problem(s)===""&&JSON.stringify(s)===before;});
+  t("K11 unknown versions and dangling receipts refuse without repair",function(){var s=MapKnowledge.create();s.v=99;var r=geo733([spring733()],null,s);if(r.ok||s.v!==99)return "new version overwritten";s=geo733([spring733()]).state;delete s.receipts["turn-9"];return !!MapKnowledge.problem(s);});
+  t("K15 duplicate reads and retries do not accumulate records",function(){var e=spring733(),r=geo733([e]),s=r.state,before=JSON.stringify(s),i;for(i=0;i<100;i++){MapKnowledge.project(s,"The Boundary Clearing","player");r=geo733([e],null,s);if(!r.ok)return r.reason;}return JSON.stringify(s)===before;});
+
+  t("K02 disclosure cannot replace known bearing or observed status",function(){
+    var first=geo733([spring733()]),ctx={channel:"gm",commit:"later",turn:10,container:"The Boundary Clearing",text:"Bear Spring lies southwest."},changes=[{bearing:"unknown"},{bearing:"N"},{mode:"reported"}],i,k,e,r;
+    for(i=0;i<changes.length;i++){e=spring733();e.id="f1";for(k in changes[i])e[k]=changes[i][k];r=MapKnowledge.prepare(first.state,[e],ctx);if(r.ok)return "weakened "+JSON.stringify(changes[i]);}return true;
+  });
+  t("K11 duplicate source identity and inherited event fields refuse",function(){
+    var s=geo733([spring733()]).state;s.features.f2=JSON.parse(JSON.stringify(s.features.f1));s.features.f2.id="f2";s.next=3;if(!/same source/.test(MapKnowledge.problem(s)))return "two identities sharing one source need the source-identity diagnostic";
+    var e=Object.create(spring733());return !geo733([e]).ok;
+  });
+  t("K12 canonical container resolution keeps discoveries after a rename",function(){
+    var s=geo733([spring733()]).state,p=MapKnowledge.project(s,"New Clearing","player",function(k){return k==="The Boundary Clearing"?"New Clearing":k;});return p.features.length===1&&s.features.f1.container==="The Boundary Clearing";
+  });
+  t("K11 a null store is refused with the map knowledge reason",function(){try{MapKnowledge.project(null,"Here","player");return false;}catch(e){return /MapKnowledge: unsupported/.test(e.message);}});
+
+  function capacity733(featureCount,receiptCount){
+    var s=MapKnowledge.create(),i,e,key;s.revision=receiptCount;s.next=featureCount+1;
+    for(i=0;i<receiptCount;i++){
+      key="cap-"+i;e={op:"disclose",id:"new",label:"Feature "+i,proposalKind:"landmark",bearing:"unknown",mode:"observed",quote:"Feature "+i+" is here."};
+      s.receipts[key]={turn:i,container:"Capacity Place",events:[e]};
+      if(i<featureCount)s.features["f"+(i+1)]={id:"f"+(i+1),container:"Capacity Place",label:e.label,bearing:e.bearing,mode:e.mode,receipt:key,event:0};
+    }
+    return s;
+  }
+  t("K05 prepare detaches success and a later candidate refusal from input",function(){
+    var s=MapKnowledge.create(),before=JSON.stringify(s),e=spring733(),r=geo733([e],null,s);
+    if(!r.ok||JSON.stringify(s)!==before)return "successful prepare mutated its input";
+    r.state.receipts["turn-9"].events[0].quote="Changed";if(e.quote!=="Bear Spring lies southwest.")return "candidate retained caller event";
+    s=geo733([spring733()]).state;before=JSON.stringify(s);e=spring733();e.id="f1";e.bearing="N";
+    r=geo733([{op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},e],{channel:"gm",commit:"later",turn:10,container:"The Boundary Clearing",text:"The Boar Tree stands north. Bear Spring lies southwest."},s);
+    return !r.ok&&JSON.stringify(s)===before;
+  });
+  t("K05 event vocabulary and source label checks are closed",function(){
+    var changes=[{op:"place"},{id:"f0"},{proposalKind:{}},{bearing:"constructor"},{mode:"constructor"},{label:"Other Spring"},{label:""},{quote:""}],i,k,e;
+    for(i=0;i<changes.length;i++){e=spring733();for(k in changes[i])e[k]=changes[i][k];if(!MapKnowledge.eventProblem(e)||geo733([e]).ok)return "accepted "+JSON.stringify(changes[i]);}
+    e=spring733();delete e.mode;return !!MapKnowledge.eventProblem(e)&&!geo733([e]).ok;
+  });
+  t("K11 current schema rejects extra store feature and receipt fields",function(){
+    var first=geo733([spring733()]).state,i,s;
+    for(i=0;i<4;i++){s=JSON.parse(JSON.stringify(first));if(i===0)s.private="secret";if(i===1)s.features.f1.owner="Stalgind";if(i===2)s.receipts["turn-9"].private="secret";if(i===3)s.receipts["turn-9"].events[0].private="secret";if(!MapKnowledge.problem(s))return "accepted extra field "+i;}
+    return true;
+  });
+  t("K11 source references and projected attributes must agree",function(){
+    var first=geo733([spring733()]).state,i,s;
+    for(i=0;i<8;i++){
+      s=JSON.parse(JSON.stringify(first));
+      if(i===0)s.features.f1.label="Other Spring";if(i===1)s.features.f1.kind="hut";if(i===2)s.features.f1.bearing="N";if(i===3)s.features.f1.mode="reported";
+      if(i===4)s.features.f1.event=1;if(i===5)s.receipts["turn-9"].container="Elsewhere";if(i===6)s.receipts["turn-9"].events[0].id="f2";if(i===7)s.features.f1.event=-1;
+      if(!MapKnowledge.problem(s))return "accepted dishonest source "+i;
+    }
+    return true;
+  });
+  t("K12 foreign handles and colliding public labels refuse",function(){
+    var first=geo733([spring733(),{op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."}]).state;
+    var ctx={channel:"gm",commit:"later",turn:10,container:"The Boundary Clearing",text:"Bear Spring lies southwest. The Boar Tree stands north."},e=spring733();
+    e.bearing="N";if(MapKnowledge.prepare(first,[e],ctx).ok)return "conflicting new duplicate label";e.bearing="SW";
+    e.id="f99";if(MapKnowledge.prepare(first,[e],ctx).ok)return "unknown handle";
+    e.id="f1";ctx.container="Elsewhere";if(MapKnowledge.prepare(first,[e],ctx).ok)return "foreign handle";
+    ctx.container="The Boundary Clearing";e.label="The Boar Tree";e.quote="The Boar Tree stands north.";return !MapKnowledge.prepare(first,[e],ctx).ok;
+  });
+  t("K15 stored feature and receipt caps accept the boundary and reject overflow",function(){
+    if(MapKnowledge.problem(capacity733(4096,4096)))return "feature boundary refused";
+    if(MapKnowledge.problem(capacity733(1,8192)))return "receipt boundary refused";
+    if(!MapKnowledge.problem(capacity733(4097,4097)))return "feature overflow accepted";
+    return !!MapKnowledge.problem(capacity733(1,8193));
+  });
+  t("K15 full stores refuse additions without evicting prior evidence",function(){
+    var s=capacity733(4096,4096),before=JSON.stringify(s),e={op:"disclose",id:"new",label:"An extra landmark",proposalKind:"landmark",bearing:"unknown",mode:"observed",quote:"An extra landmark is here."};
+    var ctx={channel:"gm",commit:"extra",turn:9000,container:"Capacity Place",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    if(r.ok||!/capacity/.test(r.reason)||JSON.stringify(s)!==before)return "feature cap failed";
+    s=capacity733(1,8192);before=JSON.stringify(s);e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0]));e.id="f1";ctx.text=e.quote;r=MapKnowledge.prepare(s,[e],ctx);
+    return !r.ok&&/capacity/.test(r.reason)&&JSON.stringify(s)===before;
+  });
+  t("K15 event batch cap admits sixteen and refuses seventeen atomically",function(){
+    var events=[],i,e,ctx={channel:"gm",commit:"many",turn:10,container:"Clearing",text:""},s=MapKnowledge.create(),before=JSON.stringify(s),r;
+    for(i=0;i<17;i++){e={op:"disclose",id:"new",label:"Tree "+i,proposalKind:"tree",bearing:"unknown",mode:"observed",quote:"Tree "+i+" stands here."};events.push(e);ctx.text+=e.quote+" ";}
+    r=MapKnowledge.prepare(s,events.slice(0,16),ctx);if(!r.ok||Object.keys(r.state.features).length!==16)return "sixteen refused";
+    r=MapKnowledge.prepare(s,events,ctx);return !r.ok&&JSON.stringify(s)===before;
+  });
+  t("K15 exhausted or reused identity counters never advance",function(){
+    var s=MapKnowledge.create(),before,r;s.next=9007199254740990;before=JSON.stringify(s);r=geo733([spring733()],null,s);if(r.ok||JSON.stringify(s)!==before)return "exhausted identity advanced";
+    s=MapKnowledge.create();s.revision=9007199254740990;before=JSON.stringify(s);r=geo733([spring733()],null,s);if(r.ok||JSON.stringify(s)!==before)return "exhausted revision advanced";
+    s=geo733([spring733()]).state;s.next=1;return !!MapKnowledge.problem(s);
+  });
+  t("K11 malformed source context and counters are refused",function(){
+    var base={channel:"gm",commit:"x",turn:9,container:"Clearing",text:spring733().quote},changes=[{commit:""},{turn:1.5},{turn:-1},{container:""},{text:17}],i,k,c,s;
+    for(i=0;i<changes.length;i++){c=JSON.parse(JSON.stringify(base));for(k in changes[i])c[k]=changes[i][k];if(geo733([spring733()],c).ok)return "accepted context "+i;}
+    s=MapKnowledge.create();s.revision=-1;if(!MapKnowledge.problem(s))return "negative revision";s=MapKnowledge.create();s.next=1.5;return !!MapKnowledge.problem(s);
+  });
+
+  t("K08 exact new repeats retain one handle beside independent discoveries",function(){
+    var s=geo733([spring733()]).state,before=JSON.stringify(s),tree={op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."};
+    var ctx={channel:"gm",commit:"renewed",turn:10,container:"The Boundary Clearing",text:"Bear Spring lies southwest. The Boar Tree stands north."},r=MapKnowledge.prepare(s,[spring733(),tree],ctx);
+    if(!r.ok)return r.reason;
+    if(JSON.stringify(s)!==before||Object.keys(r.state.features).length!==2||r.state.next!==3)return "repeat mutated input or allocated another handle";
+    var p=MapKnowledge.project(r.state,ctx.container,"player"),retry=MapKnowledge.prepare(r.state,[spring733(),tree],ctx);
+    return p.features[0].id==="f1"&&p.features[0].source.commit==="renewed"&&p.features[0].source.turn===10&&r.state.receipts["renewed"].events[0].quote===spring733().quote&&r.state.features.f2.label===tree.label&&Object.keys(r.state.receipts).length===2&&retry.ok&&retry.duplicate&&JSON.stringify(retry.state)===JSON.stringify(r.state)&&MapKnowledge.problem(r.state)==="";
+  });
+  t("K18 a repeated new label advances reported knowledge through the same handle rules",function(){
+    var e={op:"disclose",id:"new",label:"King Stillwater's Bower",proposalKind:"",bearing:"SW",mode:"reported",quote:"You hear of King Stillwater's Bower to the southwest."},ctx={channel:"gm",commit:"t39",turn:39,container:"The Whispering Sough|The Weeping Gatehouse",text:e.quote},r=MapKnowledge.prepare(MapKnowledge.create(),[e],ctx),s=r.state;
+    if(!r.ok)return r.reason;var before=JSON.stringify(s);e.mode="observed";e.quote="You see King Stillwater's Bower to the southwest.";ctx.commit="t40";ctx.turn=40;ctx.text=e.quote;
+    r=MapKnowledge.prepare(s,[e],ctx);if(!r.ok)return r.reason;
+    return JSON.stringify(s)===before&&r.state.next===2&&Object.keys(r.state.features).length===1&&r.state.features.f1.mode==="observed"&&r.state.features.f1.bearing==="SW"&&r.state.features.f1.receipt==="t40"&&r.state.receipts.t39.events[0].mode==="reported"&&MapKnowledge.problem(r.state)==="";
+  });
+  t("K18 repeated labels may establish unknown bearings without moving existing points",function(){
+    var e=spring733();e.bearing="unknown";e.mode="reported";var s=geo733([e]).state,before=JSON.stringify(s);e.bearing="SW";e.mode="observed";var ctx={channel:"gm",commit:"survey",turn:10,container:"The Boundary Clearing",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    if(!r.ok)return r.reason;var good=JSON.stringify(r.state);e.bearing="N";ctx.commit="conflict";var bad=MapKnowledge.prepare(r.state,[e],ctx);
+    return JSON.stringify(s)===before&&r.state.next===2&&r.state.features.f1.bearing==="SW"&&r.state.features.f1.mode==="observed"&&!bad.ok&&JSON.stringify(r.state)===good;
+  });
+  t("K18 a promoted repeat retains atomicity provenance and retry bounds",function(){
+    var e=spring733();e.mode="reported";var s=geo733([e]).state,before=JSON.stringify(s),tree={op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},ctx={channel:"gm",commit:"observe",turn:10,container:"The Boundary Clearing",text:e.quote+" "+tree.quote};e.mode="observed";
+    var r=MapKnowledge.prepare(s,[e,tree],ctx);if(!r.ok)return r.reason;
+    var retry=MapKnowledge.prepare(r.state,[e,tree],ctx);if(!retry.ok||!retry.duplicate||JSON.stringify(retry.state)!==JSON.stringify(r.state))return "retry grew or changed the receipt";
+    if(JSON.stringify(s)!==before||r.state.next!==3||r.state.features.f1.mode!=="observed"||r.state.features.f2.label!==tree.label||r.state.receipts.observe.events[0].id!=="new")return "promotion changed identity, input, or source evidence";
+    var conflict=JSON.parse(JSON.stringify(e));conflict.bearing="E";ctx.commit="conflict";var bad=MapKnowledge.prepare(s,[e,tree,conflict],ctx);
+    return !bad.ok&&JSON.stringify(s)===before;
+  });
+  t("K18 same-group monotonic repeats retain one identity and latest receipt offset",function(){
+    var first=spring733();first.bearing="unknown";first.mode="reported";var seen=spring733(),r=geo733([first,seen]);if(!r.ok)return r.reason;
+    if(r.state.next!==2||r.state.features.f1.event!==1||r.state.features.f1.mode!=="observed"||r.state.features.f1.bearing!=="SW"||r.state.receipts["turn-9"].events[0].mode!=="reported"||MapKnowledge.problem(r.state))return "same-group promotion lost identity or receipt order";
+    var before=JSON.stringify(r.state),ctx={channel:"gm",commit:"erase",turn:10,container:"The Boundary Clearing",text:seen.quote};seen.bearing="unknown";return !MapKnowledge.prepare(r.state,[seen],ctx).ok&&JSON.stringify(r.state)===before;
+  });
+  t("K08 conflicting new repeats refuse independent candidates atomically",function(){
+    var changes=[{bearing:"N"},{mode:"reported"}],s=geo733([spring733()]).state,before=JSON.stringify(s),ctx={channel:"gm",commit:"conflict",turn:10,container:"The Boundary Clearing",text:"The Boar Tree stands north. Bear Spring lies southwest."},i,k,e,r;
+    for(i=0;i<changes.length;i++){e=spring733();for(k in changes[i])e[k]=changes[i][k];r=MapKnowledge.prepare(s,[{op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."},e],ctx);if(r.ok||JSON.stringify(s)!==before)return "conflicting repeat changed the group: "+JSON.stringify(changes[i]);}
+    e=spring733();e.mode="reported";s=geo733([e]).state;before=JSON.stringify(s);e=spring733();
+    r=MapKnowledge.prepare(s,[e],ctx);if(!r.ok||JSON.stringify(s)!==before||r.state.features.f1.mode!=="observed")return "a uniquely identified report can advance through a repeated label";
+    e.id="f1";r=MapKnowledge.prepare(s,[e],ctx);return r.ok&&r.state.features.f1.mode==="observed";
+  });
+  t("K08 exact repeats inside one group preserve source ownership and counters",function(){
+    var e=spring733(),r=geo733([e,e,e]);if(!r.ok)return r.reason;
+    if(Object.keys(r.state.features).length!==1||r.state.next!==2||r.state.features.f1.event!==2||r.state.receipts["turn-9"].events.length!==3||MapKnowledge.problem(r.state))return "one group duplicated an identity or lost provenance";
+    var ctx={channel:"gm",commit:"later-repeat",turn:10,container:"The Boundary Clearing",text:e.quote},later=MapKnowledge.prepare(r.state,[e],ctx);
+    return later.ok&&later.state.next===2&&Object.keys(later.state.receipts).length===2&&later.state.features.f1.receipt==="later-repeat"&&r.state.features.f1.receipt==="turn-9";
+  });
+  t("K18 promotion at feature capacity consumes no identity and still respects receipt capacity",function(){
+    var s=capacity733(4096,4096),e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0]));s.features.f1.mode="reported";s.receipts["cap-0"].events[0].mode="reported";e.mode="observed";var before=JSON.stringify(s),ctx={channel:"gm",commit:"promote-at-cap",turn:9000,container:"Capacity Place",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    if(!r.ok)return r.reason;if(r.state.next!==4097||Object.keys(r.state.features).length!==4096||r.state.features.f1.mode!=="observed"||JSON.stringify(s)!==before)return "promotion allocated an identity or changed input";
+    s=capacity733(1,8192);e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0]));s.features.f1.mode="reported";s.receipts[s.features.f1.receipt].events[s.features.f1.event].mode="reported";e.mode="observed";before=JSON.stringify(s);r=MapKnowledge.prepare(s,[e],ctx);return !r.ok&&/capacity/.test(r.reason)&&JSON.stringify(s)===before;
+  });
+  t("K08 an exact new repeat at the feature cap allocates no identity",function(){
+    var s=capacity733(4096,4096),e=JSON.parse(JSON.stringify(s.receipts["cap-0"].events[0])),ctx={channel:"gm",commit:"repeat-at-cap",turn:9000,container:"Capacity Place",text:e.quote},r=MapKnowledge.prepare(s,[e],ctx);
+    return r.ok&&Object.keys(r.state.features).length===4096&&r.state.next===4097&&r.state.features.f1.receipt===ctx.commit;
+  });
+  t("K11 duplicate folded public labels refuse before any repeat can pick a handle",function(){
+    var s=geo733([spring733(),{op:"disclose",id:"new",label:"The Boar Tree",proposalKind:"tree",bearing:"N",mode:"observed",quote:"The Boar Tree stands north."}]).state;
+    s.features.f2.label="BEAR   SPRING";s.receipts["turn-9"].events[1].label="BEAR   SPRING";s.receipts["turn-9"].events[1].quote="BEAR   SPRING stands here.";
+    var before=JSON.stringify(s),problem=MapKnowledge.problem(s),r=MapKnowledge.prepare(s,[spring733()],{channel:"gm",commit:"ambiguous",turn:10,container:"The Boundary Clearing",text:spring733().quote});
+    return !!problem&&/label/.test(problem)&&!r.ok&&JSON.stringify(s)===before;
+  });
+
+  t("K16 current geography projects neutral points and source identity only",function(){
+    var e=spring733();e.proposalKind="secret clockwork observatory";var r=geo733([e]);if(!r.ok)return r.reason;
+    var f=MapKnowledge.project(r.state,"The Boundary Clearing","player").features[0];
+    return r.state.v===2&&MapKnowledge.version===2&&Object.keys(f).sort().join(",")==="bearing,id,label,mode,source"&&Object.keys(f.source).sort().join(",")==="commit,turn"&&f.source.commit==="turn-9"&&f.source.turn===9&&!Object.prototype.hasOwnProperty.call(r.state.features.f1,"kind")&&JSON.stringify(f).indexOf(e.proposalKind)<0&&JSON.stringify(f).indexOf(e.quote)<0;
+  });
+  t("K16 private proposals accept bounded literals without gaining authority",function(){
+    var values=["","constructor","unknown whimsical subtype",new Array(121).join("x")],bad=[null,7,{},new Array(122).join("x"),"leading ","bad\nline","bad\u007fcontrol"],i,e;
+    for(i=0;i<values.length;i++){e=spring733();e.proposalKind=values[i];if(MapKnowledge.eventProblem(e)||!geo733([e]).ok)return "bounded literal refused: "+i;}
+    for(i=0;i<bad.length;i++){e=spring733();e.proposalKind=bad[i];if(!MapKnowledge.eventProblem(e)||geo733([e]).ok)return "invalid proposal accepted: "+i;}return true;
+  });
+  t("K16 differing private proposals neither fork nor block a public point",function(){
+    var first=spring733(),next=spring733();first.proposalKind="";next.proposalKind="fortress";
+    var s=geo733([first]).state,before=JSON.stringify(s),ctx={channel:"gm",commit:"new-proposal",turn:10,container:"The Boundary Clearing",text:next.quote},r=MapKnowledge.prepare(s,[next],ctx);
+    if(!r.ok||r.state.next!==2||Object.keys(r.state.features).length!==1||r.state.receipts[ctx.commit].events[0].proposalKind!=="fortress"||JSON.stringify(s)!==before)return "new proposal changed identity or original evidence";
+    next.id="f1";next.proposalKind="burrow";ctx.commit="handle-proposal";var later=MapKnowledge.prepare(r.state,[next],ctx);
+    if(!later.ok||later.state.next!==2||later.state.features.f1.receipt!==ctx.commit)return "explicit handle could not retain revised private proposal";
+    r=geo733([first,next]);if(!r.ok||r.state.next!==2)return "same-group explicit handle lost the allocated point";
+    next.id="new";r=geo733([first,next]);return r.ok&&r.state.next===2&&r.state.features.f1.event===1;
+  });
+  function legacy733(){
+    return {v:1,revision:4,next:8,features:{f7:{id:"f7",container:"Old Clearing",label:"Bear Spring",kind:"spring",bearing:"SW",mode:"observed",receipt:"old-2",event:0}},receipts:{
+      "old-1":{turn:2,container:"Old Clearing",events:[{op:"disclose",id:"new",label:"Bear Spring",kind:"spring",bearing:"unknown",mode:"reported",quote:"You hear of Bear Spring (spring), direction unknown."}]},
+      "old-2":{turn:3,container:"Old Clearing",events:[{op:"disclose",id:"f7",label:"Bear Spring",kind:"spring",bearing:"SW",mode:"observed",quote:"You see Bear Spring (spring), southwest."}]}
+    }};
+  }
+  t("K17 legacy upgrade preserves the complete preimage and every source identity",function(){
+    var s=legacy733(),before=JSON.stringify(s),r=MapKnowledge.upgrade(s);if(!r.ok)return r.reason;
+    if(!r.upgraded||r.state.v!==2||r.state.next!==8||r.state.revision!==4||JSON.stringify(s)!==before||JSON.stringify(r.backup)!==before)return "migration changed its preimage or counters";
+    var f=r.state.features.f7,keys=Object.keys(r.state.receipts),i,old,e;
+    if(Object.keys(r.state.features).join(",")!=="f7"||f.container!=="Old Clearing"||f.receipt!=="old-2"||f.event!==0||Object.prototype.hasOwnProperty.call(f,"kind"))return "migration changed a feature identity or retained authority";
+    if(keys.join(",")!=="old-1,old-2")return "receipt tokens changed";
+    for(i=0;i<keys.length;i++){old=s.receipts[keys[i]];e=r.state.receipts[keys[i]];if(e.turn!==old.turn||e.container!==old.container||e.events[0].id!==old.events[0].id||e.events[0].quote!==old.events[0].quote||e.events[0].proposalKind!==old.events[0].kind||Object.prototype.hasOwnProperty.call(e.events[0],"kind"))return "receipt provenance changed";}
+    return MapKnowledge.problem(r.state)==="";
+  });
+  t("K17 migrated typed quotations stay private even when a place is renamed",function(){
+    var r=MapKnowledge.upgrade(legacy733());if(!r.ok)return r.reason;var before=JSON.stringify(r.state),p=MapKnowledge.project(r.state,"New Clearing","player",function(k){return k==="Old Clearing"?"New Clearing":k;});
+    if(p.features.length!==1)return "renamed scope lost feature";
+    return Object.keys(p.features[0]).sort().join(",")==="bearing,id,label,mode,source"&&JSON.stringify(p.features[0].source)==='{"commit":"old-2","turn":3}'&&JSON.stringify(p).indexOf("You see")<0&&JSON.stringify(p).indexOf("(spring)")<0&&JSON.stringify(r.state)===before;
+  });
+  t("K17 upgrade candidates and backups are detached and current upgrade is idempotent",function(){
+    var s=legacy733(),before=JSON.stringify(s),r=MapKnowledge.upgrade(s);if(!r.ok)return r.reason;
+    var current=JSON.stringify(r.state),again=MapKnowledge.upgrade(r.state);if(!again.ok||again.upgraded||again.backup!==null||JSON.stringify(again.state)!==current)return "current schema was migrated again";
+    again.state.receipts["old-1"].events[0].quote="changed";again.state.features.f7.label="changed";if(JSON.stringify(r.state)!==current)return "current result aliases input";
+    r.state.receipts["old-2"].events[0].quote="changed";r.state.features.f7.label="changed";if(JSON.stringify(r.backup)!==before)return "backup aliases candidate";
+    r.backup.receipts["old-1"].events[0].quote="changed";r.backup.features.f7.label="changed";return JSON.stringify(s)===before;
+  });
+  t("K17 damaged or unknown legacy stores refuse without partial repair",function(){
+    var i,s,before,r;
+    for(i=0;i<11;i++){
+      s=legacy733();if(i===0)s.v=99;if(i===1)s.v="1";if(i===2)s.features.f7.kind="hut";if(i===3)s.receipts["old-2"].events[0].kind="constructor";if(i===4)s.features.f7.event=3;if(i===5)delete s.receipts["old-2"];if(i===6)s.receipts["old-2"].events[0].quote="Unrelated source";if(i===7)s.features.f7.owner="Private";if(i===8)s.next=7;if(i===9)s.receipts["old-2"].events[0].proposalKind="spring";if(i===10)s.features.f7.receipt="old-1";
+      before=JSON.stringify(s);r=MapKnowledge.upgrade(s);if(r.ok||!r.reason||r.state||r.backup||JSON.stringify(s)!==before)return "damaged legacy store repaired: "+i;
+    }
+    r=MapKnowledge.upgrade(null);return !r.ok&&!!r.reason;
+  });
+  t("K17 ordinary readers and writers require an explicit legacy upgrade",function(){
+    var s=legacy733(),before=JSON.stringify(s);if(!MapKnowledge.problem(s)||geo733([spring733()],null,s).ok)return "ordinary writer admitted v1";
+    try{MapKnowledge.project(s,"Old Clearing","player");return "ordinary reader admitted v1";}catch(e){}
+    return JSON.stringify(s)===before;
+  });
+
+  t("K17 unexpected upgrade source errors return an attributable refusal",function(){
+    var cases=["v","features"],i,s,r;
+    for(i=0;i<cases.length;i++){
+      s=legacy733();Object.defineProperty(s,cases[i],{enumerable:true,get:function(){throw new Error("injected unreadable legacy source");}});
+      r=MapKnowledge.upgrade(s);if(r.ok||r.state||r.backup||!/injected unreadable legacy source/.test(r.reason))return "exception escaped the refusal result";
+    }
+    return true;
+  });
+
   section("blueprint editions");
   t("legacy defaults and explicit malformed editions",function(){
     var b=normalizeBlueprint({format:"tnd-blueprint-v1",name:"Legacy",premise:"Story"});
@@ -1445,7 +1776,7 @@ function runEngineTests(R){
       /* saveMem is stubbed in this harness — prove the stamp through the pure step it calls, and pin the call in the source */
       memoryOwnerStamp();if(memory.campId!=="camp_B")return "memoryOwnerStamp did not stamp the owner: "+memory.campId;
       memory.campId="camp_A";memoryOwnerStamp();if(memory.campId!=="camp_A")return "the stamp overwrote a different owner — the mismatch must stay detectable";
-      var ss=__fsForTests.readFileSync(__rootForTests+"/state.js","utf8");if(!/function saveMem\(\)\{try\{memoryOwnerStamp\(\);store\.set\(MEM_KEY/.test(ss))return "saveMem does not stamp before writing";
+      var ss=__fsForTests.readFileSync(__rootForTests+"/state.js","utf8"),sb=ss.slice(ss.indexOf("function saveMem(){"),ss.indexOf("\n",ss.indexOf("function saveMem(){"))),stamp=sb.indexOf("memoryOwnerStamp();"),write=sb.indexOf("store.set(MEM_KEY");if(stamp<0||write<0||stamp>write)return "saveMem does not stamp before writing";
       /* the half-switched layout: worldState B live, memory A live */
       store.set(WSK,JSON.stringify(worldState));store.set(SLK,"[]");store.set(MEM_KEY,JSON.stringify(memory));__toasts.length=0;errs.length=0;reps.length=0;
       var ok=loadState();if(!ok)return "loadState must still load the pair (the player decides what to do)";
@@ -9269,7 +9600,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==536052231||_CT_TAGS.source.length!==1841)return "_CT_TAGS diverged from the frozen literal";/* #702 (v1.1362): MAP_PLACE joins the strip vocabulary (+10) *//* #612 (v1.1241): COMBAT_GROUP joins the strip vocabulary (+13) *//* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==359050111||_CT_TAGS.source.length!==1852)return "_CT_TAGS diverged from the frozen literal";/* MAP_REVEAL is stripped in every channel; only a canonical narrated commit publishes its validated readable receipt. *//* #702 (v1.1362): MAP_PLACE joins the strip vocabulary (+10) *//* #612 (v1.1241): COMBAT_GROUP joins the strip vocabulary (+13) *//* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -15925,7 +16256,7 @@ function runEngineTests(R){
     if(!/^\[ENGINE NOTE/.test(n)||!/not a player action/.test(n))return "not an engine note: "+n.slice(0,80);
     if(!/beat/i.test(n)||!/explicit|anatomical/i.test(n)||!/cut away|fade|lamp/i.test(n)||!/never address the player|stay in character/i.test(n))return "note lacks the shape: "+n;
     var src=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),i=src.indexOf("async function sendAction("),body=src.slice(i,src.indexOf("function retryLast("));
-    var call=body.indexOf("var resp=await callGM(apiTxt,sys"),retry=body.indexOf("refusalRetryNote()"),commit=body.indexOf("commitGmTurn(resp,{userMsg:apiTxt");
+    var call=body.indexOf("var resp=await callGM(apiTxt,sys"),retry=body.indexOf("refusalRetryNote()"),commit=body.indexOf("commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt");
     if(call<0||retry<0||commit<0)return "wiring missing: call "+call+" retry "+retry+" commit "+commit;
     if(!(call<retry&&retry<commit))return "the retry must sit between the GM call and the commit";
     if((body.match(/refusalRetryNote\(\)/g)||[]).length!==2)return "exactly two retry sites (#323 worded, #335 empty candidate)";
@@ -24239,7 +24570,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var hl=worldState.healthLog;if(hl.length!==2)return "only gameplay turns enter the ring: "+hl.length;
     if(hl[0].gw!==1||hl[0].cr!==13614||hl[0].prov!=="gemini")return "a server-route turn must be stamped gw:1: "+JSON.stringify(hl[0]);
     if("gw" in hl[1])return "an own-key turn must carry no gw stamp: "+JSON.stringify(hl[1]);
-    if(__fsForTests.readFileSync(__rootForTests+"/api.js","utf8").indexOf("recordUsage(_u,_kind,model,_retries,_tp.server)")<0)return "callGM must pass the transport it used (_tp.server) to recordUsage";
+    if(__fsForTests.readFileSync(__rootForTests+"/api.js","utf8").indexOf("recordUsage(_u,_kind,model,_retries,_tp.server,_usageWorld)")<0)return "callGM must pass its transport (_tp.server) and captured request world (_usageWorld) to recordUsage";
     return true;
   });
   t("healthIndicators: RAG silence — n/a young or flag-off, RED only when a mature campaign serves nothing all window",function(){
@@ -34869,10 +35200,10 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       var ad=sheetAdmit(sh,{door:"quick start",mode:"cross",stage:"preview",rel:null,toast:false});if(!ad.ok||!ad.sheet.inventory.every(function(x){return typeof x==="object";}))return cat[i].file+" heals to rows on adoption: "+JSON.stringify(ad.reason);}
     return true;
   });
-  t("#599c what this build stamps: SAVE_VER and SHEET_VER are 11; a new world, a portable sheet and a healed sheet say so; the version gate refuses 12 and passes 10",function(){
-    if(SAVE_VER!==11||SHEET_VER!==11)return "the (c) shape is v11: "+SAVE_VER+"/"+SHEET_VER;
+  t("#599c what this build stamps: inventory sheet v11 survives world v13; newer worlds and sheets are refused",function(){
+    if(SAVE_VER!==13||SHEET_VER!==11)return "public geography world v13 retains inventory sheet v11: "+SAVE_VER+"/"+SHEET_VER;
     if(portableSheet({name:"P",inventory:["Rope"]}).sheetVer!==11)return "portableSheet stamps 11";
-    if(worldVersionIssue({ver:12,character:{name:"x"}})===""||worldVersionIssue({ver:10,character:{name:"x",inventory:["Rope"]}})!==""||sheetVersionIssue({name:"s",sheetVer:12})===""||sheetVersionIssue({name:"s",sheetVer:11})!=="")return "the gate refuses 12 and passes 10 and 11";
+    if(worldVersionIssue({ver:14,character:{name:"x"}})===""||worldVersionIssue({ver:10,character:{name:"x",inventory:["Rope"]}})!==""||sheetVersionIssue({name:"s",sheetVer:12})===""||sheetVersionIssue({name:"s",sheetVer:11})!=="")return "the gate refuses world 14 and sheet 12 while accepting supported legacy shapes";
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(g.indexOf("worldState={ver:SAVE_VER,")<0)return "startGame stamps SAVE_VER";
     if(worldSheetsOf({character:{name:"h"},npcs:[{name:"n",charSheet:{name:"n"}},{name:"bare"}],pendingLegacy:{name:"p"},mpFallen:[{name:"f",sheet:{name:"f"}}]}).map(function(x){return x.who;}).join("|")!=="hero|roster n|pending legacy p|fallen f")return "worldSheetsOf walks every sheet a world carries";
     return true;
@@ -36184,7 +36515,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   });
   t("#671 the hook: sendAction asks synopsisDue after the commit and fires refreshSynopsis without awaiting it, Table Talk excluded; the call is a side call (noHistory, kind synopsis, its own system line, the button's wait ticking) and nothing in the prompt reads the record",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
-    var at=g.indexOf("commitGmTurn(resp,{userMsg:apiTxt");if(at<0)return "the commit site moved";
+    var at=g.indexOf("commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt");if(at<0)return "the commit site moved";
     var tail=g.slice(at,at+1200);
     if(!/syncUI\(\);if\(!isTT\)maybeRefreshSynopsis\(\);/.test(tail))return "maybeRefreshSynopsis() must follow the post-commit syncUI(), Table Talk excluded";
     if(/await\s+maybeRefreshSynopsis|await\s+refreshSynopsis\("spine"/.test(g))return "the turn must never wait on the recap";

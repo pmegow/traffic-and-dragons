@@ -707,10 +707,10 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.equal(mapped.stable, plain.stable, "an atlas must not change one byte of the cached stable half");
     assert.equal(mapped.volatile.replace(block, ""), plain.volatile, "the volatile half gains the MAP block and nothing else");
     assert(mapped.volatile.indexOf(buildGeoBlock() + block) >= 0, "right after GEOGRAPHY");
-    var api = src("api.js");
+    var api = src("api.js").replace(/\r\n/g, "\n");
     assert(api.indexOf("    +buildGeoBlock()\n    +((typeof atlasMapBlock===\"function\")?atlasMapBlock():\"\")") > 0, "buildSysPrompt serves the MAP block right after GEOGRAPHY");
     assert(api.indexOf("atlasMapBlock") > api.indexOf("var volatile_="), "in the volatile half — a per-turn block must never touch the cached stable half");
-    assert.equal(api.slice(api.indexOf("function buildGeoBlock("), api.indexOf("return\"GEOGRAPHY (strict continuity")).indexOf("atlas"), -1, "buildGeoBlock itself knows nothing of the atlas");
+    assert(api.indexOf('audience==="player"')>=0 && api.indexOf("atlasKnowledgePlayerBlock()")>=0, "player geography uses the explicit public projection");
     assert.equal(src("table-talk.js").indexOf("atlas"), -1, "Table Talk is never handed the map");
     var game = src("game.js"), sa = game.indexOf("async function sendAction("), body = game.slice(sa, game.indexOf("\nasync function ", sa + 10) > 0 ? game.indexOf("\nasync function ", sa + 10) : sa + 20000);
     assert(body.indexOf("atlasFollow()") > 0 && body.indexOf("atlasFollow()") < body.indexOf("callGM("), "sendAction follows the pointer before the prompt is built");
@@ -1213,7 +1213,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     turn("[LOCATION:" + c.inn.name + "]"); turn("[SUBLOCATION:" + twice.name + "] Along, with the inn as the world place."); assert.equal(adds(A).length, 0, "a bare twice-borne name on the world place's own sheet is a refusal too"); assert(A.off && /are called that/.test(A.off.why) && !A.off.absent, JSON.stringify(A.off));
     assert.equal(cleanTxt("A [MAP_PLACE:Bleakford|near Great Brem] B"), "A  B", "stripped from prose"); assert.equal(buildStateTagsDoc().indexOf("[MAP_PLACE:"), -1, "not in the standing doc"); assert(TAG_DOC_ENGINE_ONLY.indexOf("MAP_PLACE") >= 0);
     assert(ATLAS_BRIEF_RULE.indexOf("[MAP_PLACE:<its name>|near <map name>]") > 0 && ATLAS_BRIEF_RULE.indexOf("is ADDED to the map beside the party") > 0, "taught by the MAP block: " + ATLAS_BRIEF_RULE);
-    assert.equal(src("tag_table.js").indexOf("atlas"), -1, "the parser never names the atlas");
+    assert(!/atlas(?:Follow|Doc|Adopt|KnowledgeCommit|PublicEnable)\s*\(/.test(src("tag_table.js")), "the parser never draws or publishes map state");
     stubs(); engine.makeTestWorld(); atlasForget();
     console.log = function () { }; try { R = applyMuts("[LOCATION:Oakhaven][MAP_PLACE:Oakhaven|near Marrowgate]"); } finally { console.log = realLog; } atlasFollow();
     assert(R.muts.some(function (m) { return /^Map place: Oakhaven/.test(m); })); assert.equal(worldState.placeDecls, undefined, "without an atlas the declaration is dropped by the follow"); assert.equal(worldState.atlas, undefined);
@@ -2053,7 +2053,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     assert.equal(worldState.atlas, undefined, "no atlas is ever created by a turn");
     var game = src("game.js"), at = game.indexOf("function commitGmTurn("), body = game.slice(at, game.indexOf("\nfunction ", at + 10));
     assert(body.indexOf("atlasFollow()") > body.indexOf("applyMuts(resp"), "commitGmTurn follows AFTER the parser committed");
-    assert.equal(src("tag_table.js").indexOf("atlas"), -1, "the tag parser never calls the atlas"); assert.equal(src("api.js").indexOf("atlasFollow"), -1, "nothing in api.js writes the atlas");
+    assert(!/atlas(?:Follow|Doc|Adopt|KnowledgeCommit|PublicEnable)\s*\(/.test(src("tag_table.js")), "the parser never draws or publishes map state"); assert.equal(src("api.js").indexOf("atlasFollow"), -1, "nothing in api.js writes the atlas");
   });
 
   test("the load door heals the atlas (migrateWorldState), and the load order, the shell and the manifest carry atlas.js after identity.js and tndmaps.js", function () {
@@ -2196,7 +2196,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
     atlasKindSet(A, key, { kind: "pending" }); A.ptr = null; atlasFollow(); r = atlasPlace(A.seed, { id: atlasDoc(A.seed).places[1].id }, { level: "world", name: "The Boundary Clearing" }); assert(r.ok, JSON.stringify(r)); assert.equal(A.off, null);
   });
 
-  await atest("#708 the door: Begin marks the start pending and the opening asks the story before it is written — the answer is written to the atlas and the follow runs, so the opening's MAP block already shows the start; a start on the map by its own name asks nothing; a failed or unreadable ask is said and refused, never a guessed village", async function () {
+  await atest("#708 the door: the legacy classifier handles a pending start and the opening asks the story before it is written — the answer is written to the atlas and the follow runs, so the opening's MAP block already shows the start; a start on the map by its own name asks nothing; a failed or unreadable ask is said and refused, never a guessed village", async function () {
     stubs(); engine.makeTestWorld(); atlasForget(); quiet();
     var A = atlasCreate("campaign-1"), reg = atlasDoc(A.seed), cap = reg.places[0], key, calls = [], real = global.callGM, r, src, i, j, body;
     point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
@@ -2229,12 +2229,15 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
       /* a thrower inside never escapes the opening */
       stubs(); engine.makeTestWorld(); atlasForget(); quiet(); A = atlasCreate("campaign-1"); point("The Boundary Clearing"); key = atlasWorldKey(atlasPointer());
       global.callGM = function () { throw new Error("sync boom"); }; atlasStartMark(); atlasFollow(); r = await atlasClassifyStart(); assert(r && r.kind === "unknown" && /sync boom/.test(r.why), JSON.stringify(r));
+      /* Public maps never consult or consume a legacy pending classifier hint. */
+      delete worldState.atlas;A=atlasCreate("public-classifier",{knowledge:true});key=atlasWorldKey(atlasPointer());atlasKindSet(A,key,{kind:"pending",by:"engine"});
+      assert.equal(atlasKindHint(A,key).kind,"pending");var publicBefore=JSON.stringify(A);assert.equal(await atlasClassifyStart(),null);assert.equal(JSON.stringify(A),publicBefore,"public maps bypass the legacy classifier without consuming its state");
       /* without an atlas */
       delete worldState.atlas; assert.equal(await atlasClassifyStart(), null);
     } finally { global.callGM = real; }
-    /* the wiring, derived from game.js: Begin marks right after the realm is drawn and before the first follow; the opening awaits the ask before the GM is called */
+    /* Legacy openings still await classification; new campaigns use public knowledge and bypass it. */
     src = fs.readFileSync(path.join(ROOT, "game.js"), "utf8");
-    assert(src.indexOf("atlasCreate();atlasStartMark();atlasFollow();") >= 0, "startGame: create, mark, follow");
+    assert(src.indexOf("atlasCreate(null,{knowledge:true});atlasFollow();") >= 0, "startGame initializes public knowledge before following");
     i = src.indexOf("async function beginAdventure("); body = src.slice(i, src.indexOf("\n}\n", i));
     j = body.indexOf("await atlasClassifyStart("); assert(j > 0 && j < body.indexOf("await callGM(intro)"), "beginAdventure asks the story before the opening is written");
     assert(body.indexOf("await atlasClassifyStart(function(tx){setThinking(th,") === j, "the wait is said on the thinking marker through the status callback");
@@ -2379,6 +2382,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
        row and keeps ATLAS_VER writes stores every older cached build throws away. Adding a row: bump ATLAS_VER (older builds then
        leave the store alone) and add the new version's list here. */
     var ROWS = { 1: ["dungeon>dungeon", "interior>dungeon", "region>dungeon", "region>town", "region>wild", "town>dungeon", "town>interior"] };
+    ROWS[2]=ROWS[1].slice();/* Public knowledge changes the store version, not the private nesting catalogue. */
     assert(ROWS[ATLAS_VER], "ATLAS_VER " + ATLAS_VER + " has no pinned builder rows — add its list");
     assert.deepEqual(Object.keys(ATLAS_BUILDERS).sort(), ROWS[ATLAS_VER], "a builder row changed under ATLAS_VER " + ATLAS_VER + " — bump the version with it");
   });

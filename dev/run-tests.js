@@ -796,7 +796,7 @@ try {
     var _eoM = _eoTT.match(/var TAG_DOC_ENGINE_ONLY=(\[[^\]]*\]);/);
     if (!_eoM) _failBE("TAG_DOC_ENGINE_ONLY is gone from tag_table.js");
     var _eoList = JSON.parse(_eoM[1]);
-    var _eoSrc = ["api.js", "identity.js", "memory.js", "clock.js", "atlas.js"].map(function (f) { return _fsBE.readFileSync(_pathBE.join(__dirname, "..", f), "utf8"); }).join("\n");/* #702: the MAP block (atlas.js) teaches [MAP_PLACE:] */
+    var _eoSrc = ["api.js", "identity.js", "memory.js", "clock.js", "atlas.js", "atlas-knowledge.js"].map(function (f) { return _fsBE.readFileSync(_pathBE.join(__dirname, "..", f), "utf8"); }).join("\n");/* #702: the MAP block (atlas.js) teaches [MAP_PLACE:] */
     _eoList.forEach(function (t) {
       if (_eoSrc.indexOf(t + ":") < 0) _failBE("engine-only tag " + t + " is taught by NO engine note — a GM can never learn its syntax (#311 ①)");
     });
@@ -1465,6 +1465,7 @@ try {
   var _adExempt = [
     { file: "helpers.js", fn: "portraitsSanitizeWorld", step: "portraitAdmit(", why: "a world-level sweep over every portrait at the .tnd import — not a sheet door" },
     { file: "game.js", fn: "applyBlueprint", step: "identitySheetAdmit(", why: "a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies" },
+    { file: "game.js", fn: "applyBlueprint", step: "portraitAdmit(", why: "an authored NPC image enters a sheetless roster row; character-sheet admission would fabricate unrelated sheet fields" },
     { file: "tag_table.js", fn: "tag NPC_MERGE", step: "voicePinsFill(", why: "the merge fills the canon's empty voice slots from the duplicate's — a fold of two sheets already admitted, not an admission (#543)" },
     /* this campaign's OWN sheets at load: the four NAME heals stay hand-run here (the registry's names entry is cross-mode only —
        a rename a portable copy may predate); everything else the load needs — the row heal, the stores, the portrait, the arrays,

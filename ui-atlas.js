@@ -43,7 +43,7 @@ function atlasDoorPaint(){
   atlasPaneRefresh();/* syncUI runs after every committed turn: an open pane follows the story */
 }
 /* what the open pane last painted from: the party's place and the pointer the atlas followed */
-function atlasPaneSig(){var A=(typeof atlasLive==="function")?atlasLive():null;return A?JSON.stringify([A.at,A.spot,A.off,A.ptr]):"";}
+function atlasPaneSig(){var A=(typeof atlasLive==="function")?atlasLive():null;return A?JSON.stringify([A.at,A.spot,A.off,A.ptr,A.knowledge,memory&&memory.map&&memory.map.geography&&memory.map.geography.revision,A.knowledge&&memory&&memory.map&&memory.map.identity]):"";}
 /* a turn landed (or a Sync edit) while the pane is open: its marker and card were painted for another place. A sheet the
    story left is swapped for the party's, framed on the party; the same sheet keeps the player's view */
 function atlasPaneRefresh(){
@@ -51,7 +51,7 @@ function atlasPaneRefresh(){
   if(!P||P.sig===atlasPaneSig())return false;
   A=atlasLive();
   if(!A){atlasPaneClose();return true;}
-  z=A.zones[P.zone]?P.zone:(A.at||A.seed);
+  z=atlasKnowledgeActive()?A.seed:(A.zones[P.zone]?P.zone:(A.at||A.seed));
   atlasPaneShow(z,z!==P.zone);
   return true;
 }
@@ -67,14 +67,14 @@ function atlasDoorWire(){
 
 /* close whichever pane is open: the view lets go of the window, the modal goes, the dock is emptied. A closed FULL pane
    hands the map back to the dock when the Map tab is showing. */
-function atlasPaneClose(){
+function atlasPaneClose(opts){
   var P=_atlasPane,m=document.getElementById("atlas-modal"),d=document.getElementById("atlas-dock");
   if(P&&P.view){try{P.view.destroy();}catch(e){if(typeof console!=="undefined")console.warn("[atlas pane] the view did not close cleanly: "+(e&&e.message?e.message:e));}}
   if(P&&P.ro){try{P.ro.disconnect();}catch(e2){}}
   _atlasPane=null;
   if(m)m.remove();
   if(d)d.innerHTML="";
-  if(P&&P.host==="full")atlasDockSync();
+  if(P&&P.host==="full"&&!(opts&&opts.defer))atlasDockSync();
 }
 /* the drawer's Map tab is showing and holds no pane: mount one (a closed full pane, a tab selected, a drawer opened) */
 function atlasDockSync(){
@@ -186,7 +186,7 @@ function atlasPaneBuild(container,host){
 function atlasPaneWire(host){
   var A=atlasLive(),canvas=document.getElementById("atlas-canvas"),el;
   try{
-    _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true}),zone:null,target:null,host:host,size:null,frame:null};
+    _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true,fit:atlasKnowledgeActive()?"content":"sheet",unplaced:atlasKnowledgeActive()?"list":"sheet"}),zone:null,target:null,host:host,size:null,frame:null};
   }catch(e){_atlasPane=null;atlasProblem("opening the map",e);return false;}
   _atlasPane.view.on("mapclick",function(pt,hit){atlasPaneTap(atlasPaneTargetOf(pt,hit));});
   _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&B.zones[m.key])atlasPaneShow(m.key,true);});/* a tier of the plaque's trail: that sheet framed on the party at ATLAS_HOME_ZOOM — every tier is the party's chain, so the party is on each (a sheet above shows it at the way down); going UP once fell to the whole-sheet fit (owner 2026-11-09) */
@@ -222,7 +222,7 @@ function atlasPaneKeyList(zoneId){
      party's place, the fog switch, the notes (a noted place shows through the fog) — and read again when any of them changes */
   sig=JSON.stringify([zoneId,atlasPaneSig(),A.fog,A.notes||null,A.seen&&A.seen[zoneId]||null]);
   if(P&&P.keys&&P.keys.sig===sig)return P.keys.list.slice();
-  atlasThings(atlasDoc(zoneId)).forEach(function(t){if(t.id!=null&&t.name&&isFinite(t.x)&&isFinite(t.y)&&atlasThingShown(zoneId,t))out.push({id:t.id,name:t.name,x:t.x,y:t.y});});
+  atlasThings(atlasDoc(zoneId)).forEach(function(t){if(t.id!=null&&t.name&&isFinite(t.x)&&isFinite(t.y)&&atlasThingShown(zoneId,t))out.push({id:t.id,name:t.name,x:t.x,y:t.y,unplaced:!!t.unplaced});});
   out.sort(function(a,b){return (a.y-b.y)||(a.x-b.x)||(String(a.id)<String(b.id)?-1:1);});
   if(P)P.keys={sig:sig,list:out.slice()};
   return out;
@@ -235,7 +235,7 @@ function atlasPaneKeyStep(dir){
   if(P.target&&P.target.id!=null)for(i=0;i<list.length;i++)if(list[i].id===P.target.id)cur=i;
   i=cur<0?(dir>0?0:list.length-1):(cur+dir+list.length)%list.length;
   card=atlasPaneTap({id:list[i].id});
-  if(card)P.view.center(list[i].x,list[i].y,P.view.transform().k);
+  if(card&&!list[i].unplaced)P.view.center(list[i].x,list[i].y,P.view.transform().k);
   return card;
 }
 var ATLAS_KEY_STEPS={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1};
@@ -259,7 +259,7 @@ function atlasPaneFrame(how){
   if(!P||!how)return false;
   if(how.carry){c=how.carry;st=document.getElementById("atlas-stage");s=(c.w&&c.h&&st&&st.clientWidth&&st.clientHeight)?Math.min(st.clientWidth/c.w,st.clientHeight/c.h):1;P.view.center(c.cx,c.cy,c.k*s);return true;}
   P.view.fit();
-  if(how.party){T=P.view.transform();P.view.center(how.party.x,how.party.y,T.k*ATLAS_HOME_ZOOM);}
+  if(how.party&&!atlasKnowledgeActive()){T=P.view.transform();P.view.center(how.party.x,how.party.y,T.k*ATLAS_HOME_ZOOM);}
   return true;
 }
 /* show one entered zone's sheet: the document, the party marker, the fog, the select (full); framed on the party when
@@ -283,6 +283,11 @@ function atlasPaneShow(zoneId,toParty,carry){
     /* a sheet fogged room by room hides the library's "above" layer too — the town's walls and river drawn whole under a sewer (finding 2) */
     rooms=reveal instanceof Array;if(P.above!==!rooms){P.view.setLayerVisible("above",!rooms);P.above=!rooms;}
     P.view.setMarkers(markers);
+    if(atlasKnowledgeActive()){
+      var dropped=P.view.scene().dropped||[],warning=JSON.stringify([atlasPaneSig(),dropped]);
+      if(dropped.length&&P.warning!==warning)atlasPaneSay(dropped.length+" map labels overlap and are omitted. Select a symbol or use the Arrow keys to read every known feature.");
+      P.warning=warning;
+    }
   }catch(e){atlasPaneSay("That sheet could not be drawn: "+atlasProblem("drawing a sheet",e));return false;}
   P.zone=zoneId;P.target=null;P.view.select(null);
   try{P.view.setHudTrail(atlasTrailItems(zoneId));}catch(e4){atlasProblem("drawing the trail",e4);}/* the plaque's subtitle: the party's location trail, this sheet current */
