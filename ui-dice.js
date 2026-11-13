@@ -187,8 +187,10 @@ function diceLiveRoll(dice,label,opts){
     try{overlay=diceLiveOverlay();}
     catch(e){diceLiveStartFailed(e,{roll:label},true);return;}
     var layer=diceLiveLayer(),token=++_diceLive.token;
-    layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.remove("ready");layer.classList.add("on");/* #677: a die lying ready is thrown from where it lies; the layer comes back under the modal level and the click dismisses */
-    layer.onclick=function(){diceLiveClose(token,opts);};/* the only way out: the settled dice stay until the player clicks (owner 2026-10-20) */
+    layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.remove("ready");layer.classList.add("on");
+    if(opts&&opts.over)layer.classList.add("over");else layer.classList.remove("over");/* the test d20 is thrown ABOVE the Dice appearance modal and takes no click (index.html #dice-layer.over) */
+    /* #677: a die lying ready is thrown from where it lies; the layer comes back under the modal level and the click dismisses */
+    layer.onclick=opts&&opts.over?null:function(){diceLiveClose(token,opts);};/* the only way out: the settled dice stay until the player clicks (owner 2026-10-20) */
     diceLiveMute();
     overlay.roll(dice).then(function(r){if(r){_diceLive.last=r.dice.map(function(d){return d.type+":"+d.value;});_diceLive.lastAimed=r.dice.some(function(d){return !!d.aimed;});}}).catch(function(e){diceLiveFail("the roll did not play ("+(e&&e.message||e)+")",{roll:label});diceLiveClose(token,null);});
   });
@@ -240,6 +242,7 @@ function diceLivePresent(dice,label){
     catch(e){diceLiveStartFailed(e,{present:label},true);return;}
     var layer=diceLiveLayer(),showing=layer.classList.contains("on")&&!layer.classList.contains("ready")&&!layer.classList.contains("leaving");
     layer.onclick=null;
+    layer.classList.remove("over");/* a check landed while a test die lay above the Dice appearance modal: the ready die owns the layer */
     function lay(){
       if(token!==_diceLive.token)return;/* cancelled (diceLiveUnpresent hid the layer), or a roll took it */
       layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.add("on");layer.classList.add("ready");
@@ -269,6 +272,16 @@ function diceLiveUnpresent(){
   return true;
 }
 
+/* The dice thrown above a modal leave when it closes — by the player's exit, as a click sends the others; true when
+   there were any. */
+function diceLiveOverEnd(){
+  var layer=_diceLive.layer;
+  if(!layer||!layer.classList.contains("over"))return false;
+  layer.classList.remove("over");
+  if(layer.classList.contains("on")&&!layer.classList.contains("leaving"))diceLiveClose(_diceLive.token,null);
+  return true;
+}
+
 /* #650's door: the check's d20, landing on `face`. */
 function showDiceRoll(face,opts){
   if(!(face>=1&&face<=20&&Math.floor(face)===face))return false;
@@ -284,7 +297,9 @@ function showDamageRoll(sides,faces,opts){
 }
 
 /* File ▸ Settings ▸ 🎲 Dice appearance: the presets (the built-ins, and any saved in the dice roller on this site); a
-   choice is kept on this device and the next roll wears it. "Roll a test d20" shows it over the story. #670: and how the
+   choice is kept on this device and the next roll wears it. "Roll a test d20" throws one ABOVE this modal, which stays open
+   (owner 2026-11-13: the looks are browsed with the die on show — a look chosen is worn by it at once); every close of the
+   modal sends the test dice away (diceLiveOverEnd). #670: and how the
    dice leave when dismissed — dice-sim's exits, Fade until the player picks. */
 function showDiceLookModal(){
   var modal=modalShell("dice-look-modal",
@@ -296,13 +311,12 @@ function showDiceLookModal(){
     +"<div style='display:flex;gap:8px;justify-content:flex-end;margin-top:14px;'>"
     +"<button id='dice-look-test' type='button' style='font:inherit;font-size:13px;background:none;border:1px solid var(--brd2);border-radius:6px;color:var(--t1);padding:6px 12px;cursor:pointer;'>Roll a test d20</button>"
     +"<button id='dice-look-done' type='button' style='font:inherit;font-size:13px;background:var(--acc);border:0;border-radius:6px;color:var(--bg0);padding:6px 14px;cursor:pointer;'>Done</button></div>",
-    {closeId:"dice-look-done",outside:true,maxWidth:380});
+    {closeId:"dice-look-done",outside:true,maxWidth:380,onClose:function(){modal.remove();diceLiveOverEnd();}});
   var test=document.getElementById("dice-look-test"),area=document.getElementById("story-area");
   if(!area||!area.offsetParent)test.style.display="none";/* no story on screen (the wizard's menu): nowhere to roll */
   test.addEventListener("click",function(){
-    modal.remove();
     if(_diceLive.state==="failed")_diceLive.said=false;/* asked for on purpose: say why again */
-    showDiceRoll(1+Math.floor(Math.random()*20));
+    showDiceRoll(1+Math.floor(Math.random()*20),{over:true});
   });
   diceLiveWhenReady(function(){
     var box=document.getElementById("dice-look-list");if(!box)return;

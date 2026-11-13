@@ -168,6 +168,51 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.deepEqual(r,{offered:false,selected:'fade',worn:'fade',started:1,remaining:0,closed:1});
     });
 
+    // Owner 2026-11-13: the test d20 rolls OVER the Dice appearance modal, which stays open so the looks can be browsed.
+    await check('Roll a test d20 rolls over the Dice appearance modal, which stays open and usable; closing it sends the dice away',async()=>{
+      const r=await page.evaluate(until+`(async()=>{
+        const landed=async()=>{_diceLive.last=null;document.getElementById('dice-look-test').click();await until(()=>{const s=diceLiveState();return s.last&&/^d20:/.test(s.last.join());});};
+        showDiceLookModal();
+        await until(()=>document.querySelectorAll("#dice-look-list input[name='dice-look']").length>0,5000);
+        await landed();
+        const modal=document.getElementById('dice-look-modal'),layer=document.getElementById('dice-layer'),o={};
+        o.modalOpen=!!modal&&document.body.contains(modal);
+        if(!o.modalOpen)return o;
+        o.showing=diceLiveState().showing;
+        o.above=Number(getComputedStyle(layer).zIndex)>Number(getComputedStyle(modal).zIndex);
+        o.pointer=getComputedStyle(layer).pointerEvents;
+        const done=document.getElementById('dice-look-done'),b=done.getBoundingClientRect();
+        o.doneTakesClick=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2)===done;
+        const radios=[...document.querySelectorAll("#dice-look-list input[name='dice-look']")],other=radios.find(x=>!x.checked);
+        other.checked=true;other.dispatchEvent(new Event('change'));
+        await new Promise(res=>setTimeout(res,300));
+        o.afterLook={modal:!!document.getElementById('dice-look-modal'),showing:diceLiveState().showing};
+        await landed();
+        o.second={modal:!!document.getElementById('dice-look-modal'),canvases:layer.querySelectorAll('canvas').length};
+        done.click();
+        o.closed=!document.getElementById('dice-look-modal');
+        await until(()=>!diceLiveState().showing,${DISMISS_MS});
+        o.gone=true;
+        showDiceRoll(6);
+        await until(()=>{const s=diceLiveState();return s.last&&s.last.join()==='d20:6';});
+        o.game={pointer:getComputedStyle(layer).pointerEvents,z:getComputedStyle(layer).zIndex};
+        layer.click();
+        await until(()=>!diceLiveState().showing,${DISMISS_MS});
+        localStorage.removeItem('tnd_dice_look_v1');
+        return o;
+      })()`);
+      assert.equal(r.modalOpen,true,'the modal stays open after the test roll');
+      assert.equal(r.showing,true,'the test die is on show');
+      assert.equal(r.above,true,'the dice are drawn above the modal');
+      assert.equal(r.pointer,'none','the dice take no clicks: the modal stays usable');
+      assert.equal(r.doneTakesClick,true,'the modal\'s buttons are what a click reaches');
+      assert.deepEqual(r.afterLook,{modal:true,showing:true},'choosing another look keeps the modal and the die');
+      assert.deepEqual(r.second,{modal:true,canvases:1},'a second test roll, same modal, one canvas');
+      assert.equal(r.closed,true);
+      assert.equal(r.gone,true,'closing the modal sends the test dice away');
+      assert.deepEqual(r.game,{pointer:'auto',z:'50'},'a game roll afterwards is under the modal level again and takes the dismissing click');
+    });
+
     /* B60 / B59 (field reports, 2026-11-13). Each check puts the session's dice state back as it found it. */
     const stash=()=>page.evaluate(()=>{window.__dl={state:_diceLive.state,overlay:_diceLive.overlay,reported:_diceLive.reported,sim:window.DiceSim,report:window.reportError,toast:window.showToast,refusal:window.diceLivePageRefusal,warn:console.warn};
       window.__reports=[];window.__toasts=[];window.__warns=[];window.reportError=function(ctx,msg,detail){__reports.push({ctx:ctx,msg:String(msg),detail:detail});};window.showToast=function(m){__toasts.push(String(m));};console.warn=function(m){__warns.push(String(m));};
