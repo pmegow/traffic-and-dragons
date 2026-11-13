@@ -1,11 +1,11 @@
-/* TnD Maps 0.20.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.21.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.20.0";
+  NS.VERSION = "0.21.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6591,6 +6591,7 @@
     var ink = "#2a2219", paper = "#f2e8d3", sea = "#e8dcc0", land = "#f6efdc", soft = "#5a4a38", ward = "#e4d8bc", house = "#d3c4a4", stone = "#bfae8c", pond = "#d9cba8", red = "#8a2e1e";
     return {
       name: "ink", paper: paper, ink: ink,
+      ui: { unplaced: { background: paper, color: ink, border: soft, divider: house, selected: ward, status: soft, font: SERIF, size: 14 } },
       paths: {
         sea: { fill: sea },
         ripple0: { stroke: ink, width: 0.75, alpha: 0.5 },
@@ -8512,8 +8513,8 @@
     var frame = layer("frame"), furn = layer("furniture"), marks = layer("features"), labels = layer("labels");
     C.furniture(doc.frame, fitText(doc.title.name, "", "title", WIDTH - 80, style), "Schematic — distances and sizes are not established", style, furn, lay, frame);
     if (unknown) {
-      frame.push({ t: "path", pts: [[20, 465], [WIDTH - 20, 465], [WIDTH - 20, doc.frame.height - 18], [20, doc.frame.height - 18]], closed: true, s: "frameInner" });
-      labels.push(C.plainText("Position not established", "schematicList", WIDTH / 2, 488, style));
+      frame.push({ t: "path", pts: [[20, 465], [WIDTH - 20, 465], [WIDTH - 20, doc.frame.height - 18], [20, doc.frame.height - 18]], closed: true, s: "frameInner", meta: { kind: "unplaced-list" } });
+      var heading = C.plainText("Position not established", "schematicList", WIDTH / 2, 488, style); heading.meta = { kind: "unplaced-list" }; labels.push(heading);
       lay.block(WIDTH / 2, (465 + doc.frame.height) / 2, WIDTH, doc.frame.height - 465);
     }
     doc.features.forEach(function (f) { if (!f.unplaced) lay.block(f.x, f.y, 22, 22); });
@@ -8550,8 +8551,8 @@
   var NS = root.TnDMaps, C = NS.scene.common, U = NS.util;
   function layout(scene, markers, styleName) {
     var style = NS.style.get(styleName || scene.style), lay = C.Layout(scene.width, scene.height, style);
-    var words = Object.create(null), originals = Object.create(null), featureHits = [], fixed = [], labels = [], markerItems = [], markerHits = [], leaders = [], extent = null, unplaced = false;
-    function include(b) { if (!b) return; extent = extent ? [Math.min(extent[0], b[0]), Math.min(extent[1], b[1]), Math.max(extent[2], b[2]), Math.max(extent[3], b[3])] : b.slice(); }
+    var words = Object.create(null), originals = Object.create(null), featureHits = [], fixed = [], labels = [], markerItems = [], markerHits = [], leaders = [], extent = null, spatial = null, unplaced = false;
+    function include(b, placed) { if (!b) return; extent = extent ? [Math.min(extent[0], b[0]), Math.min(extent[1], b[1]), Math.max(extent[2], b[2]), Math.max(extent[3], b[3])] : b.slice(); if (placed !== false) spatial = spatial ? [Math.min(spatial[0], b[0]), Math.min(spatial[1], b[1]), Math.max(spatial[2], b[2]), Math.max(spatial[3], b[3])] : b.slice(); }
     function block(b) { lay.block((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, b[2] - b[0], b[3] - b[1]); }
     scene.layers.forEach(function (l) {
       if (l.name === "labels") l.items.forEach(function (c) {
@@ -8568,7 +8569,7 @@
       if (h.r === 0) { unplaced = true; return; }
       delete h.box; block([h.x - 11, h.y - 11, h.x + 11, h.y + 11]); include([h.x - 11, h.y - 11, h.x + 11, h.y + 11]);
     });
-    if (unplaced) { block([0, 465, scene.width, scene.height]); include([20, 465, scene.width - 20, scene.height - 18]); }
+    if (unplaced) { block([0, 465, scene.width, scene.height]); include([20, 465, scene.width - 20, scene.height - 18], false); }
     markers.forEach(function (m) { var b = [m.x - 14, m.y - 27, m.x + 18, m.y + 5]; block(b); include(b); });
     function leader(x, y, cmd) {
       if (!cmd) return;
@@ -8598,7 +8599,7 @@
       NS.assert(word, "schematic hit has no public annotation", { id: h.id });
       if (h.r === 0) {
         cmd = NS.own(originals, h.id); NS.assert(cmd && cmd.box, "unplaced schematic row has no label box", { id: h.id });
-        labels.push(cmd); include(cmd.box); return;
+        labels.push(cmd); include(cmd.box, false); return;
       }
       cmd = lay.place(word.text, word.style, candidates(h.x, h.y, false), { kind: "feature", id: h.id });
       if (cmd) { labels.push(cmd); h.box = cmd.box.slice(); include(cmd.box); leader(h.x, h.y, cmd); }
@@ -8612,7 +8613,7 @@
     layers.push({ name: "labels", items: fixed.concat(labels) });
     if (markers.length) layers.push({ name: "markers", items: markerItems });
     layers.push({ name: "hits", items: markerHits.concat(featureHits) });
-    var out = U.extend({}, scene); out.layers = layers; out.dropped = lay.dropped; out.contentBounds = extent; out.markers = markers.length;
+    var out = U.extend({}, scene); out.layers = layers; out.dropped = lay.dropped; out.contentBounds = extent; out.spatialBounds = spatial; out.markers = markers.length;
     return out;
   }
   NS.markers.LAYOUTS.schematic = layout;
@@ -8803,17 +8804,19 @@
 /* ───── 90-view.js ───── */
 /* 90-view.js — the interactive map component: pan, zoom (wheel, pinch), hover and click on markers, layer toggles,
    pins (markers composed over the document scene), PNG export. Draws a crisp render at rest and pans/zooms a bitmap of
-   it during gestures. DOM lives only here. */
+   it during gestures. Optional list UI is dispatched through viewLists. */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps, U = NS.util;
+  NS.viewLists = NS.viewLists || {};
 
   function view(canvas, doc, opts) {
     NS.assert(canvas && canvas.getContext, "view needs a <canvas> element", { canvas: String(canvas) });
     opts = opts || {};
-    var fitMode = opts.fit || "sheet";
+    var fitMode = opts.fit || "sheet", listMode = opts.unplaced || "sheet";
+    NS.assert(listMode === "sheet" || listMode === "list", "view unplaced must be sheet or list");
     NS.assert(fitMode === "sheet" || fitMode === "content", "view fit must be sheet or content");
-    var styleName = opts.style || "ink", scene = null, baseScene = null, markers = [], layers = {}, listeners = {}, hits = [];
+    var styleName = opts.style || "ink", scene = null, baseScene = null, exportScene = null, listUi = null, listFactory = null, markers = [], layers = {}, listeners = {}, hits = [];
     var bounds = !!opts.bounds;   /* v0.16.0: the sheet fills the view — on an axis where the sheet is larger than the view no paper edge comes inside it, on one where it is smaller the sheet sits centred; every move (a pan, a zoom, a pinch, center, pan(), a resize) is clamped (clampT) */
     var hudTrail = null, hudHits = [], hudPress = null;   /* v0.17.0: the plaque's trail (setHudTrail) — its tiers' boxes in CSS px as last drawn, and the tier a pointer went down on */
     var MARGIN = 0.5, MAX_BASE_PX = 12e6, lastMidRender = 0;   /* v0.17.0: the base bitmap is drawn with a margin of half the view each side (bounded by MAX_BASE_PX), so a pan or a zoom out shows map, not background, until the crisp redraw; a gesture that runs past the margin redraws at once, at most every 120 ms */
@@ -8835,12 +8838,9 @@
       bw = Math.round(w * (1 + 2 * m)); bh = Math.round(h * (1 + 2 * m));
       if (canvas.width !== w || canvas.height !== h || base.width !== bw || base.height !== bh) { canvas.width = w; canvas.height = h; base.width = bw; base.height = bh; baseM = { x: m * s.w, y: m * s.h }; baseDirty = true; clampT(); }
     }
-    /* Content fitting and pan bounds share the same public rectangle and CSS HUD clearance. */
-    function framing(pad) {
-      var s = cssSize(), b = fitMode === "content" && scene && scene.precision === "schematic" && scene.contentBounds;
-      if (!b) return null;
-      NS.assert(Array.isArray(b) && b.length === 4 && b.every(function (v) { return typeof v === "number" && isFinite(v); }) && b[2] > b[0] && b[3] > b[1], "invalid public content bounds");
-      var top = pad, bottom = s.h - pad;
+    /* CSS viewport clearance is shared by the map camera and the nonspatial list. */
+    function usableArea(pad) {
+      var s = cssSize(), top = pad, bottom = s.h - pad;
       if (hud) hudItems().forEach(function (c) {
         var lo, hi, size;
         if (c.t === "path" && c.pts && c.pts.length) { lo = Math.min.apply(null, c.pts.map(function (p) { return p[1]; })); hi = Math.max.apply(null, c.pts.map(function (p) { return p[1]; })); }
@@ -8849,7 +8849,16 @@
         else return;
         if ((lo + hi) / 2 < s.h / 2) top = Math.max(top, hi + 10); else bottom = Math.min(bottom, lo - 10);
       });
-      return { x: b[0], y: b[1], w: b[2] - b[0], h: b[3] - b[1], left: pad, right: Math.max(pad + 1, s.w - pad), top: Math.min(top, s.h / 2 - 8), bottom: Math.max(bottom, s.h / 2 + 8) };
+      var area = { left: pad, right: Math.max(pad + 1, s.w - pad), top: Math.min(top, s.h / 2 - 8), bottom: Math.max(bottom, s.h / 2 + 8) };
+      if (listUi) area.bottom -= listUi.layout(s, area);
+      return area;
+    }
+    function framing(pad) {
+      var b = fitMode === "content" && scene && scene.precision === "schematic" && scene.contentBounds;
+      if (!b) return null;
+      NS.assert(Array.isArray(b) && b.length === 4 && b.every(function (v) { return typeof v === "number" && isFinite(v); }) && b[2] > b[0] && b[3] > b[1], "invalid public content bounds");
+      var area = usableArea(pad);
+      return U.extend(area, { x: b[0], y: b[1], w: b[2] - b[0], h: b[3] - b[1] });
     }
     /* the bounds: the box the scene draws (a dungeon draws a window of its town's coordinates), in CSS px at T */
     function clampT() {
@@ -8863,10 +8872,19 @@
     function rebuildScene() { baseScene = NS.scene.build(doc, styleName, { reveal: reveal }); compose(); }
     /* the drawn scene is the document scene plus the markers; changing the markers never rebuilds the document scene */
     function compose() {
-      scene = markers.length ? NS.markers.apply(baseScene, markers, styleName) : baseScene; hits = [];
+      exportScene = markers.length ? NS.markers.apply(baseScene, markers, styleName) : baseScene;
+      var factory = listMode === "list" ? NS.own(NS.viewLists, doc.generator.name) : null;
+      if (factory !== listFactory) { if (listUi) listUi.destroy(); listFactory = factory; listUi = factory ? factory(canvas, activateUnplaced) : null; }
+      if (listUi) { listUi.update(doc, styleName); listUi.select(selected); }
+      scene = listUi ? listUi.project(exportScene) : exportScene; hits = [];
       tipOf = {};
       scene.layers.forEach(function (L) { if (L.name === "hits") hits = L.items; if (L.name === "tips") L.items.forEach(function (c) { if (c.meta) tipOf[c.meta.kind + "/" + c.meta.id] = c; }); });
       baseDirty = true;
+    }
+    function activateUnplaced(id) {
+      var h = { kind: "feature", id: id, unplaced: true }, identity = { id: id, unplaced: true };
+      selected = { kind: "feature", id: id }; if (listUi) listUi.select(selected); schedule();
+      emit("click", identity, h); emit("mapclick", identity, h);
     }
     /* the crisp render of the whole visible canvas at transform T, into the base bitmap */
     function renderBase() {
@@ -8882,6 +8900,7 @@
     function present() {
       raf = 0; if (destroyed) return;
       if (!scene) rebuildScene();
+      if (listUi) usableArea(16);
       if (!baseDirty && !covered()) { var now = Date.now(); if (now - lastMidRender > 120) { baseDirty = true; lastMidRender = now; } }   /* the gesture ran past the margin: redraw now rather than show background */
       if (baseDirty) renderBase();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -9043,7 +9062,7 @@
       off: function (ev, fn) { listeners[ev] = (listeners[ev] || []).filter(function (f) { return f !== fn; }); return api; },
       /* setDoc(doc, keepView) — a new document; keepView holds the current pan and zoom (the same map, regenerated) */
       /* select(kind, id) keeps a ring on that thing until select(null); it survives setDoc and setMarkers */
-      select: function (kind, id) { selected = kind ? { kind: kind, id: id } : null; schedule(); return api; },
+      select: function (kind, id) { selected = kind ? { kind: kind, id: id } : null; if (listUi) listUi.select(selected); schedule(); return api; },
       selected: function () { return selected; },
       setDoc: function (d, keepView) { var nextScene = NS.scene.build(d, styleName, { reveal: null }); doc = d; hover = null; clearPress(); markers = []; reveal = null; baseScene = nextScene; compose(); if (keepView) { baseDirty = true; schedule(); } else fit(); return api; },
       /* setMarkers(list) — the pins drawn over this document (see TnDMaps.markers); a bad list is refused here, loudly */
@@ -9090,15 +9109,15 @@
       /* toPNG(widthPx, cb) — the whole map at the given pixel width; cb(blob) */
       toPNG: function (widthPx, cb) {
         if (!scene) rebuildScene();
-        var k = widthPx / scene.width, off = document.createElement("canvas"), c;
-        off.width = Math.round(widthPx); off.height = Math.round(scene.height * k);
-        c = off.getContext("2d"); c.setTransform(k, 0, 0, k, -(scene.x0 || 0) * k, -(scene.y0 || 0) * k); NS.renderCanvas(c, scene, { layers: layers });
+        var whole = exportScene || scene, k = widthPx / whole.width, off = document.createElement("canvas"), c;
+        off.width = Math.round(widthPx); off.height = Math.round(whole.height * k);
+        c = off.getContext("2d"); c.setTransform(k, 0, 0, k, -(whole.x0 || 0) * k, -(whole.y0 || 0) * k); NS.renderCanvas(c, whole, { layers: layers });
         if (off.toBlob) off.toBlob(cb, "image/png"); else { var url = off.toDataURL("image/png"); cb(url); }
         return api;
       },
-      toSVG: function (o) { if (!scene) rebuildScene(); return NS.renderSVG(scene, U.extend({ layers: layers }, o || {})); },
+      toSVG: function (o) { if (!scene) rebuildScene(); return NS.renderSVG(exportScene || scene, U.extend({ layers: layers }, o || {})); },
       destroy: function () { clearPress();
-        destroyed = true;
+        destroyed = true; if (listUi) { listUi.destroy(); listUi = null; }
         canvas.removeEventListener("mousedown", onDown); root.removeEventListener("mousemove", onMove); root.removeEventListener("mouseup", onUp);
         canvas.removeEventListener("dblclick", onDbl); canvas.removeEventListener("wheel", onWheel); canvas.removeEventListener("touchstart", onTouchStart); canvas.removeEventListener("touchmove", onTouchMove); canvas.removeEventListener("touchend", onTouchEnd);
         root.removeEventListener("resize", onResize);
@@ -9109,6 +9128,88 @@
   }
 
   NS.view = view;
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
+/* ───── 91-unplaced-list.js ───── */
+/* 91-unplaced-list.js — unknown positions are a screen-sized, scrollable list. The interactive
+   projection omits their ledger geometry; the complete scene remains available for export. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, U = NS.util;
+  function create(canvas, activate) {
+    NS.assert(canvas.parentNode, "an unplaced list needs a mounted canvas");
+    var panel = document.createElement("section"), heading = document.createElement("div"), body = document.createElement("div");
+    var entries = [], ids = Object.create(null), buttons = [], signature = null, selection = null, palette = null;
+    panel.setAttribute("data-tnd-unplaced", ""); panel.setAttribute("aria-label", "Position not established");
+    panel.style.cssText = "display:none;position:absolute;z-index:2;box-sizing:border-box;border:1px solid;line-height:1.4;overflow:hidden;";
+    heading.textContent = "Position not established"; heading.style.cssText = "font-weight:bold;font-size:14px;padding:8px 10px;border-bottom:1px solid;";
+    body.style.cssText = "overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;";
+    panel.appendChild(heading); panel.appendChild(body); canvas.parentNode.appendChild(panel);
+    function buttonFrom(node) { while (node && node !== panel) { if (node.getAttribute && node.hasAttribute("data-tnd-unplaced-id")) return node; node = node.parentNode; } return null; }
+    function onClick(e) { var b = buttonFrom(e.target); if (!b) return; e.stopPropagation(); activate(b.getAttribute("data-tnd-unplaced-id")); }
+    function onKey(e) {
+      var b = buttonFrom(e.target), i, n;
+      if (b && (e.key === "Enter" || e.key === " ")) { e.stopPropagation(); return; }
+      if (!b || ["ArrowDown", "ArrowUp", "Home", "End"].indexOf(e.key) < 0) return;
+      i = buttons.indexOf(b); n = e.key === "Home" ? 0 : e.key === "End" ? buttons.length - 1 : Math.max(0, Math.min(buttons.length - 1, i + (e.key === "ArrowDown" ? 1 : -1)));
+      e.preventDefault(); e.stopPropagation(); buttons[n].focus();
+    }
+    panel.addEventListener("click", onClick); panel.addEventListener("keydown", onKey);
+    function select(s) {
+      selection = s;
+      buttons.forEach(function (b) { var on = !!s && s.kind === "feature" && s.id === b.getAttribute("data-tnd-unplaced-id"); b.setAttribute("aria-pressed", on ? "true" : "false"); b.style.background = on ? palette.selected : "transparent"; });
+    }
+    function update(doc, styleName) {
+      var uiStyle = NS.style.get(styleName).ui; NS.assert(uiStyle && uiStyle.unplaced, "style has no unplaced list palette"); palette = uiStyle.unplaced;
+      panel.style.background = palette.background; panel.style.color = palette.color; panel.style.borderColor = palette.border; panel.style.font = palette.size + "px " + palette.font; heading.style.borderColor = palette.divider;
+      var next = doc.features.filter(function (f) { return f.unplaced; }).map(function (f) { return { id: f.id, name: f.name, mode: f.mode }; }), sig = JSON.stringify([styleName, next]), active, focusId, scroll;
+      if (sig === signature) return;
+      active = buttonFrom(document.activeElement); focusId = active && active.getAttribute("data-tnd-unplaced-id"); scroll = body.scrollTop;
+      entries = next; signature = sig; ids = Object.create(null); buttons = []; body.textContent = "";
+      entries.forEach(function (f) {
+        var b = document.createElement("button"), name = document.createElement("span"), status = document.createElement("span");
+        ids[f.id] = true; b.type = "button"; b.setAttribute("data-tnd-unplaced-id", f.id);
+        b.style.cssText = "display:block;width:100%;box-sizing:border-box;min-height:44px;margin:0;padding:9px 10px;border:0;border-bottom:1px solid;border-radius:0;text-align:left;font:inherit;font-size:14px;color:inherit;line-height:1.4;white-space:normal;overflow-wrap:anywhere;cursor:pointer;";
+        b.style.borderColor = palette.divider; b.style.fontSize = palette.size + "px"; b.setAttribute("aria-label", f.name + " — " + (f.mode === "reported" ? "Reported" : "Observed"));
+        name.textContent = f.name; name.style.display = "block";
+        status.textContent = f.mode === "reported" ? "Reported" : "Observed"; status.style.cssText = "display:block;font-size:14px;";
+        status.style.color = palette.status;
+        b.appendChild(name); b.appendChild(status); body.appendChild(b); buttons.push(b);
+      });
+      heading.textContent = "Position not established (" + entries.length + ")";
+      panel.style.display = entries.length ? "block" : "none"; select(selection);
+      buttons.forEach(function (b) { if (b.getAttribute("data-tnd-unplaced-id") === focusId) b.focus({ preventScroll: true }); });
+      body.scrollTop = scroll;
+    }
+    function project(scene) {
+      if (!entries.length) return scene;
+      var out = U.extend({}, scene);
+      out.layers = scene.layers.map(function (l) { return { name: l.name, items: l.items.filter(function (c) {
+        if (c.meta && c.meta.kind === "unplaced-list") return false;
+        if (c.meta && c.meta.kind === "feature" && NS.own(ids, c.meta.id)) return false;
+        return !(c.t === "hit" && c.kind === "feature" && NS.own(ids, c.id));
+      }) }; });
+      out.contentBounds = scene.spatialBounds;
+      return out;
+    }
+    function layout(size, area) {
+      if (!entries.length) return 0;
+      var cap = Math.max(44, Math.min(240, (area.bottom - area.top) * 0.42)), headingHeight, height, r, offset, origin, left, top;
+      panel.style.width = Math.max(1, area.right - area.left) + "px";
+      headingHeight = heading.offsetHeight;
+      body.style.maxHeight = Math.max(20, cap - headingHeight - 2) + "px";
+      height = panel.offsetHeight;
+      r = canvas.getBoundingClientRect(); offset = panel.offsetParent;
+      origin = offset ? offset.getBoundingClientRect() : { left: 0, top: 0 };
+      left = r.left - origin.left + (offset ? offset.scrollLeft - offset.clientLeft : root.pageXOffset || 0) + area.left;
+      top = r.top - origin.top + (offset ? offset.scrollTop - offset.clientTop : root.pageYOffset || 0) + area.bottom - height;
+      panel.style.left = left + "px"; panel.style.top = top + "px";
+      return height + 12;
+    }
+    function destroy() { panel.removeEventListener("click", onClick); panel.removeEventListener("keydown", onKey); if (panel.parentNode) panel.parentNode.removeChild(panel); entries = []; buttons = []; }
+    return { update: update, project: project, layout: layout, select: select, destroy: destroy };
+  }
+  NS.viewLists.schematic = create;
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 99-api.js ───── */

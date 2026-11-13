@@ -182,7 +182,7 @@ function atlasThings(doc){
   function add(o,portal){
     if(!o||o.id==null||typeof o.name!=="string"||!o.name||!isFinite(o.x)||!isFinite(o.y))return;
     if(byId[o.id]){if(portal&&!byId[o.id].portal)byId[o.id].portal=portal;return;}
-    byId[o.id]={id:o.id,name:o.name,x:o.x,y:o.y,kind:o.kind||null,word:o.word||null,portal:portal||null};out.push(byId[o.id]);
+    byId[o.id]={id:o.id,name:o.name,x:o.x,y:o.y,kind:o.kind||null,word:o.word||null,portal:portal||null,unplaced:!!o.unplaced};out.push(byId[o.id]);
   }
   for(i=0;i<(doc.portals||[]).length;i++)add(doc.portals[i],doc.portals[i]);
   for(i=0;i<list.length;i++)add(list[i],null);

@@ -3,6 +3,7 @@
 var sabotage=require('./sabotage.js'),verdict=require('./battery-verdict.js'),chrome=require('./cdp-browser.js').locateChrome(),rc=0;
 var node=['node',['dev/tests-733-map-public.js']],browser=['node',['dev/tests-733-map-browser.js']],only='FAIL #733 public ';
 rc|=sabotage.prove({file:'atlas.js',command:node,only:only,cases:[
+ {label:'normalizing public things discards their unknown-position flag',find:',unplaced:!!o.unplaced',replace:'',mustFail:only+'normalized map things preserve unknown-position metadata for camera decisions'},
  {label:'the public document dispatcher returns a generated private sheet',find:'function atlasDoc(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicDoc(zoneId);}',replace:'function atlasDoc(zoneId){',mustFail:only+'the original seed generates the undisclosed hut inside the old visibility radius'}
 ]});
 rc|=sabotage.prove({file:'atlas-public.js',command:node,only:only,cases:[
@@ -15,6 +16,8 @@ rc|=sabotage.prove({file:'atlas-public.js',command:node,only:only,cases:[
  {label:'the current sheet carries discoveries from the first feature container',find:'p=atlasKnowledgeProjection(k);',replace:'p=atlasKnowledgeProjection(Object.keys(memory.map.geography.features).length?memory.map.geography.features.f1.container:k);',mustFail:only+'changing place cannot carry discoveries into another container'}
 ]});
 var drawer=[
+ {label:'unknown-position disclosures return to the unreadable canvas ledger',find:'unplaced:atlasKnowledgeActive()?"list":"sheet"',replace:'unplaced:"sheet"',mustFail:'FAIL #733 browser unknown-position discoveries remain readable and clickable on a phone'},
+ {label:'an unknown place acquires a fictitious keyboard camera target',find:'if(card&&!list[i].unplaced)P.view.center(list[i].x,list[i].y,P.view.transform().k);',replace:'if(card)P.view.center(list[i].x,list[i].y,P.view.transform().k);',mustFail:'FAIL #733 browser an unknown-position landmark opens by keyboard without a fictitious camera move'},
  {label:'public phone fitting returns to the full decorative sheet',find:'fit:atlasKnowledgeActive()?"content":"sheet"',replace:'fit:"sheet"',mustFail:'FAIL #733 browser public phone fitting keeps landmark and party annotations readable without overlaps'},
  {label:'the open drawer signature ignores newly disclosed geography',find:'A.knowledge,memory&&memory.map&&memory.map.geography&&memory.map.geography.revision,A.knowledge&&memory&&memory.map&&memory.map.identity',replace:'A.knowledge,0,A.knowledge&&memory&&memory.map&&memory.map.identity',mustFail:'FAIL #733 browser three stationary narrated landmarks update the open drawer immediately'},
  {label:'crowded labels disappear without the actionable disclosure warning',find:'if(dropped.length&&P.warning!==warning)atlasPaneSay(dropped.length+" map labels overlap and are omitted. Select a symbol or use the Arrow keys to read every known feature.");',replace:'',mustFail:'FAIL #733 browser crowded public labels produce one actionable warning per unchanged drawing'}

@@ -186,7 +186,7 @@ function atlasPaneBuild(container,host){
 function atlasPaneWire(host){
   var A=atlasLive(),canvas=document.getElementById("atlas-canvas"),el;
   try{
-    _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true,fit:atlasKnowledgeActive()?"content":"sheet"}),zone:null,target:null,host:host,size:null,frame:null};
+    _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true,fit:atlasKnowledgeActive()?"content":"sheet",unplaced:atlasKnowledgeActive()?"list":"sheet"}),zone:null,target:null,host:host,size:null,frame:null};
   }catch(e){_atlasPane=null;atlasProblem("opening the map",e);return false;}
   _atlasPane.view.on("mapclick",function(pt,hit){atlasPaneTap(atlasPaneTargetOf(pt,hit));});
   _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&B.zones[m.key])atlasPaneShow(m.key,true);});/* a tier of the plaque's trail: that sheet framed on the party at ATLAS_HOME_ZOOM — every tier is the party's chain, so the party is on each (a sheet above shows it at the way down); going UP once fell to the whole-sheet fit (owner 2026-11-09) */
@@ -222,7 +222,7 @@ function atlasPaneKeyList(zoneId){
      party's place, the fog switch, the notes (a noted place shows through the fog) — and read again when any of them changes */
   sig=JSON.stringify([zoneId,atlasPaneSig(),A.fog,A.notes||null,A.seen&&A.seen[zoneId]||null]);
   if(P&&P.keys&&P.keys.sig===sig)return P.keys.list.slice();
-  atlasThings(atlasDoc(zoneId)).forEach(function(t){if(t.id!=null&&t.name&&isFinite(t.x)&&isFinite(t.y)&&atlasThingShown(zoneId,t))out.push({id:t.id,name:t.name,x:t.x,y:t.y});});
+  atlasThings(atlasDoc(zoneId)).forEach(function(t){if(t.id!=null&&t.name&&isFinite(t.x)&&isFinite(t.y)&&atlasThingShown(zoneId,t))out.push({id:t.id,name:t.name,x:t.x,y:t.y,unplaced:!!t.unplaced});});
   out.sort(function(a,b){return (a.y-b.y)||(a.x-b.x)||(String(a.id)<String(b.id)?-1:1);});
   if(P)P.keys={sig:sig,list:out.slice()};
   return out;
@@ -235,7 +235,7 @@ function atlasPaneKeyStep(dir){
   if(P.target&&P.target.id!=null)for(i=0;i<list.length;i++)if(list[i].id===P.target.id)cur=i;
   i=cur<0?(dir>0?0:list.length-1):(cur+dir+list.length)%list.length;
   card=atlasPaneTap({id:list[i].id});
-  if(card)P.view.center(list[i].x,list[i].y,P.view.transform().k);
+  if(card&&!list[i].unplaced)P.view.center(list[i].x,list[i].y,P.view.transform().k);
   return card;
 }
 var ATLAS_KEY_STEPS={ArrowRight:1,ArrowDown:1,ArrowLeft:-1,ArrowUp:-1};

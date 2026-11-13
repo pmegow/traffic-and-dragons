@@ -84,4 +84,12 @@ test('reported unknown-position cards cite a turn without echoing the stored pro
  assert(!Object.prototype.hasOwnProperty.call(atlasKnowledgeProjection().features[0].source,'quote'));
 });
 
+test('normalized map things preserve unknown-position metadata for camera decisions',()=>{
+ setup();atlasKnowledgeCommit('[MAP_REVEAL:new|A northern stone|N|observed] [MAP_REVEAL:new|The distant cairn|unknown|reported]');
+ const doc=atlasDoc(worldState.atlas.seed),before=JSON.stringify(doc),things=atlasThings(doc);
+ assert.equal(things.find(f=>f.name==='A northern stone').unplaced,false);
+ assert.equal(things.find(f=>f.name==='The distant cairn').unplaced,true,'a ledger coordinate must never become a camera target');
+ assert.equal(JSON.stringify(doc),before,'the normalization is read-only');
+});
+
 if(!seen){console.error('matched 0 tests');process.exit(1);}console.log((fail?'RED':'ALL GREEN')+' — '+pass+' public map groups, '+fail+' failures');process.exit(fail?1:0);
