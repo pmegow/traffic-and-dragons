@@ -6,6 +6,7 @@ var path = require("path");
 
 var ROOT = path.join(__dirname, "..");
 var SUITES = [
+  "dev/tests-733-map-legacy-copy.js",
   "dev/tests-733-map-migration.js",
   "dev/tests-733-map-public.js",
   "dev/tests-733-map-protocol.js",

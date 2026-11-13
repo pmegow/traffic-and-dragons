@@ -147,6 +147,8 @@ jobs:
         run: node dev/tests-684-atlas-browser.js
       - name: Public map knowledge browser gate
         run: node dev/tests-733-map-browser.js
+      - name: Legacy map copy import and rendered discoveries
+        run: node dev/tests-733-map-legacy-browser.js
       - name: Narrated map discovery through story and opening entry points
         run: node dev/tests-733-map-discovery-browser.js
       - name: Reporter usernames in live and filed bug cards (#678)
