@@ -159,6 +159,8 @@ jobs:
         run: node dev/tests-675-invitations-browser.js
       - name: Operator activity and beta mail controls (#674)
         run: node dev/tests-674-admin-updates-browser.js
+      - name: Authored NPC portraits survive campaign creation and companion attachment (#734)
+        run: node dev/tests-734-blueprint-portraits-browser.js
       - name: Render all missing Designer portraits (#732)
         run: node dev/tests-732-missing-portraits-browser.js
         env:

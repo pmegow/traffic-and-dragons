@@ -1465,6 +1465,7 @@ try {
   var _adExempt = [
     { file: "helpers.js", fn: "portraitsSanitizeWorld", step: "portraitAdmit(", why: "a world-level sweep over every portrait at the .tnd import — not a sheet door" },
     { file: "game.js", fn: "applyBlueprint", step: "identitySheetAdmit(", why: "a blueprint's NPC seed is a roster entry with no sheet; the identity gate alone applies" },
+    { file: "game.js", fn: "applyBlueprint", step: "portraitAdmit(", why: "an authored NPC image enters a sheetless roster row; character-sheet admission would fabricate unrelated sheet fields" },
     { file: "tag_table.js", fn: "tag NPC_MERGE", step: "voicePinsFill(", why: "the merge fills the canon's empty voice slots from the duplicate's — a fold of two sheets already admitted, not an admission (#543)" },
     /* this campaign's OWN sheets at load: the four NAME heals stay hand-run here (the registry's names entry is cross-mode only —
        a rename a portable copy may predate); everything else the load needs — the row heal, the stores, the portrait, the arrays,

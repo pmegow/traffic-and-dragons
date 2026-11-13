@@ -1942,8 +1942,8 @@ function attachCompanionSheet(npcName,sheet){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet)return null;
   inheritVoicePins(sheet,npc,null);
-  if(!sheetAdmit(sheet,{door:"generated sheet "+npcName,mode:"same",detach:false,rel:npcName}).ok)return null;/* #599 (b): the model faucet runs the registry — same-campaign data, healed in place, no cross-campaign entries */
-  npc.charSheet=sheet;delete npc.sheetPending;
+  if(!sheetAdmit(sheet,{door:"generated sheet "+npcName,mode:"same",detach:false,rel:npcName,portraitFallback:npc.portrait}).ok)return null;/* #599 (b): the model faucet runs the registry — same-campaign data, healed in place, no cross-campaign entries */
+  npc.charSheet=sheet;npc.portrait=null;delete npc.sheetPending;
   releaseRowVoicePins(npc);
   if(memory&&memory.npcs&&memory.npcs[npcName])memory.npcs[npcName].partyMember=true;
   return npc;
@@ -3486,6 +3486,7 @@ function applyBlueprint(bp){
          (mood) and attitude (disposition) too — recreating in one call the exact contamination
          v1.379-383 separated. Mood/disposition start empty; play fills them. */
       var _seedN={name:n.name,status:"",statusTurn:0,rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"},_seedA=(typeof seedArmor==="function")?seedArmor(n):undefined;if(_seedA!==undefined)_seedN.armor=_seedA;/* #319: the blueprint's plot-armor override rides the roster */if(n.agenda){_seedN.agenda=String(n.agenda).slice(0,160);_seedN.agendaKind=n.agendaKind||"";}/* #330: the authored want rides the roster until the sheet exists */
+      if(n.portrait){_seedN.portrait=n.portrait;if(portraitAdmit(_seedN,"blueprint NPC "+n.name)&&typeof showToast==="function")showToast("⚠ "+n.name+"'s portrait was dropped — not an image");}
       worldState.npcs.push(_seedN);
       memory.npcs[n.name]={attitude:"",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
     }
