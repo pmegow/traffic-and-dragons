@@ -514,7 +514,7 @@ The reporter has JavaScript/promise handlers but no capturing script-resource er
 - 2026-10-31 — Kept open after reproducing the blocked-helper failure and documenting the missing diagnostics. No speculative runtime patch. [Review](bug_review_2026-10-31.md).
 
 ## B57 — The owner finds the live dice too small on the phone and asks for them at twice the size (v1.1339, Frizwick t140, iPhone)
-**Status:** new
+**Status:** fixed (v1.1341 via #681, two versions after the report; the owner's look on the iPhone is owed)
 **Kind:** user-report · **First seen:** 2026-11-01 (v1.1339) · **Last seen:** 2026-11-01 (v1.1339) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 140
 **Fingerprint:** `user-report · user-report · v1.1339 · The dice are way too small. Need to double the size of them.`
 **Report ids:** 31b33640-f3ca-4ce3-a728-2f3d7f55d721
@@ -610,12 +610,23 @@ url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPho
 
 ### Findings
 
+**2026-11-13 — read-only investigation. Verdict: already fixed in code (#681, v1.1341); a look on the real phone is the open part. Drift surface: NO. Confidence: high that the report predates the fix, medium that 2× satisfies on the device.**
+
+- **Mechanism:** at v1.1339 the game's dice were at 1×. The overlay fits a fixed 15 × 10 cm tray into the story area (`roller/embed/overlay.js:51`), so a die's pixel size follows the size of `#story-area`, which is small on a phone. This report is the origin of #681 ("Make TnD dice about 100% larger (owner 2026-11-01)", `DOC/TODO_ARCHIVE.md`).
+- **The fix that shipped:** `DICE_LIVE_SIZE=2` (`ui-dice.js:24`), applied once as `view.setOrbit({zoom:1/DICE_LIVE_SIZE})` (`ui-dice.js:124`). Measured 2.05× at 375 × 667 and 2.07× on desktop (`DOC/dice-size_681.md`); guarded by `dev/tests-681-dice-size-browser.js` (1.9–2.4× at both sizes).
+- **What else moves dice size on a phone:** the story area's own size (keyboard up, composer, Safari toolbars shrink it; a `ResizeObserver` refits live). Device pixel ratio changes sharpness only. No phone-only path, no zoom clamp at 0.5, nothing resets the zoom. By arithmetic over assumed story-area shapes, 2× on the phone lands near what desktop showed at 1× (an estimate, not measured).
+- **No user setting for size exists** — Dice appearance offers the look and the exit only.
+- **Not verified:** the screenshot; any physical-device result (#681's checks were headless viewports); whether the 2026-11-08 closure of #681 was made looking at the phone.
+- **If still small on the device:** the lever is `DICE_LIVE_SIZE` (ceiling about 2.85× from the view's `minZoom`), or a per-device size row in Dice appearance. Any increase re-runs the #681 suite — larger dice once covered the roll modal's Hold back button, and ten damage dice must stay in frame at 375 px.
+- **Owner's check:** on the iPhone, File ▸ Settings ▸ Dice appearance ▸ Roll a test d20, and one real check with the roll modal up. If it looks right, close this row.
+
 ### Action log
 
 - 2026-11-13 — filed by /bugs sync (hand sync).
+- 2026-11-13 — investigated (read-only agent): the report predates #681's doubling; no code change.
 
 ## B58 — The dice roller's modules disagreed on a local preview page — one file asked another for an export it did not have, so the page threw at load (v1.1356, localhost)
-**Status:** new
+**Status:** findings-ready (a stale file pair on the local preview after that day's dice publish; production exposure is narrow — hardening is optional)
 **Kind:** crash · **First seen:** 2026-11-06 (v1.1356) · **Last seen:** 2026-11-06 (v1.1356) · **Count:** 1 · **Campaign:** Frizwick · **Turn:** 155
 **Fingerprint:** `crash · window.onerror · v1.1356 · Uncaught SyntaxError: The requested module './numeral-fonts.js' does not provide an export named 'cssFontString'`
 **Report ids:** 04d00fde-6043-4302-ac24-76c217da0b38
@@ -653,12 +664,23 @@ url: http://localhost:3000/ · ua: Mozilla/5.0 (Windows NT 10.0; Win64; x64) App
 
 ### Findings
 
+**2026-11-13 — read-only investigation. Verdict: probable cause — a development-only transient on the `npx serve` preview. Drift surface: NO. Confidence: medium on a stale/mixed pair, low-to-medium on which path served it.**
+
+- **The tree is consistent today:** `roller/render/numeral-fonts.js:24` exports `cssFontString` and `font-library.js:3` imports it. Git: the export arrived with `83497f68` ("Publish the missing Dice 0.97.0 web release", 2026-11-06 09:54 PST); the report is about five hours later the same day. So the page linked the new `font-library.js` against a pre-publish `numeral-fonts.js`.
+- **Not the roller's own worker:** it controls pages under `/roller/` only. The reporting page was `localhost:3000/`, controlled by the game's `sw.js`.
+- **The game's `/roller/` route is per file, never atomic** (`sw.js:166-178`): each file is fetched on its own into `ROLLER_CACHE` (`tnd-roller-v1`, unversioned, purge-exempt) with a per-file cache fallback. Two ways to a mixed pair: (a) the browser's HTTP cache answering first — `fetch(e.request)` uses the default cache mode and `npx serve` (port 3000, `.claude/launch.json`) sends no `Cache-Control`, so a long-unmodified file can be reused unvalidated beside a freshly published one; (b) one file's fetch failing and its neighbour's succeeding, the failed one served from an older cached release. A page loaded mid-publish is a third, indistinguishable on this evidence.
+- **Production:** (a) is closed — `_headers` sets `/roller/*` to `no-cache`. (b) is open but narrow: a partial network failure during the module load right after a deploy; it heals on the next fully online load.
+- **A second defect it exposes:** a module LINK error fires `window.onerror` but not the script element's `error`, so `ui-dice.js`'s `s.onerror` never runs, the state stays `loading`, and the dice silently never appear that session with no `diceLiveFail`. Turns are unaffected.
+- **Fix sketch (not applied; `roller/` is never edited here):** dev — preview with `dev/static-server.js` (it sends `no-store`) or give `serve` a `no-cache` rule for `/roller/**`; `sw.js` (optional) — fetch the route with `cache:"no-cache"`, and key `ROLLER_CACHE` by the release so a fallback is all-or-nothing (purging old ones: the monotonic-resources rule); `ui-dice.js` — make a link failure terminal and said (a load timeout); dice-sim — publish to a temp folder and swap.
+- **Not verified:** the headers `npx serve` actually sends; that browser's caches at the time.
+
 ### Action log
 
 - 2026-11-13 — filed by /bugs sync (hand sync).
+- 2026-11-13 — investigated (read-only agent) and dated against git: the export landed 2026-11-06 09:54 PST, the report came 14:42 PST the same day.
 
 ## B59 — The live dice could not start on an iPhone — the page was given no WebGL context, so the dice overlay failed at boot (v1.1378–v1.1380, pages.dev)
-**Status:** new
+**Status:** findings-ready (the context was LOST at creation, most likely the GPU process down after the Sketch overload fixed in v1.1381; the game-side latch, silence and lost detail are root-caused)
 **Kind:** crash · **First seen:** 2026-11-09 (v1.1378) · **Last seen:** 2026-11-09 (v1.1380) · **Count:** 2 · **Campaign:** The Silence Between Leaves (Kaelon Sky-Breaker) · **Turn:** —
 **Fingerprint:** `crash · dice-live · v1.1378 · live dice: the dice could not start (null is not an object (evaluating 'gl.getShaderPrecisionFormat( gl.VERTEX_SHADER, g`
 **Report ids:** 036ffdff-a5da-4b10-a442-23328e7d3c40, eb13dcd0-95ff-4a73-bb5c-884293c5e557
@@ -701,12 +723,25 @@ url: https://traffic-and-dragons.pages.dev/ · ua: Mozilla/5.0 (iPhone; CPU iPho
 
 ### Findings
 
+**2026-11-13 — read-only investigation. Verdict: probable cause for the trigger; root-caused for what the game does about it. Drift surface: NO. Confidence: high on the code facts, medium-low on the trigger.**
+
+- **The context was lost, not null.** JavaScriptCore names the expression whose base was null: the null is the RETURN of `getShaderPrecisionFormat`, which the WebGL specification returns on a lost context. A null `gl` could not reach that line — three.js throws "Error creating WebGL context" first (`roller/vendor/three/three.module.js:16450-16460`). Throw site: `getMaxPrecision`, `three.module.js:2385`.
+- **Path:** `showGame` → `diceLivePreload` → `diceLiveWarm` → `DiceSim.createDiceOverlay` → `new DiceView` → `new THREE.WebGLRenderer` (`roller/render/view.js:95`). No retry and no fallback anywhere on the embed path; nothing handles `webglcontextlost` or `isContextLost`. Both reports are "up 0s": the preload, not a roll.
+- **Probable trigger:** `DOC/dice-sketch-scurry_713.md` records a full hang/context loss on this same device from the Sketch Scurry shader overload, and that upstream fault injection reproduced this exact null-precision startup failure. Sketch became the default on 2026-11-09, the day of the reports; both are v1.1378/v1.1380, before the v1.1381 fix. Likely chain: the long session took WebKit's GPU process down, the owner reloaded, and each fresh page was handed a lost context. No report since v1.1381 (weak support).
+- **The "failed graphics startup offers recovery" note covers the standalone roller only** (`roller/demo/demo.js:27-39`); the game's embed path has no equivalent.
+- **Game-side defects, each root-caused:** (1) a preload failure LATCHES `state="failed"` for the whole page session (`ui-dice.js:59`) — a context that would succeed seconds later is never tried; (2) nothing is said to the player (no toast; "Roll a test d20" does nothing) — against the no-silent-failures rule; (3) the Dice appearance modal overwrites its preset list with "could not load on this device" although the module did load (`ui-dice.js:282`); (4) the report's detail is `[object Object]` — `error-report.js:229` does `String(detail)` and every `diceLiveFail` caller passes an object (the B49 finding, never fixed).
+- **What the player gets:** checks still work — the roll, the card and the turn all happen before the dice are asked for; no ready die, no damage animation.
+- **Ruled out:** a double preload or second renderer; a zero-size or unattached canvas (the throw is inside the renderer's constructor); another WebGL context in the game (the atlas, portraits and modals are 2D).
+- **Fix sketch (not applied):** `ui-dice.js` — do not latch on a preload failure; let the first roll retry, capped at about three attempts per session (each makes a canvas and a context); say it once when it latches; show the modal's "could not load" text only when the module is absent; stringify the detail (in `diceLiveFail`, or at `reportError`'s boundary for every caller — the root fix, but an app-wide channel). dice-sim — check `isContextLost()` at creation and throw a named error; optionally expose a restore hook.
+- **Not verified:** that the long session ended in a GPU hang; iOS's behaviour during GPU-process recovery; the second report's own diag. A fixed detail field plus `isContextLost()` and `visibilityState` in the next report would settle it.
+
 ### Action log
 
 - 2026-11-13 — filed by /bugs sync (hand sync).
+- 2026-11-13 — investigated (read-only agent): trigger probable, four game-side defects root-caused; no code change.
 
 ## B60 — The dice module does not load when the game is opened as a local file — eight boots at file:// each reported the missing module (v1.1400–v1.1407, desktop Chrome)
-**Status:** new
+**Status:** findings-ready (root-caused: at file:// the dice module can never load, and every boot reports it to the live feed; fix is a page refusal in ui-dice.js, the ambience precedent)
 **Kind:** crash · **First seen:** 2026-11-12 (v1.1400) · **Last seen:** 2026-11-13 (v1.1407) · **Count:** 8 · **Campaign:** The Silence Between Leaves (Kaelon Sky-Breaker); PlaytestHarnessMap733Leaves2026-11-12 · **Turn:** 9, —, 10, 30, 50
 **Fingerprint:** `crash · dice-live · v1.1400 · live dice: the dice module did not load (roller/embed/global.js)`
 **Report ids:** 66b0e99e-5961-40dd-b3d2-6642dd87dbce, 738df7cf-f31f-4661-99be-582b0d49b4cb, c6115949-27d4-4be8-9983-4b8d7f3e5d03, 83f777a6-aa33-4543-be8e-48723781cfd7, 735bfef0-8c0b-4fcd-b099-fc3440028104, 3fe79eff-6d3d-42a0-b7b2-402468d0a439, 2d5c93d2-f2ba-4608-9699-a64e05dd5bf7, df66dfc1-f2b3-4c2d-8c48-39d2c079118e
@@ -776,9 +811,22 @@ url: file:///C:/Projects/traffic-and-dragons/index.html · ua: Mozilla/5.0 (Wind
 
 ### Findings
 
+**2026-11-13 — read-only investigation. Verdict: root-caused (the load failure and the report); probable cause for the "unavailable" reporters. Drift surface: NO. Confidence: high on the mechanism, medium on the reporter explanation.**
+
+- **Mechanism:** `showGame` calls `diceLivePreload` on every entry (`ui-shell.js:196`), which appends a module script for `roller/embed/global.js`; its only failure signal is `s.onerror` (`ui-dice.js:49-51`). At `file://` the module cannot load for two independent reasons: module scripts are fetched in CORS mode and a file page's origin is opaque, and the import map is root-absolute (`/roller/vendor/three/…`, `index.html:437-438`), which resolves to `file:///roller/…`. `onerror` → `diceLiveFail` → `reportError`, once per page behind `_diceLive.reported`. `reportError` has no environment gate, so each boot posts to the live webhook.
+- **No existing guard covers it:** the preload skips only a non-idle state or a missing DOM; `diceRollEnv()` (Car Mode, reduced motion, no story area) gates the rolls, not the preload.
+- **The established pattern is to gate at the caller, never in the browser reporter:** the exact twin is ambience (#502) — `ui-ambient.js:39-42` `pageRefusal()` answers "Open the hosted game or localhost to use ambience" at `file:`, says it on the status line, the console and one toast, and never calls `reportError` (proven by `dev/sabotage-502-ambience-insecure-page.js`). B56 blanked the webhook for Node fixtures only. `dev/playtest-harness.js` does not stub reporting, so a harness boot reports like a player's.
+- **What a player at file:// gets:** rolls work (the card and the turn come before the dice are asked for); the dice never appear; nothing is said except in Dice appearance, where "could not load on this device" blames the device for what the page caused.
+- **"unavailable" reporters:** `erResolveReporter` gives `unavailable` when a token exists and `/auth/me` fails or exceeds 3 s (`error-report.js:154-174`); three reports resolved the account from the same origin, so it is not a file:// defect — most likely a cold server at "up 0s". Not proven.
+- **Fix sketch (not applied; game-side only):** a `diceLivePageRefusal()` in `ui-dice.js` mirroring the ambience one; in `diceLivePreload`, after its existing first line, a refusal sets `failed`, keeps the reason, warns once on the console and does NOT report; Dice appearance shows the kept reason. Test `file:` exactly — a wider guard would switch the dice off on localhost and in the browser suites. Keep the report for http(s): the 0.62.0 missing-file deploy is what it exists to catch. Pins to respect: `dev/engine-tests.js` pins the preload's first line and the `diceLiveFail` latch line, and `dev/sabotage-669-live-dice.js` anchors on the latch — insert, do not edit. Not recommended: a blanket `file:` gate in `error-report.js` (it would silence real crashes from local play).
+- **Owner fork:** whether to also toast once (the ambience precedent does); the investigator suggests at the first attempted roll, not at boot.
+- **Docs:** CLAUDE.md's "open index.html directly" should say the live dice and ambience need http, and point at `dev/static-server.js`.
+- **Not verified:** the actual console error at file://; which reports were "up 0s" (one body kept); how the harness run opened the page.
+
 ### Action log
 
 - 2026-11-13 — filed by /bugs sync (hand sync).
+- 2026-11-13 — investigated (read-only agent): root-caused; no code change.
 
 ## Completed
 
