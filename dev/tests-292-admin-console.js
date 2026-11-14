@@ -80,14 +80,17 @@ async function main() {
     assert(/btn\(p\+"admin-console"[^\n]+fm-dev-only/.test(menus), "operator entry lacks dev-only flag");
     assert(menus.indexOf('location.href="admin_console.html"') >= 0, "menu entry not wired");
   });
-  await test("console entry is top-level and hidden until an operator is confirmed", function () {
+  /* #739 (owner 2026-11-13): the entry moved from the menu's top level into Settings ▸ Dev tools — the owner's ruling
+     replaces the old "never buried in Settings" clause; hidden-until-confirmed is unchanged. */
+  await test("console entry is in the Dev tools drawer and hidden until an operator is confirmed", function () {
     var menus=read("ui-boot.js"), nodes={};
     ["fm-","cs-fm-","api-fm-"].forEach(function(p){nodes[p+"admin-console"]={style:{display:"block"}};});
     var box={document:{getElementById:function(id){return nodes[id]||null;}},storageAdapter:{isServerMode:function(){return box.signed;}},serverAccount:null,signed:false};
     vm.createContext(box);vm.runInContext(read("ui-shell.js"),box);
     function check(signed,account,visible){box.signed=signed;box.serverAccount=account;box.applyMenuTier();Object.keys(nodes).forEach(function(id){assert.equal(nodes[id].style.display,visible?"block":"none",id+" leaks operator link");});}
     check(false,null,false);check(true,null,false);check(true,{isAdmin:false},false);check(true,{isAdmin:"true"},false);check(true,{isAdmin:true},true);check(false,{isAdmin:true},false);
-    assert(menus.indexOf('btn(p+"admin-console"')<menus.indexOf('var sl='),"console is buried in Settings");
+    var at=menus.indexOf('btn(p+"admin-console"');
+    assert(at>menus.indexOf("var dev=")&&at<menus.indexOf("var dm=")&&menus.split('btn(p+"admin-console"').length===2,"console is not a row of the Dev tools drawer, once");
     assert(/btn\(p\+"admin-console"[^\n]+hidden:true/.test(menus),"operator entry flashes before account check");
   });
   await test("signed-out and non-admin views cannot mutate accounts", function () {

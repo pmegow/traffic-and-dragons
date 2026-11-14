@@ -18,5 +18,5 @@ prove("storage-adapter.js",[
 ]);
 prove("sw.js",[{label:"network-first satellite",find:"|admin_console|",replace:"|",mustFail:"#292 operator console > satellite contracts:"}]);
 prove("ui-boot.js",[{label:"dev-only menu",find:'btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true})',replace:'btn(p+"admin-console","Operator console&hellip;",0)',mustFail:"#292 operator console > satellite contracts:"}]);
-prove("ui-shell.js",[{label:"confirmed operator only",find:'signed&&acct&&acct.isAdmin===true?"block":"none"',replace:'"block"',mustFail:"#292 operator console > console entry is top-level and hidden until an operator is confirmed"}]);
+prove("ui-shell.js",[{label:"confirmed operator only",find:'signed&&acct&&acct.isAdmin===true?"block":"none"',replace:'"block"',mustFail:"#292 operator console > console entry is in the Dev tools drawer and hidden until an operator is confirmed"}]);
 process.exitCode=bad;

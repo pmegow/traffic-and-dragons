@@ -108,6 +108,26 @@ rc|=sabotage.prove({file:"ui-modals.js",command:GATE,cases:[
    replace:'var THEME_KEY="tnd_theme_v1".replace("v1","v1");'}
 ]});
 
+/* #739 (owner 2026-11-13): World state, Sync state and the Operator console are rows of the Dev tools drawer. */
+rc|=sabotage.prove({file:"ui-boot.js",command:GATE,cases:[
+  {label:"#739: World state returns to the top of the phone's File menu",
+   mustFail:'the row btn("fm-state-mob" is not in the Dev tools drawer',
+   find:'      h+=btn("fm-render-mob","Render prompt",0,{cls:"fm-mobile-only",hidden:true})',
+   replace:'      h+=btn("fm-state-mob","World state",0,{cls:"fm-mobile-only",hidden:true})+btn("fm-render-mob","Render prompt",0,{cls:"fm-mobile-only",hidden:true})'},
+  {label:"#739: the World state row in the drawer loses the operator flag",
+   mustFail:"the World state row lost fm-dev-only",
+   find:'btn("fm-state-mob","World state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})',
+   replace:'btn("fm-state-mob","World state",0,{cls:"fm-mobile-only",hidden:true})'},
+  {label:"#739: the Operator console returns to the menu's top level beside its drawer row",
+   mustFail:'the row btn(p+"admin-console" is not in the Dev tools drawer',
+   find:'    h+=btn(p+"guide",',
+   replace:'    h+=btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true});\n    h+=btn(p+"guide",'},
+  {label:"#739: a menu without a game shows no greyed Sync state in the drawer",
+   mustFail:"the greyed World state / Sync state placeholders",
+   find:'+btn(null,"Sync state",0,{dim:true,cls:"fm-dev-only"}))',
+   replace:')'}
+]});
+
 rc|=sabotage.prove({file:"website/themes.css",command:GATE,cases:[
   {label:"the shared light palette moves without the game's copy",
    mustFail:"light token --acc differs between index.html",

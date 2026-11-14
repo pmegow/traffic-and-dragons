@@ -37,17 +37,15 @@ function buildFileMenus(){
     var p=sf.p,g=sf.game,h="";
     h+="<div id='"+p+"version' style='padding:6px 14px;font-size:10px;color:var(--t2);letter-spacing:.05em;user-select:none;border-bottom:1px solid var(--brd);'></div>";
     if(g){
-      h+=btn("fm-sync-mob","Sync state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})/* #634: Sync is the operator's (owner 2026-10-15) — the topbar #sync-btn carries the same class; the tier rule is appended after the mobile rule, so it wins */
-        +btn("fm-state-mob","World state",0,{cls:"fm-mobile-only",hidden:true})
-        +btn("fm-render-mob","Render prompt",0,{cls:"fm-mobile-only",hidden:true})
+      /* #739 (owner 2026-11-13): Sync state and World state moved into Settings ▸ 🛠 Dev tools (var dev below) */
+      h+=btn("fm-render-mob","Render prompt",0,{cls:"fm-mobile-only",hidden:true})
         +"<div class='fm-mobile-only' style='display:none;border-top:1px solid var(--brd);margin:4px 0;'></div>";
     }else{
-      h+=btn(null,"Sync state",0,{dim:true,cls:"fm-dev-only"})+btn(null,"World state",0,{dim:true})+btn(null,"Render prompt",0,{dim:true})+sep();
+      h+=btn(null,"Render prompt",0,{dim:true})+sep();
     }
     h+=btn(p+"account","&#128100; Account&hellip;",0);/* §3 gateway: subscription status, turn allowance, GM routing, sign out */
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
     h+=btn(p+"guide","&#10067; Beta guide",0);/* #642: the beta guide (DOC/beta-guide.html) — sign-in to the first adventure, the UI tour, this menu row by row; it links the Player FAQ (owner 2026-10-18: the guide is the default); opens in its own tab so the campaign stays put */
-    h+=btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true});
     /* #673 (owner 2026-10-30): Car Mode moved into Settings ▸ 🚗 Auto Mode with the voice-input switches */
     h+=g?btn(p+"talk","&#128483; Talk to&hellip;",0):btn(null,"&#128483; Talk to&hellip;",0,{dim:true});/* #633: a spoken conversation with your character, outside the story */
     /* #634 (owner 2026-10-15): the Re-roll button and its mobile row are gone from every surface; rerollLast (game.js) stays as the engine's re-narration path, pinned by the #158/#172 contracts, reachable from no button */
@@ -116,9 +114,18 @@ function buildFileMenus(){
     // security: every real gate stays on the server. Marking a row = one flag in this spec.
     // #634: the three rows live in the Dev tools drawer, whose wrapper carries the class too (a
     // non-admin never sees an empty drawer); Render Options became operator-only with the move.
+    // #739 (owner 2026-11-13): World state, Sync state and the Operator console joined the drawer. The two
+    // state rows are the PHONE's (fm-mobile-only: on a desktop they are the topbar's World State and Sync
+    // buttons) and greyed on a menu without a game; World state became operator-only on the phone with the
+    // move. The Operator console row is shown by applyMenuTier for a signed-in admin, as before.
     var dev=btn(p+"llm","🧠 Language Model&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"usage","📊 Usage &amp; cost&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"fal-key","🖼 Render Options&hellip;",0,{cls:"fm-dev-only"});
+    dev=(g?btn("fm-state-mob","World state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})
+        +btn("fm-sync-mob","Sync state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})/* #634: Sync is the operator's (owner 2026-10-15) — the topbar #sync-btn carries the same class; the tier rule is appended after the mobile rule, so it wins */
+      :btn(null,"World state",0,{dim:true,cls:"fm-dev-only"})+btn(null,"Sync state",0,{dim:true,cls:"fm-dev-only"}))
+      +btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true})
+      +dev;
     var dm=chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off = the GM rolls; ON for a new player (#641). At the Settings top level since #673 (owner 2026-10-30): under Narrative options it was out of reach on a short phone */
       +drawer(p+"appearance",p+"appearancemenu","🎨 Appearance",0,null,app)
       +drawer(p+"audio",p+"audiomenu","🔊 Audio",0,null,aud)
