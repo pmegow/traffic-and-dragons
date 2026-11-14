@@ -1,0 +1,24 @@
+#panel h1 { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+#panel h1 span { min-width: 0; }
+#file-button, #file-menu button, #feedback-dialog button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; min-height: 44px; cursor: pointer; }
+#file-button { flex-shrink: 0; font-size: 13px; font-weight: 400; }
+#file-menu { position: fixed; z-index: 30; width: max-content; max-width: calc(100vw - 16px); padding: 5px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 28px #0008; }
+#file-menu button { width: 100%; border: 0; text-align: left; font-size: 14px; }
+#file-button:hover, #file-menu button:hover, #feedback-dialog button:hover { background: #252b35; }
+#file-button:focus-visible, #file-menu button:focus-visible, #feedback-dialog :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+#feedback-dialog { top: var(--top-inset); width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - var(--top-inset) - 24px); padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); overflow-y: auto; }
+#feedback-dialog::backdrop { background: #000b; }
+.feedback-heading { display: flex; align-items: flex-start; gap: 12px; justify-content: space-between; }
+#feedback-title { font-size: 18px; line-height: 1.35; margin: 6px 0 0; color: var(--acc); }
+#feedback-dialog #feedback-x { border: 0; padding: 6px 10px; font-size: 22px; line-height: 1; }
+#feedback-dialog label { margin: 12px 0 6px; }
+#feedback-text { display: block; width: 100%; min-height: 110px; resize: vertical; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); font: inherit; }
+#feedback-shot { display: block; max-width: 100%; max-height: 120px; margin: 14px auto 8px; border-radius: 6px; }
+.feedback-help { color: var(--muted); font-size: 12px; line-height: 1.5; }
+#feedback-error { color: var(--bad); font-size: 13px; overflow-wrap: anywhere; }
+.feedback-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+#feedback-dialog #feedback-send { background: var(--acc); color: var(--acc-ink); border-color: var(--acc); font-weight: 600; }
+#feedback-dialog button:disabled { opacity: .55; cursor: wait; }
+#feedback-notice { position: fixed; z-index: 25; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom)); max-width: calc(100vw - 32px); padding: 10px 16px; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 4px 20px #0008; }
+#feedback-notice:empty { display: none; }
+@media (pointer: coarse) { #feedback-text { font-size: 16px; } }

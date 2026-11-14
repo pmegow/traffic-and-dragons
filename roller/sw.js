@@ -11,7 +11,7 @@
 // fails when it is stale.
 
 // <app-files> written by dev/write-sw.js
-const VERSION = '0.99.20';
+const VERSION = '0.99.21';
 const FILES = [
   'audio/bank/clicks-v1.json',
   'audio/bank/clicks-v1.mp3',
@@ -26,6 +26,11 @@ const FILES = [
   'demo/demo.js',
   'demo/dice-picker.js',
   'demo/drawer.js',
+  'demo/feedback-context.js',
+  'demo/feedback-dialog.js',
+  'demo/feedback.css',
+  'demo/feedback.js',
+  'demo/file-menu.js',
   'demo/font-picker.js',
   'demo/host.js',
   'demo/preset-store.js',

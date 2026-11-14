@@ -1,4 +1,5 @@
 // demo/demo.js — the standalone dice toy: a thin shell over DiceView, DiceAudio and the core's roll().
+import { bindFileMenu } from './file-menu.js';
 import { bindFontPicker } from './font-picker.js';
 import { validFontKey } from '../render/numeral-fonts.js';
 import { hostFor } from './host.js';
@@ -23,6 +24,8 @@ import { SLIDER_RANGES, bindCenteredSlider } from './centered-slider.js';
 
 const $ = (id) => document.getElementById(id);
 const status = (msg) => { $('status').textContent = msg || ''; };
+
+bindFileMenu();
 
 let view;
 try {
