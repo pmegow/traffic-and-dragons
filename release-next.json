@@ -1,5 +1,5 @@
 {
-  "version": "v1.1419",
+  "version": "v1.1420",
   "actions": [
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
     "Every new campaign starts with a map that fills as the GM reveals places; the map checkbox is gone.",
@@ -75,6 +75,7 @@
     "The creature card in combat now shows the creature's portrait.",
     "A disguised creature's card shows an alternate portrait; until one exists, the standard portrait is marked ALTERNATE.",
     "Creatures and characters can carry a second form; the combat card and character sheet show the current form's portrait and description.",
-    "The story can now switch a creature or character between its two forms; the card, sheet and name follow."
+    "The story can now switch a creature or character between its two forms; the card, sheet and name follow.",
+    "A creature or character changing form is found under either of its names; a disguised foe's true name no longer shows in Table Talk."
   ]
 }

@@ -3524,6 +3524,7 @@ function bestiaryRecord(name){
    bears the name, else the entry's starting form (a disguise: its public name; a true-starting entry: its own). */
 function creaturePublicName(name){
   var f=(typeof worldState!=="undefined"&&worldState&&worldState.combat&&worldState.combat.foes)||[],t=String(name||"").toLowerCase(),i;
+  for(i=0;i<f.length;i++)if(f[i]&&String(f[i].name).toLowerCase()===t&&!(f[i].down||f[i].hp<=0))return foePublicName(f[i]);/* the LIVING row first: a second foe started under a slain one's name is the one being spoken of (review 2026-11-14) */
   for(i=0;i<f.length;i++)if(f[i]&&String(f[i].name).toLowerCase()===t)return foePublicName(f[i]);
   return foePublicName({name:name});
 }
@@ -3572,6 +3573,9 @@ function foePublicName(foe){
    disguise); a starting form of true alone is not. */
 function formHasAlternate(rec){return !!(rec&&(rec.altDesc||rec.altPortrait||(typeof rec.displayName==="string"&&rec.displayName.trim())||rec.startsAs==="alternate"||rec.startsAs==="story"));}
 function formSentence(text){var s=String(text||"").trim();return s?s+(/[.!?]$/.test(s)?"":"."):"";}
+/* The NPC sheet's portrait editor edits the TRUE portrait (slot 1). It is held while a character with an authored alternate
+   is not in its true form: the editor would show the true face and overwrite it under an alternate one. */
+function npcPortraitEditorHeld(n){return !!(n&&formHasAlternate(n)&&npcFormView(n).form!=="true");}
 /* An NPC's forms ride its roster row: `desc`, `altPortrait`, `altDesc`, `startsAs`, `form`; the true image is the sheet's
    or the row's (npcPortrait). */
 function npcFormView(n){

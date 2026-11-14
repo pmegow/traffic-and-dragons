@@ -691,7 +691,9 @@ function showNpcSheet(name){
         var _m=document.getElementById("npc-modal");if(_m){_m.remove();showNpcSheet(name);}
       }
     };
-    document.getElementById("npc-avatar-btn").addEventListener("click",function(){var img=document.getElementById("npc-portrait-img");if(img&&img._wasDragged&&img._wasDragged())return;showPortraitModal(refreshNpcAvatar,npcPortOpts);});
+    document.getElementById("npc-avatar-btn").addEventListener("click",function(){var img=document.getElementById("npc-portrait-img");if(img&&img._wasDragged&&img._wasDragged())return;
+      if(npcPortraitEditorHeld(wsNpc)){showToast(name+"\u2019s portrait can be edited while they are in their true form.");return;}/* #743 (review 2026-11-14): the editor reads and writes slot 1, the TRUE portrait — opening it on an alternate or unstated form showed the true face */
+      showPortraitModal(refreshNpcAvatar,npcPortOpts);});
   }
 }
 function _switchPlayerCharacter(name){

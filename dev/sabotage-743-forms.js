@@ -82,11 +82,11 @@ var T_GM = P + "the GM is told a creature's forms, its cue and the tag — only 
 var T_LINE = P + "the combat line states each foe's form and asks for an unstated one every turn";
 var tag = [
   { label: "a form is filed on a look-alike foe (a name that only contains the tag's)",
-    find: "if(String(f[i].name).toLowerCase()===t){rec=bestiaryRecord(f[i].name);",
-    replace: "if(String(f[i].name).toLowerCase().indexOf(t)>=0){rec=bestiaryRecord(f[i].name);", mustFail: T_REF },
+    find: "rows=formFoeRows(function(x){return String(x.name).toLowerCase()===t;});",
+    replace: "rows=formFoeRows(function(x){return String(x.name).toLowerCase().indexOf(t)>=0;});", mustFail: T_REF },
   { label: "a foe with no alternate takes a form",
-    find: "return rec&&formHasAlternate(rec)?{individual:f[i],rec:rec,foe:true}:null;",
-    replace: "return rec?{individual:f[i],rec:rec,foe:true}:null;", mustFail: T_REF },
+    find: "if(row){rec=bestiaryRecord(row.name);if(rec&&formHasAlternate(rec))return",
+    replace: "if(row){rec=bestiaryRecord(row.name);if(rec)return", mustFail: T_REF },
   { label: "a character with no alternate takes a form",
     find: "return n&&formHasAlternate(n)?{individual:n,rec:n,foe:false}:null;",
     replace: "return n?{individual:n,rec:n,foe:false}:null;", mustFail: T_REF },
@@ -97,10 +97,10 @@ var tag = [
     find: "var was=formOf(target.individual,target.rec);target.individual.form=want;",
     replace: "var was=formOf(target.individual,target.rec);", mustFail: T_FOE },
   { label: "a form change is silent",
-    find: "if(was!==want)R.muts.push(\"Form: \"",
+    find: "if(was&&was!==want)R.muts.push(\"Form: \"",
     replace: "if(0)R.muts.push(\"Form: \"", mustFail: T_FOE },
   { label: "a form already showing is announced again",
-    find: "if(was!==want)R.muts.push(\"Form: \"",
+    find: "if(was&&was!==want)R.muts.push(\"Form: \"",
     replace: "if(1)R.muts.push(\"Form: \"", mustFail: T_FOE },
   { label: "a foe started under the public name is not in its alternate form",
     find: "foe.form=\"alternate\";/* #743: a foe started",
@@ -126,8 +126,8 @@ var prompt = [
     find: "with how many are up\":\"\")+foeFormLine(cf));}",
     replace: "with how many are up\":\"\"));}", mustFail: T_LINE },
   { label: "an unstated form is not asked for",
-    find: "(formOf(foe,rec)||\"unstated \\u2014 emit \"+formTagPair(foe.name));",
-    replace: "(formOf(foe,rec)||\"unstated\");", mustFail: T_LINE },
+    find: "emit \"+formTagPair(foe.name));",
+    replace: "\");", mustFail: T_LINE },
   { label: "a foe with no alternate gets a form clause (the line is no longer byte-identical)",
     find: "var rec=bestiaryRecord(foe&&foe.name);if(!rec||!formHasAlternate(rec))return \"\";",
     replace: "var rec=bestiaryRecord(foe&&foe.name);if(!rec)return \"\";", mustFail: T_LINE },
@@ -140,9 +140,58 @@ var words = [
     find: "  for(i=0;i<f.length;i++)if(f[i]&&String(f[i].name).toLowerCase()===t)return foePublicName(f[i]);\n",
     replace: "", mustFail: T_FOE }
 ];
-var failed = sabotage.prove({ file: "helpers.js", command: CMD, only: P, cases: helpers.concat(words) });
-if (!failed) failed = sabotage.prove({ file: "tag_table.js", command: CMD, only: P, cases: tag });
-if (!failed) failed = sabotage.prove({ file: "api.js", command: CMD, only: P, cases: prompt });
+// ── the independent review of 2026-11-14 ──
+var R1 = P + "review: the tag the GM is taught names the row — the entry's other name finds its one living row";
+var R_AMB = P + "review: two living rows of one entry under other names are ambiguous and refused";
+var R_NPCFOE = P + "review: a character fighting as a foe changes form on its roster row";
+var R_SLAIN = P + "review: a second foe under a slain one's name is the one spoken of and the one a tag reaches";
+var R_SILENT = P + "review: the first statement of a form is silent, and a refusal does not hint at a hidden form";
+var R_MERGE = P + "review: an accepted merge keeps the form and the alternate with the portrait";
+var R_TT = P + "review: Table Talk names a foe as the tracker does";
+var R_ED = P + "review: the sheet's portrait editor is held while a character is not in its true form";
+var revTag = [
+  { label: "the entry's other name no longer reaches its row (the GM is taught a tag the parser refuses)",
+    find: "      if(rows.up.length===1)return {individual:rows.up[0],rec:rec,foe:true};\n", replace: "", mustFail: R1 },
+  { label: "an ambiguous entry name lands on the first of two rows",
+    find: "if(rows.up.length===1)return {individual:rows.up[0]", replace: "if(rows.up.length>=1)return {individual:rows.up[0]", mustFail: R_AMB },
+  { label: "a character fighting as a foe is refused (no fall-through to the roster)",
+    find: "return {individual:row,rec:rec,foe:true};}\n  else{", replace: "return {individual:row,rec:rec,foe:true};return null;}\n  else{", mustFail: R_NPCFOE },
+  { label: "a tag reaches the corpse before the living row",
+    find: "row=rows.up[0]||rows.fallen[0];", replace: "row=rows.fallen[0]||rows.up[0];", mustFail: R_SLAIN },
+  { label: "the first statement of an unstated form is announced to the player",
+    find: "if(was&&was!==want)R.muts.push(", replace: "if(was!==want)R.muts.push(", mustFail: R_SILENT },
+  { label: "a merge drops the form and the alternate",
+    find: "[\"form\"].concat(NPC_FORM_FIELDS).forEach(function(k){if(_mgCanN[k]===undefined&&_mgDupN[k]!==undefined)_mgCanN[k]=_mgDupN[k];});", replace: "", mustFail: R_MERGE },
+  { label: "a merge overwrites the survivor's own alternate",
+    find: "if(_mgCanN[k]===undefined&&_mgDupN[k]!==undefined)_mgCanN[k]=_mgDupN[k];});/* #743", replace: "if(_mgDupN[k]!==undefined)_mgCanN[k]=_mgDupN[k];});/* #743", mustFail: R_MERGE }
+];
+var revPrompt = [
+  { label: "the combat line prints the entry's name, not the row's own tag",
+    find: "to change it emit [FORM:\"+foe.name+\"|\"", replace: "to change it emit [FORM:\"+rec.name+\"|\"", mustFail: R1 },
+  { label: "a row in its true form is still said to have a public name",
+    find: "\" | Shown to the player as: \":\" | Public name: \"", replace: "\" | Public name: \":\" | Public name: \"", mustFail: R1 },
+  { label: "the GM is asked to state a creature's form before a row exists",
+    find: "+\" once it is in a fight\":", replace: "+\" when the individual appears\":", mustFail: R_SILENT }
+];
+var revWords = [
+  { label: "the engine names the slain row's form for a living namesake",
+    find: "===t&&!(f[i].down||f[i].hp<=0))return foePublicName(f[i]);", replace: "===t&&0)return foePublicName(f[i]);", mustFail: R_SLAIN },
+  { label: "the portrait editor opens on an alternate form",
+    find: "return !!(n&&formHasAlternate(n)&&npcFormView(n).form!==\"true\");}", replace: "return false;}", mustFail: R_ED }
+];
+var revTalk = [
+  { label: "Table Talk is given the canonical name of a disguised foe",
+    find: "fo.push(foePublicName(f)+\" \"+f.hp", replace: "fo.push(f.name+\" \"+f.hp", mustFail: R_TT }
+];
+var revSheet = [
+  { label: "the avatar click opens the editor whatever the form",
+    find: "if(npcPortraitEditorHeld(wsNpc)){showToast(", replace: "if(0){showToast(", mustFail: R_ED }
+];
+var failed = sabotage.prove({ file: "helpers.js", command: CMD, only: P, cases: helpers.concat(words, revWords) });
+if (!failed) failed = sabotage.prove({ file: "tag_table.js", command: CMD, only: P, cases: tag.concat(revTag) });
+if (!failed) failed = sabotage.prove({ file: "api.js", command: CMD, only: P, cases: prompt.concat(revPrompt) });
+if (!failed) failed = sabotage.prove({ file: "table-talk.js", command: CMD, only: P, cases: revTalk });
+if (!failed) failed = sabotage.prove({ file: "ui-sheets.js", command: CMD, only: P, cases: revSheet });
 if (!failed) failed = sabotage.prove({ file: "ui-mobile.js", command: CMD, only: P, cases: card });
 if (!failed) failed = sabotage.prove({ file: "game.js", command: CMD, only: P, cases: doors });
 process.exit(failed ? 1 : 0);

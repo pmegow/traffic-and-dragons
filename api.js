@@ -2483,15 +2483,16 @@ function formGmNote(rec){
   var st=formStart(rec),mask=!!(typeof rec.displayName==="string"&&rec.displayName.trim()&&!rec.altDesc),tags=formTagPair(rec.name);
   return " | FORMS: it has a TRUE form and an ALTERNATE form"
     +(rec.altDesc?" (the appearance above is the true form's; alternate appearance: "+formSentence(rec.altDesc).replace(/[.!?]$/,"")+")":mask&&rec.desc?" (the appearance above is the alternate's \u2014 the mask)":"")
-    +". Each individual holds its own form and starts "+(st==="story"?"as serves the story \u2014 state it with "+tags+" when the individual appears":"in its "+st+" form")+"."
+    +". Each individual holds its own form and starts "+(st==="story"?"as serves the story \u2014 state it with "+tags+" once it is in a fight":"in its "+st+" form")+"."
     +(rec.altWhen?" Cue: "+formSentence(rec.altWhen):"")
-    +" Emit "+tags+" the moment an individual changes form; the player's card shows only the current form. A group shares one form \u2014 give individuals in the other form their own [COMBAT_START:] entry"+(mask||rec.displayName?" (started under the public name, an entry is in its alternate form)":"")+".";
+    +" Emit "+tags+" the moment an individual changes form; the player's card shows only the current form. A group shares one form \u2014 give individuals in the other form their own [COMBAT_START:] entry"+(rec.displayName?" (an entry started under its public name is in its alternate form, whatever it starts as under its own)":"")+". In a fight, use the tag printed on that foe's own line.";
 }
 /* The combat line's form clause for one foe: "" when its entry has no alternate (the line is byte-identical), else the
    form showing — and, while unstated, the ask (every turn until the GM files it, like the #612 headcount). */
 function foeFormLine(foe){
   var rec=bestiaryRecord(foe&&foe.name);if(!rec||!formHasAlternate(rec))return "";
-  return " | Form: "+(formOf(foe,rec)||"unstated \u2014 emit "+formTagPair(foe.name));
+  var form=formOf(foe,rec);/* review 2026-11-14: the row's OWN tag is printed every turn — the row may bear the public name while the stable half teaches the canonical one */
+  return " | Form: "+(form?form+" \u2014 to change it emit [FORM:"+foe.name+"|"+(form==="true"?"alternate":"true")+"]":"unstated \u2014 emit "+formTagPair(foe.name));
 }
 /* #743: the roster characters that have an authored alternate form — which form each is in NOW, both looks, the cue and
    the tag. GM-only and live (a form changes in play), so the VOLATILE half; "" when no character has one, so a campaign
@@ -2692,7 +2693,7 @@ function buildSysPrompt(){
       if(cf.down||cf.hp<=0){cbDown.push(cf.name+" ("+(cf.down||"slain")+")");continue;}
       var cbStats="";if(cf.stats)cbStats=" | STR:"+cf.stats.STR+" DEX:"+cf.stats.DEX+" CON:"+cf.stats.CON+" INT:"+cf.stats.INT+" WIS:"+cf.stats.WIS+" CHA:"+cf.stats.CHA+" CR:"+cf.stats.CR;
       var cbDmgMod="";if(cf.immune&&cf.immune.length)cbDmgMod+=" | Immune:"+cf.immune.join(",");if(cf.resist&&cf.resist.length)cbDmgMod+=" | Resist:"+cf.resist.join(",");if(cf.vuln&&cf.vuln.length)cbDmgMod+=" | Vuln:"+cf.vuln.join(",");
-      cbLines.push("Enemy: "+foeLabel(cf,true)+(creaturePublicName(cf.name)!==cf.name?" | Public name: "+creaturePublicName(cf.name):"")+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod+(foeGroupUnrecorded(cf)?" | Headcount: unrecorded \u2014 emit [COMBAT_GROUP:"+cf.name+"|N] with how many are up":"")+foeFormLine(cf));}/* #743: the foe's form, asked while unstated *//* #612: an unrecorded pack is asked, every turn, until it files */
+      cbLines.push("Enemy: "+foeLabel(cf,true)+(foePublicName(cf)!==cf.name?(formOf(cf,bestiaryRecord(cf.name))==="true"?" | Shown to the player as: ":" | Public name: ")+foePublicName(cf):"")+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod+(foeGroupUnrecorded(cf)?" | Headcount: unrecorded \u2014 emit [COMBAT_GROUP:"+cf.name+"|N] with how many are up":"")+foeFormLine(cf));}/* #743: the foe's form, asked while unstated *//* #612: an unrecorded pack is asked, every turn, until it files */
     cb="COMBAT ACTIVE (Round "+cm.round+(cfs.length>1?"; "+cfs.length+" foes — use [ENEMY_HP:Name|-X] to address each":"")+"):\n"+cbLines.join("\n")+(cbDown.length?"\nOut of the fight: "+cbDown.join(", "):"")+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var erasBlock=buildErasBlock();/* #148 Phase 2 — the always-on spine ABOVE the recent-chapter window; "" until the first era compiles */

@@ -180,7 +180,7 @@ test('[FORM:] switches a foe either way, and the label and the engine\'s own wor
   assert.equal(formOf(foe, bestiaryRecord(foe.name)), '', 'as serves the story: unstated at the start');
   let said = muts('Her skin runs like wax. [FORM:Marsh Hag|alternate]');
   assert.equal(foe.form, 'alternate'); assert.equal(foeLabel(foe), 'Woman');
-  assert.ok(said.some(m => /^Form: Woman/.test(m) && /alternate/.test(m)), 'the switch is said: ' + JSON.stringify(said));
+  assert.equal(said.filter(m => /^Form:/.test(m)).length, 0, 'the first statement of an unstated form is not announced: ' + JSON.stringify(said));
   assert.equal(JSON.stringify(said).indexOf('Marsh Hag'), -1, 'the true name stays out of the words while alternate');
   said = muts('[FORM:Marsh Hag|true]');
   assert.equal(foe.form, 'true'); assert.equal(foeLabel(foe), 'Marsh Hag'); assert.equal(foe.name, 'Marsh Hag', 'the tag identity never changes');
@@ -279,6 +279,89 @@ test('the cue and the forms never reach Table Talk or a companion talk', () => {
   const ttText = typeof tt === 'string' ? tt : JSON.stringify(tt);
   const persona = talkPersona({ name: 'Mara' }, talkContext({ name: 'Mara', isHero: false, sheet: { name: 'Mara' } }));
   ['ALT_WHEN', 'NPC_WHEN', 'ALT_DESC', 'NPC_ALT', 'TRUE_DESC', '[FORM:'].forEach(x => { assert.equal(ttText.indexOf(x), -1, x + ' in Table Talk'); assert.equal(String(persona).indexOf(x), -1, x + ' in the talk persona'); });
+});
+
+// ── the independent review of 2026-11-14 ────────────────────────────────────────────────────────────────────────────────
+test('review: the tag the GM is taught names the row — the entry\'s other name finds its one living row', () => {
+  fresh(blueprint(hag()));
+  start('[COMBAT_START:Woman|30|13|4|1d8|bold]');
+  const foe = worldState.combat.foes[0];
+  let v = buildSysPrompt().volatile;
+  assert.ok(v.indexOf('Form: alternate \u2014 to change it emit [FORM:Woman|true]') >= 0, 'the row\'s own tag is printed every turn: ' + v.slice(v.indexOf('COMBAT ACTIVE'), v.indexOf('COMBAT ACTIVE') + 300));
+  applyMuts('[FORM:Marsh Hag|true]');
+  assert.equal(foe.form, 'true', 'the canonical name the stable half teaches reaches the row named by the public one');
+  v = buildSysPrompt().volatile;
+  assert.ok(v.indexOf('Enemy: Woman | Shown to the player as: Marsh Hag') >= 0 && v.indexOf('emit [FORM:Woman|alternate]') >= 0, v.slice(v.indexOf('COMBAT ACTIVE'), v.indexOf('COMBAT ACTIVE') + 300));
+  fresh(blueprint(hag())); start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold]');
+  applyMuts('[FORM:Woman|true]'); assert.equal(worldState.combat.foes[0].form, 'true', 'and the public name reaches the row named by the canonical one');
+  fresh(blueprint(hag({ startsAs: 'true' }))); start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold][COMBAT_START:Woman|30|13|4|1d8|bold]');
+  applyMuts('[FORM:Woman|true]'); assert.deepEqual(worldState.combat.foes.map(x => x.form), [undefined, 'true'], 'a row\'s own name always wins over the entry');
+  worldState.combat.foes.push({ name: 'Old Woman', hp: 5, maxHp: 5, ac: 10, atk: 0, dmg: '1', morale: 'x' });
+  assert.ok(muts('[FORM:Nobody Here|true]').some(m => /FORM refused/.test(m)));
+});
+
+test('review: two living rows of one entry under other names are ambiguous and refused', () => {
+  fresh(blueprint(hag({ startsAs: 'true' })));
+  start('[COMBAT_START:Woman|30|13|4|1d8|bold]');
+  const rows = worldState.combat.foes; rows.push(JSON.parse(JSON.stringify(rows[0])));
+  const was = JSON.stringify(rows);
+  assert.ok(muts('[FORM:Marsh Hag|true]').some(m => /FORM refused/.test(m)), 'which Woman? the canonical name cannot say');
+  assert.equal(JSON.stringify(rows), was, 'nothing moved');
+});
+
+test('review: a character fighting as a foe changes form on its roster row', () => {
+  fresh(blueprint(hag(), NPC_ALT));
+  start('[COMBAT_START:Mara|30|13|4|1d8|bold]');
+  const said = muts('[FORM:Mara|alternate]');
+  assert.equal(said.filter(m => /FORM refused/.test(m)).length, 0, JSON.stringify(said));
+  assert.equal(wsNpcByName('Mara').form, 'alternate'); assert.equal(npcFormView(wsNpcByName('Mara')).portrait, ALT_PIC);
+});
+
+test('review: a second foe under a slain one\'s name is the one spoken of and the one a tag reaches', () => {
+  fresh(blueprint(hag()));
+  start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold][COMBAT_START:Wolf|9|12|3|1d6|wary]'); applyMuts('[FORM:Marsh Hag|true]'); applyMuts('[ENEMY_SLAIN:Marsh Hag]');
+  const said = muts('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold][COMBAT_GROUP:Marsh Hag|2]');
+  const rows = worldState.combat.foes; assert.equal(rows.length, 3, 'the slain row stays and a living one joins');
+  assert.equal(JSON.stringify(said).indexOf('Marsh Hag'), -1, 'the disguised newcomer is never named by its true name: ' + JSON.stringify(said));
+  assert.ok(said.some(m => /Woman/.test(m)));
+  applyMuts('[FORM:Marsh Hag|true]'); assert.equal(rows[2].form, 'true', 'the tag reaches the living row, not the corpse');
+});
+
+test('review: the first statement of a form is silent, and a refusal does not hint at a hidden form', () => {
+  fresh(blueprint(hag({ startsAs: 'story' }), Object.assign({ startsAs: 'story' }, NPC_ALT)));
+  assert.equal(muts('[FORM:Mara|true]').filter(m => /^Form:/.test(m)).length, 0, 'an unstated character\'s first form is not announced');
+  assert.equal(muts('[FORM:Mara|alternate]').filter(m => /^Form: Mara/.test(m)).length, 1, 'a change the player can see is');
+  const refused = muts('[FORM:Marsh Hag|alternate]').join(' ');
+  assert.ok(/FORM refused/.test(refused)); assert.equal(refused.indexOf('alternate form'), -1, refused); assert.equal(refused.indexOf('Marsh Hag'), -1, 'the refusal names the public name: ' + refused);
+  const st = buildSysPrompt().stable; assert.ok(st.indexOf('once it is in a fight') >= 0, 'a creature\'s form is stated on its row, never before one exists'); assert.equal(st.indexOf('when the individual appears'), -1);
+});
+
+test('review: an accepted merge keeps the form and the alternate with the portrait', () => {
+  const bp = blueprint(hag(), NPC_ALT); bp.npcs.push({ name: 'Hooded Stranger', notes: 'Seen at the ford.' }); fresh(bp);
+  applyMuts('[FORM:Mara|alternate]'); applyMuts('[MERGE:npc|Hooded Stranger|Mara]');
+  const n = wsNpcByName('Hooded Stranger'); assert.ok(n && !wsNpcByName('Mara'), 'merged');
+  assert.deepEqual([n.form, n.altDesc, n.altWhen, n.altPortrait, n.desc], ['alternate', 'NPC_ALT', 'NPC_WHEN', ALT_PIC, 'NPC_TRUE']);
+  assert.deepEqual([npcFormView(n).portrait, npcFormView(n).desc], [ALT_PIC, 'NPC_ALT'], 'the sheet still shows the alternate');
+  const bp2 = blueprint(hag(), NPC_ALT); bp2.npcs.push(Object.assign({ name: 'Veiled One', notes: 'n' }, { altDesc: 'OWN_ALT' })); fresh(bp2);
+  applyMuts('[MERGE:npc|Veiled One|Mara]'); assert.equal(wsNpcByName('Veiled One').altDesc, 'OWN_ALT', 'the survivor\'s own values win');
+});
+
+test('review: Table Talk names a foe as the tracker does', () => {
+  fresh(blueprint(hag()));
+  start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold]');
+  const tt = buildTableTalkPrompt('Who am I fighting?'), text = typeof tt === 'string' ? tt : JSON.stringify(tt);
+  assert.ok(/IN COMBAT[^\n]*Woman 30\/30/.test(text), text.slice(text.indexOf('IN COMBAT'), text.indexOf('IN COMBAT') + 120));
+  assert.equal(text.slice(text.indexOf('IN COMBAT'), text.indexOf('IN COMBAT') + 200).indexOf('Marsh Hag'), -1, 'the true name stays out while alternate');
+});
+
+test('review: the sheet\'s portrait editor is held while a character is not in its true form', () => {
+  fresh(blueprint(hag(), NPC_ALT)); const n = wsNpcByName('Mara');
+  assert.equal(npcPortraitEditorHeld(n), false, 'true form: editable');
+  applyMuts('[FORM:Mara|alternate]'); assert.equal(npcPortraitEditorHeld(n), true);
+  n.startsAs = 'story'; delete n.form; assert.equal(npcPortraitEditorHeld(n), true, 'unstated is held too');
+  assert.equal(npcPortraitEditorHeld({ name: 'Pell', portrait: TRUE_PIC }), false, 'a character with no alternate is never held');
+  const src = fs.readFileSync(path.join(__dirname, '../ui-sheets.js'), 'utf8'), at = src.indexOf('if(npcPortraitEditorHeld(wsNpc)){');
+  assert.ok(at >= 0 && at < src.indexOf('showPortraitModal(refreshNpcAvatar,npcPortOpts);});'), 'the avatar click asks before it opens the editor');
 });
 
 console.log('#743 forms: ' + count + ' passed, ' + failed + ' failed');

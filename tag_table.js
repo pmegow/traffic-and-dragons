@@ -294,13 +294,34 @@ function _foeQueryNames(q,fn){
   if(after==="'"||after==="\u2019")return false;/* the possessive: "nolan grimtide's raider" is someone else */
   return true;
 }
-/* #743: who a [FORM:] names — {individual, rec, foe} or null. A foe of the current fight by its row's own name (exact, case
-   folded; never combatFoeByName's containment fallback), else a roster character by its own name or a registered alias.
-   Either must have an authored alternate (formHasAlternate); anything else is null and the tag is refused. */
+/* #743: who a [FORM:] names — {individual, rec, foe} or null. Exact names only (case folded; never combatFoeByName's
+   containment fallback), in this order (review 2026-11-14):
+     1. a foe row of the current fight bearing the name — the LIVING row before a fallen one (a second hag started under
+        the name of a slain one is the one the tag means);
+     2. the ONE living row of the bestiary entry the name belongs to, under its other name (the GM is taught the entry's
+        canonical name in the stable half while the row may bear the public one, and the reverse); two living rows of
+        that entry are ambiguous and refused — the combat line prints each row's own tag;
+     3. a roster character by its own name or a registered alias — also when a foe row bears the name but its entry has
+        no alternate (a character fighting as a foe keeps its form on its roster row).
+   The target must have an authored alternate (formHasAlternate); anything else is null and the tag is refused. */
+function formFoeRows(test){
+  var f=(worldState.combat&&worldState.combat.foes)||[],up=[],fallen=[],i;
+  for(i=0;i<f.length;i++)if(f[i]&&test(f[i]))(f[i].down||f[i].hp<=0?fallen:up).push(f[i]);
+  return {up:up,fallen:fallen};
+}
 function formTarget(nm){
-  var t=String(nm||"").toLowerCase().trim(),f=(worldState.combat&&worldState.combat.foes)||[],i,rec;
+  var t=String(nm||"").toLowerCase().trim(),rec,rows,row;
   if(!t)return null;
-  for(i=0;i<f.length;i++)if(String(f[i].name).toLowerCase()===t){rec=bestiaryRecord(f[i].name);return rec&&formHasAlternate(rec)?{individual:f[i],rec:rec,foe:true}:null;}
+  rows=formFoeRows(function(x){return String(x.name).toLowerCase()===t;});row=rows.up[0]||rows.fallen[0];
+  if(row){rec=bestiaryRecord(row.name);if(rec&&formHasAlternate(rec))return {individual:row,rec:rec,foe:true};}
+  else{
+    rec=bestiaryRecord(nm);
+    if(rec&&formHasAlternate(rec)){
+      rows=formFoeRows(function(x){return bestiaryRecord(x.name)===rec;});
+      if(rows.up.length===1)return {individual:rows.up[0],rec:rec,foe:true};
+      if(rows.up.length>1)return null;
+    }
+  }
   var key=(typeof npcExactKey==="function"&&npcExactKey(nm.trim(),1))||(typeof identitySheetAliasKey==="function"&&identitySheetAliasKey(nm.trim()))||nm.trim(),n=wsNpcByName(key);
   return n&&formHasAlternate(n)?{individual:n,rec:n,foe:false}:null;
 }
@@ -837,6 +858,7 @@ var TAG_TABLE=[
       if(_mgCanN.charSheet)_mgCanN.charSheet.portraitOffset=_mgPortraitOffset?JSON.parse(JSON.stringify(_mgPortraitOffset)):null;
     }else if(!_mgPortrait&&_mgDupN.portraitOffset&&!_mgCanN.portraitOffset)_mgCanN.portraitOffset=_mgDupN.portraitOffset;
     if(_mgDupN.pronouns&&!_mgCanN.pronouns)_mgCanN.pronouns=_mgDupN.pronouns;
+    ["form"].concat(NPC_FORM_FIELDS).forEach(function(k){if(_mgCanN[k]===undefined&&_mgDupN[k]!==undefined)_mgCanN[k]=_mgDupN[k];});/* #743 (review 2026-11-14): the form in play and the authored alternate travel with the true portrait the merge already carries — without them the survivor showed the true face of a disguised character; the survivor's own values win */
     /* Only an accepted identity merge transfers pins. A pending hint may describe two different people. */
     var _mgVo=_mgCanN.charSheet||_mgCanN,_mgVn=voicePinsFill(_mgVo,[_mgVoiceRow,_mgDupN.charSheet||_mgDupN],voicePinFitsGender(speakerSubjectOfRow(_mgCanN,mgCanon).char.gender));
     if(_mgCanN.charSheet)releaseRowVoicePins(_mgCanN);
@@ -1206,7 +1228,8 @@ combatAttrEntry("COMBAT_VULN","vuln"),
    individual in play — a foe of the current fight by its row's own tag name, else a character by its own name or registered
    alias (formTarget: EXACT names only — a form is never filed on a look-alike). The target must have an authored alternate.
    An unknown form, an unknown target and a target with no alternate are refused LOUDLY and move nothing; a form already
-   showing says nothing. The row's identity never changes: only what the player is shown (formView) and the label
+   showing says nothing, and neither does the FIRST statement of an unstated form (the player has seen no other form: "Woman →
+   alternate" would say the woman is a mask). The row's identity never changes: only what the player is shown (formView) and the label
    (foePublicName). Runs after COMBAT_START in the table, so a foe started and formed in one reply is found. Not nc: a
    character changes form outside a fight. */
 {t:"FORM",apply:function(text,R){
@@ -1215,9 +1238,9 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     var body=m[1],bar=body.lastIndexOf("|"),nm=(bar>=0?body.slice(0,bar):body).trim(),raw=bar>=0?body.slice(bar+1).trim():"",want=raw.toLowerCase();
     if(want!=="true"&&want!=="alternate"){R.muts.push("\u26a0 FORM refused \u2014 the form is true or alternate, got \""+raw+"\"");continue;}
     var target=formTarget(nm);
-    if(!target){R.muts.push("\u26a0 FORM refused \u2014 \""+creaturePublicName(nm)+"\" is not a foe in this fight or a character with an alternate form (exact names only)");continue;}
+    if(!target){R.muts.push("\u26a0 FORM refused \u2014 \""+creaturePublicName(nm)+"\" is not a foe in this fight or a character that can take the tag (exact names only)");continue;}
     var was=formOf(target.individual,target.rec);target.individual.form=want;
-    if(was!==want)R.muts.push("Form: "+(target.foe?foePublicName(target.individual):target.individual.name)+" \u2192 "+want);
+    if(was&&was!==want)R.muts.push("Form: "+(target.foe?foePublicName(target.individual):target.individual.name)+" \u2192 "+want);
   }}},
 // UA26: g-loop + named addressing (legacy matched only the first bare tag; the 12 named
 // [ENEMY_HP:Kresh|-6] forms in the Haiku window were silently DROPPED). Bare form routes to the

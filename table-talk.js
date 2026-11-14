@@ -210,7 +210,7 @@ function ttStateBlock(){
   if(c.spells&&c.spells.length){var sp=[];for(i=0;i<c.spells.length;i++)sp.push(c.spells[i].nm+(spellUnavailable(c.spells[i])?" (1/day — used, back after a long rest)":""));s.push("Known spells: "+sp.join(", "));}/* #361: mana spells are never "used" in the slot sense */
   if(c.abilities&&c.abilities.length){var ab=[];for(i=0;i<c.abilities.length;i++)ab.push(c.abilities[i].nm);s.push("Abilities: "+ab.join(", "));}
   if(c.conditions&&c.conditions.length){var cd=[];for(i=0;i<c.conditions.length;i++)cd.push(c.conditions[i].name);s.push("Conditions: "+cd.join(", "));}
-  if(worldState.combat&&worldState.combat.foes){var fo=[];for(i=0;i<worldState.combat.foes.length;i++){var f=worldState.combat.foes[i];fo.push(f.name+" "+f.hp+"/"+f.maxHp+(f.down?" ("+f.down+")":""));}s.push("IN COMBAT — round "+worldState.combat.round+": "+fo.join(", "));}
+  if(worldState.combat&&worldState.combat.foes){var fo=[];for(i=0;i<worldState.combat.foes.length;i++){var f=worldState.combat.foes[i];fo.push(foePublicName(f)+" "+f.hp+"/"+f.maxHp+(f.down?" ("+f.down+")":""));/* #743 (review 2026-11-14): the name on the player's tracker — a disguised foe's canonical name is a spoiler */}s.push("IN COMBAT — round "+worldState.combat.round+": "+fo.join(", "));}
   var geo=(typeof buildGeoBlock==="function")?buildGeoBlock("player"):"";
   var qb=(typeof buildQuestBlock==="function")?buildQuestBlock():"";
   return s.join("\n")+(geo?"\n\n"+geo:"")+(qb?"\n\n"+qb:"");

@@ -90,6 +90,26 @@ What it touches: the tag vocabulary (one new tag), the strip regex, the bestiary
 
 Verified after: 27 tests (failing first), 39 sabotage clauses, the frozen strip literal re-frozen on a diff of exactly one added name, the GM prompt byte-identical on six real saves (none has a disguise), the four replay baselines.
 
+## Step 2 independent review (2026-11-14, after the push, owner's instruction)
+
+One reviewer read both commits. Seven defects confirmed, none reached by the 27 tests; all fixed in v1.1420.
+
+| # | Defect | Fix |
+|---|---|---|
+| 1 | The GM was taught `[FORM:Marsh Hag|true]` in the stable half while the row was named `Woman` (and the reverse): the tag was refused. | `formTarget` accepts the entry's other name when exactly ONE living row of that entry exists (two are ambiguous and refused); the combat line prints the row's own tag every turn. |
+| 2 | A character with an alternate who fights as a foe could not change form. | A foe row whose entry has no alternate falls through to the roster; the form lives on the roster row. |
+| 3 | A second foe started under a slain one's name was spoken of by the slain row's form (the true name leaked), and a tag reached the corpse. | The living row is preferred by `creaturePublicName` and `formTarget`. |
+| 4 | The first statement of an as-serves-the-story form was announced ("Woman → alternate" says the woman is a mask); the note asked for a tag before any row existed, which is always refused. | A first statement says nothing; the note asks once the creature is in a fight; the refusal no longer mentions an alternate form. |
+| 5 | An accepted NPC merge dropped the form and the alternate while carrying the true portrait. | The merge folds `form` and `NPC_FORM_FIELDS`; the survivor's own values win. |
+| 6 | Table Talk was given a disguised foe's canonical name (older than #743). | It names a foe as the tracker does (`foePublicName`). |
+| 7 | The NPC sheet's portrait editor opened and overwrote the true portrait whatever the form. | The editor is held while a character with an alternate is not in its true form (`npcPortraitEditorHeld`), with a toast. |
+
+Also: a row in its true form that bears the public name is told to the GM as "Shown to the player as", not "Public name".
+
+Known limits left as they are: a scene render seeds a party member's true portrait, and a generated sheet's own appearance text shows in either form.
+
+Verified: 35 tests, 53 sabotage clauses, the full suite, the GM prompt on six real saves, the four replay baselines.
+
 ## Suggested build order
 
 1. Engine read side: `startsAs`, `altDesc`, per-individual form, the card and sheet (display only where possible).
