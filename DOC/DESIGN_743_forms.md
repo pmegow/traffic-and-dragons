@@ -25,6 +25,7 @@ also a character who advances or changes state (Gandalf the Grey and the White; 
 | R9 | The starting form is a three-way choice per entry: **Starts as true**, **Starts as alternate**, **As serves the story**. The story is not limited by an arbitrary starting point. |
 | R11 | An individual whose entry is **As serves the story** shows **no portrait and no description** until the GM states its form. |
 | R10 | The form belongs to the **individual in play**, not to the bestiary entry. Three hags from one entry: the first lures the hero as a beautiful woman; the other two are women or hags as the story needs. |
+| R12 | **A group row shares one form.** Individuals of one entry in different forms are separate rows: one hag as a woman and two as hags is `Hags (2)` and `Woman`. |
 
 ## Blueprint fields (creatures and NPCs)
 
@@ -80,4 +81,10 @@ Silent failures to guard against:
 
 ## Open
 
-- Whether a group foe ("Hags (3)") is one form for the group or needs one row per individual.
+- **The label of a row in its alternate form.** R12's example names the alternate row `Woman`, and R4 says a switch never
+  changes the name. Recommended reading: the entry's identity in combat tags stays the canonical name, and the row's
+  on-screen label is the entry's public name (`displayName`) while it is in its alternate form and the canonical name
+  while it is in its true form. That makes the public label follow the form, which today it deliberately does not
+  (character.md: display labels do not track revelation), so it is a contract change to confirm before the build.
+- **A group that splits.** When one of `Hags (3)` changes form mid-fight, the GM must split the row (headcount and hit
+  points divided). The split's tag grammar is part of step 2's review.
