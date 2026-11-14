@@ -3399,6 +3399,7 @@ function buildBlueprintFromGame(){
     /* v1.439 (F2, brief B): role is RELATION-shaped by both authoring specs (designer + generator) —
        export the relation, never the mood the old line leaked (the same category error v1.379 fixed) */
     npcs.push({name:n.name,role:(n.rel&&n.rel!=="unknown")?n.rel:"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
+    var portrait=npcPortrait(n);if(portrait)npcs[npcs.length-1].portrait=portrait;
     var abilities=npcAuthoredText(mem,"abilities");if(abilities)npcs[npcs.length-1].abilities=abilities;
     var secret=npcSecretExport(mem);if(secret){npcs[npcs.length-1].secret=secret.secret;npcs[npcs.length-1].revealAct=secret.revealAct;}
   });
@@ -3453,6 +3454,21 @@ function splitNpcStatBlock(text){
   if(!bio||!stats)return null;
   return {bio:bio,stats:stats};
 }
+/* A selected companion can predate blueprint admission. Only a unique exact primary identity
+   may receive its authored image; aliases and provisional people never imply the same face. */
+function blueprintPortraitTarget(source,sources){
+  var name=source.name,fold=identityNameFold(name),count=0,i,k,target=null,rows=worldState.npcs||[];
+  for(i=0;i<sources.length;i++)if(identityNameFold(sources[i].name)===fold)count++;
+  if(count!==1)return null;
+  count=0;for(i=0;i<rows.length;i++)if(identityNameFold(rows[i].name)===fold){count++;target=rows[i];}
+  if(count!==1||target.name!==name)return null;
+  if(npcIsProvisional(name)||(target.charSheet&&target.charSheet.name!==name))return null;
+  for(k in memory.npcs)if(Object.prototype.hasOwnProperty.call(memory.npcs,k)&&identityNameFold(k)===fold&&k!==name)return null;
+  var claims=identityNameClaims(name);
+  if(claims.length!==1||claims[0].id!==identityNpcOwner(name)||!claims[0].primary)return null;
+  if(identitySheetIssue(source,name,[identityNpcOwner(name)]))return null;
+  return target;
+}
 function applyBlueprint(bp){
   if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&ownValue(CAMPAIGN_KINDS,bp.kind)){worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
     if(ownValue(CAMPAIGN_KINDS,bp.kind).openingWeather&&worldState.world)worldState.world.weather=ownValue(CAMPAIGN_KINDS,bp.kind).openingWeather;/* #6 C4: the kind's own sky, not the adventure's ash (the first live check opened under "cold wind carrying ash") */
@@ -3477,7 +3493,9 @@ function applyBlueprint(bp){
   var admittedNpcs=[];
   if(bp.npcs&&bp.npcs.length){
     var ni;for(ni=0;ni<bp.npcs.length;ni++){
-      var n=bp.npcs[ni];if(!identitySheetAdmit(n,n.name,[]))continue;admittedNpcs.push(n);
+      var n=bp.npcs[ni],_portraitNpc=blueprintPortraitTarget(n,bp.npcs);
+      if(_portraitNpc){if(n.portrait&&!npcPortrait(_portraitNpc))npcPortraitWrite(_portraitNpc,n.portrait,"blueprint NPC "+n.name);continue;}
+      if(!identitySheetAdmit(n,n.name,[]))continue;admittedNpcs.push(n);
       /* v1.439 (F2, brief B): role fans into RELATION only. The old line wrote it into status
          (mood) and attitude (disposition) too — recreating in one call the exact contamination
          v1.379-383 separated. Mood/disposition start empty; play fills them. */

@@ -417,7 +417,7 @@ async function generateNpcSheet(name,doneCb){
     if(!sheet.saveModifiers)sheet.saveModifiers=[];
     if(!sheet.storyBeats)sheet.storyBeats=[];
     if(!sheet.skills){sheet.skills={};var sk2;for(sk2=0;sk2<SKILLS.length;sk2++)sheet.skills[SKILLS[sk2].id]=0;}
-    sheet.portrait=npcPortrait(wsNpc);wsNpc.portrait=null; // #3 dedupe: the sheet is the portrait's single home now
+    sheet.portrait=null;/* Model output cannot replace the player's or blueprint's image. */
     sheet.partyMember=!!wsNpc.partyMember;/* v1.453: was a hardcoded `true` — correct while only party members could generate, wrong since v1.452 opened generation to roster NPCs */
     // Preserve earned progression on a REGENERATE (audit E59): the generation prompt uses a
     // level-1/xp-0/hp-20 template, so regenerating an advanced companion would silently reset them.
@@ -430,13 +430,13 @@ async function generateNpcSheet(name,doneCb){
     if(typeof TTS!=="undefined"&&TTS.assignCharacterVoices)TTS.assignCharacterVoices(sheet);
     // NPC stance and a directed character bond are different authorities. Model-authored rows
     // migrate through the adapter; wsNpc.rel never seeds or overwrites a bond.
-    var _ad=sheetAdmit(sheet,{door:"generated sheet "+wsNpc.name,mode:"same",detach:false,rel:wsNpc.name});/* #599 (b): the model faucet runs the registry too — same-campaign data, healed in place, no cross-campaign entries */
+    var _ad=sheetAdmit(sheet,{door:"generated sheet "+wsNpc.name,mode:"same",detach:false,rel:wsNpc.name,portraitFallback:npcPortrait(wsNpc)});/* #599 (b): the model faucet runs the registry too — same-campaign data, healed in place, no cross-campaign entries */
     if(!_ad.ok){removeLoader();showToast("Sheet refused: "+_ad.reason);return;}
-    wsNpc.charSheet=sheet;releaseRowVoicePins(wsNpc);
+    wsNpc.charSheet=sheet;releaseRowVoicePins(wsNpc);wsNpc.portrait=null;
     saveAll();removeLoader();showToast("Character sheet ready!");
     if(doneCb)doneCb();
-  }catch(err){removeLoader();showToast("Sheet generation failed: "+err.message);}
-  busy=false;
+  }catch(err){removeLoader();console.warn("[NPC sheet] generation failed",err);showToast("Sheet generation failed: "+err.message);}
+  finally{busy=false;}
 }
 // Remove a companion from the party (manual "part ways"). Flips partyMember off and sets a
 // transient worldState.recentlyLeft marker so buildSysPrompt tells the GM they've left — without
@@ -662,7 +662,7 @@ function showNpcSheet(name){
     var npcSubject=sheet||{name:name,gender:"NB",age:"",ancestry:"",cls:"",archetypeNm:null,appear:"",mark:"",inventory:[]};
     var npcPortOpts={
       getPortrait:function(){return npcPortrait(wsNpc);},
-      setPortrait:function(url){if(wsNpc.charSheet){wsNpc.charSheet.portrait=url;wsNpc.portrait=null;}else wsNpc.portrait=url;storageAdapter.markPortraitDirty();saveAll();},/* mark dirty on removal too (E28) */
+      setPortrait:function(url){if(npcPortraitWrite(wsNpc,url,"NPC portrait editor"))saveAll();},/* mark dirty on removal too (E28) */
       getOffset:npcGetOff,
       setOffset:npcSetOff,
       subject:npcSubject,

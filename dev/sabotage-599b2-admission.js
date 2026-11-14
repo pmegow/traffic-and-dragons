@@ -70,7 +70,7 @@ prove("ui-shell.js", [
 ]);
 prove("ui-sheets.js", [
   { label: "an async door loses its admission (the census must attribute the sink to the async function, not its neighbour)",
-    find: "    var _ad=sheetAdmit(sheet,{door:\"generated sheet \"+wsNpc.name,mode:\"same\",detach:false,rel:wsNpc.name});", replace: "    var _ad={ok:true};keyedStores(sheet,\"sheet\");",
+    find: "    var _ad=sheetAdmit(sheet,{door:\"generated sheet \"+wsNpc.name,mode:\"same\",detach:false,rel:wsNpc.name,portraitFallback:npcPortrait(wsNpc)});", replace: "    var _ad={ok:true};keyedStores(sheet,\"sheet\");",
     mustFail: CONTRACT },
 ]);
 prove("dev/run-tests.js", [

@@ -127,6 +127,16 @@ function arcTitleMatch(a,b){a=(a||"").toLowerCase();b=(b||"").toLowerCase();if(!
 // (sheet-less NPCs; travels via the separate /portrait store). ALL display reads go through
 // this helper; the npc.portrait fallback also covers pre-dedupe saves before migration runs.
 function npcPortrait(n){if(!n)return null;return (n.charSheet&&n.charSheet.portrait)||n.portrait||null;}
+/* Portrait ownership follows the sheet, including after an accepted identity merge. The separate
+   portrait transport needs a dirty mark when an image moves to a new NPC key. */
+function npcPortraitWrite(n,portrait,where){
+  var candidate={portrait:portrait||null};
+  if(portraitAdmit(candidate,where||("NPC "+n.name))){if(typeof showToast==="function")showToast("⚠ "+n.name+"'s portrait was dropped — not an image");return false;}
+  (n.charSheet||n).portrait=candidate.portrait;
+  if(n.charSheet)n.portrait=null;
+  if(typeof storageAdapter!=="undefined"&&storageAdapter.markPortraitDirty)storageAdapter.markPortraitDirty();
+  return true;
+}
 // Effective img2img strength for a render model (#42): the user's per-model override from Render
 // Options when set, else the model's declared default. null when the model's img2img has no
 // strength knob (edit-style APIs like nano-banana) — callers hide the control / omit the param.

@@ -811,6 +811,8 @@ var TAG_TABLE=[
   var _mgDupN=wsNpcByName(mgDupe),_mgCanN=wsNpcByName(mgCanon);/* #7: shared lookup (degenerate X|X merge still nets to entry removed, same as the old single-pass else-if) */
   if(_mgDupN){
     if(!_mgCanN){_mgCanN={name:mgCanon,status:_mgDupN.status||"unknown",rel:_mgDupN.rel||"unknown",met:_mgDupN.met||R.turn,partyMember:false,portrait:null,aliases:[]};worldState.npcs.push(_mgCanN);}
+    var _mgPortrait=npcPortrait(_mgCanN)||npcPortrait(_mgDupN),_mgPortraitFrom=npcPortrait(_mgCanN)?_mgCanN:_mgDupN;
+    var _mgPortraitOffset=_mgPortraitFrom.portraitOffset||(_mgPortraitFrom.charSheet&&_mgPortraitFrom.charSheet.portraitOffset)||null;/* A face and its framing travel together before any sheet adoption. */
     var _mgVoiceRow=_mgCanN.charSheet?null:_mgCanN;/* a pre-existing sheet owns even its cleared fields */
     if(_mgDupN.partyMember)_mgCanN.partyMember=true;
     if(_mgDupN.charSheet&&_mgCanN.charSheet)relationshipMergeSheets(_mgCanN.charSheet,_mgDupN.charSheet,mgCanon,mgDupe);else if(_mgDupN.charSheet&&!_mgCanN.charSheet){_mgCanN.charSheet=_mgDupN.charSheet;_mgCanN.charSheet.name=mgCanon;}
@@ -819,8 +821,10 @@ var TAG_TABLE=[
        copied party membership, the sheet, the portrait and the standing but never the mark, so a resident merged into a visitor's record or renamed
        by [MERGE:npc|new|old] became a visitor: #593's guard (residentRelWrite keys on the mark) let a colder word land on the neighbour at once. */
     if(_mgDupN.resident&&!_mgCanN.resident){_mgCanN.resident=true;R.muts.push("Resident carried: "+mgDupe+" -> "+mgCanon);}
-    if(_mgDupN.portrait&&!_mgCanN.portrait)_mgCanN.portrait=_mgDupN.portrait;
-    if(_mgDupN.portraitOffset&&!_mgCanN.portraitOffset)_mgCanN.portraitOffset=_mgDupN.portraitOffset;
+    if(_mgPortrait&&npcPortraitWrite(_mgCanN,_mgPortrait,"accepted NPC merge "+mgCanon)){
+      _mgCanN.portraitOffset=_mgPortraitOffset;
+      if(_mgCanN.charSheet)_mgCanN.charSheet.portraitOffset=_mgPortraitOffset?JSON.parse(JSON.stringify(_mgPortraitOffset)):null;
+    }else if(!_mgPortrait&&_mgDupN.portraitOffset&&!_mgCanN.portraitOffset)_mgCanN.portraitOffset=_mgDupN.portraitOffset;
     if(_mgDupN.pronouns&&!_mgCanN.pronouns)_mgCanN.pronouns=_mgDupN.pronouns;
     /* Only an accepted identity merge transfers pins. A pending hint may describe two different people. */
     var _mgVo=_mgCanN.charSheet||_mgCanN,_mgVn=voicePinsFill(_mgVo,[_mgVoiceRow,_mgDupN.charSheet||_mgDupN],voicePinFitsGender(speakerSubjectOfRow(_mgCanN,mgCanon).char.gender));

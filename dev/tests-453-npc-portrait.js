@@ -75,8 +75,8 @@ test("clicking a townsfolk avatar opens the portrait modal for THAT NPC; a gener
   var o = __portraitCalls[0].opts;
   assert.equal(o.subject.name, "Mother Vane", "the modal's subject is not this NPC");
   assert.ok(!o.getPortrait(), "getPortrait returned a portrait for a portrait-less NPC");
-  o.setPortrait("data:x");
-  assert.equal(n.portrait, "data:x", "the generated portrait did not land on the NPC");
+  o.setPortrait("data:image/png;base64,eA==");
+  assert.equal(n.portrait, "data:image/png;base64,eA==", "the generated portrait did not land on the NPC");
   assert.equal(dirty, 1, "the portrait sync was not marked dirty");
 });
 
@@ -85,8 +85,8 @@ test("a non-party NPC WITH a sheet stores the generated portrait on the sheet (t
   var n = addTownsfolk("Halvard", { charSheet: { name: "Halvard", cls: "Warrior", level: 1, hp: 5, maxHp: 5, stats: {}, abilities: [], spells: [], inventory: [] } });
   showNpcSheet("Halvard");
   el("npc-avatar-btn")._h.click[0]({});
-  __portraitCalls[0].opts.setPortrait("data:y");
-  assert.equal(n.charSheet.portrait, "data:y", "the sheet did not receive the portrait");
+  __portraitCalls[0].opts.setPortrait("data:image/png;base64,eQ==");
+  assert.equal(n.charSheet.portrait, "data:image/png;base64,eQ==", "the sheet did not receive the portrait");
   assert.ok(!n.portrait, "a duplicate portrait was left on the NPC record");
 });
 
