@@ -9,8 +9,8 @@ function assistantValue(value){
   if(value===null||value===undefined)return '—';
   if(Array.isArray(value))return value.map(assistantValue).join(value.every(function(v){return v===null||typeof v!=='object';})?', ':'\n\n');
   if(typeof value!=='object')return String(value);
-  var labels={name:'Name',kind:'Kind',threat:'Threat',notes:'GM notes',desc:'Description',displayName:'Public name',environment:'Environment',availableActs:'Available acts',revealAct:'Available from act',hd:'Hit die',prime:'Primary stat',statPriority:'Stat priority',nm:'Name',ds:'Effect',lvl:'Level',skillSeeds:'Starting skills'};
-  return Object.keys(value).filter(function(k){return k!=='portrait'&&k.charAt(0)!=='_';}).map(function(k){return (labels[k]||k.charAt(0).toUpperCase()+k.slice(1))+': '+assistantValue(value[k]);}).join('\n');
+  var labels={name:'Name',kind:'Kind',threat:'Threat',notes:'GM notes',desc:'Description',displayName:'Public name',environment:'Environment',availableActs:'Available acts',revealAct:'Available from act',hd:'Hit die',prime:'Primary stat',statPriority:'Stat priority',nm:'Name',ds:'Effect',lvl:'Level',skillSeeds:'Starting skills',altDesc:'Alternate appearance',altWhen:'Form cue (GM-only)',startsAs:'Starts as'};
+  return Object.keys(value).filter(function(k){return DesignerCreatures.imageKeys.indexOf(k)<0&&k.charAt(0)!=='_';}).map(function(k){return (labels[k]||k.charAt(0).toUpperCase()+k.slice(1))+': '+assistantValue(value[k]);}).join('\n');
 }
 function openAsk(seedFinding){
   if(!llmReady())return;closeAsk();

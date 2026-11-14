@@ -68,12 +68,14 @@
   }
   /* R8: a pre-#743 disguise — a public name and ONE description, which the game reads as the alternate's (the mask). */
   function legacyMask(c){return !!(c&&typeof c.displayName==="string"&&c.displayName.trim()&&!c.altDesc&&typeof c.desc==="string"&&c.desc.trim());}
-  /* The one-click move: the description becomes the alternate's, and so does the portrait that was drawn from it (a mask's
-     image was rendered from that description alone) unless an alternate image already exists. Returns false when not a legacy mask. */
-  function moveToAlternate(c){
+  /* The one-click move: the description becomes the alternate's. The portrait moves ONLY when the author says it shows the
+     disguise (withPortrait) — a portrait drawn before the public name existed shows the TRUE form, and moving it would put the
+     monster's real face in the disguise slot, unmarked (review 2026-11-14). Never over an existing alternate image.
+     Returns false when not a legacy mask. */
+  function moveToAlternate(c,withPortrait){
     if(!legacyMask(c))return false;
     c.altDesc=c.desc;delete c.desc;
-    if(c.portrait&&!c.altPortrait){c.altPortrait=c.portrait;delete c.portrait;}
+    if(withPortrait===true&&c.portrait&&!c.altPortrait){c.altPortrait=c.portrait;delete c.portrait;}
     return true;
   }
   function preserveCreature(previous,next){

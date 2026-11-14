@@ -189,7 +189,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="designer-portrait-batch.js?v=0.73"></script>
 <script src="designer-menu.js?v=0.72"></script>
 <script src="designer-acts.js"></script>
-<script src="designer-creatures.js?v=0.73"></script>
+<script src="designer-creatures.js?v=0.74"></script>
 <script src="designer-assistant.js"></script>
 <script src="designer-prose.js"></script>
 <script src="blueprint-designer-drafts.js"></script>
@@ -197,7 +197,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.73";
+var BP_DESIGNER_VERSION="v0.74";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -644,6 +644,7 @@ function bpFieldSet(sec,i,j,k,v){
   var f=FIELD_ROOTS[sec],o=f&&f(i,j);
   if(!o)return;
   if(sec==="creature"&&k==="environment"&&v==="Any environment"){delete o.environment;return;}
+  if((sec==="npc"||sec==="creature")&&(k==="altDesc"||k==="altWhen"||sec==="npc"&&k==="desc")&&!String(v).trim()){delete o[k];return;}/* #743 (review 2026-11-14): a space left in Alternate appearance made the game stop reading a legacy disguise's description as the mask */
   if((sec==="npc"||sec==="creature")&&k==="revealAct"){if(sec==="creature"&&!String(v).trim())delete o[k];else o[k]=/^\d+$/.test(String(v).trim())?Number(v):v;return;}
   if(sec==="cclass"&&k==="name"){var _oldNm=o.name;o.name=v;availRename(_oldNm,v);return;}
   if(sec==="cclass"&&(k==="statPriority"||k==="skillSeeds")){o[k]=csvToList(v,k==="statPriority");return;}
@@ -674,8 +675,8 @@ document.addEventListener("click",function(e){
   if(op==="formmove"){/* #743 R8: the legacy mask's one-click move — never silent, never while its portrait is drawing */
     var moveRoot=FIELD_ROOTS[t.getAttribute("data-form-sec")],moveSubject=moveRoot&&moveRoot(i,0);
     if(!moveSubject||creaturePortraitBusy(moveSubject)){setStatus("Wait for the portrait to finish drawing, then move the description.","err");return;}
-    var movedImage=!!(moveSubject.portrait&&!moveSubject.altPortrait);
-    if(DesignerCreatures.moveToAlternate(moveSubject)){markDirty();render();setStatus("Moved the description"+(movedImage?" and its portrait":"")+" of “"+(moveSubject.name||"this entry")+"” to the alternate form. The true form now has no description"+(movedImage?" or portrait":"")+".","ok");}
+    var movedImage=t.getAttribute("data-form-portrait")==="1"&&!!(moveSubject.portrait&&!moveSubject.altPortrait);/* the portrait moves only by the button that says so */
+    if(DesignerCreatures.moveToAlternate(moveSubject,movedImage)){markDirty();render();setStatus("Moved the description"+(movedImage?" and its portrait":"")+" of “"+(moveSubject.name||"this entry")+"” to the alternate form. The true form now has no description"+(movedImage?" or portrait":"")+"."+(!movedImage&&moveSubject.portrait?" Its portrait stays in the true slot.":""),"ok");}
     else setStatus("Nothing to move: this entry has no single description read as its alternate.","err");
     return;
   }
@@ -684,7 +685,7 @@ document.addEventListener("click",function(e){
     var subject=bp[DESIGNER_PORTRAITS[portraitType].section][i],slotName=t.getAttribute("data-portrait-slot")==="alternate"?"alternate":"true",slotKey=portraitSlot(slotName).key;/* #743: each button names its slot */
     if(portraitAction==="view")openCreaturePortrait(subject,slotKey);
     else if(portraitAction==="generate")generateDesignerPortrait(portraitType,subject,t,{slot:slotName});
-    else if(portraitAction==="remove"&&subject&&!creaturePortraitBusy(subject)){delete subject[slotKey];markDirty();render();}
+    else if(portraitAction==="remove"&&subject){if(creaturePortraitBusy(subject)){setStatus(PORTRAIT_BUSY_TEXT,"err");return;}delete subject[slotKey];markDirty();render();}
     return;
   }
   // Selection toggle — pure view state (_sel is stripped from files), so no markDirty.
@@ -1041,11 +1042,12 @@ function storyContext(){
 var creatureGeneration=null,creaturePortraitJobs=[];
 // Each card type supplies only its public visual identity; persistence and UI share one path.
 var DESIGNER_PORTRAITS={
-  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes,c.desc,c.displayName,c.environment,c.altDesc]);},prompt:function(c,slot){return slot==="alternate"?DesignerCreatures.altPortraitPrompt(c,"creature"):DesignerCreatures.portraitPrompt(c);}},
-  npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes,c.altDesc]);},prompt:function(c,slot){if(slot==="alternate")return DesignerCreatures.altPortraitPrompt(c,"character");return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks."+DesignerCreatures.portraitFocus("character");}}
+  creature:{section:"creatures",label:"creature",identity:function(c,slot){return JSON.stringify(slot==="alternate"?[c.altDesc]:[c.name,c.kind,c.threat,c.notes,c.desc,c.displayName,c.environment,c.altDesc]);},/* the true prompt branches on altDesc (a mask or not); the alternate reads altDesc alone */prompt:function(c,slot){return slot==="alternate"?DesignerCreatures.altPortraitPrompt(c,"creature"):DesignerCreatures.portraitPrompt(c);}},
+  npc:{section:"npcs",label:"NPC",identity:function(c,slot){return JSON.stringify(slot==="alternate"?[c.altDesc]:[c.name,c.role,c.pronouns,c.notes]);},prompt:function(c,slot){if(slot==="alternate")return DesignerCreatures.altPortraitPrompt(c,"character");return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks."+DesignerCreatures.portraitFocus("character");}}
 };
 /* #743 TWO FORMS: the two portrait slots (DOC/DESIGN_743_forms.md R1) — ONE table; every portrait surface (the card's buttons,
    the side column, the enlarge modal, one generation, the batch) reads its field and words from here. Slot 1 is ALWAYS the true form. */
+var PORTRAIT_BUSY_TEXT="A portrait for this entry is still drawing. Wait for it to finish.";
 var PORTRAIT_SLOTS={"true":{key:"portrait",noun:"portrait",caption:"True form"},alternate:{key:"altPortrait",noun:"alternate portrait",caption:"Alternate form"}};
 function portraitSlot(name){return PORTRAIT_SLOTS[name==="alternate"?"alternate":"true"];}
 function designerHasPortrait(c){return !!(c&&(safeImgSrc(c.portrait)||safeImgSrc(c.altPortrait)));}
@@ -1074,9 +1076,9 @@ var FORM_START_CHOICES=[["true","True form"],["alternate","Alternate form"],["st
 function formFields(sec,i,o){
   var start=formStart(o),label=o.name||(sec==="npc"?"NPC":"creature"),radios="";
   FORM_START_CHOICES.forEach(function(c){radios+="<label class='form-choice'><input type='radio' name='starts-"+sec+"-"+i+"' data-sec='"+sec+"' data-i='"+i+"' data-j='0' data-k='startsAs' value='"+c[0]+"'"+(start===c[0]?" checked":"")+"> "+c[1]+"</label>";});
-  return "<details class='form-block' data-form='"+sec+"'"+(formHasAlternate(o)?" open":"")+"><summary>Alternate form — a disguise, a transformation, a later self</summary>"
-    +(DesignerCreatures.legacyMask(o)?"<p class='creature-help'>This entry has a public name and one description, so the game reads that description as the alternate form’s. <button type='button' class='mini' data-op='formmove' data-form-sec='"+sec+"' data-i='"+i+"' data-j='0'>Move description"+(o.portrait&&!o.altPortrait?" and portrait":"")+" to alternate</button></p>":"")
-    +(sec==="npc"?fldB("Appearance of the true form (shown on the sheet while in that form)",sec,i,0,"desc","Appearance: "+label,ta(sec,i,0,"desc",o.desc||"","Only what the hero can perceive")):"")
+  return (sec==="npc"?fldB("Appearance (the true form; shown on the sheet while in that form)",sec,i,0,"desc","Appearance: "+label,ta(sec,i,0,"desc",o.desc||"","Only what the hero can perceive")):"")
+    +"<details class='form-block' data-form='"+sec+"'"+(formHasAlternate(o)||o.altWhen||o.altPortrait||o.startsAs?" open":"")+"><summary>Alternate form — a disguise, a transformation, a later self</summary>"
+    +(DesignerCreatures.legacyMask(o)?"<p class='creature-help'>This entry has a public name and one description, so the game reads that description as the alternate form’s. <button type='button' class='mini' data-op='formmove' data-form-sec='"+sec+"' data-i='"+i+"' data-j='0'>Move description to alternate</button>"+(o.portrait&&!o.altPortrait?" <button type='button' class='mini' data-op='formmove' data-form-portrait='1' data-form-sec='"+sec+"' data-i='"+i+"' data-j='0'>Move description and portrait (the portrait shows the disguise)</button>":"")+"</p>":"")
     +fldB("Alternate appearance (what the hero sees; the alternate portrait is drawn from this text alone)",sec,i,0,"altDesc","Alternate appearance: "+label,ta(sec,i,0,"altDesc",o.altDesc||"","e.g. A handsome woman in a grey travelling cloak"))
     +fldB("Cue for the GM (when it takes or drops the alternate form; never shown to the player)",sec,i,0,"altWhen","Form cue: "+label,ta(sec,i,0,"altWhen",o.altWhen||"","e.g. Drops the disguise when cornered or touched by cold iron"))
     +"<div class='form-start' role='radiogroup' aria-label='Starting form'><span class='form-start-title'>Starts as</span>"+radios+"</div>"
@@ -1163,17 +1165,18 @@ async function generateDesignerPortrait(type,c,btn,options){
     return {status:status,reason:message||""};
   }
   var cfg=DESIGNER_PORTRAITS[type],slotName=options.slot==="alternate"?"alternate":"true",key=portraitSlot(slotName).key;/* #743: the slot decides the field written and the prompt */
-  if(!cfg||!c||creaturePortraitBusy(c))return result("skipped");
+  if(!cfg||!c)return result("skipped");
+  if(creaturePortraitBusy(c))return result("skipped",PORTRAIT_BUSY_TEXT);/* review 2026-11-14: one drawing per entry — the other slot's click is answered, never ignored */
   if(options.missingOnly&&c[key])return result("skipped");
   if(!falAvailable())return result("failed","Sign in from the game or configure an image key before generating a portrait.");
   if(slotName==="alternate"&&!(typeof c.altDesc==="string"&&c.altDesc.trim()))return result("failed","Write this "+cfg.label+"’s alternate appearance before generating its alternate portrait.");
   if(!c.name||slotName==="true"&&!c.notes)return result("failed","Give this "+cfg.label+" a name and notes before generating its portrait.");
-  var target=bp,identity=cfg.identity(c);creaturePortraitJobs.push(c);
+  var target=bp,identity=cfg.identity(c,slotName);creaturePortraitJobs.push(c);
   var timer=null;if(btn){btn.disabled=true;timer=elapsedTicker(btn,"Drawing portrait…",{text:true});}
   try{
     var url=await generatePortraitImage(cfg.prompt(c,slotName));
     var portrait=await creaturePortraitData(url);
-    if(bp!==target||target[cfg.section].indexOf(c)<0||identity!==cfg.identity(c))throw new Error("The "+cfg.label+" or blueprint changed; the portrait was not attached.");
+    if(bp!==target||target[cfg.section].indexOf(c)<0||identity!==cfg.identity(c,slotName))throw new Error("The "+cfg.label+" or blueprint changed; the portrait was not attached.");
     if(options.missingOnly&&c[key])return result("skipped");
     c[key]=portrait;markDirty();return result("saved",(slotName==="alternate"?"Alternate portrait":"Portrait")+" added for “"+c.name+"”. Save the blueprint to keep a portable copy.");
   }catch(err){console.warn("[designer portrait] "+err.message);return result("failed","Portrait generation failed: "+err.message);}

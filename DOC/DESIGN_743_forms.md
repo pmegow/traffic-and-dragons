@@ -58,7 +58,7 @@ also a character who advances or changes state (Gandalf the Grey and the White; 
   form (radio buttons).
 - The alternate portrait prompt uses `altDesc` only. Kind, threat and GM notes stay out of it.
 - Render all missing portraits (#732) fills a missing alternate when an alternate appearance is written.
-- A legacy disguised creature shows "Move description to alternate" (R8). Built: the portrait moves with it when no alternate image exists, because a disguise's portrait was drawn from that description alone; the true slot is left empty, never a copy.
+- A legacy disguised creature shows "Move description to alternate" (R8). Built: the description moves; the portrait moves only by a second button that says so (review 2026-11-14: a portrait drawn before the public name existed is the true face, and moving it unasked put it in the disguise slot unmarked).
 - An NPC card also gets the true form's appearance (`desc`): the sheet shows it and nothing authored it before.
 - `BP_DESIGNER_VERSION` versions separately.
 
