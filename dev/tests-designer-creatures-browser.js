@@ -2,7 +2,7 @@ const {designerFileClick}=require('./designer-browser-actions.js');
 // Actual Designer page, synthetic model and image responses; no credentials or live writes.
 const fs=require('fs'),path=require('path'),assert=require('assert/strict'),cp=require('child_process');
 const {chromium}=require('./cdp-browser.js');
-const root=path.resolve(__dirname,'..'),out=path.join(process.env.TEMP||require('os').tmpdir(),'tnd-creature-designer');fs.mkdirSync(out,{recursive:true});
+const root=path.resolve(__dirname,'..'),out=process.env.CREATURE_SCREENSHOTS||path.join(process.env.TEMP||require('os').tmpdir(),'tnd-creature-designer');fs.mkdirSync(out,{recursive:true});
 const before=process.env.CREATURE_BEFORE==='1';
 (async()=>{const browser=await chromium.launch({headless:true});try{
 const context=await browser.newContext({viewport:{width:1050,height:900},serviceWorkers:'block'});
@@ -27,6 +27,35 @@ await context.route('**/*',async route=>{
 });
 const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
 await page.goto('http://creature.test/blueprint-designer.html');await page.waitForFunction(()=>window.__bpdTest);
+// Existing authored threats must not be replaced by a select's first option during rendering.
+await page.evaluate(()=>{__bpdTest.load({format:'tnd-blueprint-v1',name:'Threat choices',premise:'A forest at dusk.',acts:[],npcs:[],locations:[],creatures:[{name:"Will 'o the Wisp",threat:'Dangerous',notes:'A light in the marsh.'},{name:'Old Guardian',threat:'CR 7 (elite)',notes:'An older authored threat.'},{name:'New creature',notes:'No threat chosen.'}],rules:[]});secOpen.creatures=true;bp.creatures.forEach(c=>c._c=false);render();});
+const threatSelector='[data-sec="creature"][data-i="0"][data-k="threat"]';
+async function showThreatCard(){await page.evaluate(()=>{const card=document.querySelector('[data-sec="creature"][data-k="threat"]').closest('.card');window.scrollTo(0,Math.max(0,card.getBoundingClientRect().top+scrollY-document.getElementById('topbar').offsetHeight-12));});}
+await showThreatCard();await page.screenshot({path:path.join(out,'746-threat-desktop.png')});
+assert.equal(await page.evaluate(s=>document.querySelector(s).tagName,threatSelector),'SELECT','#746 Threat is a dropdown on the creature card');
+const levels=['Safe','Minor','Dangerous','Lethal','Catastrophic'];
+assert.deepEqual(await page.evaluate(s=>Array.from(document.querySelector(s).options).map(o=>o.value).filter(Boolean),threatSelector),levels,'#746 card offers the five shared threat levels');
+assert.equal(await page.evaluate(s=>document.querySelector(s).value,threatSelector),'Dangerous','#746 existing standard threat stays selected');
+assert.equal(await page.evaluate(()=>document.querySelector('[data-sec="creature"][data-i="1"][data-k="threat"]').value),'CR 7 (elite)','#746 legacy custom threat stays selected');
+assert.equal(await page.evaluate(()=>document.querySelector('[data-sec="creature"][data-i="2"][data-k="threat"]').value),'','#746 a blank threat stays unspecified');
+assert(await page.evaluate(()=>!Object.prototype.hasOwnProperty.call(__bpdTest.out().creatures[2],'threat')),'#746 rendering does not write a default threat');
+await page.locator('[data-op="gencreature"]').click();
+assert.deepEqual(await page.evaluate(()=>Array.from(document.querySelector('#creature-threat').options).map(o=>o.value).filter(v=>v!=='random')),levels,'#746 card and generator share the same levels');
+await page.locator('#creature-gen-cancel').click();
+for(const level of levels){await page.locator(threatSelector).selectOption(level);assert.equal(await page.evaluate(()=>__bpdTest.out().creatures[0].threat),level,'#746 selecting a threat writes the chosen level');}
+await page.locator(threatSelector).selectOption('');assert.equal(await page.evaluate(()=>__bpdTest.out().creatures[0].threat),'','#746 threat may be cleared');
+await page.locator(threatSelector).selectOption('Dangerous');
+await page.setViewportSize({width:390,height:844});await showThreatCard();await page.screenshot({path:path.join(out,'746-threat-phone.png')});
+assert(await page.evaluate(s=>{const r=document.querySelector(s).getBoundingClientRect();return r.width>100&&r.left>=0&&r.right<=innerWidth&&document.documentElement.scrollWidth<=innerWidth;},threatSelector),'#746 threat dropdown fits the phone');
+await page.locator(threatSelector).selectOption('Lethal');
+await page.evaluate(()=>{const saved=__bpdTest.out();__bpdTest.load(saved);secOpen.creatures=true;bp.creatures.forEach(c=>c._c=false);render();});
+assert.equal(await page.evaluate(s=>document.querySelector(s).value,threatSelector),'Lethal','#746 chosen threat survives a blueprint file round trip');
+await page.evaluate(()=>designerDrafts.flush());await page.reload();await page.waitForFunction(()=>window.__bpdTest);
+assert.equal(await page.evaluate(()=>bp.creatures[0].threat),'Lethal','#746 chosen threat survives draft reload');
+assert.equal(await page.evaluate(()=>bp.creatures[1].threat),'CR 7 (elite)','#746 custom threat survives draft reload untouched');
+assert.equal(calls.length,0,'#746 editing threats makes no model calls');assert.equal(images,0,'#746 editing threats makes no image calls');
+await page.setViewportSize({width:1050,height:900});
+console.log('PASS #746 Threat dropdown: shared levels, legacy and blank values, editing, phone, file and draft reload');
 // A loaded (imported) note over the 800-character field cap: an AI write elsewhere must leave it whole and spend nothing on it
 // (#547's own contract — "imported/manual text stays whole with an explicit shortening control"; the G5 waits suite found the
 // automatic pass shortening the whole blueprint after one creature landed).

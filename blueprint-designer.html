@@ -198,7 +198,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.75";
+var BP_DESIGNER_VERSION="v0.76";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -445,9 +445,9 @@ function render(){
     h+="<div class='card'>"+(sidePortrait?"<div class='creature-card-grid'><div class='creature-editor'>":"")+cardHead("creature",i,0,esc(C.name||("Creature "+(i+1))),C.kind,movBtns("creature",i,0));
     if(!C._c){
       h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
-      +fld("Threat",txt("creature",i,0,"threat",C.threat||"","low / moderate / deadly / apex — or a CR"))
+      +fld("Threat",creatureChoiceField("threat",i,C))
       +fld("Public name (optional disguise)",txt("creature",i,0,"displayName",C.displayName||"","Name used on screen; canonical Name stays the combat identity"))
-      +fld("Environment",creatureEnvironmentField(i,C))
+      +fld("Environment",creatureChoiceField("environment",i,C))
       +creatureActsMenu(C,bp.acts,i)
       +fldB(creatureDescLabel(C),"creature",i,0,"desc","Creature appearance: "+(C.name||"creature"),ta("creature",i,0,"desc",C.desc||"","Only what the hero can perceive; no concealed truth"))
       +fldB("GM-only notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"))
@@ -1014,9 +1014,9 @@ function creatureActsMenu(c,acts,index){
   return h+"</details>";
 }
 function creatureCheckedActs(host){return Array.prototype.filter.call(host.querySelectorAll('[data-creature-act]'),function(el){return el.checked;}).map(function(el){return Number(el.getAttribute('data-creature-act'));});}
-function creatureEnvironmentField(i,c){
-  var f=DesignerCreatures.fields.environment,value=c.environment||f.default,values=f.values.slice();if(values.indexOf(value)<0)values.push(value);
-  return "<select data-sec='creature' data-i='"+i+"' data-j='0' data-k='environment'>"+values.map(function(v){return "<option value='"+esc(v)+"'"+(v===value?" selected":"")+">"+esc(v)+"</option>";}).join("")+"</select>";
+function creatureChoiceField(key,i,c){
+  var f=DesignerCreatures.fields[key],value=c[key]||f.default||"",values=(f.default?[]:[""]).concat(f.values);if(values.indexOf(value)<0)values.push(value);
+  return "<select data-sec='creature' data-i='"+i+"' data-j='0' data-k='"+esc(key)+"'>"+values.map(function(v){return "<option value='"+esc(v)+"'"+(v===value?" selected":"")+">"+esc(v||"Not specified")+"</option>";}).join("")+"</select>";
 }
 document.addEventListener("change",function(e){
   var t=e.target;if(!t.getAttribute||t.getAttribute("data-creature-act")===null)return;
