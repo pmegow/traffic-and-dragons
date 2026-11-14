@@ -37,7 +37,7 @@ test('three stationary discoveries change only knowledge and every public surfac
 });
 test('changing place cannot carry discoveries into another container',()=>{
  setup();const A=worldState.atlas;atlasKnowledgeCommit('[MAP_REVEAL:new|Bear Spring|spring|SW|observed]');
- worldState.world.location='Elsewhere';atlasFollow();assert.equal(atlasDoc(A.seed).features.length,0);
+ worldState.world.location='Elsewhere';atlasFollow();assert.equal(atlasDoc(A.at).features.length,0);assert.equal(atlasDoc(A.seed).features.length,1,'the visited sheet remains available');
  worldState.world.location='The Boundary Clearing';atlasFollow();assert.equal(atlasDoc(A.seed).features.length,1);
 });
 test('private place classification cannot label a public sheet or change its scene',()=>{

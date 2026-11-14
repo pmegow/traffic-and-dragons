@@ -28,7 +28,7 @@
 
    Reads (atlasDoc, atlasThings, atlasPartyIn, atlasMarkers, atlasZones, atlasWhere, atlasCard, atlasReveal, atlasFogShows, atlasMapBlock) never write the campaign. The writers are
    atlasCreate, atlasFollow (which records the move: atlasTread), atlasPlace and atlasHeal; a redraw a read notices is recorded by the next writer. */
-var ATLAS_VER=2;
+var ATLAS_VER=3;
 /* THE ONE LOOKUP of every table below (#697): a table is a plain object, so a key named like an Object method
    ("constructor", "toString") found a function where a row was asked for. A row is the table's OWN property or it is
    nothing; no table is read by a bare bracket (the engine suite scans this file for one). */
@@ -65,8 +65,8 @@ var ATLAS_THINGS={
 };
 /* a portal of one of these ways leads back to the zone this one hangs from */
 var ATLAS_WAYS_BACK={up:1,out:1};
-/* v → the function lifting a store to v+1 (none yet: v1 is the first shape) */
-var ATLAS_MIGRATIONS={1:function(A){A.v=2;return A;}};
+/* Sequential schema lifts; public visited-sheet recovery runs after shape validation. */
+var ATLAS_MIGRATIONS={1:function(A){A.v=2;return A;},2:function(A){A.v=3;return A;}};
 
 var _atlasDocs={},_atlasDocOrder=[],_atlasDrawn={},_atlasWarned={};
 var _atlasPeeks={},_atlasPeekOrder=[];/* #693: sheets drawn for a LOOK and never recorded (atlasPeekDoc) */
@@ -1223,7 +1223,7 @@ function atlasCreatePublic(seed){
   function writable(o,key){var d=Object.getOwnPropertyDescriptor(o,key);return d?Object.prototype.hasOwnProperty.call(d,"value")&&d.writable===true:Object.isExtensible(o);}
   if(!record(W)||!record(W.world)||typeof W.world.location!=="string"||!W.world.location.trim()||(W.world.sublocation!=null&&typeof W.world.sublocation!=="string"))throw new Error("atlas: public creation needs a campaign with an established final location");
   if("atlas" in W)throw new Error("atlas: public creation cannot replace an existing atlas record");
-  if(typeof SAVE_VER!=="number"||!isFinite(SAVE_VER)||SAVE_VER<13||Math.floor(SAVE_VER)!==SAVE_VER||typeof ATLAS_VER!=="number"||!isFinite(ATLAS_VER)||ATLAS_VER<2||Math.floor(ATLAS_VER)!==ATLAS_VER)throw new Error("atlas: this build cannot safely save public map knowledge");
+  if(typeof SAVE_VER!=="number"||!isFinite(SAVE_VER)||SAVE_VER<14||Math.floor(SAVE_VER)!==SAVE_VER||typeof ATLAS_VER!=="number"||!isFinite(ATLAS_VER)||ATLAS_VER<3||Math.floor(ATLAS_VER)!==ATLAS_VER)throw new Error("atlas: this build cannot safely save public map knowledge");
   if(typeof W.ver!=="number"||!isFinite(W.ver)||W.ver<1||Math.floor(W.ver)!==W.ver||W.ver>SAVE_VER)throw new Error("atlas: the campaign save version is not compatible with public map creation");
   if(!record(M)||!record(M.map)||!record(M.map.nodes)||!Array.isArray(M.map.edges))throw new Error("atlas: public creation needs valid location memory");
   if(typeof memoryOwnerMismatch==="function"&&memoryOwnerMismatch(W,M))throw new Error("atlas: the map memory belongs to a different campaign");
@@ -1236,6 +1236,7 @@ function atlasCreatePublic(seed){
   A=atlasBaseStore(seed);A.knowledge=1;A.publicNotes=keyedDict();A.at=seed;A.ptr=JSON.stringify([p.world,p.sub]);
   /* The root recipe is a schema placeholder. No generator or fingerprint may turn it into geography. */
   A.zones[seed]={kind:"region",parent:null,via:null,params:{seed:seed},name:p.sub||p.world,lib:TnDMaps.VERSION,fp:null,fpv:ATLAS_FP_SCHEME,turn:atlasTurn()};
+  A.publicPlaces=atlasPublicPlacesRead(A);
   why=atlasShapeProblem(A);if(why)throw new Error("atlas: public store could not be prepared — "+why);
   W.atlas=A;map.geography=g;W.ver=SAVE_VER;
   atlasForget();
@@ -1343,7 +1344,7 @@ function atlasPartyIn(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlas
 /* READ: the named thing standing at a point of a sheet (a marker is drawn exactly on the thing it stands on) */
 function atlasThingAt(zoneId,x,y){
   var A=atlasLive(),t,i;
-  if(!A||!A.zones[zoneId]||!isFinite(x)||!isFinite(y))return null;
+  if(!atlasZoneKnown(A,zoneId)||!isFinite(x)||!isFinite(y))return null;
   t=atlasThings(atlasDoc(zoneId));
   for(i=0;i<t.length;i++)if(Math.abs(t[i].x-x)<=0.5&&Math.abs(t[i].y-y)<=0.5)return t[i];
   return null;
@@ -1351,7 +1352,8 @@ function atlasThingAt(zoneId,x,y){
 /* the markers TnDMaps.markers / view.setMarkers take for a sheet — derived from the store, never stored */
 function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)")}]:[];}
 /* the entered zones, root first then in order of entry */
-function atlasZones(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return [{id:worldState.atlas.seed,kind:"schematic",name:atlasPublicTitle(),parent:null,turn:atlasTurn()}];}
+function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?atlasPublicPlace(A,id):atlasRow(A.zones,id)));}
+function atlasZones(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive();return publicAtlas?atlasPublicPlacesList(publicAtlas):[];}
   var A=atlasLive();if(!A)return [];
   return Object.keys(A.zones).map(function(id){var r=A.zones[id];return {id:id,kind:r.kind,name:r.name||id,parent:r.parent,turn:r.turn,redrawn:r.redrawn||null};});
 }
@@ -1360,7 +1362,7 @@ function atlasTrail(zoneId){var A=atlasLive(),out=[],z=zoneId,guard=0;if(!A)retu
 /* #711 round 4 (owner 2026-11-08): the party's LOCATION TRAIL for the HUD plaque — the chain of zones the party stands in
    (the last mapped place once the story has left the map; the region alone before the party is placed), as the library's
    tiers {key, text, current}: the sheet shown now is current. Built on character location: browsing up leaves it as it is. */
-function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return [{key:worldState.atlas.seed,text:atlasPublicTitle(),current:true}];}var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
+function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive(),place=publicAtlas?atlasPublicPlace(publicAtlas,publicAtlas.at):null;return place&&place.container===atlasPublicContext()?[{key:place.id,text:place.name,current:place.id===shownZone}]:[];}var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
 /* #711 round 4: the player's NOTE on a map thing (in place of the retired hand tie) — kept on the campaign
    (worldState.atlas.notes, keyed zone|thing id), the player's own words, never read by the engine's rules; capped at
    ATLAS_NOTE_MAX; an empty note is removed. The card carries it (atlasCard's `note`). */
@@ -1371,7 +1373,7 @@ function atlasNote(zoneId,id){var A=atlasLive(),notes=A&&A[atlasNoteBucket()],n;
 function atlasNoteSet(zoneId,id,text){
   var A=atlasLive(),k,bucket=atlasNoteBucket(),notes;
   if(!A)return {ok:false,reason:"this campaign has no drawn map"};
-  if(!A.zones[zoneId])return {ok:false,reason:"that sheet is not in the atlas"};
+  if(!atlasZoneKnown(A,zoneId))return {ok:false,reason:"that sheet is not in the atlas"};
   if(id==null||!atlasThingById(atlasDoc(zoneId),id))return {ok:false,reason:"that thing is not on the sheet"};
   notes=A[bucket];if(!notes||typeof notes!=="object")notes=A[bucket]=keyedDict();
   text=String(text==null?"":text).replace(/\r\n?/g,"\n").trim();
@@ -1715,6 +1717,7 @@ function atlasShapeProblem(A){
   if(typeof A.seed!=="string"||!A.seed)return "it has no seed";
   if(!A.zones||typeof A.zones!=="object")return "it has no zones";
   if(!A.zones[A.seed]||A.zones[A.seed].kind!=="region"||A.zones[A.seed].parent||!A.zones[A.seed].params||A.zones[A.seed].params.seed!==A.seed)return "its region recipe is missing or does not carry the campaign seed";
+  if(A.knowledge===1&&Object.prototype.hasOwnProperty.call(A,"publicPlaces")){n=atlasPublicPlacesProblem(A,A.publicPlaces);if(n)return n;}
   ids=Object.keys(A.zones);
   for(i=0;i<ids.length;i++){
     r=A.zones[ids[i]];
@@ -1751,6 +1754,10 @@ function atlasHeal(){
   for(i=0;i<keys.length;i++)if(!A.adds[keys[i]]||!A.zones[A.adds[keys[i]].zone]){delete A.adds[keys[i]];changed=true;}
   keys=Object.keys(A.names);
   for(i=0;i<keys.length;i++)if(!A.names[keys[i]]||!A.zones[A.names[keys[i]].zone]){delete A.names[keys[i]];changed=true;atlasSay("info","dropped the tie for '"+keys[i]+"' — its zone is not in the atlas");}
-  if(A.at&&!A.zones[A.at]){A.at=null;A.spot=null;A.ptr=null;changed=true;atlasSay("warn","the party's place on the map pointed at a zone that is not there — the map will follow the story again");}
+  if(A.knowledge===1&&!Object.prototype.hasOwnProperty.call(A,"publicPlaces")){
+    try{A.publicPlaces=atlasPublicPlacesRead(A);A.at=A.seed;changed=true;}
+    catch(publicError){atlasProblem("recovering visited public places",publicError);return changed;}
+  }
+  if(A.at&&!atlasZoneKnown(A,A.at)){A.at=null;A.spot=null;A.ptr=null;changed=true;atlasSay("warn","the party's place on the map pointed at a zone that is not there — the map will follow the story again");}
   return changed;
 }

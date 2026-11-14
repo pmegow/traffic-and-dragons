@@ -86,18 +86,21 @@ function atlasKnowledgeSay(reason){
 }
 /* A detached candidate is installed only when every scoped group passes. The resulting receipt
    text is stored in the same narrated turn; cleanTxt later strips the original directive normally. */
-function atlasKnowledgeCommit(raw,parsed,opts){
-  if(!atlasKnowledgeActive())return raw;
+function atlasKnowledgeCommitResult(raw,parsed,opts){
+  var result={text:raw,accepted:[],refusal:null};
+  function refuse(kind,reason,suffix){result.refusal={kind:kind,reason:reason};atlasKnowledgeSay(reason+(suffix||""));return result;}
+  if(!atlasKnowledgeActive())return result;
   try{
-    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out,items;
-    if(q.reason){atlasKnowledgeSay(q.reason+"; no new map discoveries were filed");return raw;}
-    if(!q.items.length)return raw;
-    if(q.raw!==String(raw||"")){atlasKnowledgeSay("the queued map disclosure source changed; no new map discoveries were filed");return raw;}
-    if(problem){atlasKnowledgeSay(problem+"; existing map data was preserved");return raw;}
-    token=(opts&&opts.commit)||("gm:"+worldState.turn+":"+Date.now().toString(36)+":"+Math.random().toString(36).slice(2));
+    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out,items,accepted;
+    if(q.reason)return refuse("source",q.reason,"; no new map discoveries were filed");
+    if(q.raw!==String(raw||""))return refuse("source","the queued map disclosure source changed","; no new map discoveries were filed");
+    if(!Array.isArray(q.items))return refuse("source","the queued map disclosures are malformed","; no new map discoveries were filed");
+    if(!q.items.length)return result;
     atlasKnowledgePublish(raw,q.items);/* Validate every queued source before any coalescing can hide a changed declaration. */
+    if(problem)return refuse("state",problem,"; existing map data was preserved");
+    token=(opts&&opts.commit)||("gm:"+worldState.turn+":"+Date.now().toString(36)+":"+Math.random().toString(36).slice(2));
     items=typeof atlasKnowledgeExitSelect==="function"?atlasKnowledgeExitSelect(q.items,s,token):q.items;
-    if(!items.length)return raw;
+    if(!items.length)return result;
     for(i=0;i<items.length;i++){
       item=items[i];
       if(!Object.prototype.hasOwnProperty.call(lookup,item.container)){lookup[item.container]=groups.length;groups.push({container:item.container,events:[]});}
@@ -106,13 +109,18 @@ function atlasKnowledgeCommit(raw,parsed,opts){
     out=atlasKnowledgePublish(raw,items);visible=cleanTxt(out);
     for(j=0;j<groups.length;j++){
       group=groups[j];r=MapKnowledge.prepare(s,group.events,{channel:"gm",commit:token+":"+j,turn:worldState.turn,container:group.container,text:visible});
-      if(!r.ok){atlasKnowledgeSay(r.reason+"; no new map discoveries were filed");return raw;}s=r.state;
+      if(!r.ok)return refuse("state",r.reason,"; these map declarations were not filed");s=r.state;
     }
-    problem=atlasKnowledgeCollision(s,groups);if(problem){atlasKnowledgeSay(problem+"; no new map discoveries were filed");return raw;}
+    problem=atlasKnowledgeCollision(s,groups);if(problem)return refuse("state",problem,"; these map declarations were not filed");
+    accepted=JSON.parse(JSON.stringify(items));
     memory.map.geography=s;
-    return out;
-  }catch(e){atlasKnowledgeSay("the discovery could not be recorded: "+((e&&e.message)||e));return raw;}
+    result.text=out;result.accepted=accepted;
+    return result;
+  }catch(e){return refuse("source","the discovery could not be recorded: "+((e&&e.message)||e));}
 }
+/* Compatibility callers consume narration only; the turn handoff consumes the atomic outcome. */
+function atlasKnowledgeCommit(raw,parsed,opts){return atlasKnowledgeCommitResult(raw,parsed,opts).text;}
+
 function atlasKnowledgeTurnReceipts(){
   var s=memory&&memory.map&&memory.map.geography,out=[],keys,i,j,r;
   var problem=MapKnowledge.problem(s);if(problem){atlasKnowledgeSay(problem+"; committed map receipts could not be read");return out;}

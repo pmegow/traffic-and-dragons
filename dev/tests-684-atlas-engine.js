@@ -2383,6 +2383,7 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
        leave the store alone) and add the new version's list here. */
     var ROWS = { 1: ["dungeon>dungeon", "interior>dungeon", "region>dungeon", "region>town", "region>wild", "town>dungeon", "town>interior"] };
     ROWS[2]=ROWS[1].slice();/* Public knowledge changes the store version, not the private nesting catalogue. */
+    ROWS[3]=ROWS[2].slice();/* Public visited sheets have their own registry; the procedural nesting catalogue is unchanged. */
     assert(ROWS[ATLAS_VER], "ATLAS_VER " + ATLAS_VER + " has no pinned builder rows — add its list");
     assert.deepEqual(Object.keys(ATLAS_BUILDERS).sort(), ROWS[ATLAS_VER], "a builder row changed under ATLAS_VER " + ATLAS_VER + " — bump the version with it");
   });

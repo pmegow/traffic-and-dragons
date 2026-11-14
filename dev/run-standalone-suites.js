@@ -9,6 +9,7 @@ var SUITES = [
   "dev/tests-733-map-legacy-copy.js",
   "dev/tests-733-map-migration.js",
   "dev/tests-733-map-public.js",
+  "dev/tests-744-map-public.js",
   "dev/tests-733-map-protocol.js",
   "dev/tests-733-map-exits.js",
   "dev/tests-733-map-extract.js",

@@ -2693,8 +2693,11 @@ function commitGmTurn(resp,opts){
   if(worldState.pendingLocState&&worldState.pendingLocState.fired)delete worldState.pendingLocState;
   }
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
-  if(!_refusal&&typeof atlasKnowledgeCommit==="function")resp=atlasKnowledgeCommit(resp,_audioMuts&&_audioMuts.mapReveals);/* Public discoveries and their narrated receipts must precede the camp snapshot. */
-  if(!_refusal&&typeof atlasDiscoveryCommit==="function")atlasDiscoveryCommit(_mapExtraction,_audioMuts&&_audioMuts.mapReveals);
+  if(!_refusal&&typeof atlasKnowledgeCommitResult==="function"){
+    var _mapCommit=atlasKnowledgeCommitResult(resp,_audioMuts&&_audioMuts.mapReveals);/* Public discoveries and their narrated receipts must precede the camp snapshot. */
+    resp=_mapCommit.text;
+    if(typeof atlasDiscoveryCommit==="function")atlasDiscoveryCommit(_mapExtraction,_mapCommit);
+  }
   if(typeof atlasFollow==="function")atlasFollow();/* #684: the atlas follows the committed location pointer — after the parser, never inside it; a no-op without an atlas, and it cannot throw */
   if(worldState.checkpointDue){var _cpr=worldState.checkpointDue;delete worldState.checkpointDue;if(typeof takeCheckpoint==="function")takeCheckpoint(_cpr);}/* #300: the camp queued by [REST:long] / an act close is taken here, after the response committed */
   if(worldState.deathPending&&typeof resolvePlayerDeath==="function")resolvePlayerDeath();/* #300: the death narration is in the book; now the consequence */

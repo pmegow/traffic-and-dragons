@@ -1,6 +1,7 @@
 {
-  "version": "v1.1420",
+  "version": "v1.1421",
   "actions": [
+    "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
     "Every new campaign starts with a map that fills as the GM reveals places; the map checkbox is gone.",
     "Authored NPC portraits carry from a blueprint into the campaign and stay with companions when their sheets are created.",

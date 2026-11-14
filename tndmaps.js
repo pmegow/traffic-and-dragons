@@ -1,11 +1,11 @@
-/* TnD Maps 0.21.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.22.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.21.0";
+  NS.VERSION = "0.22.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6615,6 +6615,13 @@
         frameInner: { stroke: ink, width: 0.7 },
         rule: { stroke: ink, width: 0.9 },
         schematicLeader: { stroke: soft, width: 0.75, alpha: 0.65 },
+        /* Explicit public landscape only: illustrative cover and short routes, never generated locations. */
+        schematicWoodWash: { fill: ward, stroke: soft, width: 0.6, alpha: 0.38, dash: [2, 3], join: "round" },
+        schematicClearing: { fill: land, stroke: soft, width: 0.85, alpha: 0.65, dash: [2, 3], join: "round" },
+        schematicWaterWash: { fill: pond, alpha: 0.65, join: "round" },
+        schematicRoad: { fill: paper, stroke: soft, width: 1.35, join: "round" },
+        schematicPath: { stroke: soft, width: 1.5, dash: [4, 3], cap: "round", join: "round" },
+        schematicRiver: { fill: pond, stroke: soft, width: 0.9, join: "round" },
         scaleBox: { fill: ink, stroke: ink, width: 0.8 },
         scaleBoxEmpty: { fill: land, stroke: ink, width: 0.8 },
         compass: { fill: land, stroke: ink, width: 0.9 },
@@ -8436,8 +8443,134 @@
   NS.scene.fog = { spec: spec, apply: apply, FEATHER: FEATHER };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
+/* ───── 77-public-landscape.js ───── */
+/* 77-public-landscape.js — illustrative ground from an explicit public specification. This never reads titles,
+   generates a place, or creates a connection. Its short route courses and terrain stamps are drawing, not canon. */
+(function (root) {
+  "use strict";
+  var NS = root.TnDMaps, C = NS.scene.common, TERRAIN = { forest: 1, marsh: 1, water: 1, hills: 1, grass: 1, clearing: 1 };
+  var ROUTES = { road: { style: "schematicRoad", width: 10, ribbon: true }, path: { style: "schematicPath", width: 4, ribbon: false }, river: { style: "schematicRiver", width: 13, ribbon: true } }, MAX_TERRAIN = 4, MAX_ROUTES = 32;
+  function fields(o, allowed, where) {
+    NS.assert(o && typeof o === "object" && !Array.isArray(o), where + " must be an object");
+    Object.keys(o).forEach(function (k) { NS.assert(allowed.indexOf(k) >= 0, where + " has an unsupported field: " + k); });
+  }
+  function id(s, where) { NS.assert(typeof s === "string" && s.length > 0 && s.length <= 120 && s.trim() === s && !/[\x00-\x1f\x7f]/.test(s), where + " must be nonempty text of at most 120 characters"); }
+  function validate(spec, features) {
+    fields(spec, ["terrain", "routes"], "public landscape");
+    NS.assert(Array.isArray(spec.terrain) && spec.terrain.length <= MAX_TERRAIN, "public landscape terrain must be an array of at most " + MAX_TERRAIN + " kinds");
+    NS.assert(Array.isArray(spec.routes) && spec.routes.length <= MAX_ROUTES, "public landscape routes must be an array of at most " + MAX_ROUTES + " entries");
+    var kinds = Object.create(null), ids = Object.create(null), byId = Object.create(null);
+    features.forEach(function (f) { byId[f.id] = f; });
+    spec.terrain.forEach(function (k) { NS.assert(NS.own(TERRAIN, k), "unknown public landscape terrain", { terrain: k }); NS.assert(!NS.own(kinds, k), "duplicate public landscape terrain", { terrain: k }); kinds[k] = true; });
+    spec.routes.forEach(function (r) {
+      fields(r, ["id", "kind", "bearing", "feature"], "public landscape route"); id(r.id, "public landscape route id");
+      NS.assert(!NS.own(ids, r.id), "duplicate public landscape route id", { id: r.id }); ids[r.id] = true;
+      NS.assert(NS.own(ROUTES, r.kind), "unknown public landscape route kind", { kind: r.kind });
+      NS.assert(NS.own(NS.schematic.BEARINGS, r.bearing), "unknown public landscape route bearing", { bearing: r.bearing });
+      if (r.feature !== undefined) {
+        id(r.feature, "public landscape route feature"); var f = NS.own(byId, r.feature);
+        NS.assert(f && f.mode === "observed" && f.bearing !== "unknown", "public landscape route needs an observed positioned public feature", { feature: r.feature });
+        NS.assert(r.bearing === f.bearing, "public landscape route must retain its feature bearing", { feature: r.feature, bearing: r.bearing });
+      }
+    });
+    return spec;
+  }
+  function copy(spec, features) {
+    validate(spec, features);
+    return { terrain: spec.terrain.slice(), routes: spec.routes.map(function (r) { var out = { id: r.id, kind: r.kind, bearing: r.bearing }; if (r.feature !== undefined) out.feature = r.feature; return out; }) };
+  }
+  function path(pts, style, meta, closed) { return { t: "path", pts: pts, closed: !!closed, s: style, meta: meta }; }
+  /* Smooth, tapered local strokes never meet another feature or claim a route between destinations. A route
+     attached to a disclosed feature is a short sample around that same accepted anchor. An unknown local course
+     crosses the abstract origin without arrows or an endpoint label: its orientation is expressly illustrative. */
+  function course(r, features) {
+    var f = r.feature && features.filter(function (x) { return x.id === r.feature; })[0], x = f ? f.x : 400, y = f ? f.y : 275;
+    var b = r.bearing === "unknown" ? [0, 1] : NS.own(NS.schematic.BEARINGS, r.bearing), len = Math.sqrt(b[0] * b[0] + b[1] * b[1]), dx = b[0] / len, dy = b[1] / len;
+    var pts = [], i, t, along, bend, baseSize = f ? 35 : 126, size = baseSize, kind = NS.own(ROUTES, r.kind);
+    function leaveGap(px, py) { var ox = x - px, oy = y - py, distance = ox * ox + oy * oy; if (distance > 0.01) size = Math.min(size, Math.sqrt(distance) * 0.3); }
+    features.forEach(function (q) { if (!q.unplaced && q.id !== r.feature) leaveGap(q.x, q.y); });
+    if (f) leaveGap(400, 275);
+    /* Crowded decorative samples must not meet and imply a new road connection. Only already-coincident accepted
+       positions may share ink; no feature or party anchor moves to make space. */
+    var scale = size / baseSize;
+    for (i = 0; i <= 28; i++) {
+      t = i / 14 - 1; along = t * size;
+      if (!f && r.bearing !== "unknown") along = (t + 1) * size / 2;
+      bend = (Math.sin(t * Math.PI) * (f ? 3 : 23) + Math.sin(t * Math.PI * 2) * (f ? 1 : 7)) * scale;
+      pts.push([Math.max(0, Math.min(800, x + dx * along - dy * bend)), Math.max(0, Math.min(450, y + dy * along + dx * bend)), kind.width * scale * (1 - 0.78 * Math.pow(Math.abs(t), 6))]);
+    }
+    return { spec: r, pts: pts };
+  }
+  function nearCourse(x, y, routes) {
+    return routes.some(function (route) {
+      return route.pts.some(function (p, i) {
+        if (!i) return false;
+        var a = route.pts[i - 1], dx = p[0] - a[0], dy = p[1] - a[1], d = dx * dx + dy * dy, t = d ? Math.max(0, Math.min(1, ((x - a[0]) * dx + (y - a[1]) * dy) / d)) : 0;
+        var ox = x - a[0] - dx * t, oy = y - a[1] - dy * t; return ox * ox + oy * oy < 24 * 24;
+      });
+    });
+  }
+  function oval(cx, cy, rx, ry, salt) {
+    var pts = [], i, a, r;
+    for (i = 0; i < 60; i++) { a = i / 60 * Math.PI * 2; r = 1 + 0.05 * Math.sin(a * 5 + salt) + 0.035 * Math.cos(a * 9 - salt); pts.push([cx + rx * r * Math.cos(a), cy + ry * r * Math.sin(a)]); }
+    return pts;
+  }
+  function glyph(kind, x, y, size, terrain, out) {
+    var cmds = []; NS.own(NS.scene.GLYPHS, kind)({ x: x, y: y, s: 1 }, size, cmds);
+    cmds.forEach(function (c) { c.meta = { terrain: terrain, illustrative: true }; out.push(c); });
+  }
+  function scatter(terrain, glyphKind, step, size, routes, out, ground) {
+    var row, col, x, y, nx, ny;
+    for (row = 0; row < 14; row++) for (col = 0; col < 19; col++) {
+      x = 197 + col * step + C.jitter(col, row, 731) * step * 0.7;
+      y = 138 + row * step + C.jitter(col, row, 419) * step * 0.7;
+      nx = (x - 400) / 190; ny = (y - 280) / 140;
+      /* Only ornamental stamp placement uses these fixed waves. No world seed, candidate feature or name is read. */
+      if (nx * nx + ny * ny > 0.88 + 0.12 * Math.sin(x * 0.06) * Math.cos(y * 0.05) || nearCourse(x, y, routes) || Math.abs(x - 400) < 24 && Math.abs(y - 275) < 20) continue;
+      if (ground.clearing && Math.pow((x - 400) / 105, 2) + Math.pow((y - 275) / 85, 2) < 1) continue;
+      glyph(glyphKind, x, y, size * (0.86 + 0.28 * (C.jitter(x, y, 89) + 0.5)), terrain, out);
+    }
+  }
+  var DRAW_TERRAIN = {
+    forest: function (routes, out, ground) {
+      out.push(path(oval(400, 278, 191, 143, 1), "schematicWoodWash", { terrain: "forest", illustrative: true }, true));
+      scatter("forest", "tree", 23, 32, routes, out, ground);
+    },
+    marsh: function (routes, out, ground) { scatter("marsh", "reed", 34, 27, routes, out, ground); },
+    hills: function (routes, out, ground) { scatter("hills", "hill", 58, 25, routes, out, ground); },
+    grass: function (routes, out, ground) { scatter("grass", "reed", 40, 11, routes, out, ground); },
+    clearing: function (routes, out, ground) {
+      out.push(path(oval(400, 275, ground.mixed ? 88 : 186, ground.mixed ? 68 : 137, 2), "schematicClearing", { terrain: "clearing", illustrative: true }, true));
+    },
+    water: function (routes, out) {
+      var meta = { terrain: "water", illustrative: true }, i, j, pts;
+      out.push(path(oval(400, 278, 185, 137, 3), "schematicWaterWash", meta, true));
+      for (i = 0; i < 6; i++) for (j = 0; j < 4; j++) {
+        var x = 278 + j * 75 + C.jitter(j, i, 4) * 20, y = 187 + i * 37; pts = [];
+        if ((x - 400) * (x - 400) / 26000 + (y - 278) * (y - 278) / 11500 > 1) continue;
+        for (var k = 0; k <= 6; k++) pts.push([x + k * 5, y + Math.sin(k * 1.0 + i) * 1.3]);
+        out.push(path(pts, "ripple1", meta));
+      }
+    }
+  };
+  function build(spec, features) {
+    validate(spec, features);
+    var items = [], routes = spec.routes.map(function (r) { return course(r, features); }), bounds = null, ground = { clearing: spec.terrain.indexOf("clearing") >= 0, mixed: spec.terrain.length > 1 };
+    /* The input is a set of known ground types, not a painting order. Water wash precedes stamps, and a clearing
+       remains open in mixed cover instead of hiding the whole forest or being filled with trees. */
+    ["water", "forest", "marsh", "hills", "grass", "clearing"].forEach(function (kind) { if (spec.terrain.indexOf(kind) >= 0) NS.own(DRAW_TERRAIN, kind)(routes, items, ground); });
+    routes.forEach(function (r) {
+      var meta = { route: r.spec.id, routeKind: r.spec.kind, bearing: r.spec.bearing, illustrative: true }, kind = NS.own(ROUTES, r.spec.kind); if (r.spec.feature !== undefined) meta.feature = r.spec.feature;
+      items.push(path(kind.ribbon ? NS.scene.ribbon(r.pts) : r.pts.map(function (p) { return p.slice(0, 2); }), kind.style, meta, kind.ribbon));
+    });
+    items.forEach(function (c) { c.pts.forEach(function (p) { bounds = bounds ? [Math.min(bounds[0], p[0]), Math.min(bounds[1], p[1]), Math.max(bounds[2], p[0]), Math.max(bounds[3], p[1])] : [p[0], p[1], p[0], p[1]]; }); });
+    return { items: items, bounds: bounds };
+  }
+  NS.publicLandscape = { copy: copy, validate: validate, build: build, TERRAIN: TERRAIN, ROUTES: ROUTES, MAX_TERRAIN: MAX_TERRAIN, MAX_ROUTES: MAX_ROUTES };
+})(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
+
 /* ───── 78-schematic.js ───── */
-/* 78-schematic.js — a public map is made only from the caller's accepted facts. No generated document, terrain,
+/* 78-schematic.js — a public map is made only from the caller's accepted facts. No generated document,
    private candidate, or metric unit enters this boundary. Anchors arrange facts; they never measure the world. */
 (function (root) {
   "use strict";
@@ -8476,16 +8609,18 @@
     return [WIDTH / 2 + b[0] * r - b[1] * side, HEIGHT / 2 + b[1] * r + b[0] * side];
   }
   function schematic(spec) {
-    fields(spec, ["scale", "title", "features"], "schematic specification");
+    fields(spec, ["scale", "title", "features", "landscape"], "schematic specification");
     NS.assert(NS.own(SCALES, spec.scale), "unknown schematic scale", { scale: spec.scale }); string(spec.title, 240, "schematic title"); list(spec.features, true);
     var unplaced = spec.features.filter(function (f) { return f.bearing === "unknown"; }).map(function (f) { return f.id; }).sort(), height = Math.max(HEIGHT, 520 + unplaced.length * 26);
-    return { format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "schematic", version: NS.VERSION },
+    var doc = { format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "schematic", version: NS.VERSION },
       frame: { width: WIDTH, height: height, precision: "schematic" }, title: { name: spec.title }, scale: spec.scale,
       features: spec.features.map(function (f) { var unknown = f.bearing === "unknown", p = unknown ? [40, 510 + unplaced.indexOf(f.id) * 26] : anchor(f); return { id: f.id, name: f.name, kind: f.kind, bearing: f.bearing, mode: f.mode, x: p[0], y: p[1], unplaced: unknown }; }),
       portals: [], warnings: [] };
+    if (spec.landscape !== undefined) doc.landscape = NS.publicLandscape.copy(spec.landscape, doc.features);
+    return doc;
   }
   function validate(doc) {
-    fields(doc, ["format", "ver", "generator", "frame", "title", "scale", "features", "portals", "warnings"], "schematic document");
+    fields(doc, ["format", "ver", "generator", "frame", "title", "scale", "features", "portals", "warnings", "landscape"], "schematic document");
     fields(doc.frame, ["width", "height", "precision"], "schematic frame"); fields(doc.title, ["name"], "schematic title"); fields(doc.generator, ["name", "version"], "schematic generator");
     string(doc.generator.version, 40, "schematic generator version");
     NS.assert(doc.format === NS.DOC_FORMAT && doc.ver === NS.DOC_VER && doc.generator.name === "schematic", "not a supported schematic document");
@@ -8495,6 +8630,7 @@
     NS.assert(doc.frame.height === Math.max(HEIGHT, 520 + unplaced.length * 26), "schematic frame must fit only its public unplaced list");
     doc.features.forEach(function (f) { NS.assert(!f.unplaced || (f.x === 40 && f.y === 510 + unplaced.indexOf(f.id) * 26), "unplaced schematic feature must stay in the labelled list"); if (!f.unplaced) point([f.x, f.y]); });
     NS.assert(Array.isArray(doc.portals) && doc.portals.length === 0 && Array.isArray(doc.warnings) && doc.warnings.length === 0, "schematic documents cannot carry generated portals or warnings");
+    if (doc.landscape !== undefined) NS.publicLandscape.validate(doc.landscape, doc.features);
     return doc;
   }
   function label(f) { return f.name + (f.mode === "reported" ? " (reported)" : "") + (f.bearing === "unknown" ? " (position unknown)" : ""); }
@@ -8510,7 +8646,9 @@
     validate(doc); NS.assert(!opts || opts.reveal == null, "schematic maps take public features, not metric or room fog");
     var layers = [], hits = [], lay = C.Layout(WIDTH, doc.frame.height, style), unknown = doc.features.some(function (f) { return f.unplaced; });
     function layer(name) { var items = []; layers.push({ name: name, items: items }); return items; }
-    var frame = layer("frame"), furn = layer("furniture"), marks = layer("features"), labels = layer("labels");
+    var frame = layer("frame"), landscape = doc.landscape && NS.publicLandscape.build(doc.landscape, doc.features);
+    if (landscape && landscape.items.length) layers.push({ name: "landscape", items: landscape.items });
+    var furn = layer("furniture"), marks = layer("features"), labels = layer("labels");
     C.furniture(doc.frame, fitText(doc.title.name, "", "title", WIDTH - 80, style), "Schematic — distances and sizes are not established", style, furn, lay, frame);
     if (unknown) {
       frame.push({ t: "path", pts: [[20, 465], [WIDTH - 20, 465], [WIDTH - 20, doc.frame.height - 18], [20, doc.frame.height - 18]], closed: true, s: "frameInner", meta: { kind: "unplaced-list" } });
@@ -8531,7 +8669,9 @@
       if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
     });
     layers.push({ name: "hits", items: hits });
-    return NS.markers.apply({ width: WIDTH, height: doc.frame.height, style: style.name, layers: layers, dropped: lay.dropped, unit: 1, precision: "schematic" }, [], style.name);
+    var scene = { width: WIDTH, height: doc.frame.height, style: style.name, layers: layers, dropped: lay.dropped, unit: 1, precision: "schematic" };
+    if (landscape && landscape.bounds) scene.landscapeBounds = landscape.bounds;
+    return NS.markers.apply(scene, [], style.name);
   }
   function digest(doc) {
     validate(doc);
@@ -8554,6 +8694,7 @@
     var words = Object.create(null), originals = Object.create(null), featureHits = [], fixed = [], labels = [], markerItems = [], markerHits = [], leaders = [], extent = null, spatial = null, unplaced = false;
     function include(b, placed) { if (!b) return; extent = extent ? [Math.min(extent[0], b[0]), Math.min(extent[1], b[1]), Math.max(extent[2], b[2]), Math.max(extent[3], b[3])] : b.slice(); if (placed !== false) spatial = spatial ? [Math.min(spatial[0], b[0]), Math.min(spatial[1], b[1]), Math.max(spatial[2], b[2]), Math.max(spatial[3], b[3])] : b.slice(); }
     function block(b) { lay.block((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, b[2] - b[0], b[3] - b[1]); }
+    include(scene.landscapeBounds);
     scene.layers.forEach(function (l) {
       if (l.name === "labels") l.items.forEach(function (c) {
         if (c.meta && c.meta.kind === "feature") { words[c.meta.id] = { text: c.text, style: c.s }; originals[c.meta.id] = c; }
@@ -8576,9 +8717,19 @@
       var b = cmd.box, end = [U.clamp(x, b[0], b[2]), U.clamp(y, b[1], b[3])], dx = end[0] - x, dy = end[1] - y;
       if (dx * dx + dy * dy > 100) leaders.push({ t: "path", pts: [[x, y], end], closed: false, s: "schematicLeader", meta: { kind: "annotation", id: cmd.meta.id } });
     }
-    function candidates(x, y, marker) {
+    function candidates(x, y, marker, word) {
       var side = [{ x: x + 18, y: y + 7, anchor: "start" }, { x: x - 18, y: y + 7, anchor: "end" }];
       var vertical = [{ x: x, y: y + 42 }, { x: x, y: y - 38 }];
+      /* Supplied ground should fill the phone beside its annotations, not be shrunk by outward banners.
+         The legacy no-landscape layout retains its exact candidate order and output. */
+      if (scene.landscapeBounds && !marker) {
+        var g = C.labelGeometry(word.text, style.text[word.style], "middle"), half = (g.R - g.L) / 2 + 3;
+        var left = Math.min(200, scene.landscapeBounds[0]) - 32, right = Math.max(600, scene.landscapeBounds[2]) + 32;
+        var cx = right - left >= half * 2 ? U.clamp(x, left + half, right - half) : (left + right) / 2;
+        /* Two vertical tries were insufficient: the northern label and party banner could force an eastern
+           name outside the map. Search vertical space at a bounded x before widening the whole phone view. */
+        return [-28, 42, -62, 76, -96, 110, -130, 144].map(function (dy) { return { x: cx, y: y + dy }; }).concat(x > scene.width / 2 ? side.reverse() : side);
+      }
       return marker ? vertical.concat(side) : side.concat(vertical.reverse());
     }
     markers.forEach(function (m) {
@@ -8601,7 +8752,7 @@
         cmd = NS.own(originals, h.id); NS.assert(cmd && cmd.box, "unplaced schematic row has no label box", { id: h.id });
         labels.push(cmd); include(cmd.box, false); return;
       }
-      cmd = lay.place(word.text, word.style, candidates(h.x, h.y, false), { kind: "feature", id: h.id });
+      cmd = lay.place(word.text, word.style, candidates(h.x, h.y, false, word), { kind: "feature", id: h.id });
       if (cmd) { labels.push(cmd); h.box = cmd.box.slice(); include(cmd.box); leader(h.x, h.y, cmd); }
     });
     var layers = [];

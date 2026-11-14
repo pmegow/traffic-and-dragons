@@ -35229,10 +35229,10 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
       var ad=sheetAdmit(sh,{door:"quick start",mode:"cross",stage:"preview",rel:null,toast:false});if(!ad.ok||!ad.sheet.inventory.every(function(x){return typeof x==="object";}))return cat[i].file+" heals to rows on adoption: "+JSON.stringify(ad.reason);}
     return true;
   });
-  t("#599c what this build stamps: inventory sheet v11 survives world v13; newer worlds and sheets are refused",function(){
-    if(SAVE_VER!==13||SHEET_VER!==11)return "public geography world v13 retains inventory sheet v11: "+SAVE_VER+"/"+SHEET_VER;
+  t("#599c what this build stamps: inventory sheet v11 survives world v14; newer worlds and sheets are refused",function(){
+    if(SAVE_VER!==14||SHEET_VER!==11)return "public visited-sheet world v14 retains inventory sheet v11: "+SAVE_VER+"/"+SHEET_VER;
     if(portableSheet({name:"P",inventory:["Rope"]}).sheetVer!==11)return "portableSheet stamps 11";
-    if(worldVersionIssue({ver:14,character:{name:"x"}})===""||worldVersionIssue({ver:10,character:{name:"x",inventory:["Rope"]}})!==""||sheetVersionIssue({name:"s",sheetVer:12})===""||sheetVersionIssue({name:"s",sheetVer:11})!=="")return "the gate refuses world 14 and sheet 12 while accepting supported legacy shapes";
+    if(worldVersionIssue({ver:15,character:{name:"x"}})===""||worldVersionIssue({ver:10,character:{name:"x",inventory:["Rope"]}})!==""||sheetVersionIssue({name:"s",sheetVer:12})===""||sheetVersionIssue({name:"s",sheetVer:11})!=="")return "the gate refuses world 15 and sheet 12 while accepting supported legacy shapes";
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");if(g.indexOf("worldState={ver:SAVE_VER,")<0)return "startGame stamps SAVE_VER";
     if(worldSheetsOf({character:{name:"h"},npcs:[{name:"n",charSheet:{name:"n"}},{name:"bare"}],pendingLegacy:{name:"p"},mpFallen:[{name:"f",sheet:{name:"f"}}]}).map(function(x){return x.who;}).join("|")!=="hero|roster n|pending legacy p|fallen f")return "worldSheetsOf walks every sheet a world carries";
     return true;
@@ -36651,6 +36651,51 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var rows=worldStateNpcRows([{name:"constructor",status:"",statusTurn:0,rel:"neutral",met:0,partyMember:false},{name:"toString",status:"",rel:"neutral",met:3,partyMember:false}],{},{});
     if(rows.length!==1||rows[0].name!=="toString")return "an inherited property discovered a character: "+JSON.stringify(rows);
     return rows[0].faction===""?true:"an inherited property became a faction: "+rows[0].faction;
+  });
+
+
+  section("#744 map admission handoff");
+  t("#744 a rejected foreign-place declaration cannot hide an independently quoted bridge",function(){
+    makeWorld();worldState.campId="map744-admission";worldState.world.location="Old Road";worldState.world.sublocation=null;
+    worldState.atlas={v:ATLAS_VER,seed:"map744-admission",knowledge:1};memory.campId=worldState.campId;memory.map.nodes["Old Road"]=newMapNode(0,null);memory.map.geography=MapKnowledge.create();
+    atlasKnowledgeCommit("[MAP_REVEAL:new|tower|N|observed]",null,{commit:"map744-prior"});
+    var raw="[LOCATION:Riverford]\nThe tower stands south behind you. A stone bridge crosses the river.\n[MAP_REVEAL:f1|tower|S|observed][MAP_REVEAL:new|stone bridge|unknown|observed]";
+    var source=atlasExtractionSource(raw),segment=source.segments.filter(function(s){return s.text.indexOf("stone bridge")>=0;})[0];
+    var read=atlasExtractionRecords([{source:segment.id,label:"tower",quote:"The tower stands south behind you.",mode:"observed",bearing:"S",bearingQuote:"The tower stands south behind you."},{source:segment.id,label:"stone bridge",quote:"A stone bridge crosses the river.",mode:"observed",bearing:"unknown",bearingQuote:""}],source);
+    if(!read.ok)return "the literal extraction fixture was refused: "+read.reason;
+    var offer={source:source,events:read.events,context:atlasDiscoveryContext(),token:"map744-extraction"};
+    var oldSpeak=speakNarration,oldActions=generateActions,oldSheets=processPendingCompanionSheets,oldFollow=atlasFollow;
+    speakNarration=function(){};generateActions=function(){};processPendingCompanionSheets=function(){};atlasFollow=function(){};
+    try{quiet(function(){commitGmTurn(raw,{mapExtraction:offer,userMsg:"Cross to Riverford.",playerTxt:"Cross to Riverford."});});}
+    finally{speakNarration=oldSpeak;generateActions=oldActions;processPendingCompanionSheets=oldSheets;atlasFollow=oldFollow;}
+    var f=memory.map.geography.features,keys=Object.keys(f),bridge=keys.filter(function(k){return f[k].label==="stone bridge"&&f[k].container==="Riverford";});
+    if(bridge.length!==1)return "rejected proposals hid the public bridge after travel: "+JSON.stringify(f);
+    if(f.f1.container!=="Old Road"||f.f1.bearing!=="N")return "the refused foreign handle moved the original tower";
+    if(worldState.world.location!=="Riverford")return "the actual travel did not commit";
+    return worldState.transcript[worldState.transcript.length-1].x.indexOf("You see stone bridge")<0?true:"a refused declaration published a false acceptance receipt";
+  });
+
+  section("#744 accumulated public maps");
+  t("#744 travel preserves earlier sheets and scopes the party to its current sheet",function(){
+    makeWorld();worldState.world.location="The Boundary Clearing";worldState.world.sublocation=null;
+    atlasCreate("map744-travel",{knowledge:true});var A=worldState.atlas,first=A.at;
+    atlasKnowledgeCommit("[MAP_REVEAL:new|Pact stones|N|observed]");
+    worldState.world.location="The Forest Road";atlasFollow();var second=A.at;
+    if(atlasZones().length!==2||first===second)return "travel replaced the only mapped place";
+    if(atlasDoc(first).features.length!==1||atlasDoc(second).features.length)return "discoveries followed the party instead of their place";
+    if(atlasPartyIn(first)!==null||!atlasPartyIn(second))return "the party appears on the wrong sheet";
+    if(!atlasNoteSet(first,"f1","Return here").ok)return "an earlier sheet cannot retain notes";
+    worldState.world.location="The Boundary Clearing";atlasFollow();
+    return A.at===first&&atlasZones().length===2&&atlasNote(first,"f1")==="Return here"?true:"a return visit duplicated or lost the first sheet";
+  });
+  t("#744 the public Forest Road supplies forest and road ink without private candidates",function(){
+    makeWorld();worldState.world.location="The Forest Road";worldState.world.sublocation=null;
+    atlasCreate("map744-forest",{knowledge:true});
+    atlasKnowledgeCommit("[MAP_REVEAL:new|King's halls|unknown|reported][MAP_REVEAL:new|deep timber|unknown|observed]");
+    var doc=atlasDoc(worldState.atlas.at),scene=TnDMaps.scene.build(doc,"ink"),layer=scene.layers.filter(function(x){return x.name==="landscape";})[0];
+    if(!layer||layer.items.length<10)return "Forest Road has no forest or road ink";
+    if(doc.features.length!==2||doc.features.some(function(f){return !f.unplaced;}))return "unplaced discoveries were fabricated into positions";
+    return !/Stalgind/.test(JSON.stringify([doc,scene]))?true:"private hut leaked into the public landscape";
   });
 
 }

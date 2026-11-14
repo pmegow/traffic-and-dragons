@@ -51,8 +51,8 @@ function atlasPaneRefresh(){
   if(!P||P.sig===atlasPaneSig())return false;
   A=atlasLive();
   if(!A){atlasPaneClose();return true;}
-  z=atlasKnowledgeActive()?A.seed:(A.zones[P.zone]?P.zone:(A.at||A.seed));
-  atlasPaneShow(z,z!==P.zone);
+  z=atlasKnowledgeActive()&&P.partyZone!==A.at?(A.at||A.seed):(atlasZoneKnown(A,P.zone)?P.zone:(A.at||A.seed));
+  atlasPaneShow(z,z!==P.zone||(atlasKnowledgeActive()&&P.partyZone!==A.at));
   return true;
 }
 function atlasDoorHit(e){
@@ -88,7 +88,7 @@ function showAtlas(zoneId){
   var A=(typeof atlasLive==="function")?atlasLive():null,story;
   if(!A){showToast("This campaign has no drawn map.");return false;}
   atlasFollow();/* the pane shows the story's CURRENT place — a Sync edit or a restore may have moved the pointer since the last turn */
-  if(_atlasPane&&_atlasPane.host==="full")return atlasPaneShow((zoneId&&A.zones[zoneId])?zoneId:(A.at||A.seed),true);
+  if(_atlasPane&&_atlasPane.host==="full")return atlasPaneShow((zoneId&&atlasZoneKnown(A,zoneId))?zoneId:(A.at||A.seed),true);
   if(typeof mobileSelectPanel!=="function"||!document.getElementById("atlas-dock"))return showAtlasFull(zoneId);/* no drawer (a host without ui-mobile): full screen as before */
   mobileSelectPanel("map");
   if(!mobileUI.width){story=document.getElementById("story-area");mobileDrawerWidth(Math.min(ATLAS_DOCK_WIDTH,Math.round((story?story.clientWidth:800)*0.5)));}
@@ -98,7 +98,7 @@ function showAtlas(zoneId){
 function atlasDockMount(zoneId){
   var A=(typeof atlasLive==="function")?atlasLive():null,dock=document.getElementById("atlas-dock"),z,stage;
   if(!A||!dock)return false;
-  z=(zoneId&&A.zones[zoneId])?zoneId:(A.at||A.seed);
+  z=(zoneId&&atlasZoneKnown(A,zoneId))?zoneId:(A.at||A.seed);
   if(_atlasPane){
     if(_atlasPane.host==="full")return false;
     return zoneId?atlasPaneShow(z,true):true;
@@ -147,7 +147,7 @@ function showAtlasFull(zoneId){
   var A=(typeof atlasLive==="function")?atlasLive():null,modal,z,memo;
   if(!A){showToast("This campaign has no drawn map.");return false;}
   atlasFollow();
-  z=(zoneId&&A.zones[zoneId])?zoneId:(A.at||A.seed);
+  z=(zoneId&&atlasZoneKnown(A,zoneId))?zoneId:(A.at||A.seed);
   memo=atlasDockMemo();/* the dock's view, carried up and to come back to */
   _atlasDockMemo=memo;
   if(_atlasPane)atlasPaneClose();
@@ -189,7 +189,7 @@ function atlasPaneWire(host){
     _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true,fit:atlasKnowledgeActive()?"content":"sheet",unplaced:atlasKnowledgeActive()?"list":"sheet"}),zone:null,target:null,host:host,size:null,frame:null};
   }catch(e){_atlasPane=null;atlasProblem("opening the map",e);return false;}
   _atlasPane.view.on("mapclick",function(pt,hit){atlasPaneTap(atlasPaneTargetOf(pt,hit));});
-  _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&B.zones[m.key])atlasPaneShow(m.key,true);});/* a tier of the plaque's trail: that sheet framed on the party at ATLAS_HOME_ZOOM — every tier is the party's chain, so the party is on each (a sheet above shows it at the way down); going UP once fell to the whole-sheet fit (owner 2026-11-09) */
+  _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&atlasZoneKnown(B,m.key))atlasPaneShow(m.key,true);});/* a tier of the plaque's trail: that sheet framed on the party at ATLAS_HOME_ZOOM — every tier is the party's chain, so the party is on each (a sheet above shows it at the way down); going UP once fell to the whole-sheet fit (owner 2026-11-09) */
   document.getElementById("atlas-party").addEventListener("click",function(){var B=atlasLive();if(B&&B.at)atlasPaneShow(B.at,true);else atlasPaneSay("The party is not on the map yet.");});
   if((el=document.getElementById("atlas-full")))el.addEventListener("click",function(){var P=_atlasPane;showAtlasFull(P?P.zone:undefined);});
   if((el=document.getElementById("atlas-zones")))el.addEventListener("change",function(){if(this.value)atlasPaneShow(this.value);});
@@ -217,7 +217,7 @@ function atlasPaneTargetOf(pt,hit){
    Escape puts the card away before it reaches the full pane's dialog. No list is drawn: the pane stays the map alone. */
 function atlasPaneKeyList(zoneId){
   var A=atlasLive(),P=_atlasPane,out=[],sig;
-  if(!A||!A.zones[zoneId])return out;
+  if(!A||!atlasZoneKnown(A,zoneId))return out;
   /* the fog is derived afresh for every thing asked (0.7 s for a walked town): the list is kept for the sheet as it stands — the
      party's place, the fog switch, the notes (a noted place shows through the fog) — and read again when any of them changes */
   sig=JSON.stringify([zoneId,atlasPaneSig(),A.fog,A.notes||null,A.seen&&A.seen[zoneId]||null]);
@@ -266,7 +266,7 @@ function atlasPaneFrame(how){
    asked (toParty) or on a carried view; a dock not yet sized owes the framing to its first sizing */
 function atlasPaneShow(zoneId,toParty,carry){
   var A=atlasLive(),P=_atlasPane,doc,reveal,markers,rooms,zones,sel,how;
-  if(!A||!P||!A.zones[zoneId])return false;
+  if(!A||!P||!atlasZoneKnown(A,zoneId))return false;
   try{
     /* #717 the fog of war: what this sheet may show — an area, a list of rooms, or null (the fog off) — is read BEFORE the view
        is touched (the review of 2026-11-09, finding 5: setDoc clears the fog in force, so a failure after it drew the new
@@ -296,7 +296,7 @@ function atlasPaneShow(zoneId,toParty,carry){
     sel.appendChild(new Option("Mapped places ("+zones.length+")",""));
     zones.forEach(function(z){var o=new Option(z.name+" — "+z.kind,z.id);if(z.id===zoneId)o.disabled=true;sel.appendChild(o);});
   }
-  P.sig=atlasPaneSig();P.place=null;
+  P.sig=atlasPaneSig();P.partyZone=A.at;P.place=null;
   atlasPaneCard(null);
   how=carry?{carry:carry}:(toParty?{party:atlasPartyIn(zoneId)}:null);
   if(how&&!how.carry&&!how.party)how=null;/* the party is not on this sheet: the fit the document came with */

@@ -11,24 +11,24 @@ function sourceAt(ref,file){
 function checks(){
   const engine=require("./load-engine.js");engine.loadEngine();const at=process.argv.indexOf("--only"),only=at<0?null:process.argv[at+1];
   const rows=[];function test(name,fn){if(!only||name===only)rows.push({name,fn});}
-  test("actual SAVE12 client refuses neutral SAVE13 maps at parse load and import doors",()=>{
+  test("actual SAVE12 client refuses public SAVE14 maps at parse load and import doors",()=>{
     engine.makeTestWorld();worldState.world.location="The Boundary Clearing";
     global.showToast=()=>{};const A=atlasCreate("oldclient-733"),result=atlasPublicEnable();assert(result.ok,result.reason);
     atlasKnowledgeCommit("[MAP_REVEAL:new|a hut|hut|W|observed]",null,{commit:"oldclient-proof"});
     const payload=JSON.stringify({worldState,sessionLog,memory}),world=serializeWorldState();
-    assert.equal(JSON.parse(world).ver,13);assert.equal(A.knowledge,1);
+    assert.equal(JSON.parse(world).ver,14);assert.equal(A.knowledge,1);
     const notices=[],disk=Object.create(null),old=vm.createContext({console:{log:()=>{},warn:(...v)=>notices.push(v.join(" ")),info:()=>{},error:(...v)=>notices.push(v.join(" "))},localStorage:{getItem:k=>disk[k]||null,setItem:(k,v)=>{disk[k]=String(v);},removeItem:k=>{delete disk[k];}}});
     for(const file of ["globals.js","helpers.js","state.js"])vm.runInContext(sourceAt(OLD_CLIENT,file),old,{filename:OLD_CLIENT.slice(0,7)+"/"+file});
     assert.equal(old.SAVE_VER,12,"historical gate must actually be the old client");
     old.incomingWorld=world;old.incomingPayload=payload;
     let unchanged=JSON.stringify(disk);
-    assert.throws(()=>vm.runInContext("parseWorldState(incomingWorld)",old),e=>e.incompatible===true&&/save v13/.test(e.message)&&/reads v12/.test(e.message));
+    assert.throws(()=>vm.runInContext("parseWorldState(incomingWorld)",old),e=>e.incompatible===true&&/save v14/.test(e.message)&&/reads v12/.test(e.message));
     assert.equal(JSON.stringify(disk),unchanged);
     disk[old.WSK]=world;disk[old.SLK]="[]";disk[old.MEM_KEY]=JSON.parse(payload).memory?JSON.stringify(JSON.parse(payload).memory):"{}";unchanged=JSON.stringify(disk);
-    assert.equal(vm.runInContext("loadState()",old),false);assert.match(old.versionRefusedLoad(),/save v13/);assert.equal(JSON.stringify(disk),unchanged);
+    assert.equal(vm.runInContext("loadState()",old),false);assert.match(old.versionRefusedLoad(),/save v14/);assert.equal(JSON.stringify(disk),unchanged);
     old.worldState={sentinel:"outgoing world"};old.memory={sentinel:"outgoing memory"};old.sessionLog=[{sentinel:"outgoing log"}];
     const live=vm.runInContext("JSON.stringify([worldState,memory,sessionLog])",old);
-    assert.throws(()=>vm.runInContext("importSaveData(JSON.parse(incomingPayload))",old),/save v13/);
+    assert.throws(()=>vm.runInContext("importSaveData(JSON.parse(incomingPayload))",old),/save v14/);
     assert.equal(vm.runInContext("JSON.stringify([worldState,memory,sessionLog])",old),live);assert.equal(JSON.stringify(disk),unchanged);
     assert(notices.some(n=>n.includes("local load REFUSED")));assert(notices.some(n=>n.includes(".tnd import REFUSED")));
   });
@@ -50,13 +50,13 @@ else{
   const sabotage=require("./sabotage.js"),command=["node",["dev/tests-733-map-migration.js"]];let rc=0;
   rc|=sabotage.prove({file:"atlas-public.js",command,only:PREFIX,cases:[
     {label:"a public read silently performs schema migration",find:'p=atlasKnowledgeProjection(k);',replace:'atlasKnowledgeMigrate();p=atlasKnowledgeProjection(k);',mustFail:PREFIX+"public readers refuse typed legacy knowledge without silently upgrading it"},
-    {label:"SAVE12 can activate knowledge it cannot preserve",find:'if(SAVE_VER<13||ATLAS_VER<2)',replace:'if(SAVE_VER<12||ATLAS_VER<2)',mustFail:PREFIX+"public activation requires the neutral save version before any write"},
+    {label:"SAVE12 can activate knowledge it cannot preserve",find:'if(SAVE_VER<14||ATLAS_VER<3)',replace:'if(SAVE_VER<12||ATLAS_VER<3)',mustFail:PREFIX+"public activation requires the neutral save version before any write"},
     {label:"falsy damaged geography is mistaken for absent data",find:'hasKnowledge=Object.prototype.hasOwnProperty.call(memory.map,"geography");',replace:'hasKnowledge=!!memory.map.geography;',mustFail:PREFIX+"damaged and newer existing knowledge is refused without replacing any evidence"},
     {label:"activation is stamped before candidate construction can fail",find:'knowledge=hasKnowledge?memory.map.geography:MapKnowledge.create();',replace:'A.knowledge=1;knowledge=hasKnowledge?memory.map.geography:MapKnowledge.create();',mustFail:PREFIX+"failed candidate construction leaves the complete world-memory pair byte identical"},
     {label:"legacy evidence is discarded instead of backed up",find:'backup=JSON.parse(JSON.stringify(A));',replace:'backup={};',mustFail:PREFIX+"activation retains an exact detached backup of recipes notes visits and identities"},
     {label:"newer knowledge is overwritten on a repeated activation",find:'if(A.knowledge===1){p=MapKnowledge.problem(memory.map.geography);return p?{ok:false,reason:p}:{ok:true,already:true};}',replace:'if(A.knowledge===1){memory.map.geography=MapKnowledge.create();return {ok:true,already:true};}',mustFail:PREFIX+"repeated activation is byte identical and never nests or replaces the backup"},
-    {label:"a private sheet identifier crosses the public drawing boundary",find:'if(!A||zoneId!==A.seed)throw new Error("public atlas: that sheet is not available");',replace:'if(!A)throw new Error("public atlas: that sheet is not available");',mustFail:PREFIX+"all five legacy scale recipes remain withheld from every public map surface"},
-    {label:"private recipe names enter the public title",find:'title:atlasPublicTitle(),features:p.features.map',replace:'title:A.zones[A.seed].name,features:p.features.map',mustFail:PREFIX+"private-only edits leave the exact public scene and all labels unchanged"}
+    {label:"a private sheet identifier crosses the public drawing boundary",find:'place=A?atlasPublicPlace(A,zoneId):null,k,p,signature',replace:'place=A?atlasPublicPlace(A,A.at):null,k,p,signature',mustFail:PREFIX+"all five legacy scale recipes remain withheld from every public map surface"},
+    {label:"private recipe names enter the public title",find:'title:place.name,features:p.features.map',replace:'title:A.zones[A.seed].name,features:p.features.map',mustFail:PREFIX+"private-only edits leave the exact public scene and all labels unchanged"}
   ]});
   rc|=sabotage.prove({file:"atlas-knowledge-migrate.js",command,only:PREFIX,cases:[
     {label:"a failed durable backup permits converted memory to be saved",find:'if(saveCore())return true;',replace:'saveCore();return true;',mustFail:PREFIX+"a failed world backup write cannot persist converted legacy memory"},
@@ -77,7 +77,7 @@ else{
     {label:"tnd import ignores the save version gate",find:'var _ivi=worldVersionIssue(ws);if(_ivi)',replace:'var _ivi="";if(_ivi)',mustFail:PREFIX+"old client refuses activated saves at local and import doors before any write"}
   ]});
   rc|=sabotage.prove({file:"tndmaps.js",command:["node",["dev/sabotage-733-map-migration.js","--checks"]],only:BOUNDARY,cases:[
-    {label:"the schematic API accepts a private source document",find:'fields(spec, ["scale", "title", "features"], "schematic specification");',replace:'fields(spec, ["scale", "title", "features", "source"], "schematic specification");',mustFail:BOUNDARY+"schematic specifications refuse every private source field before rendering"},
+    {label:"the schematic API accepts a private source document",find:'fields(spec, ["scale", "title", "features", "landscape"], "schematic specification");',replace:'fields(spec, ["scale", "title", "features", "landscape", "source"], "schematic specification");',mustFail:BOUNDARY+"schematic specifications refuse every private source field before rendering"},
     {label:"nested private metadata can ride inside a public document",find:'string(doc.generator.version, 40, "schematic generator version");',replace:'',mustFail:BOUNDARY+"schematic document validation refuses nested private metadata"}
   ]});
   process.exitCode=rc?1:0;

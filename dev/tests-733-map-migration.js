@@ -72,7 +72,7 @@ test('typed legacy knowledge upgrades once with an exact detached provenance bac
 test('typed legacy import and local reload retain backup without reasserting old classifications',()=>{
  publish();worldState.ver=12;memory.map.geography=typedLegacyKnowledge();const before=JSON.stringify(memory.map.geography),payload=copy({worldState,sessionLog,memory});
  setup();importSaveData(payload);assert.equal(memory.map.geography.v,2);assert.equal(JSON.stringify(worldState.atlas.legacyKnowledge),before);assertNeutralLegacyMap();
- assert.equal(worldState.ver,13);assert(saveLocal());assert(loadState());assert.equal(JSON.stringify(worldState.atlas.legacyKnowledge),before);assertNeutralLegacyMap();
+ assert.equal(worldState.ver,SAVE_VER);assert(saveLocal());assert(loadState());assert.equal(JSON.stringify(worldState.atlas.legacyKnowledge),before);assertNeutralLegacyMap();
 });
 test('damaged typed legacy upgrades refuse before replacing current evidence or backup',()=>{
  publish();const legacy=typedLegacyKnowledge();legacy.features.f1.kind='tree';worldState.ver=12;memory.map.geography=legacy;const before=bytes();
@@ -98,7 +98,7 @@ test('typed legacy local load persists the full backup before transformed memory
  worldState=null;memory=blankMemory();sessionLog=[];atlasForget();
  const set=store.set,writes=[];store.set=function(k,v){writes.push({key:k,value:String(v)});return set.apply(this,arguments);};
  try{assert(loadState());}finally{store.set=set;}
- assertNeutralLegacyMap();assert.equal(memory.map.geography.v,2);assert.equal(worldState.ver,13);
+ assertNeutralLegacyMap();assert.equal(memory.map.geography.v,2);assert.equal(worldState.ver,SAVE_VER);
  const backup=writes.findIndex(w=>w.key===WSK&&JSON.parse(w.value).atlas&&JSON.parse(w.value).atlas.legacyKnowledge);
  const current=writes.findIndex(w=>w.key===MEM_KEY&&JSON.parse(w.value).map.geography.v===2);
  assert(backup>=0,'legacy load writes its detached provenance backup to disk');
@@ -137,7 +137,7 @@ test('memory-only saves cannot persist fresh activation without its public world
  const beforeWorld=store.get(WSK),beforeMemory=store.get(MEM_KEY),set=store.set;enable();
  store.set=function(k,v){if(k===WSK)throw new Error('injected activation backup failure');return set.apply(this,arguments);};
  try{assert.equal(saveMem(),false,'new public knowledge must not outlive its activation record and backup');assert.equal(store.get(WSK),beforeWorld);assert.equal(store.get(MEM_KEY),beforeMemory);}finally{store.set=set;}
- assert.equal(saveMem(),true);const saved=JSON.parse(store.get(WSK));assert.equal(saved.ver,13);assert.equal(saved.atlas.knowledge,1);assert.equal(JSON.stringify(saved.atlas.legacyAtlas),originalAtlas);assert.equal(JSON.parse(store.get(MEM_KEY)).map.geography.v,2);
+ assert.equal(saveMem(),true);const saved=JSON.parse(store.get(WSK));assert.equal(saved.ver,SAVE_VER);assert.equal(saved.atlas.knowledge,1);assert.equal(JSON.stringify(saved.atlas.legacyAtlas),originalAtlas);assert.equal(JSON.parse(store.get(MEM_KEY)).map.geography.v,2);
 });
 
 (async()=>{let pass=0,fail=0;for(const t of tests){try{await t.fn();pass++;console.log("PASS #733 migration "+t.name);}catch(e){fail++;oldConsole.error("FAIL #733 migration "+t.name+" — "+e.stack);}}Object.assign(console,oldConsole);if(!tests.length){console.error("matched 0 migration tests");process.exitCode=1;return;}console.log((fail?"FAILED":"ALL GREEN")+" — "+pass+" passed, "+fail+" failed #733 migration groups");if(fail)process.exitCode=1;})().catch(e=>{Object.assign(console,oldConsole);console.error(e);process.exitCode=1;});
