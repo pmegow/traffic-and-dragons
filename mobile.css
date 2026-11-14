@@ -3,6 +3,7 @@
 .cname.en[role=button]{cursor:pointer;text-decoration:underline;text-decoration-color:var(--brd);text-underline-offset:3px}
 .cname.en[role=button]:focus-visible{outline:1px solid var(--acc);outline-offset:1px}
 #enemy-modal>div{max-height:85dvh;overflow:auto}
+.enemy-portrait{display:block;width:min(100%,240px);height:auto;margin:14px auto 0;border-radius:6px;border:1px solid var(--brd)}
 .enemy-facts{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:8px 14px;margin:16px 0;font-size:13px}
 .enemy-facts dt{color:var(--t2)}.enemy-facts dd{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
 /* The drawer shares its geometry on phones and desktops; only the surrounding chrome reflows. */

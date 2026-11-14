@@ -1,5 +1,5 @@
 {
-  "version": "v1.1415",
+  "version": "v1.1416",
   "actions": [
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
     "Every new campaign starts with a map that fills as the GM reveals places; the map checkbox is gone.",
@@ -71,6 +71,7 @@
     "Roll a test d20 now rolls over the Dice appearance menu, which stays open so you can browse the looks.",
     "Dice appearance gains a Dismiss button: send the test die away and try another exit without leaving the menu.",
     "World state, Sync state and the Operator console moved into Settings, Dev tools.",
-    "World State lists only characters you have discovered, with their faction; it starts blank. World state is back in the phone menu."
+    "World State lists only characters you have discovered, with their faction; it starts blank. World state is back in the phone menu.",
+    "The creature card in combat now shows the creature's portrait."
   ]
 }

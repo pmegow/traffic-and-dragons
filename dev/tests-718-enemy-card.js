@@ -20,3 +20,21 @@ assert.match(html,/A reed-cloaked figure/,'#719 public appearance remains visibl
 showEnemyDetails(Object.assign({},foe,{name:'Reed Rider'}));
 assert.match(html,/A reed-cloaked figure/,'#719 exact public alias finds its description');
 console.log('PASS #719 disguised card omits canonical identity and private classification');
+// #741: the card shows the creature's authored portrait (owner 2026-11-13: the blueprint had one, the card drew none).
+const pic='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD';
+worldState.bestiary=[{name:'Heron-Crested Pikeguard',kind:'swamp fey soldier',threat:'moderate',desc:'A long-limbed fey.',portrait:pic}];
+const heron={name:'Heron-Crested Pikeguard',hp:11,maxHp:18,count:3};
+showEnemyDetails(heron);
+assert.ok(html.indexOf("<img class='enemy-portrait' src='"+pic+"' alt='Heron-Crested Pikeguard (3)'>")>=0,'#741 the card draws the bestiary portrait');
+assert.ok(html.indexOf('<img')<html.indexOf("<dl class='enemy-facts'>"),'#741 the portrait sits above the facts');
+console.log('PASS #741 the card draws the bestiary portrait');
+delete worldState.bestiary[0].portrait;showEnemyDetails(heron);
+assert.equal(html.indexOf('<img'),-1,'#741 a creature without a portrait draws no image');
+worldState.bestiary[0].portrait='javascript:alert(1)';showEnemyDetails(heron);
+assert.equal(html.indexOf('<img'),-1,'#741 a source that is not an image is refused');
+assert.equal(html.indexOf('javascript:'),-1,'#741 the refused source never reaches the card');
+console.log('PASS #741 a missing or refused portrait draws no image');
+worldState.bestiary[0].portrait=pic;worldState.bestiary[0].displayName='Marsh Sentry';showEnemyDetails(heron);
+assert.ok(html.indexOf("alt='Marsh Sentry (3)'")>=0,'#741 a disguised creature\'s image is labelled by its public name');
+assert.equal(html.indexOf('Heron-Crested'),-1,'#741 the canonical name stays off a disguised card');
+console.log('PASS #741 a disguised creature\'s image carries its public name');
