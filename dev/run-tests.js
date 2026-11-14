@@ -1655,13 +1655,14 @@ try {
   ['btn(p+"tts-settings"', "sound-cb", "ambient-volume"].forEach(function (s) { if (_mtAud.indexOf(s) < 0) _mtFail("the Audio drawer lost " + s + " (#634)."); });
   var _mtDev = _mtSpec.slice(_mtSpec.indexOf("var dev="), _mtSpec.indexOf("var dm="));
   ['btn(p+"llm"', 'btn(p+"usage"', 'btn(p+"fal-key"'].forEach(function (s) { if (_mtDev.indexOf(s) < 0) _mtFail("the Dev tools drawer lost " + s + " (#634)."); });
-  /* #739 (owner 2026-11-13): World state, Sync state and the Operator console live in the Dev tools drawer — each row once in the
-     spec, inside the drawer, and World state carries the operator flag with the move. Clauses in dev/sabotage-634-menu-layout.js. */
-  ['btn("fm-state-mob"', 'btn("fm-sync-mob"', 'btn(p+"admin-console"'].forEach(function (s) {
+  /* #739 (owner 2026-11-13): Sync state and the Operator console live in the Dev tools drawer — each row once in the spec, inside
+     the drawer. World state is every player's: at the menu's top level, never in the drawer, never operator-only (owner, same day:
+     "world state can stay"). Clauses in dev/sabotage-634-menu-layout.js. */
+  ['btn("fm-sync-mob"', 'btn(p+"admin-console"'].forEach(function (s) {
     if (_mtDev.indexOf(s) < 0 || _mtSpec.split(s).length !== 2) _mtFail("the row " + s + " is not in the Dev tools drawer, once (#739).");
   });
-  if (_mtSpec.indexOf('btn("fm-state-mob","World state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})') < 0) _mtFail("the World state row lost fm-dev-only (#739).");
-  if (_mtDev.indexOf('btn(null,"World state",0,{dim:true,cls:"fm-dev-only"})') < 0 || _mtDev.indexOf('btn(null,"Sync state",0,{dim:true,cls:"fm-dev-only"})') < 0) _mtFail("the greyed World state / Sync state placeholders of a menu without a game are not in the Dev tools drawer (#739).");
+  if (_mtSpec.indexOf('h+=btn("fm-state-mob","World state",0,{cls:"fm-mobile-only",hidden:true})') < 0 || _mtSpec.split('btn("fm-state-mob"').length !== 2 || _mtDev.indexOf("World state") >= 0) _mtFail("the World state row is not at the menu's top level for every player, once (#739: it is not an operator row).");
+  if (_mtDev.indexOf('btn(null,"Sync state",0,{dim:true,cls:"fm-dev-only"})') < 0) _mtFail("the greyed Sync state placeholder of a menu without a game is not in the Dev tools drawer (#739).");
   if (_mtSpec.indexOf('drawer(p+"audio",p+"audiomenu"') < 0 || _mtBoot.indexOf('["audio","audiomenu"]') < 0 || _mtBoot.indexOf('["devtools","devtoolsmenu"]') < 0) _mtFail("an Audio or Dev tools drawer is unwired — its toggle is missing from the cascading loop (#634).");
   /* #622 (owner ruling 2026-10-12, amends the 2026-09-11 "tts-settings is dev-only" row): the Voice Settings ROW is for everyone —
      a keyless tester picks the server's Speechify there; the KEY FIELDS inside the modal are what stay dev-only, and the

@@ -36607,4 +36607,50 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return buildSysPrompt().stable===first?true:"ordinary play rewrote the stable prompt";
   });
 
+  section("#740 World State lists only discovered characters");
+  // Owner 2026-11-13: the panel's character list was a spoiler — a blueprint's seeded cast showed before the story had
+  // named anyone. A character appears once play has touched it, and its faction rides the row as play files it.
+  t("#740 a seeded character the story never touched is not discovered",function(){
+    var seeded={name:"Baron Vey",status:"",statusTurn:0,rel:"villain",met:0,partyMember:false};
+    if(npcDiscovered(seeded,null))return "a blueprint-seeded row with no play signal is listed";
+    if(npcDiscovered(seeded,{attitude:"",knowledge:[],events:[]}))return "an empty memory record counts as discovery";
+    if(npcDiscovered(null,null))return "a missing record is discovered";
+    return true;
+  });
+  t("#740 every play signal discovers a character",function(){
+    var base=function(){return {name:"Mara",status:"",statusTurn:0,rel:"neutral",met:0,partyMember:false};},n,bad=[];
+    n=base();n.met=4;if(!npcDiscovered(n,null))bad.push("met");
+    n=base();n.introduced=true;if(!npcDiscovered(n,null))bad.push("introduced");
+    n=base();n.status="wounded";if(!npcDiscovered(n,null))bad.push("status");
+    n=base();n.statusTurn=3;if(!npcDiscovered(n,null))bad.push("statusTurn");
+    n=base();n.dead=true;if(!npcDiscovered(n,null))bad.push("dead");
+    if(!npcDiscovered(base(),{firstEncounter:"At the gate"}))bad.push("firstEncounter");
+    if(!npcDiscovered(base(),{lastSeenAt:"Harrow"}))bad.push("lastSeenAt");
+    if(!npcDiscovered(base(),{lastMentioned:7}))bad.push("lastMentioned");
+    return bad.length?"not discovered by: "+bad.join(", "):true;
+  });
+  t("#740 the rows are blank at the start, skip the party, and carry status, relation and faction",function(){
+    var npcs=[
+      {name:"Baron Vey",status:"",statusTurn:0,rel:"villain",met:0,partyMember:false},
+      {name:"Tam",status:"ally",rel:"companion",met:0,partyMember:true},
+      {name:"Mara",status:"wounded",statusTurn:5,rel:"ally",met:2,partyMember:false},
+      {name:"Old Ferrin",status:"",statusTurn:0,rel:"unknown",met:0,partyMember:false}
+    ];
+    var start=worldStateNpcRows(npcs.slice(0,2),{},{});
+    if(start.length)return "the list is not blank at the start: "+JSON.stringify(start);
+    var mem={"Old Ferrin":{lastSeenAt:"Harrow"}},fac={"Mara":[{faction:"Ash Wardens",role:"scout"},{faction:"The Tithe",role:""}],"Baron Vey":[{faction:"Crown",role:"lord"}]};
+    var rows=worldStateNpcRows(npcs,mem,fac);
+    if(rows.map(function(r){return r.name;}).join()!=="Mara,Old Ferrin")return "wrong rows: "+JSON.stringify(rows);
+    if(rows[0].text!=="wounded / ally")return "status and relation: "+rows[0].text;
+    if(rows[0].faction!=="Ash Wardens [scout], The Tithe")return "faction: "+rows[0].faction;
+    if(rows[1].text!==""||rows[1].faction!=="")return "an unknown relation or no faction prints something: "+JSON.stringify(rows[1]);
+    if(worldStateNpcRows(null,null,null).length)return "no roster is not an empty list";
+    return true;
+  });
+  t("#740 a character named like an object property reads no inherited faction or memory",function(){
+    var rows=worldStateNpcRows([{name:"constructor",status:"",statusTurn:0,rel:"neutral",met:0,partyMember:false},{name:"toString",status:"",rel:"neutral",met:3,partyMember:false}],{},{});
+    if(rows.length!==1||rows[0].name!=="toString")return "an inherited property discovered a character: "+JSON.stringify(rows);
+    return rows[0].faction===""?true:"an inherited property became a faction: "+rows[0].faction;
+  });
+
 }

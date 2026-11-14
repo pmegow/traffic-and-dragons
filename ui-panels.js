@@ -202,7 +202,10 @@ function updateHUD(){
      was NO UI path to a non-party NPC's sheet at all, so one could never be generated and voice
      casting had nothing to resolve against ("why does Hemlock read as the narrator?"). Same
      data-npc + delegated-binding pattern as the party rows below (escHtml covers the attribute). */
-  var npcR="";for(i=0;i<worldState.npcs.length;i++){if(!worldState.npcs[i].partyMember){var _sbBits=[];if(worldState.npcs[i].status)_sbBits.push(worldState.npcs[i].status);if(worldState.npcs[i].rel&&worldState.npcs[i].rel!=="unknown")_sbBits.push(worldState.npcs[i].rel);npcR+='<div class="sb-row sb-npc-row" data-npc="'+escHtml(worldState.npcs[i].name)+'" style="cursor:pointer;" title="Open '+escHtml(worldState.npcs[i].name)+'’s sheet"><span class="sb-k">'+escHtml(worldState.npcs[i].name)+'</span><span class="sb-v">'+escHtml(_sbBits.join(" / ")||"—")+'</span></div>';}}
+  /* #740 (owner 2026-11-13): only the characters the player has DISCOVERED are listed — blank at Begin — and a row
+     carries its faction as play files it; the rows are the pure worldStateNpcRows (helpers.js). */
+  var npcR="",_sbRows=worldStateNpcRows(worldState.npcs,memory&&memory.npcs,memory&&memory.npcGraph&&memory.npcGraph.npcFactions);
+  for(i=0;i<_sbRows.length;i++){var _sbText=[_sbRows[i].text,_sbRows[i].faction].filter(function(s){return !!s;}).join(" · ");npcR+='<div class="sb-row sb-npc-row" data-npc="'+escHtml(_sbRows[i].name)+'" style="cursor:pointer;" title="Open '+escHtml(_sbRows[i].name)+'’s sheet"><span class="sb-k">'+escHtml(_sbRows[i].name)+'</span><span class="sb-v">'+escHtml(_sbText||"—")+'</span></div>';}
   var qR="",qOffered=0;for(i=0;i<worldState.questLog.length;i++){var _q=worldState.questLog[i];if(_q.status==="offered")qOffered++;qR+="<div class='sb-row' style='cursor:pointer;' onclick='showQuestModal()'><span class='sb-k'>"+escHtml(_q.title)+"</span><span class='sb-v'>"+escHtml(_q.status)+"</span></div>";}
   var questSec=worldState.questLog.length?'<div class="sb-sec"><div style="font-size:10px;text-transform:uppercase;color:var(--acc);margin-bottom:6px;letter-spacing:.5px;cursor:pointer;" onclick="showQuestModal()">Quests'+(qOffered?' &middot; <span style="color:var(--warn);">⚑ '+qOffered+' opportunit'+(qOffered>1?'ies':'y')+'</span>':'')+'</div>'+qR+'</div>':"";
   // Factions

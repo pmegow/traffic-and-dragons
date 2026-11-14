@@ -62,7 +62,8 @@ async function asset(file,requestPath){const expected=fs.readFileSync(file);if(!
    document.getElementById('api-screen').style.display='none';showGame();syncUI();
  },{empty,bp:oneBlueprint,wanted,other:chosen738,mode});}
  async function openWorldNpc738(name){
-   await page.evaluate(()=>{var m=document.getElementById('npc-modal');if(m)m.remove();});
+   /* #740: the World State panel lists a character only once play has touched it — a blueprint's seeded row is marked met, as its first scene would */
+   await page.evaluate(name=>{var m=document.getElementById('npc-modal');if(m)m.remove();worldState.npcs.forEach(function(n){if(n.name===name&&!n.partyMember&&!(n.met>0))n.met=Math.max(1,worldState.turn||0);});syncUI();},name);
    await page.locator('#state-btn').click();
    await page.locator('.sb-npc-row[data-npc="'+name+'"]').click();
  }

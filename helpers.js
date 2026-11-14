@@ -3713,6 +3713,34 @@ function summaryLineHTML(lines){
   }
   return out.join(" | ");
 }
+/* #740 (owner 2026-11-13): the World State panel lists a character only once the player has DISCOVERED it — a
+   blueprint's seeded cast, the residents and the backstory bonds sit on the roster from Begin (met:0, no status) and
+   were listed before the story had named anyone: a spoiler. Discovered = play has touched the record: a play-time
+   creation (met), an introduction, any status write, a death, or a memory record with a first encounter, a sighting or
+   a mention. The same signal family as the GM's seeded-bench reminder (api.js, #143), read here for DISPLAY only —
+   nothing the prompt or the parser sees. `mem` is the character's memory.npcs record, or nothing. */
+function npcDiscovered(n,mem){
+  if(!n)return false;
+  mem=mem||{};
+  return !!(n.dead||n.introduced||n.met>0||n.status||(n.statusTurn||0)>0||mem.firstEncounter||mem.lastSeenAt||mem.lastMentioned);
+}
+/* The panel's character rows, pure: the non-party characters the player has discovered, each with its status and
+   relation ("unknown" is not printed) and its factions as play filed them ([NPC_FACTION:] → memory.npcGraph.npcFactions).
+   Only a LIST is read as a character's factions (a character named "toString" finds an inherited function, not a list). */
+function worldStateNpcRows(npcs,memNpcs,npcFactions){
+  var out=[],i,n,bits,facs;
+  for(i=0;i<(npcs||[]).length;i++){
+    n=npcs[i];
+    if(!n||n.partyMember)continue;
+    if(!npcDiscovered(n,memNpcs?memNpcs[n.name]:null))continue;
+    bits=[];
+    if(n.status)bits.push(n.status);
+    if(n.rel&&n.rel!=="unknown")bits.push(n.rel);
+    facs=(npcFactions&&Array.isArray(npcFactions[n.name]))?npcFactions[n.name]:[];
+    out.push({name:n.name,text:bits.join(" / "),faction:facs.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", ")});
+  }
+  return out;
+}
 function hereItemsLine(){
   if(typeof worldState==="undefined"||!worldState||!worldState.world||typeof memory==="undefined"||!memory||!memory.map||!memory.map.nodes)return "";
   var key=(typeof currentNodeKey==="function")?currentNodeKey():null;if(!key)return "";

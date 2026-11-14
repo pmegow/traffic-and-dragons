@@ -37,11 +37,12 @@ function buildFileMenus(){
     var p=sf.p,g=sf.game,h="";
     h+="<div id='"+p+"version' style='padding:6px 14px;font-size:10px;color:var(--t2);letter-spacing:.05em;user-select:none;border-bottom:1px solid var(--brd);'></div>";
     if(g){
-      /* #739 (owner 2026-11-13): Sync state and World state moved into Settings ▸ 🛠 Dev tools (var dev below) */
-      h+=btn("fm-render-mob","Render prompt",0,{cls:"fm-mobile-only",hidden:true})
+      /* #739 (owner 2026-11-13): Sync state moved into Settings ▸ 🛠 Dev tools (var dev below); World state stays here for every player (owner, same day) */
+      h+=btn("fm-state-mob","World state",0,{cls:"fm-mobile-only",hidden:true})
+        +btn("fm-render-mob","Render prompt",0,{cls:"fm-mobile-only",hidden:true})
         +"<div class='fm-mobile-only' style='display:none;border-top:1px solid var(--brd);margin:4px 0;'></div>";
     }else{
-      h+=btn(null,"Render prompt",0,{dim:true})+sep();
+      h+=btn(null,"World state",0,{dim:true})+btn(null,"Render prompt",0,{dim:true})+sep();
     }
     h+=btn(p+"account","&#128100; Account&hellip;",0);/* §3 gateway: subscription status, turn allowance, GM routing, sign out */
     h+=btn(p+"home","&#127968; Home",0);/* #290: bibles, designer, curated shelf, the account library */
@@ -114,16 +115,15 @@ function buildFileMenus(){
     // security: every real gate stays on the server. Marking a row = one flag in this spec.
     // #634: the three rows live in the Dev tools drawer, whose wrapper carries the class too (a
     // non-admin never sees an empty drawer); Render Options became operator-only with the move.
-    // #739 (owner 2026-11-13): World state, Sync state and the Operator console joined the drawer. The two
-    // state rows are the PHONE's (fm-mobile-only: on a desktop they are the topbar's World State and Sync
-    // buttons) and greyed on a menu without a game; World state became operator-only on the phone with the
-    // move. The Operator console row is shown by applyMenuTier for a signed-in admin, as before.
+    // #739 (owner 2026-11-13): Sync state and the Operator console joined the drawer. The Sync state row is
+    // the PHONE's (fm-mobile-only: on a desktop it is the topbar's Sync button) and greyed on a menu without a
+    // game. The Operator console row is shown by applyMenuTier for a signed-in admin, as before. World state
+    // was moved here too and put back the same day (owner: "world state can stay") — it is every player's.
     var dev=btn(p+"llm","🧠 Language Model&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"usage","📊 Usage &amp; cost&hellip;",0,{cls:"fm-dev-only"})
       +btn(p+"fal-key","🖼 Render Options&hellip;",0,{cls:"fm-dev-only"});
-    dev=(g?btn("fm-state-mob","World state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})
-        +btn("fm-sync-mob","Sync state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})/* #634: Sync is the operator's (owner 2026-10-15) — the topbar #sync-btn carries the same class; the tier rule is appended after the mobile rule, so it wins */
-      :btn(null,"World state",0,{dim:true,cls:"fm-dev-only"})+btn(null,"Sync state",0,{dim:true,cls:"fm-dev-only"}))
+    dev=(g?btn("fm-sync-mob","Sync state",0,{cls:"fm-mobile-only fm-dev-only",hidden:true})/* #634: Sync is the operator's (owner 2026-10-15) — the topbar #sync-btn carries the same class; the tier rule is appended after the mobile rule, so it wins */
+      :btn(null,"Sync state",0,{dim:true,cls:"fm-dev-only"}))
       +btn(p+"admin-console","Operator console&hellip;",0,{cls:"fm-dev-only",hidden:true})
       +dev;
     var dm=chk(p+"dice-cb","Player rolls own dice",0,p+"dice-label")/* #329 — off = the GM rolls; ON for a new player (#641). At the Settings top level since #673 (owner 2026-10-30): under Narrative options it was out of reach on a short phone */
