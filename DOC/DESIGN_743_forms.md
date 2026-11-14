@@ -17,7 +17,7 @@ also a character who advances or changes state (Gandalf the Grey and the White; 
 | R1 | Every creature and NPC has two portrait slots in the designer. **Slot 1 is always the true form.** Slot 2 is the alternate. |
 | R2 | The alternate is not only a disguise. It is any second state the story calls for. |
 | R3 | If the story calls for the alternate and no second image exists, the first image is shown marked ALTERNATE. The first slot's image is never altered or moved. |
-| R4 | A switch changes the **portrait and the description**. The name does not change. |
+| R4 | A switch changes the **portrait and the description**. The identity (canonical name) does not change; the on-screen label does (R13). |
 | R5 | The **GM** switches the form, on a cue the author wrote. |
 | R6 | A switch works **either way** (true to alternate and back). |
 | R7 | NPCs get the same pair as creatures. |
@@ -26,6 +26,7 @@ also a character who advances or changes state (Gandalf the Grey and the White; 
 | R11 | An individual whose entry is **As serves the story** shows **no portrait and no description** until the GM states its form. |
 | R10 | The form belongs to the **individual in play**, not to the bestiary entry. Three hags from one entry: the first lures the hero as a beautiful woman; the other two are women or hags as the story needs. |
 | R12 | **A group row shares one form.** Individuals of one entry in different forms are separate rows: one hag as a woman and two as hags is `Hags (2)` and `Woman`. |
+| R13 | **The on-screen label follows the form.** A row shows the entry's public name (`displayName`) while alternate and its canonical name while true. Identity in combat tags stays the canonical name. This replaces today's rule that display labels do not track revelation (character.md) and is a contract change made with the build. |
 
 ## Blueprint fields (creatures and NPCs)
 
@@ -81,10 +82,5 @@ Silent failures to guard against:
 
 ## Open
 
-- **The label of a row in its alternate form.** R12's example names the alternate row `Woman`, and R4 says a switch never
-  changes the name. Recommended reading: the entry's identity in combat tags stays the canonical name, and the row's
-  on-screen label is the entry's public name (`displayName`) while it is in its alternate form and the canonical name
-  while it is in its true form. That makes the public label follow the form, which today it deliberately does not
-  (character.md: display labels do not track revelation), so it is a contract change to confirm before the build.
 - **A group that splits.** When one of `Hags (3)` changes form mid-fight, the GM must split the row (headcount and hit
   points divided). The split's tag grammar is part of step 2's review.
