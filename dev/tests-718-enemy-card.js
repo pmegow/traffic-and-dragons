@@ -25,7 +25,8 @@ const pic='data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD';
 worldState.bestiary=[{name:'Heron-Crested Pikeguard',kind:'swamp fey soldier',threat:'moderate',desc:'A long-limbed fey.',portrait:pic}];
 const heron={name:'Heron-Crested Pikeguard',hp:11,maxHp:18,count:3};
 showEnemyDetails(heron);
-assert.ok(html.indexOf("<img class='enemy-portrait' src='"+pic+"' alt='Heron-Crested Pikeguard (3)'>")>=0,'#741 the card draws the bestiary portrait');
+assert.ok(html.indexOf("<div class='enemy-portrait'><img src='"+pic+"' alt='Heron-Crested Pikeguard (3)'></div>")>=0,'#741 the card draws the bestiary portrait');
+assert.equal(html.indexOf('ALTERNATE'),-1,'#742 an undisguised creature\'s portrait carries no mark');
 assert.ok(html.indexOf('<img')<html.indexOf("<dl class='enemy-facts'>"),'#741 the portrait sits above the facts');
 console.log('PASS #741 the card draws the bestiary portrait');
 delete worldState.bestiary[0].portrait;showEnemyDetails(heron);
@@ -38,3 +39,16 @@ worldState.bestiary[0].portrait=pic;worldState.bestiary[0].displayName='Marsh Se
 assert.ok(html.indexOf("alt='Marsh Sentry (3)'")>=0,'#741 a disguised creature\'s image is labelled by its public name');
 assert.equal(html.indexOf('Heron-Crested'),-1,'#741 the canonical name stays off a disguised card');
 console.log('PASS #741 a disguised creature\'s image carries its public name');
+// #742 (owner 2026-11-13): a disguised creature shows its ALTERNATE portrait; until the blueprint carries one, the standard
+// portrait stands in with ALTERNATE across it — the true image never appears unmarked on a disguised card.
+assert.ok(html.indexOf("<img src='"+pic+"' alt='Marsh Sentry (3)'><span class='enemy-portrait-standin'>ALTERNATE</span></div>")>=0,'#742 a disguised creature without an alternate shows the standard portrait marked ALTERNATE');
+console.log('PASS #742 a disguised creature without an alternate shows the standard portrait marked ALTERNATE');
+const alt='data:image/jpeg;base64,/9j/ALTALTALTALTALTALT';
+worldState.bestiary[0].altPortrait=alt;showEnemyDetails(heron);
+assert.ok(html.indexOf("<img src='"+alt+"' alt='Marsh Sentry (3)'></div>")>=0,'#742 a disguised creature shows its alternate portrait');
+assert.equal(html.indexOf(pic),-1,'#742 the true portrait stays off a disguised card that has an alternate');
+assert.equal(html.indexOf('ALTERNATE'),-1,'#742 an alternate portrait carries no mark');
+console.log('PASS #742 a disguised creature shows its alternate portrait');
+delete worldState.bestiary[0].displayName;showEnemyDetails(heron);
+assert.ok(html.indexOf("<img src='"+pic+"'")>=0&&html.indexOf(alt)<0,'#742 an undisguised creature shows its standard portrait, never the alternate');
+console.log('PASS #742 an undisguised creature shows its standard portrait, never the alternate');

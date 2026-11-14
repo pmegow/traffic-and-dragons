@@ -112,9 +112,13 @@ function wireEnemyDetails(ordered){
   Array.prototype.forEach.call(rows.querySelectorAll(".cname.en"),function(el,i){var foe=ordered[i];el.setAttribute("role","button");el.tabIndex=0;el.setAttribute("aria-label","Details for "+creaturePublicName(foe.name));el.onclick=function(){showEnemyDetails(foe);};el.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showEnemyDetails(foe);}};});
 }
 function showEnemyDetails(foe){
-  var record=bestiaryRecord(foe.name),portrait=record&&record.portrait?safeImgSrc(record.portrait):"";/* #741: the creature's authored portrait; a source that is not an image is refused (and said) by safeImgSrc */
+  /* #741: the creature's authored portrait; a source that is not an image is refused (and said) by safeImgSrc. #742: a
+     disguised creature (a public name) shows its ALTERNATE portrait (`altPortrait`) — never the true one unmarked; until
+     the blueprint carries one, the standard portrait stands in with ALTERNATE across it (owner 2026-11-13). */
+  var record=bestiaryRecord(foe.name),disguised=!!(record&&typeof record.displayName==="string"&&record.displayName.trim());
+  var pic=record?(disguised&&record.altPortrait?record.altPortrait:record.portrait):"",standIn=disguised&&!record.altPortrait,portrait=pic?safeImgSrc(pic):"";
   var h="<h2 style='font-size:18px;color:var(--acc)'>"+escHtml(foeLabel(foe))+"</h2>";
-  if(portrait)h+="<img class='enemy-portrait' src='"+safeImgSrc(record.portrait)+"' alt='"+escHtml(foeLabel(foe))+"'>";
+  if(portrait)h+="<div class='enemy-portrait'><img src='"+safeImgSrc(pic)+"' alt='"+escHtml(foeLabel(foe))+"'>"+(standIn?"<span class='enemy-portrait-standin'>ALTERNATE</span>":"")+"</div>";
   h+="<dl class='enemy-facts'>";
   function row(label,v){if(v!==undefined&&v!==null&&v!=="")h+="<dt>"+escHtml(label)+"</dt><dd>"+escHtml(Array.isArray(v)?v.join(", "):String(v))+"</dd>";}
   row("HP",foe.hp+" / "+foe.maxHp);
