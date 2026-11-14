@@ -23,6 +23,7 @@ also a character who advances or changes state (Gandalf the Grey and the White; 
 | R7 | NPCs get the same pair as creatures. |
 | R8 | An existing disguised creature's single Description is **read as the alternate's**. The designer offers a one-click move; nothing changes silently. |
 | R9 | The starting form is a three-way choice per entry: **Starts as true**, **Starts as alternate**, **As serves the story**. The story is not limited by an arbitrary starting point. |
+| R11 | An individual whose entry is **As serves the story** shows **no portrait and no description** until the GM states its form. |
 | R10 | The form belongs to the **individual in play**, not to the bestiary entry. Three hags from one entry: the first lures the hero as a beautiful woman; the other two are women or hags as the story needs. |
 
 ## Blueprint fields (creatures and NPCs)
@@ -42,8 +43,8 @@ also a character who advances or changes state (Gandalf the Grey and the White; 
   bestiary stays campaign-constant, so the stable half of the prompt does not change when a form does.
 - **The tag.** `[FORM:<name>|true]` and `[FORM:<name>|alternate]`. The name is an NPC or a foe in the current combat.
   A foe introduced by `[COMBAT_START:]` takes its entry's `startsAs`; for `"story"` the GM states the form.
-- **Undeclared `"story"` form.** Recommended: the card shows no portrait and no description until the GM states the
-  form, and the engine says so on the console. Guessing either form risks a spoiler. *Not yet ruled.*
+- **Undeclared `"story"` form (R11).** The card shows no portrait and no description until the GM states the form, and
+  the engine says so on the console. Guessing either form risks a spoiler.
 - **What the GM is told.** That the entry has an alternate form, its appearance and the cue, beside the GM-only notes it
   already sees for that entry. The appearance the GM narrates is the current form's.
 - **What the player sees.** The enemy card and the NPC sheet show the current form's portrait and description. A missing
@@ -79,5 +80,4 @@ Silent failures to guard against:
 
 ## Open
 
-- The undeclared `"story"` default (recommendation above).
 - Whether a group foe ("Hags (3)") is one form for the group or needs one row per individual.
