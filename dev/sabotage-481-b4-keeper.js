@@ -24,7 +24,7 @@ prove("tag_table.js", [
     find: "\"LOCATION_HOURS\",\"SHOP_KEEPER\",\"LAYOUT\",", replace: "\"LOCATION_HOURS\",\"LAYOUT\",",
     mustFail: "the tag is stripped and engine-only" },
   { label: "the standing doc teaches the tag to every campaign (it leaves the engine-only tier)",
-    find: "\"COMPANION_ITEM_KEPT\",\"SHOP_KEEPER\"];", replace: "\"COMPANION_ITEM_KEPT\"];",
+    find: "\"COMPANION_ITEM_KEPT\",\"SHOP_KEEPER\",\"FORM\"];", replace: "\"COMPANION_ITEM_KEPT\",\"FORM\"];",
     mustFail: "the tag is stripped and engine-only" }
 ]);
 prove("helpers.js", [

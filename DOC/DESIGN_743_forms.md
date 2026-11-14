@@ -74,6 +74,22 @@ Silent failures to guard against:
 - A true portrait or true description reaching a card whose individual is in its alternate form.
 - `altWhen` or `altDesc` leaking into Table Talk or the companion-talk persona.
 
+## Step 2 review (2026-11-14, before code)
+
+What it touches: the tag vocabulary (one new tag), the strip regex, the bestiary line in the stable half, the combat line and one new block in the volatile half, and the engine's words for a foe.
+
+| Question | Decision | Why |
+|---|---|---|
+| Where is the tag taught? | Only where an alternate exists: the entry's bestiary line, the combat line, the characters' FORMS block. Engine-only in the standing list. | A campaign with no alternate keeps a byte-identical prompt and never emits a tag it has no use for. |
+| Who may a tag name? | A foe of the current fight by its row's own name, else a character by its own name or registered alias. Exact only. | A form filed on a look-alike is a silent spoiler; `combatFoeByName`'s containment fallback is deliberately not used. |
+| A target with no alternate? | Refused loudly. | There is nothing to switch to; accepting it would mark a true portrait ALTERNATE for no reason. |
+| How does a group split? | By the grammar that exists: `[COMBAT_GROUP:]` lowers the one row, `[COMBAT_START:]` under the public name starts the other, which is alternate by its name. | Two rows need two tag names; the entry's public name is already a second exact name for it (`bestiaryRecord`). No new tag, no HP arithmetic by the engine. |
+| Where does a form live? | On the foe row or the roster row. | The bestiary is the stable half: a form written there would rewrite the cached prefix at every switch. Tested: a switch leaves the stable half byte-identical. |
+| An unstated as-serves-the-story foe? | The combat line asks for its form every turn until the GM files it. | The #612 headcount channel: an ask in the live state line is acted on; a standing rule is not. |
+| The label pin ("keep the public label throughout the encounter")? | Retired for entries with a public name (R13). | The label now follows the form; the sentence would contradict the tag. This changes the stable half of a campaign that has a disguised creature, once. |
+
+Verified after: 27 tests (failing first), 39 sabotage clauses, the frozen strip literal re-frozen on a diff of exactly one added name, the GM prompt byte-identical on six real saves (none has a disguise), the four replay baselines.
+
 ## Suggested build order
 
 1. Engine read side: `startsAs`, `altDesc`, per-individual form, the card and sheet (display only where possible).
@@ -82,5 +98,4 @@ Silent failures to guard against:
 
 ## Open
 
-- **A group that splits.** When one of `Hags (3)` changes form mid-fight, the GM must split the row (headcount and hit
-  points divided). The split's tag grammar is part of step 2's review.
+- Nothing. (A group that splits needed no new tag: see the step 2 review.)

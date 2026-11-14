@@ -3520,7 +3520,13 @@ function bestiaryRecord(name){
   }
   return match;
 }
-function creaturePublicName(name){var c=bestiaryRecord(name);return c&&typeof c.displayName==="string"&&c.displayName.trim()?c.displayName.trim():String(name||"");}
+/* #743 (R13): the name the engine may SAY for a foe follows that foe's form — the live row of the current fight when one
+   bears the name, else the entry's starting form (a disguise: its public name; a true-starting entry: its own). */
+function creaturePublicName(name){
+  var f=(typeof worldState!=="undefined"&&worldState&&worldState.combat&&worldState.combat.foes)||[],t=String(name||"").toLowerCase(),i;
+  for(i=0;i<f.length;i++)if(f[i]&&String(f[i].name).toLowerCase()===t)return foePublicName(f[i]);
+  return foePublicName({name:name});
+}
 // The public label is not a reveal state. Opening an act permits encounters, never unmasks them.
 function foeLabel(foe,canonical){return (canonical?String(foe&&foe.name||""):foePublicName(foe))+(foe&&typeof foe.count==="number"?" ("+foe.count+")":"");}
 /* #743 TWO FORMS (design: DOC/DESIGN_743_forms.md). A creature or NPC has a TRUE form (`portrait`, `desc`) and may have an
@@ -3562,6 +3568,10 @@ function foePublicName(foe){
   if(!pub)return own;
   return formOf(foe,rec)==="true"?String(rec.name):pub;
 }
+/* Does this entry (a bestiary record or a roster row) have an authored alternate? A public name is one (the pre-#743
+   disguise); a starting form of true alone is not. */
+function formHasAlternate(rec){return !!(rec&&(rec.altDesc||rec.altPortrait||(typeof rec.displayName==="string"&&rec.displayName.trim())||rec.startsAs==="alternate"||rec.startsAs==="story"));}
+function formSentence(text){var s=String(text||"").trim();return s?s+(/[.!?]$/.test(s)?"":"."):"";}
 /* An NPC's forms ride its roster row: `desc`, `altPortrait`, `altDesc`, `startsAs`, `form`; the true image is the sheet's
    or the row's (npcPortrait). */
 function npcFormView(n){

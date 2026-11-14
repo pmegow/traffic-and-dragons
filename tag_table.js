@@ -69,7 +69,7 @@ function combatBossFoes(){
     if(mh>=ratio*pm||(named&&mh>=pm))out.push(f);}
   return out;
 }
-var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","ITEM_RENAMED","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","COMBAT_GROUP","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_CHECK","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","WARES","WANTED","DOWNED_RESOLVED","DEATH_ANSWER","WHISPER","LOCATION_HOURS","SHOP_KEEPER","LAYOUT","EXIT","SUGGEST","CHECK","COMPANION_AGENDA","COMPANION_AGENDA_DONE","COMPANION_AGENDA_BEAT","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_ITEM_RENAMED","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_SKILL_SUCCESS","COMPANION_GROWTH","COMPANION_INITIATIVE","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","NO_CHANGE","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED","WORN","EQUIPPED","OUTFIT","SOUNDSCAPE","MAP_PLACE","MAP_REVEAL"];/* #599 (d): EQUIPPED is the taught spelling, WORN its permanent alias — both stripped *//* #388: attire tags join the strip vocabulary. #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
+var TAG_STRIP_NAMES=["HP","GOLD","ITEM_GAINED","ITEM_LOST","ITEM_KEPT","ITEM_RENAMED","LOCATION","NPC","XP","QUEST_STEP","QUEST","DICE","COMBAT_START","COMBAT_END","COMBAT_ROUND","ENEMY_HP","ENEMY_SLAIN","ENEMY_SURRENDERS","ABILITY_GAINED","ALIGNMENT","LORE","DECISION","FUTURE_EVENT_RESOLVED","FUTURE_EVENT","NPC_NOTE","NPC_FORGET","NPC_SUPERSEDE","NPC_PRONOUN","SPELL_USED","SPELL_DEF","ITEM_DEF","MANA","SKILL_SUCCESS","CONDITION","CONDITION_REMOVED","RELATIONSHIP","RELATIONSHIP_REMOVED","RELATIONSHIP_BOND","RELATIONSHIP_BOND_REMOVED","RELATIONSHIP_DYNAMIC","RELATIONSHIP_DYNAMIC_REMOVED","RELATIONSHIP_PAIR_REMOVED","SAVE_MOD","SAVE_MOD_REMOVED","LANGUAGE","STORY_BEAT","CORE_MEMORY","PARTY_MEMBER","PARTY_SPLIT","COMBAT_STATS","COMBAT_IMMUNE","COMBAT_RESIST","COMBAT_VULN","COMBAT_GROUP","FORM","LOCATION_DESC","LOCATION_SIZE","SUBLOCATION","TIME","TIME_CHECK","TIME_ADVANCE","SCHEDULE","SCHEDULE_RESOLVED","SCHEDULE_CANCEL","WEATHER","REST","LOCATION_ITEM","LOCATION_STATE","LOCATION_RESIDENT","WARES","WANTED","DOWNED_RESOLVED","DEATH_ANSWER","WHISPER","LOCATION_HOURS","SHOP_KEEPER","LAYOUT","EXIT","SUGGEST","CHECK","COMPANION_AGENDA","COMPANION_AGENDA_DONE","COMPANION_AGENDA_BEAT","NPC_ALIAS","NPC_MERGE","NPC_LINK","FACTION","NPC_FACTION","FACTION_REL","COMPANION_HP","COMPANION_ITEM_GAINED","COMPANION_ITEM_LOST","COMPANION_ITEM_KEPT","COMPANION_ITEM_RENAMED","COMPANION_SPELL_USED","COMPANION_MANA","COMPANION_XP","COMPANION_SKILL_SUCCESS","COMPANION_GROWTH","COMPANION_INITIATIVE","COMPANION_CONDITION","COMPANION_CONDITION_REMOVED","COMPANION_RELATIONSHIP","COMPANION_RELATIONSHIP_REMOVED","COMPANION_RELATIONSHIP_BOND","COMPANION_RELATIONSHIP_BOND_REMOVED","COMPANION_RELATIONSHIP_DYNAMIC","COMPANION_RELATIONSHIP_DYNAMIC_REMOVED","COMPANION_RELATIONSHIP_PAIR_REMOVED","COMPANION_ABILITY","COMPANION_ALIGNMENT","NO_CHANGE","ARC_COMPLETE","ARC_CONTINUE","ACT_COMPLETE","SAY","ACTIONS","RETCON","ALIAS","MERGE","SCENE_CAST","NPC_DEATH_REPORTED","WORN","EQUIPPED","OUTFIT","SOUNDSCAPE","MAP_PLACE","MAP_REVEAL"];/* #599 (d): EQUIPPED is the taught spelling, WORN its permanent alias — both stripped *//* #388: attire tags join the strip vocabulary. #168 W7: explicit relationship axes coexist with compatibility-only legacy tags; all remain invisible to prose. #194: SCENE_CAST + NPC_DEATH_REPORTED join the vocabulary. */
 var TAG_STRIP_BARE=["ENEMY_SURRENDERS","ENEMY_SLAIN","SUBLOCATION_LEAVE","NO_CHANGE"];/* bare ENEMY_SLAIN is UNSUPPORTED (warn, no-op) but must still strip — an unstripped bare tag leaks to the story. #211: bare [NO_CHANGE] is the audit ack's minimal form */
 // Stripped/known names that DELIBERATELY have no applyMuts handler — each with its reason.
 // DICE: display-only, rendered by diceTxt. ACTIONS: legacy pre-v1.110 format, replay-only.
@@ -166,6 +166,7 @@ var TAG_DOC_LINES=[
 "[COMBAT_START:name|hp|ac|atkbonus|dmgdie|morale] -- emitting it DURING an active fight adds ANOTHER enemy to the same encounter (one tag per distinct foe; a faceless group can be one pooled entry like 'Goblin pack'). [ENEMY_HP:-X] or [ENEMY_HP:Name|-X] -- use the named form whenever more than one enemy is up. [ENEMY_SLAIN:Name] -- when your narration kills a foe OUTRIGHT (stealth kill, execution, coup de grace, environmental death), assert it with this tag; the engine zeroes them. Never invent a damage number to 'cover' a narrated kill -- [ENEMY_HP:] is for dice damage, which may leave the foe standing; a foe the engine still shows alive whom your prose declared dead is a desync. [COMBAT_ROUND:N] [COMBAT_END:victory/defeat/fled]\n",
 "[COMBAT_STATS:STR:N|DEX:N|CON:N|INT:N|WIS:N|CHA:N|CR:N] -- always emit alongside COMBAT_START; use official D&D stats\n",
 "[COMBAT_GROUP:N] or [COMBAT_GROUP:Name|N] -- for a pooled group (a pack, a gang, a swarm, 'eight things in harness'): how many are up RIGHT NOW. Emit it with COMBAT_START and again whenever the number changes (two fall: [COMBAT_GROUP:Blight Husk Pack|6]); the engine shows the count beside the name and never guesses it from HP\n",/* #612 */
+"[FORM:Name|true] or [FORM:Name|alternate] -- the named foe or character is now in that form; taught by the entry that has an alternate, never in this standing list\n",/* #743 (engine-only line) */
 "[COMBAT_IMMUNE:fire,poison] [COMBAT_RESIST:cold,lightning] [COMBAT_VULN:thunder] -- omit entirely if none; comma-separated damage types only\n",
 "CLOSE EVERY FIGHT: emit [COMBAT_END:...] the moment combat ends by ANY means -- not only a kill. Use [COMBAT_END:fled] when the enemy breaks off or is driven away, [COMBAT_END:truce] on a parley/surrender, [COMBAT_END:disengaged] when the party leaves the fight. A fight left unclosed sits stale in the tracker.\n",
 "[ENEMY_SURRENDERS] (all remaining enemies yield) or [ENEMY_SURRENDERS:Name] (one enemy yields) -- the fight ends for that foe but they LIVE; when a surrendered foe is a speaking character, register them with [NPC:name|status|relation] in the same response so they enter the world properly\n",
@@ -224,7 +225,7 @@ var TAG_DOC_LINES=[
 // carries the syntax (contract-pinned in run-tests: every name here appears inside a builder's text).
 // They stay in TAG_TABLE: parsed, stripped, documented at ask time. Measured: 1,187 chars off the cached
 // half — small money, zero attention cost, and the standing vocabulary reads as what the GM may do unasked.
-var TAG_DOC_ENGINE_ONLY=["MAP_REVEAL","MAP_PLACE","SOUNDSCAPE","NPC_SUPERSEDE","NPC_MERGE","ALIAS","MERGE","ITEM_RENAMED","COMPANION_ITEM_RENAMED","WHISPER","LAYOUT","EXIT","DEATH_ANSWER","ITEM_KEPT","COMPANION_ITEM_KEPT","SHOP_KEEPER"];/* #481 B4: taught by buildKeeperNote (api.js) *//* audit A13: the three note-taught tags that sat outside the #311 phantom check *//* #415: EXIT is taught by the geo block's standing volatile line — a door is filed at narration time, not on request *//* #408: taught by buildLayoutNote where a record is wanted; the standing doc stays byte-identical */
+var TAG_DOC_ENGINE_ONLY=["MAP_REVEAL","MAP_PLACE","SOUNDSCAPE","NPC_SUPERSEDE","NPC_MERGE","ALIAS","MERGE","ITEM_RENAMED","COMPANION_ITEM_RENAMED","WHISPER","LAYOUT","EXIT","DEATH_ANSWER","ITEM_KEPT","COMPANION_ITEM_KEPT","SHOP_KEEPER","FORM"];/* #743: taught by each entry that has an alternate (the bestiary's FORMS note, the NPC FORMS block, the combat line) — a campaign without one never hears of it *//* #481 B4: taught by buildKeeperNote (api.js) *//* audit A13: the three note-taught tags that sat outside the #311 phantom check *//* #415: EXIT is taught by the geo block's standing volatile line — a door is filed at narration time, not on request *//* #408: taught by buildLayoutNote where a record is wanted; the standing doc stays byte-identical */
 function _docLineEngineOnly(line){
   var m,re=/\[([A-Z][A-Z_]+)(?=[:\]|])/g,names=[];
   while((m=re.exec(line)))if(names.indexOf(m[1])<0)names.push(m[1]);
@@ -292,6 +293,16 @@ function _foeQueryNames(q,fn){
   if(/[a-z0-9]/.test(before)||/[a-z0-9]/.test(after))return false;/* word boundaries: "thenolan" / "grimtidex" are not him */
   if(after==="'"||after==="\u2019")return false;/* the possessive: "nolan grimtide's raider" is someone else */
   return true;
+}
+/* #743: who a [FORM:] names — {individual, rec, foe} or null. A foe of the current fight by its row's own name (exact, case
+   folded; never combatFoeByName's containment fallback), else a roster character by its own name or a registered alias.
+   Either must have an authored alternate (formHasAlternate); anything else is null and the tag is refused. */
+function formTarget(nm){
+  var t=String(nm||"").toLowerCase().trim(),f=(worldState.combat&&worldState.combat.foes)||[],i,rec;
+  if(!t)return null;
+  for(i=0;i<f.length;i++)if(String(f[i].name).toLowerCase()===t){rec=bestiaryRecord(f[i].name);return rec&&formHasAlternate(rec)?{individual:f[i],rec:rec,foe:true}:null;}
+  var key=(typeof npcExactKey==="function"&&npcExactKey(nm.trim(),1))||(typeof identitySheetAliasKey==="function"&&identitySheetAliasKey(nm.trim()))||nm.trim(),n=wsNpcByName(key);
+  return n&&formHasAlternate(n)?{individual:n,rec:n,foe:false}:null;
 }
 function combatFoeByName(nm){
   var f=(worldState.combat&&worldState.combat.foes)||[],i,t=String(nm||"").toLowerCase().trim();
@@ -1144,6 +1155,7 @@ var TAG_TABLE=[
   for(csi=0;csi<csTags.length;csi++){
     var cs2=csTags[csi].match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|]+)\|([^\]]+)\]/);if(!cs2)continue;
     var foe={name:cs2[1].trim(),hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5].trim(),morale:cs2[6].trim()};
+    var _fRec=(typeof bestiaryRecord==="function")?bestiaryRecord(foe.name):null;if(_fRec&&String(_fRec.name).toLowerCase()!==foe.name.toLowerCase())foe.form="alternate";/* #743: a foe started under its entry's PUBLIC name is that entry in its alternate form */
     /* #266 (Fable f30): a living PARTY MEMBER entering the ENEMY tracker is the moment ordinary
        damage tags become able to stamp a companion durably dead against a healthy sheet — and it
        was silent. Warn-only by design: a betrayal scene is legal fiction; the anomaly just may
@@ -1190,6 +1202,23 @@ combatAttrEntry("COMBAT_VULN","vuln"),
     var foe=nm?combatFoeByName(nm):combatAttrFoe(starts,m.index);
     if(!foe){R.muts.push("\u26a0 COMBAT_GROUP refused \u2014 no foe named \""+creaturePublicName(nm)+"\" in this fight");continue;}
     foe.count=parseInt(ns,10);R.muts.push("Group: "+creaturePublicName(foe.name)+" \u00d7"+foe.count);}}},
+/* #743 TWO FORMS (design: DOC/DESIGN_743_forms.md, R5/R6/R10): [FORM:Name|true] and [FORM:Name|alternate] set the form of ONE
+   individual in play — a foe of the current fight by its row's own tag name, else a character by its own name or registered
+   alias (formTarget: EXACT names only — a form is never filed on a look-alike). The target must have an authored alternate.
+   An unknown form, an unknown target and a target with no alternate are refused LOUDLY and move nothing; a form already
+   showing says nothing. The row's identity never changes: only what the player is shown (formView) and the label
+   (foePublicName). Runs after COMBAT_START in the table, so a foe started and formed in one reply is found. Not nc: a
+   character changes form outside a fight. */
+{t:"FORM",apply:function(text,R){
+  var re=/\[FORM:([^\]]*)\]/g,m;
+  while((m=re.exec(text))){
+    var body=m[1],bar=body.lastIndexOf("|"),nm=(bar>=0?body.slice(0,bar):body).trim(),raw=bar>=0?body.slice(bar+1).trim():"",want=raw.toLowerCase();
+    if(want!=="true"&&want!=="alternate"){R.muts.push("\u26a0 FORM refused \u2014 the form is true or alternate, got \""+raw+"\"");continue;}
+    var target=formTarget(nm);
+    if(!target){R.muts.push("\u26a0 FORM refused \u2014 \""+creaturePublicName(nm)+"\" is not a foe in this fight or a character with an alternate form (exact names only)");continue;}
+    var was=formOf(target.individual,target.rec);target.individual.form=want;
+    if(was!==want)R.muts.push("Form: "+(target.foe?foePublicName(target.individual):target.individual.name)+" \u2192 "+want);
+  }}},
 // UA26: g-loop + named addressing (legacy matched only the first bare tag; the 12 named
 // [ENEMY_HP:Kresh|-6] forms in the Haiku window were silently DROPPED). Bare form routes to the
 // single living foe, else the ENGAGED foe, else first-living + warn — the mutation always lands

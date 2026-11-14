@@ -24,7 +24,7 @@ code |= sabotage.prove({ file: "tag_table.js", command: CMD, cases: [
     find: "    foe.count=parseInt(ns,10);R.muts.push(\"Group: \"+creaturePublicName(foe.name)+\" \\u00d7\"+foe.count);}}},", replace: "    foe.count=parseInt(ns,10);}}},",
     mustFail: T },
   { label: "the tag leaves the strip vocabulary: the count leaks into the story",
-    find: "\"COMBAT_VULN\",\"COMBAT_GROUP\",\"LOCATION_DESC\"", replace: "\"COMBAT_VULN\",\"LOCATION_DESC\"",
+    find: "\"COMBAT_VULN\",\"COMBAT_GROUP\",\"FORM\"", replace: "\"COMBAT_VULN\",\"FORM\"",
     mustFail: T },
   { label: "the doc line is gone: the GM is never taught the tag",
     find: "\"[COMBAT_GROUP:N] or [COMBAT_GROUP:Name|N] -- for a pooled group", replace: "\"[COMBAT_GROUP_X:N] or [COMBAT_GROUP:Name|N] -- for a pooled group",

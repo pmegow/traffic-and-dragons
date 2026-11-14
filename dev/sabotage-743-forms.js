@@ -74,7 +74,75 @@ var doors = [
     find: "    NPC_FORM_FIELDS.forEach(function(k){if(n[k]!==undefined)npcs[npcs.length-1][k]=n[k];});",
     replace: "", mustFail: P + "a campaign exported back to a blueprint keeps both forms" }
 ];
-var failed = sabotage.prove({ file: "helpers.js", command: CMD, only: P, cases: helpers });
+// ── step 2: the [FORM:] tag and what the GM is told ──
+var T_FOE = P + "[FORM:] switches a foe either way, and the label and the engine's own words follow";
+var T_REF = P + "[FORM:] is refused loudly: an unknown form, an unknown target, a look-alike, a target with no alternate";
+var T_STRIP = P + "the tag never reaches the story, and the standing tag list is unchanged";
+var T_GM = P + "the GM is told a creature's forms, its cue and the tag — only where an alternate exists";
+var T_LINE = P + "the combat line states each foe's form and asks for an unstated one every turn";
+var tag = [
+  { label: "a form is filed on a look-alike foe (a name that only contains the tag's)",
+    find: "if(String(f[i].name).toLowerCase()===t){rec=bestiaryRecord(f[i].name);",
+    replace: "if(String(f[i].name).toLowerCase().indexOf(t)>=0){rec=bestiaryRecord(f[i].name);", mustFail: T_REF },
+  { label: "a foe with no alternate takes a form",
+    find: "return rec&&formHasAlternate(rec)?{individual:f[i],rec:rec,foe:true}:null;",
+    replace: "return rec?{individual:f[i],rec:rec,foe:true}:null;", mustFail: T_REF },
+  { label: "a character with no alternate takes a form",
+    find: "return n&&formHasAlternate(n)?{individual:n,rec:n,foe:false}:null;",
+    replace: "return n?{individual:n,rec:n,foe:false}:null;", mustFail: T_REF },
+  { label: "an unknown form is accepted",
+    find: "if(want!==\"true\"&&want!==\"alternate\"){",
+    replace: "if(0){", mustFail: T_REF },
+  { label: "the tag is parsed and changes nothing",
+    find: "var was=formOf(target.individual,target.rec);target.individual.form=want;",
+    replace: "var was=formOf(target.individual,target.rec);", mustFail: T_FOE },
+  { label: "a form change is silent",
+    find: "if(was!==want)R.muts.push(\"Form: \"",
+    replace: "if(0)R.muts.push(\"Form: \"", mustFail: T_FOE },
+  { label: "a form already showing is announced again",
+    find: "if(was!==want)R.muts.push(\"Form: \"",
+    replace: "if(1)R.muts.push(\"Form: \"", mustFail: T_FOE },
+  { label: "a foe started under the public name is not in its alternate form",
+    find: "foe.form=\"alternate\";/* #743: a foe started",
+    replace: ";/* #743: a foe started", mustFail: P + "a foe started under the public name is in its alternate form, and a group splits into rows" },
+  { label: "the tag leaves the strip vocabulary: it leaks into the story",
+    find: "\"COMBAT_GROUP\",\"FORM\",\"LOCATION_DESC\"",
+    replace: "\"COMBAT_GROUP\",\"LOCATION_DESC\"", mustFail: T_STRIP },
+  { label: "the tag leaves the engine-only tier: the standing list teaches it to every campaign",
+    find: "\"SHOP_KEEPER\",\"FORM\"];",
+    replace: "\"SHOP_KEEPER\"];", mustFail: T_STRIP }
+];
+var prompt = [
+  { label: "the bestiary no longer tells the GM about the forms",
+    find: "        if(formHasAlternate(_bc))_detail+=formGmNote(_bc);",
+    replace: "", mustFail: T_GM },
+  { label: "the label is pinned for the whole encounter again",
+    find: " It is the label while the creature is in its alternate form.\";",
+    replace: " Keep the public label throughout the encounter, even if its nature is exposed.\";", mustFail: T_GM },
+  { label: "the characters' block lists characters with no alternate",
+    find: "if(!n||n.dead||!formHasAlternate(n))continue;",
+    replace: "if(!n||n.dead)continue;", mustFail: T_GM },
+  { label: "the combat line no longer states the form",
+    find: "with how many are up\":\"\")+foeFormLine(cf));}",
+    replace: "with how many are up\":\"\"));}", mustFail: T_LINE },
+  { label: "an unstated form is not asked for",
+    find: "(formOf(foe,rec)||\"unstated \\u2014 emit \"+formTagPair(foe.name));",
+    replace: "(formOf(foe,rec)||\"unstated\");", mustFail: T_LINE },
+  { label: "a foe with no alternate gets a form clause (the line is no longer byte-identical)",
+    find: "var rec=bestiaryRecord(foe&&foe.name);if(!rec||!formHasAlternate(rec))return \"\";",
+    replace: "var rec=bestiaryRecord(foe&&foe.name);if(!rec)return \"\";", mustFail: T_LINE },
+  { label: "the GM is no longer told a character's forms",
+    find: "    +buildNpcFormsBlock()/* #743",
+    replace: "    +\"\"/* #743", mustFail: P + "the GM is told an NPC's forms in the volatile half" }
+];
+var words = [
+  { label: "the engine's words ignore the live foe's form",
+    find: "  for(i=0;i<f.length;i++)if(f[i]&&String(f[i].name).toLowerCase()===t)return foePublicName(f[i]);\n",
+    replace: "", mustFail: T_FOE }
+];
+var failed = sabotage.prove({ file: "helpers.js", command: CMD, only: P, cases: helpers.concat(words) });
+if (!failed) failed = sabotage.prove({ file: "tag_table.js", command: CMD, only: P, cases: tag });
+if (!failed) failed = sabotage.prove({ file: "api.js", command: CMD, only: P, cases: prompt });
 if (!failed) failed = sabotage.prove({ file: "ui-mobile.js", command: CMD, only: P, cases: card });
 if (!failed) failed = sabotage.prove({ file: "game.js", command: CMD, only: P, cases: doors });
 process.exit(failed ? 1 : 0);

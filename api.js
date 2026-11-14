@@ -2475,6 +2475,33 @@ function buildEngineNotes(){
   if(txt.length>NOTE_CHAR_BUDGET||names.length>NOTE_DELIVERY_CAP)_notesBuilt.overBudget=true;
   return txt;
 }
+/* #743: the tag pair as the GM is taught it — every note that teaches [FORM:] builds it here. */
+function formTagPair(name){return "[FORM:"+name+"|true] or [FORM:"+name+"|alternate]";}
+/* What the GM is told about a CREATURE entry's forms — appended to its bestiary line (stable half: authored, never live
+   state). GM-only: the cue and the other form's look never reach a player surface. */
+function formGmNote(rec){
+  var st=formStart(rec),mask=!!(typeof rec.displayName==="string"&&rec.displayName.trim()&&!rec.altDesc),tags=formTagPair(rec.name);
+  return " | FORMS: it has a TRUE form and an ALTERNATE form"
+    +(rec.altDesc?" (the appearance above is the true form's; alternate appearance: "+formSentence(rec.altDesc).replace(/[.!?]$/,"")+")":mask&&rec.desc?" (the appearance above is the alternate's \u2014 the mask)":"")
+    +". Each individual holds its own form and starts "+(st==="story"?"as serves the story \u2014 state it with "+tags+" when the individual appears":"in its "+st+" form")+"."
+    +(rec.altWhen?" Cue: "+formSentence(rec.altWhen):"")
+    +" Emit "+tags+" the moment an individual changes form; the player's card shows only the current form. A group shares one form \u2014 give individuals in the other form their own [COMBAT_START:] entry"+(mask||rec.displayName?" (started under the public name, an entry is in its alternate form)":"")+".";
+}
+/* The combat line's form clause for one foe: "" when its entry has no alternate (the line is byte-identical), else the
+   form showing — and, while unstated, the ask (every turn until the GM files it, like the #612 headcount). */
+function foeFormLine(foe){
+  var rec=bestiaryRecord(foe&&foe.name);if(!rec||!formHasAlternate(rec))return "";
+  return " | Form: "+(formOf(foe,rec)||"unstated \u2014 emit "+formTagPair(foe.name));
+}
+/* #743: the roster characters that have an authored alternate form — which form each is in NOW, both looks, the cue and
+   the tag. GM-only and live (a form changes in play), so the VOLATILE half; "" when no character has one, so a campaign
+   without forms is byte-identical. The dead are left out. */
+function buildNpcFormsBlock(){
+  var rows=(worldState&&worldState.npcs)||[],out=[],i,n;
+  for(i=0;i<rows.length;i++){n=rows[i];if(!n||n.dead||!formHasAlternate(n))continue;
+    out.push("\u2022 "+n.name+" \u2014 now in the "+(formOf(n,n)||"unstated")+" form."+(n.desc?" True appearance: "+formSentence(n.desc):"")+(n.altDesc?" Alternate appearance: "+formSentence(n.altDesc):"")+(n.altWhen?" Cue: "+formSentence(n.altWhen):"")+" Emit "+formTagPair(n.name)+" the moment they change.");}
+  return out.length?"FORMS (GM-only \u2014 these characters have a true form and an alternate; the player's sheet shows only the current one, so never describe the other as seen until they change):\n"+out.join("\n")+"\n\n":"";
+}
 function buildSysPrompt(){
   healEndingMoments(worldState,memory);
   if(typeof sceneRefsEnsure==="function")sceneRefsEnsure();/* #168: gameplay activates referential protection before the response that may need it */
@@ -2665,7 +2692,7 @@ function buildSysPrompt(){
       if(cf.down||cf.hp<=0){cbDown.push(cf.name+" ("+(cf.down||"slain")+")");continue;}
       var cbStats="";if(cf.stats)cbStats=" | STR:"+cf.stats.STR+" DEX:"+cf.stats.DEX+" CON:"+cf.stats.CON+" INT:"+cf.stats.INT+" WIS:"+cf.stats.WIS+" CHA:"+cf.stats.CHA+" CR:"+cf.stats.CR;
       var cbDmgMod="";if(cf.immune&&cf.immune.length)cbDmgMod+=" | Immune:"+cf.immune.join(",");if(cf.resist&&cf.resist.length)cbDmgMod+=" | Resist:"+cf.resist.join(",");if(cf.vuln&&cf.vuln.length)cbDmgMod+=" | Vuln:"+cf.vuln.join(",");
-      cbLines.push("Enemy: "+foeLabel(cf,true)+(creaturePublicName(cf.name)!==cf.name?" | Public name: "+creaturePublicName(cf.name):"")+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod+(foeGroupUnrecorded(cf)?" | Headcount: unrecorded \u2014 emit [COMBAT_GROUP:"+cf.name+"|N] with how many are up":""));}/* #612: an unrecorded pack is asked, every turn, until it files */
+      cbLines.push("Enemy: "+foeLabel(cf,true)+(creaturePublicName(cf.name)!==cf.name?" | Public name: "+creaturePublicName(cf.name):"")+(cm.engaged===cf.name?" [ENGAGED with the player]":"")+" HP:"+cf.hp+"/"+cf.maxHp+" AC:"+cf.ac+" Atk:+"+cf.atk+" Dmg:"+cf.dmg+" Morale:"+cf.morale+cbStats+cbDmgMod+(foeGroupUnrecorded(cf)?" | Headcount: unrecorded \u2014 emit [COMBAT_GROUP:"+cf.name+"|N] with how many are up":"")+foeFormLine(cf));}/* #743: the foe's form, asked while unstated *//* #612: an unrecorded pack is asked, every turn, until it files */
     cb="COMBAT ACTIVE (Round "+cm.round+(cfs.length>1?"; "+cfs.length+" foes — use [ENEMY_HP:Name|-X] to address each":"")+"):\n"+cbLines.join("\n")+(cbDown.length?"\nOut of the fight: "+cbDown.join(", "):"")+"\n\n";}
   var hist=worldState.eventHistory.length?"STORY SO FAR:\n"+worldState.eventHistory.join("\n")+"\n\n":"";
   var erasBlock=buildErasBlock();/* #148 Phase 2 — the always-on spine ABOVE the recent-chapter window; "" until the first era compiles */
@@ -2738,10 +2765,11 @@ function buildSysPrompt(){
       if(_bc.kind)_bm.push(_bc.kind);
       if(_bc.threat)_bm.push("threat: "+_bc.threat);
       if(_bc.environment)_bm.push("Environment: "+_bc.environment);
-      var _public=!!(_bc.desc||_bc.displayName||_bc.revealAct!==undefined||_bc.availableActs!==undefined),_detail="";
+      var _public=!!(_bc.desc||_bc.displayName||_bc.revealAct!==undefined||_bc.availableActs!==undefined||formHasAlternate(_bc)),_detail="";
       if(_public){
-        if(_bc.displayName)_detail+=" | Public name: "+_bc.displayName+". Use this name on screen; keep "+_bc.name+" as the identity in combat tags. Keep the public label throughout the encounter, even if its nature is exposed.";
+        if(_bc.displayName)_detail+=" | Public name: "+_bc.displayName+". Use this name on screen; keep "+_bc.name+" as the identity in combat tags. It is the label while the creature is in its alternate form.";/* #743 (R13): the label follows the form; the pin for the whole encounter is retired */
         if(_bc.desc)_detail+=" | Appearance: "+_bc.desc;
+        if(formHasAlternate(_bc))_detail+=formGmNote(_bc);/* #743: the forms, the cue and the tag — authored, so the stable half; a form CHANGE lives on the foe row */
         if(_bc.notes)_detail+=" | GM-only: "+_bc.notes;
         _detail+=" | Narrate only what the hero perceives; concealed identity and nature require discovery in the fiction.";
       }else _detail=_bc.notes?" — "+_bc.notes:"";
@@ -2837,6 +2865,7 @@ function buildSysPrompt(){
     +buildGeoBlock()
     +((typeof atlasMapBlock==="function")?atlasMapBlock():"")/* #684: what the drawn map says — volatile only, ""-clean without an atlas; beside GEOGRAPHY, never inside buildGeoBlock (Table Talk reuses that, and a dungeon's digest names chambers the player's sheet keeps fogged) */
     +buildClockBlock()/* #73: campaign clock + computed deadline countdowns — volatile only (a per-turn counter must never touch the cached stable half) */
+    +buildNpcFormsBlock()/* #743: characters with an alternate form — live state, volatile only */
     +cb+erasBlock+hist
     +buildCoreMemoryBlock()
     +buildWhispersBlock()/* #317: hearsay, volatile, ""-clean when nothing has been whispered */

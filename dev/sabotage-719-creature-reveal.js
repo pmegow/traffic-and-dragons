@@ -11,7 +11,7 @@ rc|=sabotage.prove({file:'memory.js',command:cmd,cases:[
  {label:'invalid act gate fails open',find:'console.warn("[bestiary] "+c.name+": withheld — revealAct does not name a valid skeleton act");return false;',replace:'return true;',mustFail:'#719 invalid supplied gates fail closed'}
 ]});
 rc|=sabotage.prove({file:'helpers.js',command:cmd,cases:[
- {label:'public name replaced by hidden identity',find:'c.displayName.trim():String(name||"")',replace:'String(name||""):String(name||"")',mustFail:'#719 public labels never replace canonical combat identity'},
+ {label:'public name replaced by hidden identity',find:'return formOf(foe,rec)==="true"?String(rec.name):pub;',replace:'return own;',mustFail:'#719 public labels never replace canonical combat identity'},
  {label:'alias lookup takes an ambiguous first match',find:'if(match){console.warn("[bestiary] ambiguous public name: "+name);return null;}',replace:'if(match)return match;',mustFail:'#719 exact lookup refuses ambiguous public names'}
 ]});
 rc|=sabotage.prove({file:'tag_table.js',command:cmd,cases:[

@@ -5,6 +5,7 @@ const assert = require('assert/strict'), fs = require('fs'), path = require('pat
 const engine = require('./load-engine.js'); engine.loadEngine('game.js');
 const only = process.argv.indexOf('--only') >= 0 ? process.argv[process.argv.indexOf('--only') + 1] : null;
 let count = 0, failed = 0;
+global.syncUI = function () {}; global.saveAll = global.saveAll || function () {};
 function test(name, fn) {
   if (only && name !== only) return;
   try { fn(); count++; console.log('PASS #743 ' + name); } catch (e) { failed++; console.error('FAIL #743 ' + name + ': ' + e.message); }
@@ -165,6 +166,119 @@ test('no portrait bytes reach the GM prompt', () => {
   const prompt = buildSysPrompt();
   const text = typeof prompt === 'string' ? prompt : JSON.stringify(prompt);
   [TRUE_PIC, ALT_PIC, '/9j/'].forEach(s => assert.equal(text.indexOf(s), -1, s));
+});
+
+// ── step 2: the [FORM:] tag and what the GM is told ─────────────────────────────────────────────────────────────────────
+function muts(text) { return applyMuts(text).muts; }
+function start(tag) { return muts(tag); }
+const NPC_ALT = { desc: 'NPC_TRUE', altDesc: 'NPC_ALT', altWhen: 'NPC_WHEN', portrait: TRUE_PIC, altPortrait: ALT_PIC };
+
+test('[FORM:] switches a foe either way, and the label and the engine\'s own words follow', () => {
+  fresh(blueprint(hag({ startsAs: 'story' })));
+  start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold]');
+  const foe = worldState.combat.foes[0];
+  assert.equal(formOf(foe, bestiaryRecord(foe.name)), '', 'as serves the story: unstated at the start');
+  let said = muts('Her skin runs like wax. [FORM:Marsh Hag|alternate]');
+  assert.equal(foe.form, 'alternate'); assert.equal(foeLabel(foe), 'Woman');
+  assert.ok(said.some(m => /^Form: Woman/.test(m) && /alternate/.test(m)), 'the switch is said: ' + JSON.stringify(said));
+  assert.equal(JSON.stringify(said).indexOf('Marsh Hag'), -1, 'the true name stays out of the words while alternate');
+  said = muts('[FORM:Marsh Hag|true]');
+  assert.equal(foe.form, 'true'); assert.equal(foeLabel(foe), 'Marsh Hag'); assert.equal(foe.name, 'Marsh Hag', 'the tag identity never changes');
+  assert.ok(said.some(m => /^Form: Marsh Hag/.test(m) && /true/.test(m)));
+  assert.equal(muts('[FORM:Marsh Hag|true]').filter(m => /^Form:/.test(m)).length, 0, 'a form already held says nothing');
+  said = muts('[ENEMY_SLAIN:Marsh Hag]');
+  assert.ok(said.some(m => /Marsh Hag slain/.test(m)), 'slain in its true form: ' + JSON.stringify(said));
+});
+
+test('a foe started under the public name is in its alternate form, and a group splits into rows', () => {
+  fresh(blueprint(hag({ startsAs: 'true' })));
+  start('[COMBAT_START:Marsh Hag|60|13|4|1d8|bold][COMBAT_GROUP:2][COMBAT_START:Woman|30|13|4|1d8|bold]');
+  const f = worldState.combat.foes;
+  assert.deepEqual(f.map(x => foeLabel(x)), ['Marsh Hag (2)', 'Woman']);
+  assert.deepEqual(f.map(x => x.form), [undefined, 'alternate']);
+  applyMuts('[FORM:Woman|true]');
+  assert.deepEqual([f[1].form, foeLabel(f[1]), f[1].name], ['true', 'Marsh Hag', 'Woman']);
+  assert.equal(f[0].form, undefined, 'the other row is untouched');
+});
+
+test('[FORM:] is refused loudly: an unknown form, an unknown target, a look-alike, a target with no alternate', () => {
+  const bp = blueprint(hag({ startsAs: 'true' }), NPC_ALT); bp.creatures.push({ name: 'Wolf', notes: 'n', portrait: TRUE_PIC }); bp.npcs.push({ name: 'Plain Pell', notes: 'A cook.' });
+  fresh(bp);
+  start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold][COMBAT_START:Wolf|9|12|3|1d6|wary]');
+  const before = JSON.stringify([worldState.combat.foes, worldState.npcs]);
+  ['[FORM:Marsh Hag|sideways]', '[FORM:Marsh Hag]', '[FORM:Nobody|alternate]', '[FORM:Marsh Hagg|alternate]', '[FORM:Hag|alternate]', '[FORM:Wolf|alternate]', '[FORM:Plain Pell|alternate]'].forEach(tag => {
+    const said = muts(tag);
+    assert.ok(said.some(m => /^\u26a0 FORM refused/.test(m)), tag + ' is refused loudly: ' + JSON.stringify(said));
+    assert.equal(JSON.stringify([worldState.combat.foes, worldState.npcs]), before, tag + ' moves nothing');
+  });
+});
+
+test('[FORM:] switches an NPC, by its own name only', () => {
+  fresh(blueprint(hag(), NPC_ALT));
+  const n = wsNpcByName('Mara');
+  assert.equal(npcFormView(n).form, 'true');
+  let said = muts('Mara pulls the grey hood low. [FORM:Mara|alternate]');
+  assert.equal(n.form, 'alternate'); assert.deepEqual([npcFormView(n).portrait, npcFormView(n).desc], [ALT_PIC, 'NPC_ALT']);
+  assert.ok(said.some(m => /^Form: Mara/.test(m)));
+  applyMuts('[FORM:Mara|true]'); assert.equal(n.form, 'true');
+  assert.ok(muts('[FORM:Marax|alternate]').some(m => /^\u26a0 FORM refused/.test(m)), 'a look-alike name is refused');
+  assert.equal(n.form, 'true');
+});
+
+test('the tag never reaches the story, and the standing tag list is unchanged', () => {
+  assert.equal(cleanTxt('She turns. [FORM:Marsh Hag|true] The room cools.'), 'She turns.  The room cools.');
+  assert.ok(TAG_STRIP_NAMES.indexOf('FORM') >= 0, 'strip registry');
+  assert.equal(buildStateTagsDoc().indexOf('[FORM:'), -1, 'taught where an alternate exists, never in the standing list');
+  assert.ok(TAG_DOC_ENGINE_ONLY.indexOf('FORM') >= 0);
+});
+
+test('the GM is told a creature\'s forms, its cue and the tag — only where an alternate exists', () => {
+  fresh(blueprint(hag({ startsAs: 'story' })));
+  const st = buildSysPrompt().stable;
+  ['ALT_DESC', 'ALT_WHEN', 'TRUE_DESC', '[FORM:Marsh Hag|true]', '[FORM:Marsh Hag|alternate]', 'as serves the story', 'Public name: Woman'].forEach(x => assert.ok(st.indexOf(x) >= 0, x + ' is told'));
+  assert.equal(st.indexOf('Keep the public label throughout the encounter'), -1, 'the label is no longer pinned for the whole encounter');
+  fresh(blueprint({ name: 'Wolf', kind: 'beast', threat: 'minor', notes: 'Hunts in packs.', desc: 'A grey wolf.' }));
+  const plain = buildSysPrompt(); const both = plain.stable + plain.volatile;
+  assert.equal(both.indexOf('[FORM:'), -1, 'a campaign without an alternate never hears of the tag');
+  assert.equal(both.indexOf('FORMS'), -1);
+});
+
+test('the combat line states each foe\'s form and asks for an unstated one every turn', () => {
+  fresh(blueprint(hag({ startsAs: 'story' })));
+  start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold]');
+  let v = buildSysPrompt().volatile;
+  assert.ok(v.indexOf('Form: unstated \u2014 emit [FORM:Marsh Hag|true] or [FORM:Marsh Hag|alternate]') >= 0, 'the ask: ' + v.slice(v.indexOf('COMBAT ACTIVE'), v.indexOf('COMBAT ACTIVE') + 400));
+  applyMuts('[FORM:Marsh Hag|alternate]'); v = buildSysPrompt().volatile;
+  assert.ok(v.indexOf('Form: alternate') >= 0); assert.equal(v.indexOf('Form: unstated'), -1);
+  fresh(blueprint({ name: 'Wolf', notes: 'n' })); start('[COMBAT_START:Wolf|9|12|3|1d6|wary]');
+  assert.equal(buildSysPrompt().volatile.indexOf('Form:'), -1, 'a foe with no alternate has no form line');
+});
+
+test('the GM is told an NPC\'s forms in the volatile half', () => {
+  fresh(blueprint(hag(), NPC_ALT));
+  let p = buildSysPrompt();
+  ['NPC_ALT', 'NPC_WHEN', '[FORM:Mara|alternate]', 'Mara \u2014 now in the true form'].forEach(x => assert.ok(p.volatile.indexOf(x) >= 0, x + ' is told'));
+  assert.equal(p.stable.indexOf('NPC_WHEN'), -1, 'an NPC\'s form is live state, never in the stable half');
+  applyMuts('[FORM:Mara|alternate]');
+  assert.ok(buildSysPrompt().volatile.indexOf('Mara \u2014 now in the alternate form') >= 0);
+  assert.equal(buildSysPrompt().stable, p.stable, 'a form change never touches the stable half');
+});
+
+test('a foe\'s form change never touches the stable half', () => {
+  fresh(blueprint(hag({ startsAs: 'story' })));
+  start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold]');
+  const a = buildSysPrompt().stable; applyMuts('[FORM:Marsh Hag|alternate]'); const b = buildSysPrompt().stable; applyMuts('[FORM:Marsh Hag|true]');
+  assert.equal(a, b); assert.equal(buildSysPrompt().stable, a);
+});
+
+test('the cue and the forms never reach Table Talk or a companion talk', () => {
+  fresh(blueprint(hag({ startsAs: 'story' }), NPC_ALT));
+  (0, eval)(fs.readFileSync(path.join(__dirname, '../companion-talk.js'), 'utf8'));
+  start('[COMBAT_START:Marsh Hag|30|13|4|1d8|bold]');
+  const tt = buildTableTalkPrompt('What is the marsh hag? What does Mara look like?');
+  const ttText = typeof tt === 'string' ? tt : JSON.stringify(tt);
+  const persona = talkPersona({ name: 'Mara' }, talkContext({ name: 'Mara', isHero: false, sheet: { name: 'Mara' } }));
+  ['ALT_WHEN', 'NPC_WHEN', 'ALT_DESC', 'NPC_ALT', 'TRUE_DESC', '[FORM:'].forEach(x => { assert.equal(ttText.indexOf(x), -1, x + ' in Table Talk'); assert.equal(String(persona).indexOf(x), -1, x + ' in the talk persona'); });
 });
 
 console.log('#743 forms: ' + count + ' passed, ' + failed + ' failed');
