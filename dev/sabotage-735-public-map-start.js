@@ -1,19 +1,19 @@
 // Public creation must be empty and atomic even when the story already holds private location facts.
 // Every clause uses a real section plus its exact guarding assertion; sabotage.js mutates a scratch clone.
-var sabotage = require("./sabotage.js");
+var sabotage = require("./sabotage.js"), rc = 0;
+var command = ["node", ["dev/run-tests.js", "#735 public map creation"]];
 function refusal(label, condition, message, test) {
   return { label: label, find: "if(" + condition + ")throw new Error(\"" + message + "\");", replace: "", mustFail: test };
 }
-process.exit(sabotage.prove({
+rc |= sabotage.prove({
   file: "atlas.js",
-  command: ["node", ["dev/run-tests.js", "#735 public map creation"]],
+  command: command,
   cases: [
     { label: "public creation falls through to procedural generation", find: "if(opts&&opts.knowledge===true)return atlasCreatePublic(seed);", replace: "", mustFail: "#735 public creation never invokes a procedural generator or fingerprint" },
     { label: "public creation fingerprints a document", find: "p=atlasPointer();g=MapKnowledge.create();why=MapKnowledge.problem(g);", replace: "p=atlasPointer();atlasFingerprint({});g=MapKnowledge.create();why=MapKnowledge.problem(g);", mustFail: "#735 public creation never invokes a procedural generator or fingerprint" },
     { label: "public store loses its knowledge mode", find: "A=atlasBaseStore(seed);A.knowledge=1;A.publicNotes=keyedDict();", replace: "A=atlasBaseStore(seed);A.publicNotes=keyedDict();", mustFail: "#735 public creation installs one valid empty store at the final starting place" },
     { label: "the neutral root gains invented geometry parameters", find: 'params:{seed:seed},name:p.sub||p.world', replace: 'params:{seed:seed,width:800,height:500},name:p.sub||p.world', mustFail: "#735 public creation installs one valid empty store at the final starting place" },
     refusal("malformed location memory is accepted", '!record(M)||!record(M.map)||!record(M.map.nodes)||!Array.isArray(M.map.edges)', "atlas: public creation needs valid location memory", "#735 null incomplete and malformed memory refuse before either store is installed"),
-    refusal("another campaign's memory is accepted", 'typeof memoryOwnerMismatch==="function"&&memoryOwnerMismatch(W,M)', "atlas: the map memory belongs to a different campaign", "#735 a mismatched memory owner refuses without changing either campaign record"),
     refusal("existing false or null atlas evidence is replaced", '"atlas" in W', "atlas: public creation cannot replace an existing atlas record", "#735 any existing atlas is preserved including damaged and newer evidence"),
     refusal("existing geography is replaced", '"geography" in map', "atlas: public creation cannot overwrite existing geography", "#735 existing geography is never overwritten even when null undefined or newer"),
     refusal("a nonwritable destination allows a partial install", '!writable(W,"atlas")||!writable(W,"ver")||!writable(map,"geography")', "atlas: public map destinations are not writable", "#735 nonwritable destinations refuse before partial installation"),
@@ -24,4 +24,17 @@ process.exit(sabotage.prove({
     { label: "prepared geography bypasses validation", find: "p=atlasPointer();g=MapKnowledge.create();why=MapKnowledge.problem(g);", replace: "p=atlasPointer();g=MapKnowledge.create();why=null;", mustFail: "#735 invalid prepared geography refuses before either install" },
     { label: "prepared atlas bypasses validation", find: 'why=atlasShapeProblem(A);if(why)throw new Error("atlas: public store could not be prepared — "+why);', replace: 'why=null;if(why)throw new Error("atlas: public store could not be prepared — "+why);', mustFail: "#735 a refused prepared atlas shape leaves geography untouched" }
   ]
-}));
+});
+/* Creation and public-place recovery both reject foreign memory. Disable their shared
+   ownership predicate: removing one caller's check leaves the other defense intact. */
+rc |= sabotage.prove({
+  file: "state.js",
+  command: command,
+  cases: [{
+    label: "another campaign's memory is accepted",
+    find: 'function memoryOwnerMismatch(ws,mem){return !!(ws&&mem&&ws.campId&&mem.campId&&ws.campId!==mem.campId);}',
+    replace: 'function memoryOwnerMismatch(ws,mem){return false;}',
+    mustFail: "#735 a mismatched memory owner refuses without changing either campaign record"
+  }]
+});
+process.exit(rc ? 1 : 0);
