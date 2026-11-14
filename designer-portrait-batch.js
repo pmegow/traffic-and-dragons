@@ -14,7 +14,10 @@ async function renderMissingDesignerPortraits(){
   var target=bp,queue=[];
   Object.keys(DESIGNER_PORTRAITS).forEach(function(type){
     var cfg=DESIGNER_PORTRAITS[type];
-    (target[cfg.section]||[]).forEach(function(c){if(c&&!c.portrait)queue.push({type:type,subject:c});});
+    (target[cfg.section]||[]).forEach(function(c){if(!c)return;
+      if(!c.portrait)queue.push({type:type,subject:c,slot:"true"});
+      if(!c.altPortrait&&typeof c.altDesc==="string"&&c.altDesc.trim())queue.push({type:type,subject:c,slot:"alternate"});/* #743: a missing alternate, only where an alternate appearance is written */
+    });
   });
   if(!queue.length){setStatus("No missing portraits — all creatures and NPCs already have one.","ok");return;}
   if(!falAvailable()){setStatus("Sign in from the game or configure an image key before generating portraits.","err");return;}
@@ -23,14 +26,14 @@ async function renderMissingDesignerPortraits(){
   try{
     for(var i=0;i<queue.length;i++){
       if(job.cancelled||bp!==target)break;
-      var entry=queue[i],c=entry.subject,cfg=DESIGNER_PORTRAITS[entry.type];
-      if(target[cfg.section].indexOf(c)<0||c.portrait||creaturePortraitBusy(c)){skipped++;processed++;continue;}
-      job.ticker.set("Rendering missing portraits: "+(i+1)+"/"+queue.length+" — "+(c.name||cfg.label)+"…");
-      var result=await generateDesignerPortrait(entry.type,c,null,{missingOnly:true,quiet:true});
+      var entry=queue[i],c=entry.subject,cfg=DESIGNER_PORTRAITS[entry.type],slotKey=portraitSlot(entry.slot).key;
+      if(target[cfg.section].indexOf(c)<0||c[slotKey]||creaturePortraitBusy(c)){skipped++;processed++;continue;}
+      job.ticker.set("Rendering missing portraits: "+(i+1)+"/"+queue.length+" — "+(c.name||cfg.label)+(entry.slot==="alternate"?" (alternate form)":"")+"…");
+      var result=await generateDesignerPortrait(entry.type,c,null,{missingOnly:true,quiet:true,slot:entry.slot});
       processed++;
       if(result.status==="saved")done++;
       else if(result.status==="skipped")skipped++;
-      else failures.push((c.name||cfg.label)+": "+result.reason);
+      else failures.push((c.name||cfg.label)+(entry.slot==="alternate"?" (alternate form)":"")+": "+result.reason);
     }
   }catch(err){console.warn("[designer portrait batch] "+err.message);failures.push(err.message);}
   finally{job.ticker.stop();designerPortraitBatch=null;syncDesignerPortraitBatch();}

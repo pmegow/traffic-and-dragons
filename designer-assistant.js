@@ -1,12 +1,12 @@
 // Authoring proposals are detached from the draft until the author applies a validated result.
 (function(root){
-  var named={npcs:'name role pronouns notes abilities secret revealAct armor status relation agenda agendaKind',locations:'name description desc notes region status sizeNote',creatures:'name kind threat notes abilities desc displayName revealAct availableActs environment',customClasses:'name desc hd prime statPriority abilities features skillSeeds gear'};
+  var named={npcs:'name role pronouns notes abilities secret revealAct armor status relation agenda agendaKind desc altDesc altWhen startsAs',locations:'name description desc notes region status sizeNote',creatures:'name kind threat notes abilities desc displayName revealAct availableActs environment altDesc altWhen startsAs',customClasses:'name desc hd prime statPriority abilities features skillSeeds gear'};
   var top='name author tone proseAuthor narratorVoice premise startingLocation startingRegion startingTime'.split(' ');
   var shapes={acts:'title goal turningPoint reward parallel dnaHint desc',arcs:'title objective type dnaHint reward desc'};
   var names={npcs:'NPC',locations:'Location',creatures:'Creature',customClasses:'Custom class',acts:'Act',arcs:'Arc',rules:'Rule'};
   function owns(o,k){return Object.prototype.hasOwnProperty.call(o,k);}
   function copy(v){return JSON.parse(JSON.stringify(v));}
-  function text(bp){return JSON.parse(JSON.stringify(bp,function(k,v){return k==='portrait'||k==='review'||k.charAt(0)==='_'?undefined:v;}));}
+  function text(bp){return JSON.parse(JSON.stringify(bp,function(k,v){return k==='portrait'||k==='altPortrait'||k==='review'||k.charAt(0)==='_'?undefined:v;}));}
   function key(s){return String(s||'').trim().toLowerCase();}
   function same(a,b){return JSON.stringify(a)===JSON.stringify(b);}
   function fields(item,list){

@@ -104,6 +104,13 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 .creature-portrait{display:block;width:100%;height:auto;border-radius:var(--r);}
 .creature-portrait-open img,.creature-portrait-open span{pointer-events:none;}
 .creature-portrait-open span{display:block;margin-top:6px;font-size:11px;}
+.creature-portrait-open+.creature-portrait-open{margin-top:14px;}
+.form-block{margin-top:12px;border-top:1px solid var(--brd);padding-top:6px;}
+.form-block summary{line-height:36px;cursor:pointer;color:var(--t1);font-size:13px;}
+.form-start{display:flex;gap:6px 18px;flex-wrap:wrap;align-items:center;margin-top:10px;font-size:13px;color:var(--t1);}
+.form-start-title{color:var(--t2);font-size:12px;}
+.form-choice{display:inline-flex;align-items:center;gap:6px;min-height:32px;cursor:pointer;}
+.form-choice input{width:auto;margin:0;}
 .creature-image-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:12px;}
 .creature-image-heading h2{margin:0;font-size:16px;color:var(--acc);}
 #creature-image-close{min-height:44px;}
@@ -179,10 +186,10 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="tts.js"></script>
 <script src="ui-shell.js"></script>
 <script src="ui-portrait.js"></script>
-<script src="designer-portrait-batch.js?v=0.72"></script>
+<script src="designer-portrait-batch.js?v=0.73"></script>
 <script src="designer-menu.js?v=0.72"></script>
 <script src="designer-acts.js"></script>
-<script src="designer-creatures.js?v=0.71"></script>
+<script src="designer-creatures.js?v=0.73"></script>
 <script src="designer-assistant.js"></script>
 <script src="designer-prose.js"></script>
 <script src="blueprint-designer-drafts.js"></script>
@@ -190,7 +197,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.72";
+var BP_DESIGNER_VERSION="v0.73";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -408,7 +415,7 @@ function render(){
   if(secOpen.npcs!==false){
   if(!bp.npcs.length)h+="<div class='empty'>None — the GM will invent everyone.</div>";
   for(i=0;i<bp.npcs.length;i++){
-    var n=bp.npcs[i],npcPortrait=!n._c&&safeImgSrc(n.portrait);
+    var n=bp.npcs[i],npcPortrait=!n._c&&designerHasPortrait(n);
     h+="<div class='card'>"+(npcPortrait?"<div class='creature-card-grid'><div class='creature-editor'>":"")+cardHead("npc",i,0,esc(n.name||("NPC "+(i+1))),n.role,movBtns("npc",i,0));
     if(!n._c){
       h+="<div class='grid2'>"+fld("Name *",txt("npc",i,0,"name",n.name,""))+fld("Role",txt("npc",i,0,"role",n.role,"ally / enemy / neutral / …"))
@@ -419,7 +426,7 @@ function render(){
       +fldB("Notes (available immediately; no gated secrets)","npc",i,0,"notes","NPC: "+(n.name||"notes"),ta("npc",i,0,"notes",n.notes,"Public identity, motives, and early-act behavior"))
       +entityAbilitiesField("npc",i,n)
       +fldB("Secret (withheld until its reveal act opens)","npc",i,0,"secret","Secret: "+(n.name||"NPC"),ta("npc",i,0,"secret",n.secret||"","The hidden truth and how it surfaces — keep it out of early-visible fields"))
-      +fld("Reveal act (1-based act number; required for a secret)",txt("npc",i,0,"revealAct",String(n.revealAct==null?"":n.revealAct),"e.g. 3"))+designerPortraitActions("npc",n,i);
+      +fld("Reveal act (1-based act number; required for a secret)",txt("npc",i,0,"revealAct",String(n.revealAct==null?"":n.revealAct),"e.g. 3"))+designerPortraitActions("npc",n,i)+formFields("npc",i,n);
     }
     if(npcPortrait)h+="</div>"+designerPortraitAside("npc",n,i)+"</div>";
     h+="</div>";
@@ -433,7 +440,7 @@ function render(){
   h+="<button class='addbtn' data-op='gencreature' data-i='0' data-j='0' style='margin-bottom:10px;'>&#10024; Generate creatures…</button>";
   if(!bp.creatures.length)h+="<div class='empty'>None — the GM will invent the wildlife.</div>";
   for(i=0;i<bp.creatures.length;i++){
-    var C=bp.creatures[i],portraitSrc=safeImgSrc(C.portrait),sidePortrait=!C._c&&portraitSrc;
+    var C=bp.creatures[i],sidePortrait=!C._c&&designerHasPortrait(C);
     h+="<div class='card'>"+(sidePortrait?"<div class='creature-card-grid'><div class='creature-editor'>":"")+cardHead("creature",i,0,esc(C.name||("Creature "+(i+1))),C.kind,movBtns("creature",i,0));
     if(!C._c){
       h+="<div class='grid2'>"+fld("Name *",txt("creature",i,0,"name",C.name,""))+fld("Kind",txt("creature",i,0,"kind",C.kind||"","beast / undead / aberration / construct / …"))+"</div>"
@@ -441,10 +448,10 @@ function render(){
       +fld("Public name (optional disguise)",txt("creature",i,0,"displayName",C.displayName||"","Name used on screen; canonical Name stays the combat identity"))
       +fld("Environment",creatureEnvironmentField(i,C))
       +creatureActsMenu(C,bp.acts,i)
-      +fldB("Public appearance","creature",i,0,"desc","Creature appearance: "+(C.name||"creature"),ta("creature",i,0,"desc",C.desc||"","Only what the hero can perceive; no concealed truth"))
+      +fldB(creatureDescLabel(C),"creature",i,0,"desc","Creature appearance: "+(C.name||"creature"),ta("creature",i,0,"desc",C.desc||"","Only what the hero can perceive; no concealed truth"))
       +fldB("GM-only notes (nature, behaviour, tactics, weaknesses)","creature",i,0,"notes","Creature: "+(C.name||"notes"),ta("creature",i,0,"notes",C.notes||"","what makes this creature ITSELF — habits, hunting style, what it fears, how it dies"))
       +entityAbilitiesField("creature",i,C);
-      h+=designerPortraitActions("creature",C,i);
+      h+=designerPortraitActions("creature",C,i)+formFields("creature",i,C);
     }
     if(sidePortrait)h+="</div>"+designerPortraitAside("creature",C,i)+"</div>";
     h+="</div>";
@@ -664,12 +671,20 @@ document.addEventListener("click",function(e){
   var i=parseInt(t.getAttribute("data-i"),10)||0,j=parseInt(t.getAttribute("data-j"),10)||0;
   if(op==="breakout"){openBreakout(t);return;}
   if(op==="gencreature"){openCreatureGenerator();return;}
+  if(op==="formmove"){/* #743 R8: the legacy mask's one-click move — never silent, never while its portrait is drawing */
+    var moveRoot=FIELD_ROOTS[t.getAttribute("data-form-sec")],moveSubject=moveRoot&&moveRoot(i,0);
+    if(!moveSubject||creaturePortraitBusy(moveSubject)){setStatus("Wait for the portrait to finish drawing, then move the description.","err");return;}
+    var movedImage=!!(moveSubject.portrait&&!moveSubject.altPortrait);
+    if(DesignerCreatures.moveToAlternate(moveSubject)){markDirty();render();setStatus("Moved the description"+(movedImage?" and its portrait":"")+" of “"+(moveSubject.name||"this entry")+"” to the alternate form. The true form now has no description"+(movedImage?" or portrait":"")+".","ok");}
+    else setStatus("Nothing to move: this entry has no single description read as its alternate.","err");
+    return;
+  }
   var portraitAction=t.getAttribute("data-portrait-action"),portraitType=t.getAttribute("data-portrait-type");
   if(portraitAction&&DESIGNER_PORTRAITS[portraitType]){
-    var subject=bp[DESIGNER_PORTRAITS[portraitType].section][i];
-    if(portraitAction==="view")openCreaturePortrait(subject);
-    else if(portraitAction==="generate")generateDesignerPortrait(portraitType,subject,t);
-    else if(portraitAction==="remove"&&subject&&!creaturePortraitBusy(subject)){delete subject.portrait;markDirty();render();}
+    var subject=bp[DESIGNER_PORTRAITS[portraitType].section][i],slotName=t.getAttribute("data-portrait-slot")==="alternate"?"alternate":"true",slotKey=portraitSlot(slotName).key;/* #743: each button names its slot */
+    if(portraitAction==="view")openCreaturePortrait(subject,slotKey);
+    else if(portraitAction==="generate")generateDesignerPortrait(portraitType,subject,t,{slot:slotName});
+    else if(portraitAction==="remove"&&subject&&!creaturePortraitBusy(subject)){delete subject[slotKey];markDirty();render();}
     return;
   }
   // Selection toggle — pure view state (_sel is stripped from files), so no markDirty.
@@ -1026,17 +1041,46 @@ function storyContext(){
 var creatureGeneration=null,creaturePortraitJobs=[];
 // Each card type supplies only its public visual identity; persistence and UI share one path.
 var DESIGNER_PORTRAITS={
-  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes,c.desc,c.displayName,c.environment]);},prompt:DesignerCreatures.portraitPrompt},
-  npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes]);},prompt:function(c){return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks."+DesignerCreatures.portraitFocus("character");}}
+  creature:{section:"creatures",label:"creature",identity:function(c){return JSON.stringify([c.name,c.kind,c.threat,c.notes,c.desc,c.displayName,c.environment,c.altDesc]);},prompt:function(c,slot){return slot==="alternate"?DesignerCreatures.altPortraitPrompt(c,"creature"):DesignerCreatures.portraitPrompt(c);}},
+  npc:{section:"npcs",label:"NPC",identity:function(c){return JSON.stringify([c.name,c.role,c.pronouns,c.notes,c.altDesc]);},prompt:function(c,slot){if(slot==="alternate")return DesignerCreatures.altPortraitPrompt(c,"character");return "Character portrait of "+c.name+". Role: "+(c.role||"unspecified")+". Pronouns: "+(c.pronouns||"unspecified")+". Public description: "+c.notes+" Depict their described appearance and clothing in a fitting setting. Do not invent hidden identities or transformations. No lettering or stat blocks."+DesignerCreatures.portraitFocus("character");}}
 };
-function designerPortraitAttrs(type,action,i){return " data-op='"+type+"portrait"+({generate:"",view:"view",remove:"remove"}[action])+"' data-portrait-type='"+type+"' data-portrait-action='"+action+"' data-i='"+i+"'";}
-function designerPortraitActions(type,c,i){
-  var disabled=creaturePortraitBusy(c)?" disabled":"";
-  return "<div class='creature-actions'><button class='mini'"+designerPortraitAttrs(type,"generate",i)+disabled+">"+(c.portrait?"Regenerate portrait":"Generate portrait")+"</button>"+(c.portrait?"<button class='mini'"+designerPortraitAttrs(type,"remove",i)+disabled+">Remove portrait</button>":"")+"</div>";
+/* #743 TWO FORMS: the two portrait slots (DOC/DESIGN_743_forms.md R1) — ONE table; every portrait surface (the card's buttons,
+   the side column, the enlarge modal, one generation, the batch) reads its field and words from here. Slot 1 is ALWAYS the true form. */
+var PORTRAIT_SLOTS={"true":{key:"portrait",noun:"portrait",caption:"True form"},alternate:{key:"altPortrait",noun:"alternate portrait",caption:"Alternate form"}};
+function portraitSlot(name){return PORTRAIT_SLOTS[name==="alternate"?"alternate":"true"];}
+function designerHasPortrait(c){return !!(c&&(safeImgSrc(c.portrait)||safeImgSrc(c.altPortrait)));}
+function designerPortraitAttrs(type,action,i,slot){return " data-op='"+type+(slot==="alternate"?"alt":"")+"portrait"+({generate:"",view:"view",remove:"remove"}[action])+"' data-portrait-type='"+type+"' data-portrait-action='"+action+"' data-portrait-slot='"+(slot==="alternate"?"alternate":"true")+"' data-i='"+i+"'";}
+function designerPortraitActions(type,c,i,slot){
+  var disabled=creaturePortraitBusy(c)?" disabled":"",def=portraitSlot(slot),has=!!c[def.key];
+  return "<div class='creature-actions'><button class='mini'"+designerPortraitAttrs(type,"generate",i,slot)+disabled+">"+(has?"Regenerate ":"Generate ")+def.noun+"</button>"+(has?"<button class='mini'"+designerPortraitAttrs(type,"remove",i,slot)+disabled+">Remove "+def.noun+"</button>":"")+"</div>";
 }
 function designerPortraitAside(type,c,i){
-  var label=esc(c.name||DESIGNER_PORTRAITS[type].label);
-  return "<button type='button' class='creature-portrait-open'"+designerPortraitAttrs(type,"view",i)+" aria-label='Enlarge portrait of "+label+"'><img class='creature-portrait' src='"+safeImgSrc(c.portrait)+"' alt='Portrait of "+label+"'><span>Click to enlarge</span></button>";
+  var label=esc(c.name||DESIGNER_PORTRAITS[type].label),both=formHasAlternate(c)||!!c.altPortrait,h="";
+  ["true","alternate"].forEach(function(slot){
+    var def=PORTRAIT_SLOTS[slot];if(!safeImgSrc(c[def.key]))return;
+    h+="<button type='button' class='creature-portrait-open'"+designerPortraitAttrs(type,"view",i,slot)+" aria-label='Enlarge "+def.noun+" of "+label+"'><img class='creature-portrait' src='"+safeImgSrc(c[def.key])+"' alt='"+(slot==="alternate"?"Alternate portrait":"Portrait")+" of "+label+"'><span>"+(both?def.caption+" · click to enlarge":"Click to enlarge")+"</span></button>";
+  });
+  return h;
+}
+/* The creature's one description says whose it is: the true form's once an alternate is authored, the mask's for a legacy disguise (R8). */
+function creatureDescLabel(c){
+  if(DesignerCreatures.legacyMask(c))return "Public appearance (the mask — read as the alternate form's)";
+  return formHasAlternate(c)?"Public appearance of the true form":"Public appearance";
+}
+/* The alternate form's authoring block, ONE renderer for the creature and NPC cards: the alternate appearance, the GM's cue,
+   the three-way starting form (R9) and the second portrait slot. Open when the entry has an alternate. An absent startsAs
+   shows the engine's own default (formStart) checked and is written only when the author chooses. */
+var FORM_START_CHOICES=[["true","True form"],["alternate","Alternate form"],["story","As serves the story"]];
+function formFields(sec,i,o){
+  var start=formStart(o),label=o.name||(sec==="npc"?"NPC":"creature"),radios="";
+  FORM_START_CHOICES.forEach(function(c){radios+="<label class='form-choice'><input type='radio' name='starts-"+sec+"-"+i+"' data-sec='"+sec+"' data-i='"+i+"' data-j='0' data-k='startsAs' value='"+c[0]+"'"+(start===c[0]?" checked":"")+"> "+c[1]+"</label>";});
+  return "<details class='form-block' data-form='"+sec+"'"+(formHasAlternate(o)?" open":"")+"><summary>Alternate form — a disguise, a transformation, a later self</summary>"
+    +(DesignerCreatures.legacyMask(o)?"<p class='creature-help'>This entry has a public name and one description, so the game reads that description as the alternate form’s. <button type='button' class='mini' data-op='formmove' data-form-sec='"+sec+"' data-i='"+i+"' data-j='0'>Move description"+(o.portrait&&!o.altPortrait?" and portrait":"")+" to alternate</button></p>":"")
+    +(sec==="npc"?fldB("Appearance of the true form (shown on the sheet while in that form)",sec,i,0,"desc","Appearance: "+label,ta(sec,i,0,"desc",o.desc||"","Only what the hero can perceive")):"")
+    +fldB("Alternate appearance (what the hero sees; the alternate portrait is drawn from this text alone)",sec,i,0,"altDesc","Alternate appearance: "+label,ta(sec,i,0,"altDesc",o.altDesc||"","e.g. A handsome woman in a grey travelling cloak"))
+    +fldB("Cue for the GM (when it takes or drops the alternate form; never shown to the player)",sec,i,0,"altWhen","Form cue: "+label,ta(sec,i,0,"altWhen",o.altWhen||"","e.g. Drops the disguise when cornered or touched by cold iron"))
+    +"<div class='form-start' role='radiogroup' aria-label='Starting form'><span class='form-start-title'>Starts as</span>"+radios+"</div>"
+    +designerPortraitActions(sec,o,i,"alternate")+"</details>";
 }
 async function genCreatureBatch(input,progress){
   if(creatureGeneration)throw new Error("A creature batch is still running.");
@@ -1090,14 +1134,15 @@ function openCreatureGenerator(){
     finally{go.disabled=false;Array.prototype.forEach.call(controls,function(el){el.disabled=false;});var cancel=modal.querySelector("#creature-gen-cancel");if(cancel)cancel.textContent="Cancel";}
   });
 }
-function openCreaturePortrait(c){
-  if(!c||!safeImgSrc(c.portrait)){setStatus("This card has no viewable portrait.","err");return;}
+function openCreaturePortrait(c,key){
+  key=key==="altPortrait"?"altPortrait":"portrait";
+  if(!c||!safeImgSrc(c[key])){setStatus("This card has no viewable portrait.","err");return;}
   var modal=modalShell("creature-image-modal","<div class='creature-image-heading'><h2 id='creature-image-title'>"+esc(c.name||"Portrait")+"</h2><button type='button' class='tbtn' id='creature-image-close'>Close</button></div><img alt='Portrait of "+esc(c.name||"character")+"'><p id='creature-image-size' aria-live='polite'>Loading saved portrait…</p>",{maxWidth:900,boxBg:"var(--bg1)",boxExtra:"max-height:90vh;overflow:auto;",closeId:"creature-image-close",outside:true});
   modal.setAttribute("aria-labelledby","creature-image-title");
   var img=modal.querySelector("img"),size=modal.querySelector("#creature-image-size");
   img.onload=function(){size.textContent="Saved portrait: "+img.naturalWidth+" × "+img.naturalHeight+" pixels";};
   img.onerror=function(){console.warn("[designer portrait] Saved image could not be loaded.");size.textContent="This saved portrait could not be loaded.";};
-  img.src=safeImgSrc(c.portrait);
+  img.src=safeImgSrc(c[key]);
 }
 function creaturePortraitBusy(c){return creaturePortraitJobs.indexOf(c)>=0;}
 async function creaturePortraitData(url){
@@ -1117,18 +1162,20 @@ async function generateDesignerPortrait(type,c,btn,options){
     if(message&&!options.quiet)setStatus(message,status==="saved"?"ok":"err");
     return {status:status,reason:message||""};
   }
-  var cfg=DESIGNER_PORTRAITS[type];if(!cfg||!c||creaturePortraitBusy(c))return result("skipped");
-  if(options.missingOnly&&c.portrait)return result("skipped");
+  var cfg=DESIGNER_PORTRAITS[type],slotName=options.slot==="alternate"?"alternate":"true",key=portraitSlot(slotName).key;/* #743: the slot decides the field written and the prompt */
+  if(!cfg||!c||creaturePortraitBusy(c))return result("skipped");
+  if(options.missingOnly&&c[key])return result("skipped");
   if(!falAvailable())return result("failed","Sign in from the game or configure an image key before generating a portrait.");
-  if(!c.name||!c.notes)return result("failed","Give this "+cfg.label+" a name and notes before generating its portrait.");
+  if(slotName==="alternate"&&!(typeof c.altDesc==="string"&&c.altDesc.trim()))return result("failed","Write this "+cfg.label+"’s alternate appearance before generating its alternate portrait.");
+  if(!c.name||slotName==="true"&&!c.notes)return result("failed","Give this "+cfg.label+" a name and notes before generating its portrait.");
   var target=bp,identity=cfg.identity(c);creaturePortraitJobs.push(c);
   var timer=null;if(btn){btn.disabled=true;timer=elapsedTicker(btn,"Drawing portrait…",{text:true});}
   try{
-    var url=await generatePortraitImage(cfg.prompt(c));
+    var url=await generatePortraitImage(cfg.prompt(c,slotName));
     var portrait=await creaturePortraitData(url);
     if(bp!==target||target[cfg.section].indexOf(c)<0||identity!==cfg.identity(c))throw new Error("The "+cfg.label+" or blueprint changed; the portrait was not attached.");
-    if(options.missingOnly&&c.portrait)return result("skipped");
-    c.portrait=portrait;markDirty();return result("saved","Portrait added for “"+c.name+"”. Save the blueprint to keep a portable copy.");
+    if(options.missingOnly&&c[key])return result("skipped");
+    c[key]=portrait;markDirty();return result("saved",(slotName==="alternate"?"Alternate portrait":"Portrait")+" added for “"+c.name+"”. Save the blueprint to keep a portable copy.");
   }catch(err){console.warn("[designer portrait] "+err.message);return result("failed","Portrait generation failed: "+err.message);}
   finally{if(timer)timer.stop();creaturePortraitJobs.splice(creaturePortraitJobs.indexOf(c),1);render();}
 }
@@ -1208,7 +1255,7 @@ var ENGINE_CONTRACT="ENGINE CONTRACT — the game runtime ALREADY handles all of
   +"- Arc/act rewards: the engine instructs the GM to grant them in the same response as the completion emission; reward mechanics never need explaining in the blueprint.\n"
   +"- Arc types: the engine supplies generic type guidance (combat/investigation/exploration/social) when no dnaHint exists.\n"
   +"- Location descriptions: injected permanently and verbatim whenever the party is there; they need no delivery mechanism.\n"
-  +"- Creatures: revealAct (optional 1-based act) withholds the whole entry until that act opens; desc is public appearance, notes are GM-only, displayName is an optional public combat label. Optional environment describes habitat. availableActs is an exact list of existing 1-based acts, absent for all, [] for none; do not combine it with legacy revealAct. Preserve these fields when revising a creature. NPC and creature abilities are optional prose describing spells, special attacks, resistances and limits; they are GM guidance, not public appearance or learned knowledge. Keep abilities separate from notes and preserve them in edits. NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
+  +"- Creatures: revealAct (optional 1-based act) withholds the whole entry until that act opens; desc is public appearance, notes are GM-only, displayName is an optional public combat label. NPCs and creatures may have an alternate form (a disguise or transformation): altDesc is its visible appearance, altWhen the GM-only cue for the change, startsAs is true, alternate or story; desc is then the TRUE form's appearance. Optional environment describes habitat. availableActs is an exact list of existing 1-based acts, absent for all, [] for none; do not combine it with legacy revealAct. Preserve these fields when revising a creature. NPC and creature abilities are optional prose describing spells, special attacks, resistances and limits; they are GM guidance, not public appearance or learned knowledge. Keep abilities separate from notes and preserve them in edits. NPC notes become the GM's private knowledge base; rules are injected every turn.\n"
   +"- Baseline stats, HP, XP and leveling are engine-side. NPC and creature ability effects and numeric limits are authored canon: retain ranges, durations, uses, damage and resistance amounts in abilities; do not remove them as redundant mechanics.\n"
   +"THE SCHEMA IS FIXED. Never invent fields or structures. NPC notes hold immediately available guidance and early-act behavior. A gated hidden truth belongs ONLY in the supported singular secret field with revealAct (an integer, 1-based act number); the engine withholds it until that act opens. Keep its discovery conditions in secret too. Never duplicate the hidden truth in notes, premise, other NPC notes, or future-act titles/goals (those are visible early). Future-act arc objectives are delivered only when their act opens. For legacy files, propose moving a timed secret from notes into secret + revealAct, not duplicating it.";
 // ── Chunked review (v0.22) ──────────────────────────────────────────────────────
@@ -1421,7 +1468,7 @@ async function applyFinding(idx){
       +"\n- a top-level string (premise/tone/startingLocation/…): {\"section\":\"premise\",\"item\":\"<new value>\"}"
       +"\n- to REMOVE an item (e.g. a duplicate): {\"section\":\"npcs\"|\"locations\"|\"creatures\"|\"acts\"|\"arcs\"|\"rules\",\"name\":\"<its name/title>\",\"delete\":true} (add \"act\":\"<act title>\" for an arc; \"name\" = a unique phrase for a rule) — no \"item\" needed."
       +"\nMatch \"name\" to an EXISTING item to edit it, or give a new name to add one. Include ONLY the items the fix actually touches — do NOT echo unchanged items."
-      +"\nTHE SCHEMA IS FIXED: use supported fields only. NPCs and creatures support abilities (optional text describing spells, special attacks, resistances and limits); preserve it separately from appearance and notes. Creatures support environment (habitat), availableActs (exact act-number list, [] means none, omit for all), desc (visible appearance), displayName (disguised combat label), and legacy revealAct (available from that act); never combine availableActs and revealAct. NPC secret (singular) and revealAct (1-based integer) are supported even if absent from a legacy input. Gated truths and discovery conditions go ONLY in secret, never duplicated in notes, premise, other NPC notes, or future-act titles/goals. Notes hold immediately available guidance and behavior."
+      +"\nTHE SCHEMA IS FIXED: use supported fields only. NPCs and creatures support abilities (optional text describing spells, special attacks, resistances and limits); preserve it separately from appearance and notes. Creatures support environment (habitat), availableActs (exact act-number list, [] means none, omit for all), desc (visible appearance), displayName (disguised combat label), altDesc (the alternate form's visible appearance), altWhen (GM-only cue for changing form), startsAs (true, alternate or story), and legacy revealAct (available from that act); never combine availableActs and revealAct. NPC secret (singular) and revealAct (1-based integer) are supported even if absent from a legacy input. Gated truths and discovery conditions go ONLY in secret, never duplicated in notes, premise, other NPC notes, or future-act titles/goals. Notes hold immediately available guidance and behavior."
       // No-new-holes clause (v0.32): an applied fix that name-drops an undefined entity or
       // contradicts an unedited section just becomes the NEXT review's finding — churn.
       +"\nNO NEW HOLES: this blueprint is a CLOSED WORLD. Every person, place, faction, god, item, or event your patched text mentions must either already be defined in the blueprint or be fully defined by another patch in THIS same response — never name-drop something you leave undefined. Do not contradict sections you are not editing. The result must survive a fresh review of this issue with zero new findings.";

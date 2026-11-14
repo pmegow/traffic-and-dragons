@@ -50,11 +50,31 @@
   function portraitFocus(subject){return " Use a 55mm lens at f/1.8 with shallow depth of field. Keep the "+subject+"'s eyes and face in sharp focus where present, with its silhouette and defining features clearly readable. Place the habitat well behind the "+subject+": the background is softly blurred into gentle bokeh. Apply sharp focus and fine detail to the "+subject+" only; background scenery stays out of focus.";}
   function portraitPrompt(c){
     var focus=portraitFocus("creature");
-    if(c.desc||c.displayName){
+    if(c.desc||legacyMask(c)||c.displayName&&!c.altDesc){/* #743: slot 1 is the TRUE form — only a legacy mask (a public name and no alternate appearance) still demands the one description */
       if(!c.desc||!c.desc.trim())throw new Error("Write the creature's public appearance before illustrating its disguise.");
       return "Bestiary illustration. Visible appearance: "+c.desc+" Show only this appearance in a fitting habitat; no lettering or stat blocks."+focus;
     }
     return "Bestiary illustration. Kind: "+(c.kind||"creature")+". Threat: "+(c.threat||"unspecified")+". "+c.notes+" Show the creature clearly in a fitting habitat; no lettering or stat blocks."+focus;
+  }
+  /* #743 TWO FORMS (DOC/DESIGN_743_forms.md). IMAGE_KEYS: the two portrait slots (slot 1 the true form, slot 2 the alternate) —
+     every text payload strips both and every text fix keeps both. FORM_KEYS: the alternate's authored text fields. */
+  var IMAGE_KEYS=["portrait","altPortrait"],FORM_KEYS=["altDesc","altWhen","startsAs"];
+  function isImageKey(k){return IMAGE_KEYS.indexOf(k)>=0;}
+  /* The alternate portrait is drawn from the alternate appearance ALONE: no name, kind, threat or GM notes (they describe the true form). */
+  function altPortraitPrompt(c,subject){
+    if(!c||typeof c.altDesc!=="string"||!c.altDesc.trim())throw new Error("Write the alternate appearance before illustrating the alternate form.");
+    var person=subject==="character";
+    return (person?"Character portrait.":"Bestiary illustration.")+" Visible appearance: "+c.altDesc.trim()+" Show only this appearance in a fitting "+(person?"setting":"habitat")+"; no lettering or stat blocks."+portraitFocus(person?"character":"creature");
+  }
+  /* R8: a pre-#743 disguise — a public name and ONE description, which the game reads as the alternate's (the mask). */
+  function legacyMask(c){return !!(c&&typeof c.displayName==="string"&&c.displayName.trim()&&!c.altDesc&&typeof c.desc==="string"&&c.desc.trim());}
+  /* The one-click move: the description becomes the alternate's, and so does the portrait that was drawn from it (a mask's
+     image was rendered from that description alone) unless an alternate image already exists. Returns false when not a legacy mask. */
+  function moveToAlternate(c){
+    if(!legacyMask(c))return false;
+    c.altDesc=c.desc;delete c.desc;
+    if(c.portrait&&!c.altPortrait){c.altPortrait=c.portrait;delete c.portrait;}
+    return true;
   }
   function preserveCreature(previous,next){
     preserveEntity(previous,next);
@@ -64,9 +84,9 @@
     });}
     return next;
   }
-  function textBlueprint(bp){return JSON.parse(JSON.stringify(bp,function(k,v){return k==="portrait"||(k&&k.charAt(0)==="_")?undefined:v;}));}
-  function preserveEntity(previous,next){preservePortrait(previous,next);if(previous&&next.abilities===undefined&&previous.abilities!==undefined)next.abilities=previous.abilities;return next;}
-  function preservePortrait(previous,next){delete next.portrait;if(previous&&previous.portrait)next.portrait=previous.portrait;return next;}
-  var api={portraitFocus:portraitFocus,preserveEntity:preserveEntity,preserveCreature:preserveCreature,portraitPrompt:portraitPrompt,preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
+  function textBlueprint(bp){return JSON.parse(JSON.stringify(bp,function(k,v){return isImageKey(k)||(k&&k.charAt(0)==="_")?undefined:v;}));}
+  function preserveEntity(previous,next){preservePortrait(previous,next);if(previous)["abilities","desc"].concat(FORM_KEYS).forEach(function(k){if(next[k]===undefined&&previous[k]!==undefined)next[k]=previous[k];});return next;}
+  function preservePortrait(previous,next){IMAGE_KEYS.forEach(function(k){delete next[k];if(previous&&previous[k])next[k]=previous[k];});return next;}
+  var api={imageKeys:IMAGE_KEYS,formKeys:FORM_KEYS,altPortraitPrompt:altPortraitPrompt,legacyMask:legacyMask,moveToAlternate:moveToAlternate,portraitFocus:portraitFocus,preserveEntity:preserveEntity,preserveCreature:preserveCreature,portraitPrompt:portraitPrompt,preservePortrait:preservePortrait,fields:fields,maxCount:maxCount,plan:plan,entry:entry,prompt:prompt,textBlueprint:textBlueprint};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;else root.DesignerCreatures=api;
 })(this);

@@ -16,7 +16,7 @@ rc|=sabotage.prove({file:'designer-acts.js',command:unit,cases:[
 rc|=sabotage.prove({file:'designer-creatures.js',command:creatures,cases:[
  {label:'author environment ignored',find:'result.environment=choice.environment;',replace:'result.environment=raw.environment;',mustFail:'#723 environment dropdown choices drive prompt and stored entries'},
  {label:'unselected acts silently widened',find:'Acts.choose(result,choice.availableActs,acts);',replace:'Acts.choose(result,Acts.all(acts),acts);',mustFail:'#723 environment dropdown choices drive prompt and stored entries'},
- {label:'text edits drop optional encounter fields',find:'if(next[k]===undefined&&previous[k]!==undefined)',replace:'if(false)',mustFail:'#723 text patches preserve habitat act choices and public details'}
+ {label:'text edits drop optional encounter fields',find:'if(next[k]===undefined&&previous[k]!==undefined)next[k]=Array.isArray(',replace:'if(false)next[k]=Array.isArray(',mustFail:'#723 text patches preserve habitat act choices and public details'}
 ]});
 rc|=sabotage.prove({file:'blueprint-designer.html',command:creatures,cases:[{label:'generation ignores context changes',find:'if(bp!==target||JSON.stringify(DesignerCreatures.textBlueprint(target))!==original)',replace:'if(bp!==target)',mustFail:'#723 act and context changes discard pending generations'}]});
 process.exit(rc?1:0);

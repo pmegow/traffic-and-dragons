@@ -26,7 +26,7 @@ rc+=sabotage.prove({file:'companion-talk.js',command:unit,cases:[
 ]});
 rc+=sabotage.prove({file:'designer-creatures.js',command:unit,cases:[
  {label:'generated abilities discarded',find:'["desc","displayName","abilities"].forEach',replace:'["desc","displayName"].forEach',mustFail:'FAIL #730 generated creature abilities are typed and retained'},
- {label:'review loses omitted ability prose',find:'if(previous&&next.abilities===undefined&&previous.abilities!==undefined)next.abilities=previous.abilities;',replace:'',mustFail:'FAIL #730 review replacements preserve omitted abilities'},
+ {label:'review loses omitted ability prose',find:'["abilities","desc"].concat(FORM_KEYS).forEach(',replace:'["desc"].concat(FORM_KEYS).forEach(',mustFail:'FAIL #730 review replacements preserve omitted abilities'},
  {label:'portrait includes private powers',find:'return "Bestiary illustration. Visible appearance: "+c.desc',replace:'return "Bestiary illustration. Abilities: "+c.abilities+" Visible appearance: "+c.desc',mustFail:'FAIL #730 abilities are absent from creature and NPC portrait requests'}
 ]});
 rc+=sabotage.prove({file:'designer-assistant.js',command:unit,cases:[

@@ -6,9 +6,9 @@ failed+=sabotage.prove({file:'designer-creatures.js',command:command,cases:[
  {label:'fractional count admitted',find:'Math.floor(n)!==n||',replace:'',mustFail:'counts reject empty fractional zero negative and excessive batches'},
  {label:'random uses the first choice forever',find:'v[Math.floor(random()*v.length)]',replace:'v[0]',mustFail:'random resolves independently per creature and fixed picks are authoritative'},
  {label:'duplicate names admitted',find:'if(existing.some(function(c)',replace:'if(false&&existing.some(function(c)',mustFail:'invalid and duplicate model results cannot enter the bestiary'},
- {label:'portrait data sent to text models',find:'k==="portrait"||',replace:'',mustFail:'portraits persist in files but never enter text review payloads'},
+ {label:'portrait data sent to text models',find:'isImageKey(k)||(k&&k.charAt(0)==="_")?undefined:v;',replace:'(k&&k.charAt(0)==="_")?undefined:v;',mustFail:'portraits persist in files but never enter text review payloads'},
  {label:'treasure is silently omitted',find:'". Treasure: "+(choice.treasure||"None")+',replace:'". "+',mustFail:'treasure selection persists in notes and default None avoids unintended loot'},
- {label:'text fix drops portrait',find:'if(previous&&previous.portrait)next.portrait=previous.portrait;',replace:'',mustFail:'text fixes retain existing portraits and cannot invent image attachments'}
+ {label:'text fix drops portrait',find:'IMAGE_KEYS.forEach(function(k){delete next[k];if(previous&&previous[k])next[k]=previous[k];});',replace:'IMAGE_KEYS.forEach(function(k){delete next[k];});',mustFail:'text fixes retain existing portraits and cannot invent image attachments'}
 ]});
 failed+=sabotage.prove({file:'blueprint-designer.html',command:command,cases:[
  {label:'NPC secret leaks into portrait prompt',find:'". Public description: "+c.notes+',replace:'". Public description: "+c.secret+c.notes+',mustFail:'NPC portrait uses public details and ignores secret fields'},
