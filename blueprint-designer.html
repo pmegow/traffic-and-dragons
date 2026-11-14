@@ -99,6 +99,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 .creature-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap;}
 .creature-card-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(140px,25%);gap:16px;align-items:start;}
 .creature-editor{min-width:0;}
+.creature-portrait-stack{min-width:0;}
 .creature-portrait-open{display:block;width:100%;padding:0;border:0;background:none;color:var(--t2);font:inherit;cursor:zoom-in;text-align:center;}
 .creature-portrait-open:focus-visible{outline:2px solid var(--acc);outline-offset:4px;}
 .creature-portrait{display:block;width:100%;height:auto;border-radius:var(--r);}
@@ -197,7 +198,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.74";
+var BP_DESIGNER_VERSION="v0.75";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
@@ -1062,7 +1063,7 @@ function designerPortraitAside(type,c,i){
     var def=PORTRAIT_SLOTS[slot];if(!safeImgSrc(c[def.key]))return;
     h+="<button type='button' class='creature-portrait-open'"+designerPortraitAttrs(type,"view",i,slot)+" aria-label='Enlarge "+def.noun+" of "+label+"'><img class='creature-portrait' src='"+safeImgSrc(c[def.key])+"' alt='"+(slot==="alternate"?"Alternate portrait":"Portrait")+" of "+label+"'><span>"+(both?def.caption+" · click to enlarge":"Click to enlarge")+"</span></button>";
   });
-  return h;
+  return h?"<div class='creature-portrait-stack'>"+h+"</div>":"";
 }
 /* The creature's one description says whose it is: the true form's once an alternate is authored, the mask's for a legacy disguise (R8). */
 function creatureDescLabel(c){

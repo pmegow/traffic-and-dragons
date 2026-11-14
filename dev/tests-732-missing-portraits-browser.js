@@ -101,6 +101,28 @@ const filter=process.argv.includes('--only')?process.argv[process.argv.indexOf('
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'no sideways scroll on a phone');await page.setViewportSize({width:1050,height:900});
   await page.locator("[data-op='npcaltportraitremove']").click();assert.equal(await page.evaluate(()=>'altPortrait' in bp.npcs[0]),false);assert(await page.evaluate(()=>bp.creatures[0].altPortrait.length>0),'removing one alternate leaves the others');
  });
+ await test('#745 alternate portraits stack directly below true portraits in both card types',async()=>{
+  const pair=await page.evaluate(()=>{function portrait(text,color){var c=document.createElement('canvas');c.width=600;c.height=800;var g=c.getContext('2d');g.fillStyle=color;g.fillRect(0,0,600,800);g.fillStyle='#fff';g.font='bold 40px sans-serif';g.textAlign='center';g.fillText(text,300,400);return c.toDataURL();}return {true:portrait('TRUE FORM','#365978'),alternate:portrait('ALTERNATE FORM','#8c6235')};});
+  await load([creature('Moon Hag',{portrait:pair.true,altPortrait:pair.alternate,altDesc:'A smiling traveller.'})],[npc('The Ash-Masked Courier',{portrait:pair.true,altPortrait:pair.alternate,altDesc:'A squirrel-shaped messenger.'})]);
+  await page.evaluate(()=>{bp.creatures[0]._c=false;bp.npcs[0]._c=false;secOpen.creatures=true;secOpen.npcs=true;render();});
+  const saved=await page.evaluate(()=>JSON.stringify(__bpdTest.out()));
+  for(const width of [1050,390]){
+   await page.setViewportSize({width,height:1000});
+   for(const type of ['npc','creature']){
+    const r=await page.evaluate(type=>{var el=document.querySelector('[data-portrait-type="'+type+'"][data-portrait-action="view"][data-portrait-slot="true"]'),card=el.closest('.card');window.scrollTo(0,Math.max(0,card.getBoundingClientRect().top+scrollY-document.getElementById('topbar').offsetHeight-16));var grid=el.closest('.creature-card-grid'),editor=grid.querySelector('.creature-editor'),alt=grid.querySelector('[data-portrait-action="view"][data-portrait-slot="alternate"]');function box(x){var r=x.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width};}var cr=card.getBoundingClientRect();return {first:box(el),second:box(alt),editor:box(editor),overflow:document.documentElement.scrollWidth>innerWidth,clip:{x:cr.left+scrollX,y:cr.top+scrollY,width:cr.width,height:cr.height,scale:1}};},type);
+    const shot=await page._send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true,clip:r.clip});fs.writeFileSync(path.join(shots,'portrait-stack-'+type+'-'+width+'.png'),Buffer.from(shot.data,'base64'));
+    assert(Math.abs(r.first.left-r.second.left)<1&&Math.abs(r.first.width-r.second.width)<1,type+' portraits must share one column and width at '+width+'px: '+JSON.stringify(r));
+    assert(r.second.top>=r.first.bottom&&r.second.top-r.first.bottom<=24,type+' alternate must sit immediately below the true portrait');
+    if(width>640)assert(r.second.left>=r.editor.right,type+' alternate must stay beside the editor, not under it');
+    assert(!r.overflow,'portrait stack must not overflow the phone');
+    await page.locator('[data-portrait-type="'+type+'"][data-portrait-action="view"][data-portrait-slot="alternate"]').click();
+    await page.waitForFunction(()=>/pixels/.test((document.querySelector('#creature-image-size')||{}).textContent||''));
+    assert(await page.evaluate(src=>document.querySelector('#creature-image-modal img').src===src,pair.alternate),'enlarge opens the alternate image');await page.locator('#creature-image-close').click();
+   }
+  }
+  assert.equal(await page.evaluate(()=>JSON.stringify(__bpdTest.out())),saved,'layout and enlarged views preserve both portrait slots');assert.equal(requests.length,0,'the layout spends no image requests');
+  await page.setViewportSize({width:1050,height:900});
+ });
  await test('missing image access is reported before any request',async()=>{
   await load([creature('First')]);await page.evaluate(()=>{window.oldFalAvailable=falAvailable;falAvailable=()=>false;});await start();await settled();assert.equal(requests.length,0);assert.match(await page.locator('#statusline').innerText(),/Sign in.*image key/);await page.evaluate(()=>falAvailable=oldFalAvailable);
  });
