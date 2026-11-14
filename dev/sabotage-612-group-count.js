@@ -38,7 +38,7 @@ code |= sabotage.prove({ file: "helpers.js", command: CMD, cases: [
     find: "&&!(foe&&typeof foe.count===\"number\");}", replace: ";}",
     mustFail: T },
   { label: "the label drops the count (the name alone, as before #612)",
-    find: "function foeLabel(foe,canonical){return (canonical?String(foe&&foe.name||\"\"):creaturePublicName(foe&&foe.name))+(foe&&typeof foe.count===\"number\"?\" (\"+foe.count+\")\":\"\");}",
+    find: "function foeLabel(foe,canonical){return (canonical?String(foe&&foe.name||\"\"):foePublicName(foe))+(foe&&typeof foe.count===\"number\"?\" (\"+foe.count+\")\":\"\");}",
     replace: "function foeLabel(foe,canonical){return canonical?String(foe&&foe.name||\"\"):creaturePublicName(foe&&foe.name);}",
     mustFail: T }
 ] });

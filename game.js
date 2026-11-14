@@ -3188,6 +3188,13 @@ function validateBlueprint(bp){
   for(var ai=0,abilitySections=["npcs","creatures"];ai<abilitySections.length;ai++){
     var entries=bp[abilitySections[ai]]||[];for(var aj=0;aj<entries.length;aj++){var ae=entries[aj];if(ae&&ae.abilities!==undefined&&typeof ae.abilities!=="string")return abilitySections[ai]+" \""+(ae.name||aj+1)+"\" abilities must be text.";}
   }
+  /* #743: the two-form fields are text, and the starting form is one of three — refused loudly, never read as a default. */
+  for(var fi=0,formSections=["npcs","creatures"];fi<formSections.length;fi++){
+    var fentries=bp[formSections[fi]]||[];for(var fj=0;fj<fentries.length;fj++){var fe=fentries[fj];if(!fe)continue;
+      for(var fk=0;fk<FORM_TEXT_FIELDS.length;fk++)if(fe[FORM_TEXT_FIELDS[fk]]!==undefined&&typeof fe[FORM_TEXT_FIELDS[fk]]!=="string")return formSections[fi]+" \""+(fe.name||fj+1)+"\" "+FORM_TEXT_FIELDS[fk]+" must be text.";
+      if(fe.startsAs!==undefined&&FORM_STARTS.indexOf(fe.startsAs)<0)return formSections[fi]+" \""+(fe.name||fj+1)+"\" startsAs must be one of "+FORM_STARTS.join(", ")+".";
+    }
+  }
   if(bp.creatures){var ci;for(ci=0;ci<bp.creatures.length;ci++){
     var cr=bp.creatures[ci];if(!cr||!cr.name)return "Creature "+(ci+1)+" is missing a name.";
     if(cr.availableActs!==undefined&&(cr.revealAct!==undefined||!validCreatureActs(cr.availableActs,bp.acts)))return "Creature \""+cr.name+"\" needs unique available act numbers, with no legacy revealAct field.";
@@ -3326,6 +3333,7 @@ function blueprintTextFields(bp){
   ["npcs","locations","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){add(o,["name","notes","secret","desc","role","status","relation","sizeNote"],section+"."+i+".",caps.field);});});
   ["npcs","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){if(o&&o.abilities!==undefined)add(o,["abilities"],section+"."+i+".",caps.field);});});
   (bp.creatures||[]).forEach(function(c,i){if(c&&c.displayName!==undefined)add(c,["displayName"],"creatures."+i+".",caps.field);});
+  ["npcs","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){["altDesc","altWhen"].forEach(function(k){if(o&&o[k]!==undefined)add(o,[k],section+"."+i+".",caps.field);});});});/* #743 */
   (bp.creatures||[]).forEach(function(c,i){if(c&&c.environment!==undefined)add(c,["environment"],"creatures."+i+".",80);});
   (bp.rules||[]).forEach(function(rule,i){add(bp.rules,[i],"rules.",caps.rule);});return out;
 }
@@ -3400,6 +3408,7 @@ function buildBlueprintFromGame(){
        export the relation, never the mood the old line leaked (the same category error v1.379 fixed) */
     npcs.push({name:n.name,role:(n.rel&&n.rel!=="unknown")?n.rel:"neutral",notes:notes,pronouns:n.pronouns||mem&&mem.pronouns||"they/them"});
     var portrait=npcPortrait(n);if(portrait)npcs[npcs.length-1].portrait=portrait;
+    NPC_FORM_FIELDS.forEach(function(k){if(n[k]!==undefined)npcs[npcs.length-1][k]=n[k];});/* #743: both forms survive the round trip */
     var abilities=npcAuthoredText(mem,"abilities");if(abilities)npcs[npcs.length-1].abilities=abilities;
     var secret=npcSecretExport(mem);if(secret){npcs[npcs.length-1].secret=secret.secret;npcs[npcs.length-1].revealAct=secret.revealAct;}
   });
@@ -3469,6 +3478,20 @@ function blueprintPortraitTarget(source,sources){
   if(identitySheetIssue(source,name,[identityNpcOwner(name)]))return null;
   return target;
 }
+/* #743: the fields a blueprint entry may carry for its two forms (design: DOC/DESIGN_743_forms.md). ONE list each, read
+   by the validation, the roster seed and the export — a new form field is an entry. */
+var FORM_STARTS=["true","alternate","story"],FORM_TEXT_FIELDS=["desc","altDesc","altWhen","altPortrait"],NPC_FORM_FIELDS=["desc","altDesc","altWhen","startsAs","altPortrait"];
+/* A blueprint NPC's alternate form rides its roster row (the row is the individual). Fields the row already holds win
+   (a campaign in play is never overwritten by a re-applied blueprint); an alternate image passes the same image gate
+   as the portrait, and a refusal is said. GM-only `altWhen` stays on the row and reaches no player surface. */
+function npcFormSeed(row,src){
+  if(!row||!src)return;
+  NPC_FORM_FIELDS.forEach(function(k){
+    if(src[k]===undefined||src[k]===""||row[k]!==undefined)return;
+    if(k==="altPortrait"&&!safeImgSrcOk(src[k])){console.warn("[forms] "+row.name+": the alternate portrait was dropped — not an image");if(typeof showToast==="function")showToast("⚠ "+row.name+"'s alternate portrait was dropped — not an image");return;}
+    row[k]=src[k];
+  });
+}
 function applyBlueprint(bp){
   if(bp.kind&&bp.kind!=="adventure"&&typeof CAMPAIGN_KINDS!=="undefined"&&ownValue(CAMPAIGN_KINDS,bp.kind)){worldState.kind=bp.kind;/* #6: only a non-default kind is stamped — adventure saves stay byte-identical */
     if(ownValue(CAMPAIGN_KINDS,bp.kind).openingWeather&&worldState.world)worldState.world.weather=ownValue(CAMPAIGN_KINDS,bp.kind).openingWeather;/* #6 C4: the kind's own sky, not the adventure's ash (the first live check opened under "cold wind carrying ash") */
@@ -3494,13 +3517,14 @@ function applyBlueprint(bp){
   if(bp.npcs&&bp.npcs.length){
     var ni;for(ni=0;ni<bp.npcs.length;ni++){
       var n=bp.npcs[ni],_portraitNpc=blueprintPortraitTarget(n,bp.npcs);
-      if(_portraitNpc){if(n.portrait&&!npcPortrait(_portraitNpc))npcPortraitWrite(_portraitNpc,n.portrait,"blueprint NPC "+n.name);continue;}
+      if(_portraitNpc){if(n.portrait&&!npcPortrait(_portraitNpc))npcPortraitWrite(_portraitNpc,n.portrait,"blueprint NPC "+n.name);npcFormSeed(_portraitNpc,n);continue;}
       if(!identitySheetAdmit(n,n.name,[]))continue;admittedNpcs.push(n);
       /* v1.439 (F2, brief B): role fans into RELATION only. The old line wrote it into status
          (mood) and attitude (disposition) too — recreating in one call the exact contamination
          v1.379-383 separated. Mood/disposition start empty; play fills them. */
       var _seedN={name:n.name,status:"",statusTurn:0,rel:n.role||"neutral",met:0,pronouns:n.pronouns||"they/them"},_seedA=(typeof seedArmor==="function")?seedArmor(n):undefined;if(_seedA!==undefined)_seedN.armor=_seedA;/* #319: the blueprint's plot-armor override rides the roster */if(n.agenda){_seedN.agenda=String(n.agenda).slice(0,160);_seedN.agendaKind=n.agendaKind||"";}/* #330: the authored want rides the roster until the sheet exists */
       if(n.portrait){_seedN.portrait=n.portrait;if(portraitAdmit(_seedN,"blueprint NPC "+n.name)&&typeof showToast==="function")showToast("⚠ "+n.name+"'s portrait was dropped — not an image");}
+      npcFormSeed(_seedN,n);/* #743: the alternate form rides the roster row */
       worldState.npcs.push(_seedN);
       memory.npcs[n.name]={attitude:"",knowledge:n.notes?[n.notes]:[],events:[],pronouns:n.pronouns||"they/them"};
     }

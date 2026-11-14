@@ -3522,7 +3522,53 @@ function bestiaryRecord(name){
 }
 function creaturePublicName(name){var c=bestiaryRecord(name);return c&&typeof c.displayName==="string"&&c.displayName.trim()?c.displayName.trim():String(name||"");}
 // The public label is not a reveal state. Opening an act permits encounters, never unmasks them.
-function foeLabel(foe,canonical){return (canonical?String(foe&&foe.name||""):creaturePublicName(foe&&foe.name))+(foe&&typeof foe.count==="number"?" ("+foe.count+")":"");}
+function foeLabel(foe,canonical){return (canonical?String(foe&&foe.name||""):foePublicName(foe))+(foe&&typeof foe.count==="number"?" ("+foe.count+")":"");}
+/* #743 TWO FORMS (design: DOC/DESIGN_743_forms.md). A creature or NPC has a TRUE form (`portrait`, `desc`) and may have an
+   ALTERNATE (`altPortrait`, `altDesc`) — a disguise, or any second state the story calls for. The form belongs to the
+   INDIVIDUAL in play (a foe row, a roster row: its `form`), never to the bestiary entry. All pure.
+   formStart(rec): the author's starting form — "true", "alternate" or "story" (as serves the story); with no choice, a
+     creature with a public name starts alternate (the pre-#743 disguise) and anything else starts true.
+   formOf(individual, rec): the form showing now — "true", "alternate", or "" while an as-serves-the-story individual has
+     not had its form stated (R11: such a one shows nothing).
+   formView(rec, form): what the player may see — {form, portrait, desc, standIn, undeclared}. A called-for alternate with
+     no image is the TRUE image flagged standIn (R3: drawn marked ALTERNATE; the first slot is never altered); a
+     description never crosses forms, except that a legacy disguised creature's one `desc` (a public name, no `altDesc`)
+     was written as the mask's look and is read as the alternate's (R8). */
+function formStart(rec){
+  var s=rec&&rec.startsAs;
+  if(s==="true"||s==="alternate"||s==="story")return s;
+  return rec&&typeof rec.displayName==="string"&&rec.displayName.trim()?"alternate":"true";
+}
+function formOf(individual,rec){
+  var f=individual&&individual.form;
+  if(f==="true"||f==="alternate")return f;
+  f=formStart(rec);return f==="story"?"":f;
+}
+function formView(rec,form){
+  var out={form:form||"",portrait:"",desc:"",standIn:false,undeclared:!form};
+  if(!rec||!form)return out;
+  var maskDesc=!!(typeof rec.displayName==="string"&&rec.displayName.trim()&&!rec.altDesc);/* R8 */
+  if(form==="alternate"){
+    if(rec.altPortrait)out.portrait=rec.altPortrait;else if(rec.portrait){out.portrait=rec.portrait;out.standIn=true;}
+    out.desc=rec.altDesc||(maskDesc?rec.desc||"":"");
+  }else{out.portrait=rec.portrait||"";out.desc=maskDesc?"":rec.desc||"";}
+  return out;
+}
+/* R13: a foe's on-screen name follows its form — the entry's public name while alternate (and while undeclared: never the
+   true name by default), the entry's canonical name while true. A foe with no entry, or an entry with no public name, is
+   its own name. The row's tag identity (foe.name) never changes. */
+function foePublicName(foe){
+  var own=String(foe&&foe.name||""),rec=bestiaryRecord(own),pub=rec&&typeof rec.displayName==="string"?rec.displayName.trim():"";
+  if(!pub)return own;
+  return formOf(foe,rec)==="true"?String(rec.name):pub;
+}
+/* An NPC's forms ride its roster row: `desc`, `altPortrait`, `altDesc`, `startsAs`, `form`; the true image is the sheet's
+   or the row's (npcPortrait). */
+function npcFormView(n){
+  if(!n)return formView(null,"");
+  var rec={portrait:npcPortrait(n)||"",desc:n.desc,altPortrait:n.altPortrait,altDesc:n.altDesc,startsAs:n.startsAs};
+  return formView(rec,formOf(n,rec));
+}
 /* #612: is this foe a pooled group whose headcount nobody has recorded? A pack word in the name, no count authored in the name
    ("Raider Gang (5)"), no foe.count. ONE predicate: the prompt's combat line ASKS the GM for the number while this holds (a fight
    declared before the tag existed, or a GM that skipped it), and the enemy card says "Not recorded". Pure. */

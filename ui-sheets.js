@@ -456,6 +456,8 @@ function partWaysWithCompanion(name){
   saveAll();syncUI();
   if(typeof showToast==="function")showToast(n+" has left the party.");
 }
+/* #743: a called-for alternate with no image of its own is the true image marked ALTERNATE (R3). */
+function npcFormStandInHtml(view){return view&&view.standIn?"<span class='form-standin'>ALTERNATE</span>":"";}
 function showNpcSheet(name){
   if(!worldState)return;
   var wsNpc=wsNpcByName(name),i;/* #7: shared lookup */
@@ -469,14 +471,14 @@ function showNpcSheet(name){
   var sheet=wsNpc&&wsNpc.charSheet?wsNpc.charSheet:null;
 
   var initials=csInitials(name);
-  var portrait=npcPortrait(wsNpc); // charSheet-first (#3 dedupe) — also fixes companions whose portrait arrived in the blob but not the separate store (known issue #6)
+  var _formView=npcFormView(wsNpc),portrait=_formView.portrait;/* #743: the portrait of the form showing now (an undeclared form shows none) */ // charSheet-first (#3 dedupe) — also fixes companions whose portrait arrived in the blob but not the separate store (known issue #6)
 
   // ── Avatar ────────────────────────────────────────────────────────────────
   /* #453 (owner 2026-09-24): EVERY NPC gets the editable avatar. The party gate drew an initials circle over an
      existing portrait (every Village resident carries one) and left townsfolk with no way to get a face; the
      portrait modal already handled a sheet-less subject (setPortrait → npc.portrait, setAppearance refused with a
      toast). A render is spent only when Generate is clicked, against the weekly allowance (#381). */
-  var avatarHtml="<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+safeImgSrc(portrait)+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div></div>";
+  var avatarHtml="<div class='cs-avatar' id='npc-avatar-btn' title='Drag to reframe · Click to edit'>"+(portrait?"<img id='npc-portrait-img' src='"+safeImgSrc(portrait)+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+npcFormStandInHtml(_formView)+"<div class='cs-avatar-overlay'>&#129718;</div></div>";
 
   // ── Hero info block ───────────────────────────────────────────────────────
   var heroInfo;
@@ -526,6 +528,7 @@ function showNpcSheet(name){
 
   // ── NPC sections (always shown) ───────────────────────────────────────────
   var statusBlock="";
+  if(_formView.desc)statusBlock+=csKv("Appearance",escHtml(_formView.desc));/* #743: the current form's look */
   if(wsNpc){statusBlock+=csKv("Status",escHtml(wsNpc.status||"—"));if(wsNpc.pronouns)statusBlock+=csKv("Pronouns",escHtml(wsNpc.pronouns));}/* model-authored (#22/UA18) */
   // #47: identity aliases (memory — the resolution spine, e.g. a merged "Woman in Bronze")
   // + schema epithets (charSheet.aliases), deduped. The merge machinery's work, made visible.
@@ -653,8 +656,8 @@ function showNpcSheet(name){
     function wireNpcAvatarDrag(){var img=document.getElementById("npc-portrait-img");if(img)wirePortraitDrag(img,npcGetOff,npcSetOff);}
     function refreshNpcAvatar(){
       var av=document.getElementById("npc-avatar-btn");if(!av)return;
-      var port=npcPortrait(wsNpc);
-      av.innerHTML=(port?"<img id='npc-portrait-img' src='"+safeImgSrc(port)+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+"<div class='cs-avatar-overlay'>&#129718;</div>";
+      var _fv=npcFormView(wsNpc),port=_fv.portrait;
+      av.innerHTML=(port?"<img id='npc-portrait-img' src='"+safeImgSrc(port)+"' alt='"+escHtml(name)+"' style='width:100%;height:100%;object-fit:cover;display:block;'>":initials)+npcFormStandInHtml(_fv)+"<div class='cs-avatar-overlay'>&#129718;</div>";
       wireNpcAvatarDrag();
     }
     wireNpcAvatarDrag(); // apply saved offset on initial render

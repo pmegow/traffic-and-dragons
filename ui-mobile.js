@@ -109,14 +109,17 @@ function mobileInit(){
 // headcounts guessed from aggregate HP. Counts explicitly authored in a name stay intact.
 function wireEnemyDetails(ordered){
   var rows=mobileEl("en-rows");if(!rows)return;
-  Array.prototype.forEach.call(rows.querySelectorAll(".cname.en"),function(el,i){var foe=ordered[i];el.setAttribute("role","button");el.tabIndex=0;el.setAttribute("aria-label","Details for "+creaturePublicName(foe.name));el.onclick=function(){showEnemyDetails(foe);};el.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showEnemyDetails(foe);}};});
+  Array.prototype.forEach.call(rows.querySelectorAll(".cname.en"),function(el,i){var foe=ordered[i];el.setAttribute("role","button");el.tabIndex=0;el.setAttribute("aria-label","Details for "+foePublicName(foe));el.onclick=function(){showEnemyDetails(foe);};el.onkeydown=function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showEnemyDetails(foe);}};});
 }
 function showEnemyDetails(foe){
   /* #741: the creature's authored portrait; a source that is not an image is refused (and said) by safeImgSrc. #742: a
      disguised creature (a public name) shows its ALTERNATE portrait (`altPortrait`) — never the true one unmarked; until
      the blueprint carries one, the standard portrait stands in with ALTERNATE across it (owner 2026-11-13). */
-  var record=bestiaryRecord(foe.name),disguised=!!(record&&typeof record.displayName==="string"&&record.displayName.trim());
-  var pic=record?(disguised&&record.altPortrait?record.altPortrait:record.portrait):"",standIn=disguised&&!record.altPortrait,portrait=pic?safeImgSrc(pic):"";
+  /* #743: the card shows the foe's CURRENT form (formOf/formView, helpers.js) — its portrait and description, never the
+     other form's; an as-serves-the-story individual whose form the GM has not stated shows neither (R11), and says so. */
+  var record=bestiaryRecord(foe.name),view=formView(record,formOf(foe,record));
+  if(record&&view.undeclared&&typeof console!=="undefined")console.warn("[forms] "+record.name+": this individual's form has not been stated (startsAs \"story\") — the card shows no portrait and no description until a [FORM:] names it");
+  var pic=view.portrait,standIn=view.standIn,portrait=pic?safeImgSrc(pic):"";
   var h="<h2 style='font-size:18px;color:var(--acc)'>"+escHtml(foeLabel(foe))+"</h2>";
   if(portrait)h+="<div class='enemy-portrait'><img src='"+safeImgSrc(pic)+"' alt='"+escHtml(foeLabel(foe))+"'>"+(standIn?"<span class='enemy-portrait-standin'>ALTERNATE</span>":"")+"</div>";
   h+="<dl class='enemy-facts'>";
@@ -125,8 +128,8 @@ function showEnemyDetails(foe){
   [{key:"ac",label:"Armor class"},{key:"atk",label:"Attack"},{key:"dmg",label:"Damage"},{key:"morale",label:"Morale"},{key:"down",label:"State"},{key:"immune",label:"Immune"},{key:"resist",label:"Resistant"},{key:"vuln",label:"Vulnerable"}].forEach(function(x){row(x.label,foe[x.key]);});
   if(foe.stats)Object.keys(foe.stats).forEach(function(k){row(k,foe.stats[k]);});
   if(record){
-    if(!record.displayName)[{key:"kind",label:"Type"},{key:"threat",label:"Threat"}].forEach(function(x){row(x.label,record[x.key]);});
-    row("Description",record.desc);
+    if(view.form==="true")[{key:"kind",label:"Type"},{key:"threat",label:"Threat"}].forEach(function(x){row(x.label,record[x.key]);});/* the classification is the true form's */
+    row("Description",view.desc);
   }
   if(typeof foe.count==="number")row("Group size",foe.count);/* #612: the authored headcount */
   else if(foeGroupUnrecorded(foe))row("Group size","Not recorded");/* #612: the one predicate the prompt's ask reads */

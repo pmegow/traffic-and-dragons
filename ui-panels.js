@@ -498,10 +498,10 @@ function updateCombat(){
     for(fi=0;fi<ordered.length&&fi<4;fi++){var f=ordered[fi];
       if(!f.down&&f.hp>0){
         var pct=Math.max(0,Math.round((f.hp/(f.maxHp||f.hp||1))*100));
-        h+="<div class='crow'><span class='cname en' title='"+escHtml(creaturePublicName(f.name))+(cm.engaged===f.name?" — engaged":"")+"'>"+(cm.engaged===f.name?"◆ ":"")+escHtml(foeLabel(f))+"</span><div class='hbw'><div class='hb eb' style='width:"+pct+"%'></div></div><span class='hpt'>"+f.hp+"/"+f.maxHp+"</span>"+(f.morale?"<span class='mbdg'>"+escHtml(f.morale)+"</span>":"")+"</div>";
+        h+="<div class='crow'><span class='cname en' title='"+escHtml(foePublicName(f))+(cm.engaged===f.name?" — engaged":"")+"'>"+(cm.engaged===f.name?"◆ ":"")+escHtml(foeLabel(f))+"</span><div class='hbw'><div class='hb eb' style='width:"+pct+"%'></div></div><span class='hpt'>"+f.hp+"/"+f.maxHp+"</span>"+(f.morale?"<span class='mbdg'>"+escHtml(f.morale)+"</span>":"")+"</div>";
         if(!sbFoe&&f.stats&&cm.engaged===f.name)sbFoe=f;
       }else{
-        h+="<div class='crow' style='opacity:.45'><span class='cname en' style='text-decoration:line-through'>"+escHtml(creaturePublicName(f.name))+"</span><span class='hpt' style='width:auto'>"+escHtml(f.down||"slain")+"</span></div>";
+        h+="<div class='crow' style='opacity:.45'><span class='cname en' style='text-decoration:line-through'>"+escHtml(foePublicName(f))+"</span><span class='hpt' style='width:auto'>"+escHtml(f.down||"slain")+"</span></div>";
       }
     }
     if(ordered.length>4)h+="<div style='font-size:10px;color:var(--t2);margin-bottom:4px;'>+"+(ordered.length-4)+" more</div>";
@@ -510,7 +510,7 @@ function updateCombat(){
       var sbh="";
       var sm2=function(v){var m=Math.floor((v-10)/2);return(m>=0?"+":"")+m;};
       if(sbFoe.stats){
-        sbh+=(living.length>1?"<span style='color:var(--t1);'>"+escHtml(creaturePublicName(sbFoe.name))+":</span> ":"")
+        sbh+=(living.length>1?"<span style='color:var(--t1);'>"+escHtml(foePublicName(sbFoe))+":</span> ":"")
             +"STR "+sbFoe.stats.STR+"("+sm2(sbFoe.stats.STR)+") "
             +"DEX "+sbFoe.stats.DEX+"("+sm2(sbFoe.stats.DEX)+") "
             +"CON "+sbFoe.stats.CON+"("+sm2(sbFoe.stats.CON)+") "

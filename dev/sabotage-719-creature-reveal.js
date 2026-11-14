@@ -21,7 +21,7 @@ rc|=sabotage.prove({file:'game.js',command:cmd,cases:[
  {label:'near-death memory exposes hidden name',find:'foe=" fighting "+creaturePublicName(worldState.combat.engaged||worldState.combat.foes[0].name);',replace:'foe=" fighting "+(worldState.combat.engaged||worldState.combat.foes[0].name);',mustFail:'#719 slain and core-moment prose use public names'}
 ]});
 rc|=sabotage.prove({file:'ui-mobile.js',command:['node',['dev/tests-718-enemy-card.js']],cases:[
- {label:'disguise card exposes its true type',find:'if(!record.displayName)[{key:"kind",label:"Type"}',replace:'if(true)[{key:"kind",label:"Type"}',mustFail:'#719 disguised card omits canonical identity and private classification'}
+ {label:'disguise card exposes its true type',find:'if(view.form==="true")[{key:"kind",label:"Type"}',replace:'if(true)[{key:"kind",label:"Type"}',mustFail:'#719 disguised card omits canonical identity and private classification'}
 ]});
 rc|=sabotage.prove({file:'identity.js',command:cmd,cases:[
  {label:'armored refusal reveals canonical name',find:'var line=creaturePublicName(canon)+": death refused',replace:'var line=canon+": death refused',mustFail:'#719 armored refusal and missing-target errors use public names'}

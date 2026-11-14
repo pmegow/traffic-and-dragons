@@ -1,5 +1,5 @@
 {
-  "version": "v1.1417",
+  "version": "v1.1418",
   "actions": [
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
     "Every new campaign starts with a map that fills as the GM reveals places; the map checkbox is gone.",
@@ -73,6 +73,7 @@
     "World state, Sync state and the Operator console moved into Settings, Dev tools.",
     "World State lists only characters you have discovered, with their faction; it starts blank. World state is back in the phone menu.",
     "The creature card in combat now shows the creature's portrait.",
-    "A disguised creature's card shows an alternate portrait; until one exists, the standard portrait is marked ALTERNATE."
+    "A disguised creature's card shows an alternate portrait; until one exists, the standard portrait is marked ALTERNATE.",
+    "Creatures and characters can carry a second form; the combat card and character sheet show the current form's portrait and description."
   ]
 }

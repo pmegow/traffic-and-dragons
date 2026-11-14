@@ -22,6 +22,7 @@ var SUITES = [
   "dev/tests-730-designer-abilities.js",
   "dev/tests-722-silence-opening.js",
   "dev/tests-718-enemy-card.js",
+  "dev/tests-743-forms.js",/* #743: two forms — the starting form, what each form shows, the label, the card, the blueprint doors */
   "dev/tests-684-atlas-engine.js",/* #684: the atlas engine — recipes, entry by exact name, the never-guess rule, We are here, drift, the fixture gate */
   "dev/tests-684-atlas.js",/* #684: the atlas — the TnD Maps pin, the one global, one seed one document, the load order */
   "dev/tests-678-reporter.js",
