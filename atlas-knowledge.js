@@ -95,13 +95,18 @@ function atlasKnowledgeCollision(s,groups){
 /* Each readable receipt occupies the directive's original place in the narration. A copied
    quotation elsewhere cannot suppress it or move its meaning past a subsequent arrival. */
 function atlasKnowledgePublish(raw,items){
-  var text=String(raw||""),out="",cursor=0,i,item,m,fields,e;
+  var text=String(raw||""),out="",cursor=0,i,item,m,fields,e,said=Object.create(null),sk;
   for(i=0;i<items.length;i++){
     item=items[i];e=item.event;
     if(typeof item.start!=="number"||Math.floor(item.start)!==item.start||item.start<cursor||typeof item.end!=="number"||Math.floor(item.end)!==item.end||item.end<=item.start||item.end>text.length||text.slice(item.start,item.end)!==item.directive)throw new Error("the queued map directive no longer matches its narrated source");
     m=/^\[MAP_REVEAL:([^\[\]\r\n]*)\]$/.exec(item.directive);fields=m?m[1].split("|").map(function(x){return x.trim();}):[];
     if(JSON.stringify(typeof atlasKnowledgeDirectiveEvent==="function"?atlasKnowledgeDirectiveEvent(item.directive):atlasKnowledgeFields(fields))!==JSON.stringify(e))throw new Error("the queued map disclosure differs from its public directive");
-    out+=text.slice(cursor,item.end)+"\n\n"+e.quote+"\n\n";cursor=item.end;
+    /* #763 (owner 2026-11-15, Petrified Mire: "You see Shattered Ridge to the north." twice, and the Track twice): a
+       reply that states one disclosure twice — the same place, the same receipt — printed its receipt at each statement.
+       The record already kept one; the page says it once, at the first statement. A different place or a different
+       receipt is another line. */
+    sk=JSON.stringify([item.container,e.quote]);
+    out+=text.slice(cursor,item.end)+(said[sk]?"":"\n\n"+e.quote+"\n\n");said[sk]=1;cursor=item.end;
   }
   return out+text.slice(cursor);
 }

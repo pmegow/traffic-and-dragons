@@ -1350,7 +1350,7 @@ function atlasThingAt(zoneId,x,y){
   return null;
 }
 /* the markers TnDMaps.markers / view.setMarkers take for a sheet — derived from the store, never stored */
-function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)")}]:[];}
+function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:p.label?p.label:(p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)"))}]:[];}/* #764: a position that names itself (the public sheet's place) is said by that name */
 /* the entered zones, root first then in order of entry */
 function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?(atlasJourneyIs(A,id)||atlasPublicPlace(A,id))/* #757: the journey sheet is always there */:atlasRow(A.zones,id)));}
 function atlasZones(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive();return publicAtlas?atlasPublicPlacesList(publicAtlas):[];}

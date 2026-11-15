@@ -482,12 +482,19 @@ function showCharacterBrowser(initialMode){
   render();
 }
 // ── Character import preview modal ───────────────────────────────────────────
+/* #762: is the character wizard the screen showing? There an import is always "play as". */
+function charImportDirect(){var scr=(typeof document!=="undefined"&&typeof document.getElementById==="function")?document.getElementById("char-screen"):null;return !!(scr&&scr.style&&scr.style.display!=="none");}
 function showCharImportPreview(char, onAccept, onCancel){
   /* #599 (b): every import road funnels through this preview, so the registry runs here ONCE on the object itself (the
      accept callbacks hold it): the version gate (#599 a), the name heals (#100, #221, v1.478), the portrait gate (#481 F2),
      the clamp (#315), the relationship adapter. A preview never publishes — the later door (join, play-as) does. */
   var _ad=sheetAdmit(char,{door:"character import",mode:"cross",detach:false,stage:"preview",rel:"@import:"+(char.name||"character"),portable:true});
   if(!_ad.ok){if(onCancel)onCancel();return;}
+  /* #762 (owner 2026-11-15: "Skip the second modal. If we 'import' the character is safe to assume we're going to play as
+     that character"): in the WIZARD there is one thing an import can mean, so the Play-as chooser is not asked — the sheet
+     is admitted above exactly as before and goes straight to the review. In a running game the chooser stays: there an
+     import is play-as (a new campaign) or a companion. */
+  if(charImportDirect()){onAccept();return;}
   var initials=csInitials(char.name);/* #15③: canonical — this copy lacked the w[0] guard and rendered "undefined" on double-space names (sanctioned fix) */
   var portrait=char.portrait?"<img src='"+safeImgSrc(char.portrait)+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};

@@ -13,11 +13,11 @@ rc|=sabotage.prove({file:'atlas-public-places.js',command,only,cases:[
 ]});
 rc|=sabotage.prove({file:'atlas-public-landscape.js',command,only,cases:[
  {label:'the current disclosed landscape is omitted',find:'add(title,"here","unknown",null);',replace:'',mustFail:only+'whole place phrases supply scenery without extracting nouns from building names'},
- {label:'a noun inside a building name is treated as landscape',find:'if(!row.test.test(phrase))continue;',replace:'if(!row.test.test(phrase)&&!row.test.test(phrase.split(" ")[0]))continue;',mustFail:only+'whole place phrases supply scenery without extracting nouns from building names'},
+ {label:'a noun inside a building name is treated as landscape',find:'head=words[words.length-1],i;',replace:'head=words[0],i;',/* #765: rows are nouns and the head noun decides; same regression */mustFail:only+'whole place phrases supply scenery without extracting nouns from building names'},
  {label:'reported landscape is drawn as observed physical scenery',find:'if(f.mode==="observed")add(f.label,f.id,f.bearing,f.id);',replace:'add(f.label,f.id,f.bearing,f.id);',mustFail:only+'reported landscapes and unknown-position routes cannot add physical geometry'},
- {label:'an unpositioned route receives physical geometry',find:'if(feature&&bearing==="unknown")continue;',replace:'',mustFail:only+'reported landscapes and unknown-position routes cannot add physical geometry'},
+ {label:'an unpositioned route receives physical geometry',find:'if(feature&&bearing==="unknown")return;',replace:'',/* #765 */mustFail:only+'reported landscapes and unknown-position routes cannot add physical geometry'},
  {label:'landscape derivation reorders its evidence in place',find:'features.forEach(function(f)',replace:'features.sort(function(a,b){return a.id<b.id?-1:1;}).forEach(function(f)',mustFail:only+'landscape derivation is deterministic bounded and leaves evidence unchanged'},
- {label:'landscape routes grow without their bound',find:'if(out.routes.length>=32)continue;',replace:'',mustFail:only+'landscape derivation is deterministic bounded and leaves evidence unchanged'}
+ {label:'landscape routes grow without their bound',find:'if(out.routes.length>=32)return;',replace:'',/* #765 */mustFail:only+'landscape derivation is deterministic bounded and leaves evidence unchanged'}
 ]});
 rc|=sabotage.prove({file:'atlas-public.js',command,only,cases:[
  {label:'a selected former sheet borrows the current location discoveries',find:'k=place.container;p=atlasKnowledgeProjection(k);',replace:'k=atlasPublicContext();p=atlasKnowledgeProjection(k);',mustFail:only+'travel returns to stable sheets and notes without moving the party during selection'},

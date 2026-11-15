@@ -32,7 +32,16 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       if(process.env.CAMBION_SCREENSHOT_DIR){fs.mkdirSync(process.env.CAMBION_SCREENSHOT_DIR,{recursive:true});await page.screenshot({path:path.join(process.env.CAMBION_SCREENSHOT_DIR,'cambion-creation.png')});}
     });
     await check('portable import preview migrates the ancestry before acceptance',async()=>{
-      const result=await page.evaluate(()=>{const c=JSON.parse(JSON.stringify(window.__created));c.ancestry='Tiefling';c.subraceNm='';showCharImportPreview(c,function(){},function(){});return {ancestry:c.ancestry,text:document.getElementById('char-import-preview').textContent};});
+      /* #762: in the wizard the Play-as chooser is skipped — the sheet is migrated, then accepted at once; with the wizard
+         hidden (a running game) the chooser shows, and shows the migrated ancestry */
+      const result=await page.evaluate(()=>{
+        const make=()=>{const c=JSON.parse(JSON.stringify(window.__created));c.ancestry='Tiefling';c.subraceNm='';return c;},scr=document.getElementById('char-screen'),was=scr.style.display;
+        const w=make();let atAccept=null;scr.style.display='block';showCharImportPreview(w,function(){atAccept=w.ancestry;},function(){});
+        const wizard={atAccept:atAccept,modal:!!document.getElementById('char-import-preview')};
+        const c=make();scr.style.display='none';showCharImportPreview(c,function(){},function(){});
+        const el=document.getElementById('char-import-preview'),out={wizard:wizard,ancestry:c.ancestry,text:el?el.textContent:null};
+        if(el)el.remove();scr.style.display=was;return out;});
+      assert.deepEqual(result.wizard,{atAccept:'Cambion',modal:false},'the wizard accepts the migrated sheet with no chooser');
       assert.equal(result.ancestry,'Cambion');assert.match(result.text,/Cambion/);assert.doesNotMatch(result.text,/Tiefling/);
     });
     await page.goto('http://127.0.0.1/character_editor.html');await page.waitForFunction(()=>!!window.__ceTest);

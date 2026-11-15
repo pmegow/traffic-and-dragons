@@ -28,7 +28,7 @@ function atlasPublicFollow(){
     return {changed:changed,at:A.at,spot:null,off:null,entered:[]};
   }catch(e){atlasProblem("following the public map",e);return null;}
 }
-function atlasPublicParty(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */var place=A?atlasPublicPlace(A,zoneId):null;return place&&place.container===atlasPublicContext()?{x:400,y:275,exact:false,last:false,key:null}:null;}
+function atlasPublicParty(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */var place=A?atlasPublicPlace(A,zoneId):null;return place&&place.container===atlasPublicContext()?{x:400,y:275,exact:false,last:false,key:null,label:place.name}:null;}/* #764 (owner 2026-11-15: "the party is at Petrified Mire, might as well call it that"): a public sheet IS the place the party stands in, so its marker bears the place's name */
 
 function atlasPublicCard(zoneId,target){
   var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyCard(A,target);/* #757 */
