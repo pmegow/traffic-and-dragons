@@ -1109,6 +1109,30 @@ export class DiceView {
   }
 
   /**
+   * Blanks (true) or prints (false) the numerals of every die on the table: the ink and its engraving, through the same
+   * uniform Melt fades them by (uExitInk; the see-through cut and the sketch halo follow it). The overlay's presented
+   * dice lie blank when the host asks (embed/overlay.js ▸ present { blank }; owner 2026-11-14, TnD's roll modal: "it
+   * feels like a 3 got rolled, even though it's just the die waiting to be rolled") and are printed again as they are
+   * thrown. A die's own engraving depth is kept on its material while it is blank. Draws a frame.
+   */
+  setBlank(blank) {
+    for (const d of this.dice) {
+      const m = d.mesh.material, u = m.userData.dice && m.userData.dice.uniforms;
+      if (!u || !u.uExitInk) continue;
+      if (blank) {
+        if (m.userData.printedBump === undefined) m.userData.printedBump = m.bumpScale;
+        u.uExitInk.value = 0;
+        m.bumpScale = 0;
+      } else if (m.userData.printedBump !== undefined) {
+        u.uExitInk.value = 1;
+        m.bumpScale = m.userData.printedBump;
+        delete m.userData.printedBump;
+      }
+    }
+    this.render();
+  }
+
+  /**
    * Lifts every die on the table into a hand: the table rises toward the camera as one —
    * its centroid HAND_LIFT of the way (render/hand.js ▸ towardEye), every die moved by the same vector, so a row keeps its
    * spacing (each on its own ray to the eye, a row closed up by a quarter and dice already touching were lifted into one

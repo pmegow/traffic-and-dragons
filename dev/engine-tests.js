@@ -2820,7 +2820,7 @@ function runEngineTests(R){
     var cm=um.slice(um.indexOf("function closeRollModal("),um.indexOf("function closeRollModal(")+300);
     if(cm.indexOf('if(!keepDie&&typeof diceLiveUnpresent==="function")diceLiveUnpresent();')<0)return "closeRollModal must take the ready die away unless the die is kept for a roll";
     var ud=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),dp=ud.slice(ud.indexOf("function diceLivePresent("),ud.indexOf("function showDiceRoll(")),dr=ud.slice(ud.indexOf("function diceLiveRoll("),ud.indexOf("function diceLiveClose("));
-    if(dp.indexOf('layer.classList.add("ready");')<0||dp.indexOf("overlay.present(dice)")<0)return "diceLivePresent must lift the layer (ready) and lay the dice through dice-sim's present()";
+    if(dp.indexOf('layer.classList.add("ready");')<0||dp.indexOf("overlay.present(dice,{blank:true})")<0)return "diceLivePresent must lift the layer (ready) and lay the dice BLANK through dice-sim's present() (#755: a numbered face at rest reads as a result)";
     if(dp.indexOf("function diceLiveUnpresent(")<0||dp.indexOf("overlay.clear();")<0)return "diceLiveUnpresent must clear the presented die";
     if(dr.indexOf('layer.classList.remove("ready");')<0)return "a roll must bring the layer back under the modal level (the click dismisses again)";
     var ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8"),rz=ih.match(/#dice-layer\.ready\{z-index:(\d+);pointer-events:none;cursor:default\}/),mz=__fsForTests.readFileSync(__rootForTests+"/ui-shell.js","utf8").match(/"z-index:"\+\(opts\.z\|\|(\d+)\)/);

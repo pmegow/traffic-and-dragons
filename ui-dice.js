@@ -246,7 +246,7 @@ function diceLivePresent(dice,label){
     function lay(){
       if(token!==_diceLive.token)return;/* cancelled (diceLiveUnpresent hid the layer), or a roll took it */
       layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.add("on");layer.classList.add("ready");
-      overlay.present(dice).then(function(ok){if(ok===null)return;/* superseded: the newer call owns the layer */}).catch(function(e){
+      overlay.present(dice,{blank:true})/* #755 (owner 2026-11-14: "it feels like a 3 got rolled, even though it's just the die waiting"): the ready die lies with NO numerals (dice-sim 0.99.23); the throw prints them */.then(function(ok){if(ok===null)return;/* superseded: the newer call owns the layer */}).catch(function(e){
         diceLiveFail("the die could not be laid out ("+(e&&e.message||e)+")",{present:label});
         if(token===_diceLive.token)diceLiveUnpresent();
       });

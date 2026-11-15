@@ -1,5 +1,5 @@
 {
-  "version": "v1.1428",
+  "version": "v1.1429",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -84,6 +84,7 @@
     "The roll window shows what failure would cost before you roll, and the read-aloud says it.",
     "Abilities show Passive, Ready or Not Ready, and a once-a-day ability stays spent until you rest.",
     "A group of foes shows its creature's portrait, and a replaced suggestion in a fight is a fighting move.",
-    "A breath weapon is now your roll: you roll its damage and the GM rolls the targets' saves."
+    "A breath weapon is now your roll: you roll its damage and the GM rolls the targets' saves.",
+    "The die waiting under the roll window shows no numbers until you throw it."
   ]
 }

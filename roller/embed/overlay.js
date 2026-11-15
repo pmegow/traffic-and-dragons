@@ -27,6 +27,11 @@
 // every die's face is then a search over them all at once — a handful is laid out all the same, and its roll comes in
 // from the edge. A roll of other dice than those laid out, or with nothing laid out, is the roll as it always was, byte
 // for byte.
+//
+// BLANK (owner 2026-11-14, TnD's roll modal: "can we NOT draw the numbers on the die waiting to be rolled... it feels like
+// a 3 got rolled"). present(dice, { blank: true }) lays the dice with no numerals (view.setBlank: the ink and its
+// engraving); the throw prints them again as the die leaves the hand, on the faces it always had. A change of look while
+// they lie keeps them blank. Off by default: present(dice) is as it was.
 
 import { DiceView, VIEW_DEFAULTS } from '../render/index.js';
 import { DiceAudio } from '../audio/index.js';
@@ -65,6 +70,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
   const loading = audio ? audio.load().catch((e) => { console.warn('dice-sim: the dice sound is off: ' + e.message); return null; }) : Promise.resolve(null);
   let current = 0;   // the newest roll wins: an older one still playing is abandoned
   let laid = null;   // the dice presented and lying there, by type in order (present); null when the table is not a presentation
+  let blanked = false;   // the presented dice lie with no numerals (present { blank }) until they are thrown
   const checkExit = (name) => {
     if (!EXIT_TABLE[name]) throw new Error('createDiceOverlay: no exit "' + name + '" (known: ' + Object.keys(EXIT_TABLE).join(', ') + ')');
     return resolveExit(name);
@@ -131,8 +137,10 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
      * strip of floor (PRESENT above) in the current look, with no result highlighted. Resolves true when they are
      * placed, or null when a newer roll, present or clear() took over; a roll in progress is abandoned. They stay
      * until a roll, a dismiss, a clear or another present takes them. Refused by name for dice the core cannot roll.
+     * { blank: true } lays them with NO numerals (BLANK): a die at rest shows a face, and a face reads as a result. They
+     * are printed again as roll() throws them; a roll that comes in from the edge is new dice, printed as always.
      */
-    async present(dice) {
+    async present(dice, { blank = false } = {}) {
       const mine = ++current;
       laid = null;
       if (audio) audio.stop();
@@ -147,6 +155,8 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       if (mine !== current) return null;
       view.show(result);
       laid = result.dice.map((d) => d.type);
+      blanked = !!blank;   // read only while dice are laid: every path that takes them clears `laid`
+      if (blanked) view.setBlank(true);   // no numeral reads as a result before the roll (BLANK above)
       warm();
       return true;
     },
@@ -179,6 +189,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       const withSound = await readied(unlocking);
       await done;
       if (mine !== current) return null;
+      if (blanked) { blanked = false; view.setBlank(false); }   // printed as it leaves the hand: the carried mesh keeps its material
       await playWithSound(result, withSound, states.length);
       if (mine === current) warm();
       return mine === current ? result : null;
@@ -211,7 +222,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
       view.render();
     },
     /** The dice's look for the next roll (and the dice now showing): a die style, or a bag ({ bag: [styles] }) to deal each die one of. */
-    setLook(look) { return (look && look.bag ? view.setDieBag(look) : view.setDieStyle(look)).then(() => warm()); },
+    setLook(look) { return (look && look.bag ? view.setDieBag(look) : view.setDieStyle(look)).then(() => { if (blanked && laid) view.setBlank(true); warm(); }); },   // a new look is a new material: dice lying blank stay blank
     setMuted(muted) { if (audio) audio.setMuted(muted); },
     /** Ends the overlay: its WebGL context and its sound engine go (the engine closes the audio context it made; one the host lent stays the host's). */
     dispose() {
