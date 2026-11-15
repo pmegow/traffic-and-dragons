@@ -2814,7 +2814,7 @@ function runEngineTests(R){
     var uc=__fsForTests.readFileSync(__rootForTests+"/ui-carmode.js","utf8");
     if(!/function hideCarMode\(\) \{ carSessionStop\(\); if \(typeof showRollModal === "function"\) showRollModal\(\); \}/.test(uc))return "leaving Car Mode must reopen a waiting roll";
     /* the ready die (dice-sim 0.80.0, 2026-10-31): laid out when the modal opens, kept for a Roll, taken away by any other close */
-    if(sm.indexOf('diceLivePresent([{type:"d20"}],chk.label);')<0)return "the modal must lay the check's d20 out ready (diceLivePresent)";
+    if(sm.indexOf('diceLivePresent(rollReadyDice(chk),chk.label);')<0||JSON.stringify(rollReadyDice({label:"x",mod:1,dc:10}))!=='[{"type":"d20"}]')return "the modal must lay the check's d20 out ready (diceLivePresent; #758: through rollReadyDice, which is the d20 for a check)";
     if(sm.indexOf("closeRollModal(true);fn();")<0)return "a take must keep the die for the roll (closeRollModal(true)) — showDiceRoll throws it from where it lies";
     if(sm.indexOf("diceLiveUnpresent();")<0)return "a take that did not roll (Hold back) must take the ready die away";
     var cm=um.slice(um.indexOf("function closeRollModal("),um.indexOf("function closeRollModal(")+300);

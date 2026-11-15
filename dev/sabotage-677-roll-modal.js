@@ -22,7 +22,7 @@ rc |= sabotage.prove({ file: "ui-modals.js", command: CMD, cases: [
   { label: "a refused take (busy) closes the modal and strands the check", mustFail: "#677",
     find: 'if(busy){showToast("One moment — the turn is still landing.");return;}', replace: '' },
   { label: "the die is no longer laid out ready when the modal opens (dice-sim 0.80.0)", mustFail: "#677",
-    find: '  if(!chk.dmgOnly&&typeof diceLivePresent==="function")diceLivePresent([{type:"d20"}],chk.label);', replace: '' },/* #754: a damage-only roll lays no d20; same mutation */
+    find: '  if(typeof diceLivePresent==="function")diceLivePresent(rollReadyDice(chk),chk.label);', replace: '' },/* #758: the modal lays the dice the click will throw; same mutation */
   { label: "a Roll clears the ready die before throwing it — it rolls in from the edge, never from where it lay", mustFail: "#677",
     find: "closeRollModal(true);fn();", replace: "closeRollModal();fn();" },
   { label: "Hold back leaves the ready die lying on the story", mustFail: "#677",

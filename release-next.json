@@ -1,5 +1,5 @@
 {
-  "version": "v1.1430",
+  "version": "v1.1431",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -86,6 +86,7 @@
     "A group of foes shows its creature's portrait, and a replaced suggestion in a fight is a fighting move.",
     "A breath weapon is now your roll: you roll its damage and the GM rolls the targets' saves.",
     "The die waiting under the roll window shows no numbers until you throw it.",
-    "The map gains a journey sheet of the places you visited, and asks the GM for directions of places it can only list."
+    "The map gains a journey sheet of the places you visited, and asks the GM for directions of places it can only list.",
+    "A breath weapon's damage dice lie ready under the roll window."
   ]
 }

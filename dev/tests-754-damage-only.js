@@ -69,7 +69,11 @@ test('the turn: the tag arms it, the modal and the card show the dice and no d20
     assert.ok(lapsed.indexOf('2d6 &middot; unrolled') >= 0, lapsed);
   } finally { playerRollsDice = was; global.sendAction = _s; global.showDiceRoll = _d; global.showDamageRoll = _m; delete worldState.pendingCheck; }
   const um = src('ui-modals.js');
-  assert.ok(um.indexOf('if(!chk.dmgOnly&&typeof diceLivePresent==="function")diceLivePresent([{type:"d20"}],chk.label);') >= 0, 'no d20 lies ready under a damage-only modal');
+  assert.ok(um.indexOf('if(typeof diceLivePresent==="function")diceLivePresent(rollReadyDice(chk),chk.label);') >= 0, 'the modal lays the dice the click will throw');
+  assert.deepEqual(rollReadyDice(parseCheckTag('Draconic Breath|2d6')), [{ type: 'd6' }, { type: 'd6' }], '#758: a damage-only roll lays its own dice, never a d20');
+  assert.deepEqual(rollReadyDice(parseCheckTag('Acid Splash|1d8+2')), [{ type: 'd8' }]);
+  assert.deepEqual(rollReadyDice(parseCheckTag('Longsword attack|+5|DC 14|1d8+3')), [{ type: 'd20' }], 'an attack lays its d20; its damage is rolled after the hit');
+  assert.deepEqual(rollReadyDice(parseCheckTag('Stealth check|+5|DC 14')), [{ type: 'd20' }]); assert.deepEqual(rollReadyDice(null), [{ type: 'd20' }]);
 });
 
 test('the GM is taught the form only while the player rolls, on the MECHANICS line and the tag\'s doc line', () => {

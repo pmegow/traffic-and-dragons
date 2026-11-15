@@ -2796,6 +2796,10 @@ function checkLapseToAction(text){
 // from the parsed integers exactly as the story card's is (diceTxt, api.js), never model text; the damage line only when the
 // check carries dice (#654). EXACTLY two ways out and no third: the die (roll-modal-roll → rollPendingCheck) and Hold back
 // (roll-modal-hold → reconsiderPendingCheck) — the composer, the tabs and the menus wait behind the backdrop.
+/* #758 (owner 2026-11-14, the first damage-only roll: "the die modal opened, but no die was available to roll"): the dice
+   that lie ready under the roll modal are the dice the click will throw — the d20 for a check, the DAMAGE dice for a
+   damage-only roll (#754 laid none, so the modal stood over an empty floor). Pure; showRollModal's one read. */
+function rollReadyDice(chk){var out=[],i;if(chk&&chk.dmgOnly&&chk.dmg){for(i=0;i<chk.dmg.n;i++)out.push({type:"d"+chk.dmg.sides});return out;}return [{type:"d20"}];}
 function rollModalHtml(chk){
   if(!chk||!chk.label)return "";
   var only=!!(chk.dmgOnly&&chk.dmg),formula=only?chk.dmg.text+" damage":"d20"+(chk.mod?(chk.mod>0?"+":"")+chk.mod:"")+(chk.dc!=null?" vs DC "+chk.dc:"");/* #754: a damage-only roll shows its dice, never a d20 */

@@ -17,6 +17,8 @@ var helpers = [
   { label: "the modal shows a d20 for a damage-only roll", find: 'only?chk.dmg.text+" damage":"d20"', replace: 'false?chk.dmg.text+" damage":"d20"', mustFail: T3 },
   { label: "the modal still says \"on a hit\"", find: "chk.dmg&&chk.dmg.text&&!only?", replace: "chk.dmg&&chk.dmg.text?", mustFail: T3 }
 ];
+helpers.push({ label: "a damage-only roll lays a d20, not its own dice (#758)", find: 'if(chk&&chk.dmgOnly&&chk.dmg){for(i=0;i<chk.dmg.n;i++)', replace: 'if(false){for(i=0;i<chk.dmg.n;i++)', mustFail: T3 });
+helpers.push({ label: "a damage-only roll lays one die however many it rolls (#758)", find: 'for(i=0;i<chk.dmg.n;i++)out.push({type:"d"+chk.dmg.sides});', replace: 'out.push({type:"d"+chk.dmg.sides});', mustFail: T3 });
 var tags = [
   { label: "the summary line says d20", find: '(chk.dmgOnly?chk.dmg.text+" damage"/* #754 */:"d20"', replace: '(false?chk.dmg.text+" damage"/* #754 */:"d20"', mustFail: T3 },
   { label: "the doc line stops teaching the form", find: "emit the damage dice alone, no modifier and no DC", replace: "emit the dice", mustFail: T4 }
@@ -31,7 +33,7 @@ var game = [
   { label: "the click throws a d20 that was never rolled", find: 'if(r.dmgOnly){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}', replace: "if(false){}", mustFail: T3 }
 ];
 var modal = [
-  { label: "a d20 lies ready under a damage-only modal", find: 'if(!chk.dmgOnly&&typeof diceLivePresent==="function")', replace: 'if(typeof diceLivePresent==="function")', mustFail: T3 }
+  { label: "a d20 lies ready under every modal, a damage-only one included", find: 'diceLivePresent(rollReadyDice(chk),chk.label);', replace: 'diceLivePresent([{type:"d20"}],chk.label);', mustFail: T3 }
 ];
 var failed = sabotage.prove({ file: "helpers.js", command: CMD, only: P, cases: helpers });
 if (!failed) failed = sabotage.prove({ file: "tag_table.js", command: CMD, only: P, cases: tags });
