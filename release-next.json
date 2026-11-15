@@ -1,5 +1,5 @@
 {
-  "version": "v1.1425",
+  "version": "v1.1426",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -81,6 +81,7 @@
     "The standalone dice roller adds File, Report Bug / Feature Request, with an optional tray screenshot and delivery feedback.",
     "Blueprint text limits are five times larger, with matching import limits and AI assistant guidance.",
     "The standalone dice roller replaces File with the same bug icon as TnD; it opens Report Bug / Feature Request directly.",
-    "The roll window shows what failure would cost before you roll, and the read-aloud says it."
+    "The roll window shows what failure would cost before you roll, and the read-aloud says it.",
+    "Abilities show Passive, Ready or Not Ready, and a once-a-day ability stays spent until you rest."
   ]
 }

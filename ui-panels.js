@@ -352,14 +352,18 @@ function updateAbPanel(hl){
 /* #489 (owner 2026-10-01): the panel groups like the sheet — Racial / Class / Archetype / Story, by the
    same abilityGroups (helpers.js), so the two can never disagree. A heading is plain text; an empty group
    has none. hl marks the NEWEST ability (the last stored), wherever its group puts it. */
+/* #751: the status beside an ability's name — plain italic text, no pill (the border rule); a spent one in the warning
+   colour. One markup for the panel and the sheet. "" when nothing is known of the ability's cost. */
+function abilityStatusHtml(st){return st?'<span class="ab-st" data-st="'+st.key+'" title="'+escHtml(st.tip)+'" style="font-weight:normal;font-style:italic;color:var('+(st.key==="spent"?"--warn":"--t2")+');"> ('+escHtml(st.label)+')</span>':"";}
 function abPanelHTML(c,hl){
   var abs=(c&&c.abilities)||[],gs=abilityGroups(c),h="",g,k,i,q,p,nm;
   for(g=0;g<gs.length;g++){
     h+='<div class="ab-grp" data-grp="'+gs[g].key+'" style="font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--t2);margin-top:'+(g?"6px":"0")+';">'+escHtml(gs[g].label)+'</div>';
     for(k=0;k<gs[g].items.length;k++){
       i=gs[g].items[k];p=abilityParts(abs[i]);nm=gs[g].key==="racial"?p.nm.replace(/^\s*\[racial\]\s*/i,""):p.nm;
-      q=capabilityQuickText(p.nm,p.ds);/* owner call 2026-09-03: an ACTIVE ability clicks into the input like a spell ("Use X."); passives stay inert */
-      h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+(q?" act":"")+'"'+(q?' data-quick="'+escHtml(q)+'" onclick="panelQuickAction(this)" title="Click to use" style="cursor:pointer;"':'')+'><span class="an">'+escHtml(nm)+'</span><span class="ad">'+escHtml(p.ds)+'</span></div>';/* GM-authored ability text (audit E11) */
+      var st=abilityStatus(abs[i]),spent=!!(st&&st.key==="spent");/* #751: Passive / Ready / Not Ready beside the name; a spent ability is not offered to the input */
+      q=spent?null:capabilityQuickText(p.nm,p.ds);/* owner call 2026-09-03: an ACTIVE ability clicks into the input like a spell ("Use X."); passives stay inert */
+      h+='<div class="ai'+(hl&&i===abs.length-1?" nw":"")+(q?" act":"")+'"'+(q?' data-quick="'+escHtml(q)+'" onclick="panelQuickAction(this)" title="Click to use" style="cursor:pointer;"':'')+(spent?' title="'+escHtml(st.tip)+'" style="opacity:.6;"':'')+'><span class="an">'+escHtml(nm)+abilityStatusHtml(st)+'</span><span class="ad">'+escHtml(p.ds)+'</span></div>';/* GM-authored ability text (audit E11) */
     }
   }
   return h||'<div style="font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;">None yet</div>';

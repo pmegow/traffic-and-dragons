@@ -3052,6 +3052,8 @@ function rollPendingCheck(){
   var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
   var faces=(chk.dmg&&typeof rollDamageFaces==="function")?rollDamageFaces(chk.dmg):null;/* #654: the damage is rolled with the d20 — resolveCheck keeps it only on a hit */
   var r=resolveCheck(chk,rollD20(),faces);delete worldState.pendingCheck;
+  var _abFor=(typeof abilityNamedByCheck==="function"&&worldState.character)?abilityNamedByCheck(worldState.character,chk.label):null;/* #751: a roll made FOR a limited ability spends it — here, at the die, never at the ask (Hold back spends nothing) */
+  if(_abFor){var _abUse=abilityMarkUsed(worldState.character,abilityParts(_abFor).nm,worldState.turn);if(_abUse.status==="used"){if(typeof showToast==="function")showToast(abilityParts(_abFor).nm.replace(/^\s*\[racial\]\s*/i,"")+" used"+(_abUse.row.back?" — ready again "+_abUse.row.back:""));if(typeof syncUI==="function")syncUI();}}
   if(typeof diceLogFile==="function")diceLogFile({by:"player",label:chk.label,face:r.roll,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null),total:r.total,outcome:r.outcome,dmg:r.damage});/* #350: the authoritative record of the player's own roll; #654: with the damage it rolled */
   if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){var wrap=document.createElement("div");wrap.innerHTML=diceTxt(r.diceTag);if(wrap.firstChild)el.parentNode.replaceChild(wrap.firstChild,el);}}
   if(typeof Sound!=="undefined")Sound.play("click_glass");
@@ -4149,6 +4151,7 @@ function restSpells(fromTag){
   // matters now that resting also moves the clock.
   var i;
   if(worldState.character.spells){for(i=0;i<worldState.character.spells.length;i++){if(worldState.character.spells[i].lvl>0)worldState.character.spells[i].used=false;}}
+  if(typeof abilitiesRestoreParty==="function"){var _abBack=abilitiesRestoreParty("long");if(_abBack.length&&typeof showToast==="function")showToast("Ready again: "+_abBack.join(", "));}/* #751: a night's rest brings back every limited ability use, party-wide — the one site, both rest paths */
   worldState.character.mana=manaMax(worldState.character);/* #110: rest is the ONE refill — the pool tops up here and nowhere else */
   // Also restore party companions' expended spells (audit E84) — a rest is party-wide.
   var pj,ps,_rsParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): dead companions get NOTHING — no rest slots, no mana */

@@ -2600,7 +2600,7 @@ function buildSysPrompt(){
          every turn while SPLIT THREADS said otherwise). Their kit stays available under the
          AWAY header so their own thread can still be narrated with real capabilities. */
       var pmAway=!!(pcs.splitLoc&&pcs.splitLoc.location);
-      var pAb="none";if(pcs.abilities&&pcs.abilities.length){var pa2=[],pai;for(pai=0;pai<pcs.abilities.length;pai++)pa2.push(pcs.abilities[pai].nm);if(pa2.length)pAb=pa2.join(", ");}
+      var pAb="none";if(pcs.abilities&&pcs.abilities.length){var pa2=[],pai;for(pai=0;pai<pcs.abilities.length;pai++){var _paAsk=abilityUseAsk(pcs.abilities[pai],pmN.name);pa2.push(abilityPromptName(pcs.abilities[pai])+((_paAsk&&!abilitySpent(pcs.abilities[pai]))?" (limited: emit "+_paAsk+" when used)":""));}/* #751: a spent use is said; a limited one carries its own tag */if(pa2.length)pAb=pa2.join(", ");}
       // Playtest-F1 (v1.239): name expended spells EXPLICITLY instead of omitting them — the bible
       // block still injects an omitted spell's canon, so omission read as "available" to the GM
       // (the t31/t35 Charm Person incident). Absence communicates nothing; a stated clause is iron.
@@ -2669,7 +2669,7 @@ function buildSysPrompt(){
       +"\n- [XP:N] stays a single shared award (the engine mirrors it to every party member) — emit it once per round, never per character; [COMPANION_XP:] remains individual-bonus-only.":"")
     +"\n\n";
   var questBlock=buildQuestBlock();
-  var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(c.abilities[i].nm);abilstr=as2.join(", ");}
+  var abilstr="none";if(c.abilities&&c.abilities.length){var as2=[];for(i=0;i<c.abilities.length;i++)as2.push(abilityPromptName(c.abilities[i]));abilstr=as2.join(", ");}/* #751: a spent ability is marked EXPENDED, like a spent 1/day spell */
   // Playtest-F1 (v1.239): unavailability is NAMED, not omitted. #110 (v1.508): availability is
   // now the MANA POOL — the sheet lists every known spell, annotates the one remaining hard
   // gate (racial 1/day), and states the pool. The refusal teeth live in the bible block header.
@@ -3108,6 +3108,8 @@ function buildCompanionSpellBibleBlock(){
 // is really a spell — Sacred Flame, Hunter's Mark — through spell_bible, so its canon is never
 // duplicated or contradicted). VOLATILE half; bounded by known abilities. Abilities not yet in the
 // bible (later class features / archetype grants) simply don't render — partial coverage is fine.
+/* #751: the tag a tracked ability's own line teaches (the standing tag list never carries it): "" for one that is never spent. */
+function abilityUseAsk(ab,who){var r=abilityRecharge(ab);if(!r||!r.on)return "";var nm=abilityParts(ab).nm.replace(/^\s*\[racial\]\s*/i,"").replace(/\s*\(.*\)/,"").trim();return who?"[COMPANION_ABILITY_USED:"+who+"|"+nm+"]":"[ABILITY_USED:"+nm+"]";}
 function buildAbilityBibleBlock(){
   var c=worldState&&worldState.character;
   if(!c||!c.abilities||!c.abilities.length||typeof capabilityLookup!=="function")return"";
@@ -3117,7 +3119,9 @@ function buildAbilityBibleBlock(){
     var e=capabilityLookup(ab.nm);if(!e)continue;
     var key=capBaseName(ab.nm);if(seen[key])continue;seen[key]=1;
     var nm=String(ab.nm).replace(/\s*\(.*\)/,"").trim();
-    lines.push(capBibleLine(nm,e));
+    /* #751: the limit's own line carries its state and its tag — EXPENDED while spent, else the tag to emit on use. */
+    var _abAsk=abilityUseAsk(ab,""),_abRow=_abAsk?abilityRecharge(ab):null;
+    lines.push((abilitySpent(ab)?"[EXPENDED — already used; CANNOT be used again"+(_abRow.until?" "+_abRow.until:"")+"] ":"")+capBibleLine(nm,e)+((_abAsk&&!abilitySpent(ab))?" LIMITED USE: emit "+_abAsk+" in the response where it is used (a use that waits on the player's [CHECK:] roll is filed by the engine at the roll).":""));
   }
   if(!lines.length)return"";
   return "CANONICAL ABILITY RULES (authoritative — these bounds are FIXED; honor them over any remembered version when the ability is used):\n"+lines.join("\n")+"\n\n";

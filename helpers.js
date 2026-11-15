@@ -613,6 +613,50 @@ function saveDestination(folderName,pendingName,hasPicker,sub){
 // into the input, or null when the thing is passive and there is nothing to DO. Spells → "Cast X.";
 // active abilities → "Use X.". Passive = the bible says cost:"passive", or (GM-authored, uncanonized)
 // the description calls itself passive / always on. Pure; both panels render through it.
+/* #751 (owner 2026-11-14: "we need status for abilities \u2014 something that lets the user know that the 1/day ability has
+   already been used"). An ability had no use record at all: the sheet stored {nm, ds} and nothing else, so neither the player
+   nor the GM could tell a spent Draconic Breath from a fresh one (a racial SPELL has had sp.used since #110).
+   ABILITY_RECHARGE is the ONE table: a row per recharge, matched in order against the ability's COST \u2014 the "(1/day)" its
+   name carries (racialCapName) or, failing that, its capability-bible cost. `on` lists the events that bring a use back
+   (long = a night's rest, short = a short rest, fight = a new fight opening); a row without `on` is never spent. A new
+   recharge is a row. The use is stored on the ability as `used` (the turn it was spent), like a spell's. */
+var ABILITY_RECHARGE=[
+  {key:"passive",test:/^passive/i},
+  {key:"open",test:/^pool|^at-will|\bslot\b|\bmana\b/i},
+  {key:"day",test:/per-day|\/\s*day\b|long rest|each night/i,back:"at dawn",until:"until dawn",on:["long"]},
+  {key:"rest",test:/per-rest|\/\s*rest\b/i,back:"after a rest",until:"until a rest",on:["long","short"]},
+  {key:"fight",test:/\bcombat\b|\bfight\b/i,back:"in the next fight",until:"until the next fight",on:["long","short","fight"]},
+  {key:"campaign",test:/campaign|irreversible/i,back:"",until:"",on:[]}
+];
+var ABILITY_RECHARGE_OPEN={key:"open"};
+function abilityKey(nm){return String(nm||"").replace(/^\s*\[racial\]\s*/i,"").replace(/\s*\(.*\)/,"").toLowerCase().trim();}
+function abilityCost(ab){var nm=abilityParts(ab).nm,m=nm.match(/\(([^)]*\d\s*\/\s*[a-z]+[^)]*)\)/i);if(m)return m[1];var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;return (e&&e.cost)?String(e.cost):"";}
+/* The row for an ability, ABILITY_RECHARGE_OPEN for a cost no row tracks (per-scene, once per round), null when nothing is
+   known of its cost (a story ability with no bible entry) \u2014 an unknown ability shows no status at all. */
+function abilityRecharge(ab){var cost=abilityCost(ab),i;if(!cost)return null;for(i=0;i<ABILITY_RECHARGE.length;i++)if(ABILITY_RECHARGE[i].test.test(cost))return ABILITY_RECHARGE[i];return ABILITY_RECHARGE_OPEN;}
+/* Spent: a tracked ability whose use is on record. A once-per-fight use counts only while a fight is open (it is back the
+   moment the fight is over; the record itself is cleared when the next one opens). */
+function abilitySpent(ab){var r=abilityRecharge(ab);if(!r||!r.on||!ab||!ab.used)return false;if(r.key==="fight"&&!(typeof worldState!=="undefined"&&worldState&&worldState.combat))return false;return true;}
+/* What the panel and the sheet say beside the name: Passive, Ready or Not Ready (the owner's words), with a tip that says
+   when a spent one returns. null = say nothing. */
+function abilityStatus(ab){var r=abilityRecharge(ab);if(!r)return null;if(r.key==="passive")return {key:"passive",label:"Passive",tip:"Always in effect"};
+  if(abilitySpent(ab))return {key:"spent",label:"Not Ready",tip:r.back?"Used \u2014 ready again "+r.back:"Used \u2014 it does not come back"};
+  return {key:"ready",label:"Ready",tip:r.on?(r.on.length?"Ready \u2014 once used, it returns "+r.back:"Ready \u2014 once used, it is gone for good"):"Ready"};}
+function abilityFind(sheet,name){var l=(sheet&&sheet.abilities)||[],k=abilityKey(name),i;if(!k)return null;for(i=0;i<l.length;i++)if(l[i]&&abilityKey(abilityParts(l[i]).nm)===k)return l[i];return null;}
+/* The ONE writer of a use. status: "unknown" (not on the sheet), "free" (never spent: passive, at-will, untracked),
+   "already" (it was spent before this), "used" (spent now). */
+function abilityMarkUsed(sheet,name,turn){var ab=abilityFind(sheet,name);if(!ab)return {status:"unknown"};var r=abilityRecharge(ab);if(!r||!r.on)return {status:"free",ab:ab};
+  if(abilitySpent(ab))return {status:"already",ab:ab,row:r};ab.used=(typeof turn==="number")?turn:true;return {status:"used",ab:ab,row:r};}
+/* The ONE restorer: every use the event brings back on one sheet; returns the names. */
+function abilitiesRestore(sheet,event){var l=(sheet&&sheet.abilities)||[],out=[],i;for(i=0;i<l.length;i++){var ab=l[i];if(!ab||!ab.used)continue;var r=abilityRecharge(ab);if(r&&r.on&&r.on.indexOf(event)>=0){delete ab.used;out.push(abilityParts(ab).nm.replace(/^\s*\[racial\]\s*/i,""));}}return out;}
+/* Party-wide, like every rest sweep: the hero's names bare, each living companion's suffixed "(Name)". */
+function abilitiesRestoreParty(event){if(typeof worldState==="undefined"||!worldState||!worldState.character)return [];var out=abilitiesRestore(worldState.character,event),p=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[],i,j;
+  for(i=0;i<p.length;i++){var f=abilitiesRestore(p[i].charSheet,event);for(j=0;j<f.length;j++)out.push(f[j]+" ("+p[i].name+")");}return out;}
+/* The ability a [CHECK:] is rolled FOR: the ONE tracked ability on the sheet whose whole name stands in the check's label
+   ("Draconic Breath" in "Draconic Breath save"; "Rage" never in "Courage check"). Two that fit is none. */
+function abilityNamedByCheck(sheet,label){var l=(sheet&&sheet.abilities)||[],hit=null,i;for(i=0;i<l.length;i++){var ab=l[i],r=ab&&abilityRecharge(ab);if(!r||!r.on)continue;var k=abilityKey(abilityParts(ab).nm);if(k&&nameContains(label,k)){if(hit)return null;hit=ab;}}return hit;}
+/* What the GM is told of one ability in a name list: the name, and while it is spent that it cannot be used. */
+function abilityPromptName(ab){var nm=String((ab&&ab.nm)||"");if(!abilitySpent(ab))return nm;var r=abilityRecharge(ab);return nm+" [EXPENDED \u2014 already used; CANNOT be used again"+(r.until?" "+r.until:"")+"]";}
 function capabilityQuickText(nm,ds){
   nm=String(nm||"").trim();if(!nm)return null;
   var e=(typeof capabilityLookup==="function")?capabilityLookup(nm):null;
@@ -2312,6 +2356,7 @@ function portableSheet(sheet){
   var copy=JSON.parse(JSON.stringify(sheet)),defs=sheetItemDefs(sheet),k,any=false;for(k in defs){any=true;break;}
   if(any)copy.itemDefs=JSON.parse(JSON.stringify(defs));else delete copy.itemDefs;
   personaCapture(copy,(typeof worldState!=="undefined"&&worldState)?worldState:null);/* #552: the voice travels with the sheet */
+  if(Array.isArray(copy.abilities)){for(k=0;k<copy.abilities.length;k++)if(copy.abilities[k])delete copy.abilities[k].used;}/* #751: a use belongs to the campaign's day, never to the portable sheet */
   copy.sheetVer=SHEET_VER;/* #599 (a): every portable copy says which build wrote it, so an older build can refuse it */
   return copy;
 }

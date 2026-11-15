@@ -46,7 +46,7 @@ prove("ui-panels.js", [
     find: "nm=gs[g].key===\"racial\"?p.nm.replace(/^\\s*\\[racial\\]\\s*/i,\"\"):p.nm;", replace: "nm=abs[i].nm;",
     mustFail: "the same headings in the same order" },
   { label: "an old-format ability clicks as 'Use Lv5.'",
-    find: "q=capabilityQuickText(p.nm,p.ds);", replace: "q=capabilityQuickText(abs[i].nm,abs[i].ds);",
+    find: "q=spent?null:capabilityQuickText(p.nm,p.ds);", replace: "q=spent?null:capabilityQuickText(abs[i].nm,abs[i].ds);",/* #751: a spent ability is not offered; same mutation */
     mustFail: "the same headings in the same order" },
   { label: "the highlight marks the last ability on screen instead of the newest",
     find: "(hl&&i===abs.length-1?\" nw\":\"\")", replace: "(hl&&g===gs.length-1&&k===gs[g].items.length-1?\" nw\":\"\")",
