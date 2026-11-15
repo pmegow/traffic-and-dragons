@@ -21,7 +21,9 @@ await page.evaluate(data=>{__bpdTest.load(data);secOpen.npcs=true;secOpen.creatu
 assert.deepEqual(await page.evaluate(()=>[bp.creatures[0].abilities,bp.npcs[0].abilities]),[creature,npc],'#730 portable file reload retains both abilities');
 for(const sec of ['npc','creature']){await page.evaluate(sec=>{document.querySelector('textarea[data-sec="'+sec+'"][data-k="abilities"]').scrollIntoView({block:'center'});},sec);await page.screenshot({path:path.join(out,sec+'-desktop-filled.png')});}
 await page.setViewportSize({width:390,height:844});await page.evaluate(()=>document.querySelector('textarea[data-sec="creature"][data-k="abilities"]').scrollIntoView({block:'center'}));await page.screenshot({path:path.join(out,'creature-mobile.png')});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'#730 abilities controls fit phone width');
-const long='A detailed ward description, with its targets, frequency, and limitations. '.repeat(15)+'FINAL_BOUNDARY';
+const cap=await page.evaluate(()=>IMPORT_CAPS.field),sentence='A detailed ward description, with its targets, frequency, and limitations. ';
+const long=sentence.repeat(Math.ceil((cap+1)/sentence.length))+'FINAL_BOUNDARY';
+assert(long.length>cap,'#730 the fixture exceeds the current ability cap');
 await page.locator('textarea[data-sec="creature"][data-k="abilities"]').fill(long);await page.evaluate(async()=>{await designerDrafts.flush();});await page.reload();await page.waitForFunction(()=>window.__bpdTest);
 assert.equal(await page.evaluate(()=>bp.creatures[0].abilities),long,'#730 overlong manual draft remains complete');assert.match(await page.evaluate(()=>__bpdTest.validate()),/text limits/,'#730 overlong abilities request explicit shortening');assert.deepEqual(errors,[],'#730 no page errors');
 console.log('PASS #730 entity controls, breakout, autosave, portable reload, phone layout and full overlong draft');

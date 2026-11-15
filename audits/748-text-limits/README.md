@@ -31,3 +31,7 @@ The first mutation run caught a stale fixture: its imported note no longer excee
 the new cap, so shortening unrelated text went undetected. Enlarging that fixture
 restored the failure condition; the unchanged protection catches the mutation.
 The normal full engine/standalone and pre-push browser gates run on this checkpoint.
+
+The full browser gate found the older #730 ability fixture was only about 1,100
+characters, now valid. It now derives an over-limit length from the active cap,
+then checks complete autosaved/reloaded text and publication refusal.
