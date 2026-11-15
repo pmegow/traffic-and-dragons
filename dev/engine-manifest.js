@@ -42,6 +42,7 @@ var ENGINE_MANIFEST = [
   { file: "atlas-knowledge-exits.js", sym: "atlasKnowledgeExitApply" },
   { file: "atlas-knowledge-extract.js", sym: "atlasExtractionSource" },
   { file: "atlas-discovery.js", sym: "atlasDiscoveryRequest" },
+  { file: "atlas-directions.js", sym: "atlasDirectionsSettle" },
   { file: "atlas-public-places.js", sym: "atlasPublicPlacesRead" },
   { file: "atlas-public-journey.js", sym: "atlasJourneyRead" },
   { file: "atlas-public-landscape.js", sym: "atlasPublicLandscape" },

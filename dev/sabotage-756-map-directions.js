@@ -18,7 +18,7 @@ var knowledge = [
   { label: "the ask names no handle", find: 'parts.push("[MAP_REVEAL:"+owed[i].id+"|"', replace: 'parts.push("[MAP_REVEAL:new|"', mustFail: T4 },
   { label: "a report is asked for as an observation", find: '"|<bearing>|"+owed[i].mode+"]"', replace: '"|<bearing>|observed]"', mustFail: T4 },
   { label: "the ask is not capped", find: "for(i=0;i<owed.length&&i<ATLAS_KNOWLEDGE_OWED_CAP;i++)parts.push(", replace: "for(i=0;i<owed.length;i++)parts.push(", mustFail: T5 },
-  { label: "the ask no longer forbids an invented direction", find: " — never invent a direction to clear the list", replace: "", mustFail: T4 },
+  { label: "the ask no longer makes the GM the author", find: "You are the author of this world: a feature the party can SEE lies somewhere, so decide", replace: "Decide", mustFail: T4 },/* #766 */
   { label: "the GM's brief never carries the ask", find: "    out+=atlasKnowledgeOwedLine(k,p.features);", replace: "", mustFail: T4 },
   { label: "the standing rule does not let a handle settle a direction", find: ", or to settle a direction listed under DIRECTION OWED", replace: "", mustFail: T4 },
   { label: "the standing rule does not exclude the place itself", find: "Exclude the place the party stands in and any phrase that only describes it, NPCs,", replace: "Exclude NPCs,", mustFail: T4 }

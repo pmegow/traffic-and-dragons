@@ -1,5 +1,5 @@
 {
-  "version": "v1.1434",
+  "version": "v1.1435",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -90,6 +90,7 @@
     "A breath weapon's damage dice lie ready under the roll window.",
     "A roll shows no number until its die lands; damage dice follow the d20, and the GM's reply waits.",
     "The GM starts a blueprint's creatures under their own names, so their portraits show; the character wizard has an Import character button.",
-    "A wizard import goes straight to the character; the map draws a mire's reeds, names the party's place, and prints each discovery once."
+    "A wizard import goes straight to the character; the map draws a mire's reeds, names the party's place, and prints each discovery once.",
+    "The map now gets a direction for everything the party sees: the GM must give one, and the game asks when it does not."
   ]
 }

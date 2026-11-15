@@ -36,6 +36,8 @@ let pass=0,fail=0;
     window.__storageSnapshot=function(){return JSON.stringify(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)]));};
     window.__replaceCampaign=function(identical){worldState=JSON.parse(JSON.stringify(worldState));memory=JSON.parse(JSON.stringify(memory));sessionLog=JSON.parse(JSON.stringify(sessionLog));if(!identical){sessionLog=[];worldState.campId='replacement-campaign';worldState.campName='Replacement';worldState.turn=99;memory.campId=worldState.campId;}window.__replacementBefore=JSON.stringify({worldState,memory,sessionLog});window.__replacementStorage=__storageSnapshot();};
     callGM=async function(msg,sys,max,model,opts){
+     /* #766: the map's own directions request is counted apart, so this suite's call counts stay the landmark reader's; it answers "none placed", which leaves every feature as the reader filed it */
+     if(opts&&opts.kind==='map-directions'){(window.__directionCalls=window.__directionCalls||[]).push({msg:msg,opts:JSON.parse(JSON.stringify(opts))});return '{"directions":[]}';}
      __calls.push({msg,sys,max,model,opts:opts?JSON.parse(JSON.stringify(opts)):null});
      if(opts&&opts.kind==='atlas'&&opts.noHistory){
       if(__extractMode==='error')throw Error('injected discovery timeout');
@@ -62,10 +64,11 @@ let pass=0,fail=0;
     const before=JSON.stringify(worldState.world),turn=worldState.turn,n=worldState.transcript.length,sl=sessionLog.length;
     await sendAction('Study the split without moving.');
     const saved={geo:JSON.stringify(memory.map.geography),transcript:JSON.stringify(worldState.transcript),session:JSON.stringify(sessionLog)};
-    const out={before,after:JSON.stringify(worldState.world),turn,now:worldState.turn,added:worldState.transcript.slice(n),sessionAdded:sessionLog.length-sl,calls:__calls,features:atlasKnowledgeProjection().features,shown:_atlasPane.view.doc().features.map(f=>f.name),geo:memory.map.geography};
+    const out={before,after:JSON.stringify(worldState.world),turn,now:worldState.turn,added:worldState.transcript.slice(n),sessionAdded:sessionLog.length-sl,calls:__calls,directions:window.__directionCalls||[],features:atlasKnowledgeProjection().features,shown:_atlasPane.view.doc().features.map(f=>f.name),geo:memory.map.geography};
     if(!loadState())throw Error('saved story did not reload');out.reloaded={geo:JSON.stringify(memory.map.geography),transcript:JSON.stringify(worldState.transcript),session:JSON.stringify(sessionLog)};out.saved=saved;return out;
    });
    assert.equal(r.after,r.before);assert.equal(r.now,r.turn+1);assert.equal(r.calls.length,2);assert.equal(r.calls[1].opts.noHistory,true);assert.equal(r.calls[1].opts.noRetry,true);assert.equal(r.calls[1].opts.kind,'atlas');
+   assert.equal(r.directions.length,1,'#766: the seen feature with no direction is asked for, once, after the commit');assert.equal(r.directions[0].opts.noHistory,true);assert.deepEqual(JSON.parse(r.directions[0].msg).owed.map(x=>x.label),['birch stakes']);
    assert.equal(r.added.filter(x=>x.r==='gm').length,1);assert.equal(r.added.find(x=>x.r==='gm').x,raw);assert.equal(r.added.filter(x=>x.r==='player').length,1);assert.equal(r.sessionAdded,2);
    assert.deepEqual(r.features.map(f=>f.label),['birch stakes']);assert.deepEqual(r.shown,['birch stakes']);assert.equal(Object.values(r.geo.receipts)[0].events[0].quote,raw);assert.deepEqual(r.reloaded,r.saved);
    await page.screenshot({path:path.join(shots,'discovery-stationary.png')});

@@ -23,6 +23,7 @@ var SUITES = [
   "dev/tests-730-designer-abilities.js",
   "dev/tests-722-silence-opening.js",
   "dev/tests-718-enemy-card.js",
+  "dev/tests-766-directions.js",/* #766: the map asks for the directions it is owed; the GM is the author of a seen feature's bearing */
   "dev/tests-762-map-and-import.js",/* #762: the wizard's import skips the chooser; #763: one receipt per disclosure; #764: the marker's name; #765: ground by head noun */
   "dev/tests-760-creature-names.js",/* #760: the GM starts a listed creature under its bestiary name; #761: the wizard's Import character button */
   "dev/tests-759-dice-reveal.js",/* #759: the dice reveal the roll — no number before its die lands; the reply waits on the dice */

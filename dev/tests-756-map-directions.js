@@ -62,7 +62,7 @@ test('the GM is asked for each direction the map owes, by handle, and never for 
   assert.ok(b.indexOf('[MAP_REVEAL:' + hall.id + '|hollow green hall|<bearing>|observed]') >= 0, 'the handle and the label, ready to complete');
   assert.ok(b.indexOf('[MAP_REVEAL:' + cairn.id + '|a distant cairn|<bearing>|reported]') >= 0, 'a report stays a report');
   assert.ok(b.indexOf('|Ironwood Heart|<bearing>') < 0 && b.indexOf('|Thicket trail|<bearing>') < 0, 'never the place itself, never a placed feature');
-  assert.ok(/never invent a direction to clear the list/.test(b), 'the ask forbids invention');
+  assert.ok(/You are the author of this world/.test(b) && /settle it THIS turn/.test(b) && /a reported one waits/.test(b), 'the ask makes the GM the author (#766 replaced "never invent a direction": owner 2026-11-15)');
   assert.ok(b.indexOf(byLabel('Ironwood Heart').id + ': Ironwood Heart (observed, position unknown).') >= 0, 'the GM still sees the record, so it is not disclosed again');
   const p = atlasKnowledgePrompt();
   assert.ok(p.indexOf('or to settle a direction listed under DIRECTION OWED') >= 0 && p.indexOf('Exclude the place the party stands in and any phrase that only describes it') >= 0, 'the standing rules name both');
