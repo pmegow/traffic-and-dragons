@@ -1,0 +1,34 @@
+
+  sabotage — designer-assistant.js
+   ✓ caught      assistant habitat retains old cap
+   ✓ caught      assistant prompt retains old prose cap
+   ✓ caught      padded targets are not canonicalized
+   ✓ caught      gate conflict silently widened
+   ✓ caught      truthy string booleans accepted
+   ✓ caught      preview ignores normalized value
+   ✓ caught      new long class prose accepted
+   ✓ caught      preview mutates live draft
+   ✓ caught      old context accepts a reply
+   ✓ caught      old proposal overwrites manual edits
+   ✓ caught      parseable truncation accepted
+   ✓ caught      portrait enters text prompt
+   ✓ caught      partial edit drops optional fields
+   ✓ caught      class added but unavailable
+   ✓ caught      overlong prose accepted
+   ✓ caught      unknown edit target becomes an upsert
+   ✓ file restored byte-identical
+   16/16 clauses proven
+
+
+  sabotage — blueprint-designer.html
+   ✓ caught      assistant inherits review deletions
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — designer-assistant-ui.js
+   ✓ caught      assistant reply executes markup
+   ✓ caught      late error changes reopened window
+   ✓ caught      advice offers misleading Apply
+   ✓ file restored byte-identical
+   3/3 clauses proven

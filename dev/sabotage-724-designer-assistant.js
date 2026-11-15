@@ -3,6 +3,8 @@ var sabotage=require('./sabotage.js'),rc=0;
 var chrome=require('./cdp-browser.js').locateChrome(),verdict=require('./battery-verdict.js');
 var cmd=['node',['dev/tests-724-designer-assistant.js']];
 rc|=sabotage.prove({file:'designer-assistant.js',command:cmd,cases:[
+ {label:'assistant habitat retains old cap',find:"k==='environment'?host.caps.environment:",replace:"k==='environment'?80:",mustFail:'fivefold caps govern explicit writes and the model instructions'},
+ {label:'assistant prompt retains old prose cap',find:"'+caps.field+' characters",replace:"800 characters",mustFail:'fivefold caps govern explicit writes and the model instructions'},
  {label:'padded targets are not canonicalized',find:'if(old&&idField)identity=old[idField];',replace:'',mustFail:'resolved padded targets really change the intended object'},
  {label:'gate conflict silently widened',find:"if(sec==='creatures'&&owns(p.item,'availableActs')&&owns(p.item,'revealAct'))throw",replace:'if(false)throw',mustFail:'conflicting gates and wrong field types never reach the draft'},
  {label:'truthy string booleans accepted',find:"type=fieldTypes[k]||'text';if(!valueTypes[type](value))",replace:"type=fieldTypes[k]||'text';if(false)",mustFail:'conflicting gates and wrong field types never reach the draft'},

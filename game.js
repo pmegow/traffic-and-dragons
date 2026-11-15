@@ -3337,7 +3337,7 @@ function blueprintTextFields(bp){
   ["npcs","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){if(o&&o.abilities!==undefined)add(o,["abilities"],section+"."+i+".",caps.field);});});
   (bp.creatures||[]).forEach(function(c,i){if(c&&c.displayName!==undefined)add(c,["displayName"],"creatures."+i+".",caps.field);});
   ["npcs","creatures"].forEach(function(section){(bp[section]||[]).forEach(function(o,i){["altDesc","altWhen"].forEach(function(k){if(o&&o[k]!==undefined)add(o,[k],section+"."+i+".",caps.field);});});});/* #743 */
-  (bp.creatures||[]).forEach(function(c,i){if(c&&c.environment!==undefined)add(c,["environment"],"creatures."+i+".",80);});
+  (bp.creatures||[]).forEach(function(c,i){if(c&&c.environment!==undefined)add(c,["environment"],"creatures."+i+".",caps.environment);});
   (bp.rules||[]).forEach(function(rule,i){add(bp.rules,[i],"rules.",caps.rule);});return out;
 }
 // ── #192 — blueprint class roster: custom classes + curated availability ───────

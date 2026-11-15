@@ -1,0 +1,6 @@
+
+  sabotage — globals.js
+   ✓ caught      old 400-character cap clips the rule
+   ✓ caught      rule cap exceeds owner-requested boundary
+   ✓ file restored byte-identical
+   2/2 clauses proven

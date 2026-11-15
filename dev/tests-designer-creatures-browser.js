@@ -27,6 +27,20 @@ await context.route('**/*',async route=>{
 });
 const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));
 await page.goto('http://creature.test/blueprint-designer.html');await page.waitForFunction(()=>window.__bpdTest);
+// #748: the screenshot warning represented three ordinary fields at the requested new boundary.
+await page.evaluate(()=>{const text='x'.repeat(4000);__bpdTest.load({format:'tnd-blueprint-v1',name:'Fivefold text limits',premise:'A forest at dusk.',acts:[{title:'Travel',goal:'Reach home.',arcs:[{title:'Road',objective:'Find the way.'}]}],npcs:[{name:'Hushmoth Prowler',notes:text,desc:text,abilities:text}],locations:[],creatures:[],rules:[]});secOpen.npcs=true;bp.npcs[0]._c=false;render();});
+await page.screenshot({path:path.join(out,'748-limits-desktop.png')});
+assert(await page.evaluate(()=>document.getElementById('text-limit-status').hidden),'#748 three 4000-character fields no longer show the old limit warning');
+assert.equal(await page.evaluate(()=>designerValidate()),null,'#748 the full boundary is publish-ready');
+assert(await page.evaluate(()=>{const original=JSON.stringify(DesignerCreatures.textBlueprint(bp));const gameCopy=normalizeBlueprint(__bpdTest.out());return gameCopy.npcs[0].notes===bp.npcs[0].notes&&JSON.stringify(DesignerCreatures.textBlueprint(bp))===original;}),'#748 runtime import retains accepted prose without changing the draft');
+await page.evaluate(()=>{bp.npcs[0].notes+='x';updateTextLimits();});
+assert(await page.evaluate(()=>!document.getElementById('text-limit-status').hidden&&designerValidate().includes('text limits')),'#748 one character beyond the new boundary is still refused');
+await page.evaluate(()=>{bp.npcs[0].notes=bp.npcs[0].notes.slice(0,-1);updateTextLimits();});
+await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(out,'748-limits-phone.png')});
+assert(await page.evaluate(()=>document.getElementById('text-limit-status').hidden&&document.documentElement.scrollWidth<=innerWidth),'#748 expanded prose fits the phone and clears the warning');
+await page.setViewportSize({width:1050,height:900});
+console.log('PASS #748 fivefold limits: warning cleared, boundary admitted, runtime preserved, excess refused');
+if(process.env.BLUEPRINT_LIMITS_ONLY==='1')return;
 // Existing authored threats must not be replaced by a select's first option during rendering.
 await page.evaluate(()=>{__bpdTest.load({format:'tnd-blueprint-v1',name:'Threat choices',premise:'A forest at dusk.',acts:[],npcs:[],locations:[],creatures:[{name:"Will 'o the Wisp",threat:'Dangerous',notes:'A light in the marsh.'},{name:'Old Guardian',threat:'CR 7 (elite)',notes:'An older authored threat.'},{name:'New creature',notes:'No threat chosen.'}],rules:[]});secOpen.creatures=true;bp.creatures.forEach(c=>c._c=false);render();});
 const threatSelector='[data-sec="creature"][data-i="0"][data-k="threat"]';
@@ -56,12 +70,12 @@ assert.equal(await page.evaluate(()=>bp.creatures[1].threat),'CR 7 (elite)','#74
 assert.equal(calls.length,0,'#746 editing threats makes no model calls');assert.equal(images,0,'#746 editing threats makes no image calls');
 await page.setViewportSize({width:1050,height:900});
 console.log('PASS #746 Threat dropdown: shared levels, legacy and blank values, editing, phone, file and draft reload');
-// A loaded (imported) note over the 800-character field cap: an AI write elsewhere must leave it whole and spend nothing on it
+// A loaded (imported) note over the 4,000-character field cap: an AI write elsewhere must leave it whole and spend nothing on it
 // (#547's own contract — "imported/manual text stays whole with an explicit shortening control"; the G5 waits suite found the
 // automatic pass shortening the whole blueprint after one creature landed).
-const importedLong='The warden walks the causeway every dusk with a shuttered lamp and a ledger of lights. '.repeat(11);
+const importedLong='The warden walks the causeway every dusk with a shuttered lamp and a ledger of lights. '.repeat(51);
 await page.evaluate(long=>{__bpdTest.load({format:'tnd-blueprint-v1',name:'The Lantern Fen',premise:'A marsh village loses its lights each night.',acts:[1,2,3].map(n=>({title:'Chapter '+n,goal:'Explore the fen',arcs:[{title:'Journey '+n,objective:'Travel safely'}]})),npcs:[{name:'Marsh Warden',role:'keeper of the causeway lights',notes:long}],locations:[],creatures:[],rules:[]});secOpen.creatures=true;__bpdTest.rerender();},importedLong);
-assert(importedLong.length>800&&await page.evaluate(()=>bp.npcs[0].notes.length>800),'loaded NPC notes preserve the exact reported tail beyond 800 — the fixture note must still overflow after load');
+assert(importedLong.length>4000&&await page.evaluate(()=>bp.npcs[0].notes.length>4000),'loaded NPC notes preserve the exact reported tail beyond the field cap — the fixture note must still overflow after load');
 await page.evaluate(()=>document.querySelector('[data-op="gencreature"]').scrollIntoView({block:'center'}));
 if(before){await page.screenshot({path:path.join(out,'before.png')});console.log('PASS before: original immediate-generation button captured');return;}
 await page.locator('[data-op="gencreature"]').click();
@@ -111,10 +125,11 @@ await page.locator('[data-op="npcportraitremove"]').click();assert(await page.ev
 await page.setViewportSize({width:1050,height:900});
 await page.evaluate(()=>{
   window.proseOriginal="The employer who hired the Red Ledger, a vault-city magistrate of Two Thrones. Her official story is that the reliquary is an ancestral relic she recovered at Kalgra's Rest and is returning for reburial in the lower reliquary-vault beneath the eastern mesa, which she names as the delivery destination from the outset. In public introductions and documents, use only Consul Y. Marrow. She accompanies the caravan through the first ambush. When the cracked reliquary addresses her as 'Ysbet,' she visibly flinches and demands to know how it knows her. She surfaces as untrustworthy the moment the company asks pointed questions about what's actually inside: under such questioning she drops the cover story and admits the truth (see secret), but she continues to honor the contract's payment and, in particular, its safe-passage promise.";
+  proseOriginal=proseOriginal.repeat(5);
   window.proseRevision="Consul Y. Marrow, a Two Thrones magistrate, hires the Red Ledger and joins them through the first ambush. She claims the ancestral reliquary came from Kalgra's Rest and names the lower reliquary-vault beneath the eastern mesa as its reburial destination. Introductions and documents use only Consul Y. Marrow. Called 'Ysbet' by the cracked reliquary, she flinches and demands how it knows her. Pressed about its contents, she abandons her cover story and admits the truth (see secret), while honoring payment and safe passage.";
   __bpdTest.load({format:'tnd-blueprint-v1',name:'Full prose',premise:'A caravan journey.',acts:[{title:'The road',goal:'Reach the mesa.',arcs:[{title:'Journey',objective:'Travel safely.'}]}],npcs:[{name:'Consul Y. Marrow',notes:proseOriginal}],creatures:[],rules:[]});secOpen.npcs=true;bp.npcs[0]._c=false;__bpdTest.rerender();
 });
-assert.equal(await page.evaluate(()=>bp.npcs[0].notes.length),836,'loaded NPC notes preserve the exact reported tail beyond 800');
+assert.equal(await page.evaluate(()=>bp.npcs[0].notes.length),4180,'loaded NPC notes preserve the exact reported tail beyond the field cap');
 assert(await page.evaluate(()=>designerValidate().includes('text limits')),'overlong drafts cannot be published as ready');
 await page.locator('[data-op="breakout"][data-bsec="npc"][data-bk="notes"]').click();
 assert(await page.evaluate(()=>document.querySelector('#bo-ta').value.endsWith('safe-passage promise.')),'breakout retains the complete final sentence');
@@ -130,7 +145,7 @@ await page.evaluate(()=>{bp.npcs[0].notes='An intentional manual edit.';markDirt
 assert.equal(await page.evaluate(()=>bp.npcs[0].notes),'An intentional manual edit.','late revision never replaces a newer manual edit');
 await page.evaluate(()=>{bp.npcs[0].notes=proseOriginal;markDirty();});await page.evaluate(()=>designerDrafts.flush());assert(await page.evaluate(async()=>(await designerDraftStore.recovery()).saved.payload.bp.npcs[0].notes===proseOriginal),'durable draft retains full original prose');
 await page.goto('http://creature.test/blueprint-designer.html');await page.waitForFunction(()=>window.__bpdTest);
-assert(await page.evaluate(()=>bp.npcs[0].notes.endsWith('safe-passage promise.')&&bp.npcs[0].notes.length===836),'reopening the auto-saved draft never clips it');
+assert(await page.evaluate(()=>bp.npcs[0].notes.endsWith('safe-passage promise.')&&bp.npcs[0].notes.length===4180),'reopening the auto-saved draft never clips it');
 
 
 await page.evaluate(async()=>{

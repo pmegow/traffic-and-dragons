@@ -731,3 +731,7 @@ Publish the already tested Dice 0.99.7 after wizard #706 was separately released
 ## 2026-11-07 - #709 simultaneous dice exits
 
 Publish Dice 0.99.8 through its publisher; host version/cache markers and release records only. No host logic or drift-surface changes. [Record](DOC/dice-together_709.md).
+
+## 2026-11-14 - #748 owner-requested Blueprint limits
+
+Owner explicitly requested fivefold text limits. Shared `IMPORT_CAPS` values and the habitat registry entry change together so authoring does not accept text runtime import would then truncate. Assistant bounds and guidance use that registry; backstory stays separate. Existing overflow fixtures were lengthened to keep exercising rejection. Boundary/import and real-browser proofs plus 35 named mutations pass; no parser, memory or prompt-builder code is changed.

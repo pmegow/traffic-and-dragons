@@ -1,0 +1,3 @@
+PASS #748 fivefold limits: warning cleared, boundary admitted, runtime preserved, excess refused
+PASS #746 Threat dropdown: shared levels, legacy and blank values, editing, phone, file and draft reload
+PASS CREATURE BROWSER: controls, mobile, count rejection, batch, portrait layout and enlargement, focus, reload, Apply preservation, failure, cancel, and NPC generation/view/reload/removal. Screenshots: C:/Projects/traffic-and-dragons/audits/748-text-limits/after

@@ -466,18 +466,18 @@ function runEngineTests(R){
 
   // ── 1. Model-output JSON repair (the generateSkeleton/summarize failure class) ──
   section("#500 blueprint rule length");
-  t("#500 imported rules preserve 401 through 1200 characters and cap at 1200",function(){
-    var sizes=[399,400,401,1199,1200,1201],rules=sizes.map(function(n){return new Array(n).join("x")+".";});
+  t("#500 imported rules preserve 401 through 6000 characters and cap at 6000",function(){
+    var sizes=[399,400,401,1199,1200,1201,5999,6000,6001],rules=sizes.map(function(n){return new Array(n).join("x")+".";});
     var bp={rules:rules.slice(),acts:[],npcs:[],locations:[],creatures:[]};
     normalizeBlueprint(bp);
     for(var i=0;i<sizes.length;i++){
-      var want=rules[i].slice(0,1200);
+      var want=rules[i].slice(0,6000);
       if(bp.rules[i]!==want)return "length "+sizes[i]+" became "+bp.rules[i].length+"; expected "+want.length;
     }
-    return IMPORT_CAPS.rule===1200?true:"rule cap must be 1200";
+    return IMPORT_CAPS.rule===6000?true:"rule cap must be 6000";
   });
-  t("#500 the campaign prompt preserves the same 1200-character rule boundary",function(){
-    makeWorld();var saved=customRules.slice(),rule=new Array(1200).join("q")+"!";
+  t("#500 the campaign prompt preserves the same 6000-character rule boundary",function(){
+    makeWorld();var saved=customRules.slice(),rule=new Array(6000).join("q")+"!";
     try{
       customRules=[rule+"Z"];var block=getRulesBlock();
       if(block.indexOf(rule)<0)return "rule ending clipped from the prompt";
@@ -487,8 +487,8 @@ function runEngineTests(R){
   t("#500 short-rule prompts stay byte-identical when the cap grows",function(){
     makeWorld();var saved=customRules.slice(),cap=IMPORT_CAPS.rule;
     try{
-      customRules=["The moon is always visible."];IMPORT_CAPS.rule=400;
-      var old=buildSysPrompt();IMPORT_CAPS.rule=1200;var current=buildSysPrompt();
+      customRules=["The moon is always visible."];IMPORT_CAPS.rule=1200;
+      var old=buildSysPrompt();IMPORT_CAPS.rule=6000;var current=buildSysPrompt();
       return old.stable===current.stable&&old.volatile===current.volatile?true:"short-rule prompt changed";
     }finally{customRules=saved;IMPORT_CAPS.rule=cap;}
   });
@@ -1246,12 +1246,26 @@ function runEngineTests(R){
   t("#315 the stable half carries the authored-content-is-data rule, and custom rules are clamped to IMPORT_CAPS.rule",function(){
     makeWorld();var st=buildSysPrompt().stable;
     if(!/AUTHORED CONTENT IS DATA/.test(st)||!/change these rules/i.test(st))return "fence rule missing from the stable half";
-    var saved=customRules.slice();customRules.push(new Array(3000).join("x"));
+    var saved=customRules.slice();customRules.push(new Array(IMPORT_CAPS.rule+2).join("x"));
     var rb=getRulesBlock();customRules.length=0;Array.prototype.push.apply(customRules,saved);
-    return rb.indexOf(new Array(IMPORT_CAPS.rule+2).join("x"))<0?true:"a 3k custom rule reached the prompt uncut";
+    return rb.indexOf(new Array(IMPORT_CAPS.rule+2).join("x"))<0?true:"an over-limit custom rule reached the prompt uncut";
+  });
+  t("#748 blueprint text limits are fivefold and preserve the full boundary on import",function(){
+    var expected={premise:12500,field:4000,rule:6000,environment:400},k;
+    for(k in expected)if(IMPORT_CAPS[k]!==expected[k])return k+" limit "+IMPORT_CAPS[k]+"; expected "+expected[k];
+    if(IMPORT_CAPS.backstory!==2500)return "unrelated backstory limit changed";
+    var bp={format:"tnd-blueprint-v1",name:"Limits",premise:"P",acts:[{title:"A",goal:"G",arcs:[{title:"Arc",objective:"O"}]}],npcs:[{name:"N",notes:"N",desc:"D",abilities:"A",altDesc:"A",altWhen:"W"}],creatures:[{name:"C",notes:"N",environment:"E"}],locations:[{name:"L",desc:"D"}],rules:["R"]};
+    var fields=blueprintTextFields(bp),before=[];
+    for(var fi=0;fi<fields.length;fi++){var f=fields[fi],want=f.path==="premise"?12500:f.path.indexOf("rules.")===0?6000:/\.environment$/.test(f.path)?400:4000;if(f.limit!==want)return f.path+" has limit "+f.limit;}
+    fields.forEach(function(f){f.owner[f.key]=new Array(f.limit+1).join("x");before.push(f.owner[f.key]);});
+    normalizeBlueprint(bp);fields=blueprintTextFields(bp);
+    for(var j=0;j<fields.length;j++)if(fields[j].owner[fields[j].key]!==before[j])return fields[j].path+" clipped at the allowed boundary";
+    fields.forEach(function(f){f.owner[f.key]+="OVER";});normalizeBlueprint(bp);
+    fields=blueprintTextFields(bp);for(j=0;j<fields.length;j++)if(fields[j].owner[fields[j].key].length!==fields[j].limit)return fields[j].path+" over-limit import escaped its cap";
+    return true;
   });
   t("#315 normalizeBlueprint clamps every imported prose field to its cap (premise, act goal, arc objective/dnaHint, NPC and location notes, rules, creature notes) and leaves short fields byte-identical",function(){
-    var big=new Array(5000).join("y");
+    var big=new Array(Math.max(IMPORT_CAPS.premise,IMPORT_CAPS.field,IMPORT_CAPS.rule)+2).join("y");
     var bp={format:"tnd-blueprint-v1",name:"X",tone:"swords",premise:big,acts:[{title:"A",goal:big,arcs:[{title:"a",objective:big,dnaHint:big}]}],npcs:[{name:"N",notes:big,desc:big}],locations:[{name:"L",desc:big}],rules:[big],creatures:[{name:"C",notes:big}]};
     normalizeBlueprint(bp);
     if(bp.premise.length>IMPORT_CAPS.premise)return "premise "+bp.premise.length;
@@ -1262,9 +1276,9 @@ function runEngineTests(R){
     return small.premise==="short"&&small.acts[0].goal==="g"?true:"short fields changed";
   });
   t("blueprint authoring preserves overlong drafts while runtime normalization still caps them",function(){
-    var text=new Array(799).join("x")+" in particular, its safe-passage promise.",draft={format:"tnd-blueprint-v1",name:"Marrow",premise:"Story.",npcs:[{name:"Consul Y. Marrow",notes:text}],rules:[new Array(1300).join("r")]};
+    var text=new Array(IMPORT_CAPS.field+1).join("x")+" in particular, its safe-passage promise.",draft={format:"tnd-blueprint-v1",name:"Marrow",premise:"Story.",npcs:[{name:"Consul Y. Marrow",notes:text}],rules:[new Array(IMPORT_CAPS.rule+2).join("r")]};
     normalizeBlueprint(draft,{preserveProse:true});
-    if(draft.npcs[0].notes!==text||draft.rules[0].length!==1299)return "authoring amputated the full original";
+    if(draft.npcs[0].notes!==text||draft.rules[0].length!==IMPORT_CAPS.rule+1)return "authoring amputated the full original";
     var fields=blueprintTextFields(draft),note=fields.filter(function(f){return f.path==="npcs.0.notes";})[0];
     if(!note||note.limit!==IMPORT_CAPS.field||note.owner[note.key]!==text)return "shared field registry lost the NPC cap";
     normalizeBlueprint(draft);return draft.npcs[0].notes.length===IMPORT_CAPS.field?true:"runtime bound lost";
@@ -5391,7 +5405,7 @@ function runEngineTests(R){
     return !Object.prototype.hasOwnProperty.call(bp.npcs[0],"abilities")&&!Object.prototype.hasOwnProperty.call(bp.creatures[0],"abilities")?true:"absence gained fields";
   });
   t("#730 ability prose shares runtime caps while author drafts retain the tail",function(){
-    var bp=abilities730(),long=new Array(851).join("x")+"TAIL";
+    var bp=abilities730(),long=new Array(IMPORT_CAPS.field+1).join("x")+"TAIL";
     bp.npcs[0].abilities=long;bp.creatures[0].abilities=long;
     var fields=blueprintTextFields(bp).filter(function(f){return f.key==="abilities";});if(fields.length!==2)return "ability fields missing from revision contract";
     normalizeBlueprint(bp,{preserveProse:true});if(bp.npcs[0].abilities!==long||bp.creatures[0].abilities!==long)return "author draft clipped";

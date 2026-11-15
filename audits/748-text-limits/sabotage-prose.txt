@@ -1,0 +1,32 @@
+
+  sabotage — designer-prose.js
+   ✓ caught      long fields skip revision
+   ✓ caught      unfinished revisions accepted
+   ✓ caught      oversized revisions accepted
+   ✓ caught      late cancellation ignored
+   ✓ caught      identity names automatically rewritten
+   ✓ file restored byte-identical
+   5/5 clauses proven
+
+
+  sabotage — globals.js
+   ✓ caught      blueprint caps return to their old limits
+   ✓ file restored byte-identical
+   1/1 clauses proven
+
+
+  sabotage — game.js
+   ✓ caught      authoring drafts clamped again
+   ✓ caught      habitat retains the old hardcoded limit
+   ✓ caught      runtime cap removed
+   ✓ file restored byte-identical
+   3/3 clauses proven
+
+
+  sabotage — blueprint-designer.html
+   ✓ caught      catalog publishes newly overlong draft
+   ✓ caught      file load loses authoring mode
+   ✓ caught      AI fix skips its revision pass
+   ✓ caught      an AI write shortens text it did not write
+   ✓ file restored byte-identical
+   4/4 clauses proven
