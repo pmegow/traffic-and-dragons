@@ -94,6 +94,27 @@ function atlasKnowledgeCollision(s,groups){
 }
 /* Each readable receipt occupies the directive's original place in the narration. A copied
    quotation elsewhere cannot suppress it or move its meaning past a subsequent arrival. */
+/* #768 (owner 2026-11-15, Shattered Ridge on v1.1435: "You see subterranean rift to the southwest." twice — after #763).
+   #763 fixed a cause that was reproduced but was not the one in play. The one in play: the engine's receipt is stored in
+   the turn it belongs to, so the GM's own history shows "[MAP_REVEAL:…]" followed by "You see …" in every earlier reply
+   of its own — and it writes the pair itself, against the standing rule. The engine then added its line beside the GM's.
+   A receipt the GM has ALREADY WRITTEN at its directive is the receipt: a line of its own that is exactly the sentence,
+   standing directly after the directive (only blank space, other tags and other receipt lines between, never past a
+   change of place) or directly before it. A quotation inside other prose is not that line and suppresses nothing
+   (the #733 rule stands). */
+function atlasKnowledgeLineStart(text,i){while(i>0&&/[ \t]/.test(text.charAt(i-1)))i--;return i===0||/[\r\n\]]/.test(text.charAt(i-1));}
+function atlasKnowledgeWritten(text,start,end,quote){
+  var i=end,rest,m,before;
+  for(;;){
+    rest=text.slice(i);m=/^\s+/.exec(rest);if(m){i+=m[0].length;continue;}
+    if(rest.slice(0,quote.length)===quote&&atlasKnowledgeLineStart(text,i))return true;
+    m=/^\[([A-Z_]+)(?::[^\[\]\r\n]*)?\]/.exec(rest);if(m&&!/^(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)$/.test(m[1])){i+=m[0].length;continue;}
+    m=/^You (?:see|hear of) [^\r\n]*/.exec(rest);if(m&&atlasKnowledgeLineStart(text,i)){i+=m[0].length;continue;}/* another feature's receipt line */
+    break;
+  }
+  before=text.slice(0,start).replace(/\s+$/,"");
+  return before.slice(-quote.length)===quote&&atlasKnowledgeLineStart(before,before.length-quote.length);
+}
 function atlasKnowledgePublish(raw,items){
   var text=String(raw||""),out="",cursor=0,i,item,m,fields,e,said=Object.create(null),sk;
   for(i=0;i<items.length;i++){
@@ -106,6 +127,7 @@ function atlasKnowledgePublish(raw,items){
        The record already kept one; the page says it once, at the first statement. A different place or a different
        receipt is another line. */
     sk=JSON.stringify([item.container,e.quote]);
+    if(!said[sk]&&atlasKnowledgeWritten(text,item.start,item.end,e.quote)){said[sk]=1;if(typeof console!=="undefined")console.info("[map knowledge] #768 the reply wrote its own receipt for '"+e.label+"'; the engine adds no second line");}
     out+=text.slice(cursor,item.end)+(said[sk]?"":"\n\n"+e.quote+"\n\n");said[sk]=1;cursor=item.end;
   }
   return out+text.slice(cursor);
