@@ -37,7 +37,7 @@ prove("helpers.js", [
 ]);
 prove("tag_table.js", [
   { label: "the CHECK doc line stops teaching the damage field",
-    find: " -- never roll damage for a check you emitted\\n\",", replace: "\\n\",",
+    find: " -- never roll damage for a check you emitted. A LAST field", replace: ". A LAST field",
     mustFail: "CHECK doc line" },
   { label: "the mut stops naming the damage",
     find: '(chk.dmg?", "+chk.dmg.text+" on a hit":"")', replace: '""',

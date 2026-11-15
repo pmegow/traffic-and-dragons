@@ -19531,6 +19531,56 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     return at>=0&&items[at+1].id==='stakes'&&items[at+1].detail.indexOf('40+ turns')>=0?true:JSON.stringify(items);
   });
 
+  section("#750 — the stake rides the [CHECK:] tag and the roll modal shows it");
+  t("#750 parse: a prose field after the modifier's seat is the stake — with or without damage dice, never a DC, never dice, never one word, never the modifier's seat; a stake that mentions a DC is not read as one; the prefix is dropped and the text is capped",function(){
+    var c=parseCheckTag("Pick the lock|+4|DC 15|a snapped pick and the guard's attention");if(!c||c.mod!==4||c.dc!==15||c.dmg!==null||c.stake!=="a snapped pick and the guard's attention")return "plain: "+JSON.stringify(c);
+    c=parseCheckTag("Longsword attack|+5|DC 14|1d8+3|the ogre's club comes down on you");if(!c||c.dc!==14||!c.dmg||c.dmg.text!=="1d8+3"||c.stake!=="the ogre's club comes down on you")return "with dice: "+JSON.stringify(c);
+    c=parseCheckTag("Climb|+2|DC 12|a fall the DC 20 ledge will not forgive");if(!c||c.dc!==12||c.stake!=="a fall the DC 20 ledge will not forgive")return "a stake naming a DC must not move the DC: "+JSON.stringify(c);
+    c=parseCheckTag("Stealth check|+5|DC 14");if(!c||c.stake!==null)return "no stake must be null: "+JSON.stringify(c);
+    c=parseCheckTag("Stealth check|+5|DC 14|moderate");if(!c||c.stake!==null)return "one word is not a stake: "+JSON.stringify(c);
+    c=parseCheckTag("Stealth check|you are seen|DC 14");if(!c||c.stake!==null||c.dc!==14)return "the modifier's seat is never the stake: "+JSON.stringify(c);
+    c=parseCheckTag("Leap|+1|DC 13|Stake: the chasm takes you");if(!c||c.stake!=="the chasm takes you")return "prefix: "+JSON.stringify(c);
+    var long="";while(long.length<400)long+="word and ";c=parseCheckTag("Leap|+1|DC 13|"+long);if(!c||!c.stake||c.stake.length!==CHECK_STAKE_MAX)return "cap: "+(c&&c.stake&&c.stake.length);
+    return true;
+  });
+  t("#750 modal: rollModalHtml shows the stake (escaped — model text) in place of the waiting line, and the waiting line without one; still exactly two ways out",function(){
+    var h=rollModalHtml({label:"Draconic Breath",mod:3,dc:14,stake:"the spearguards <b>close</b> before you can breathe again"});
+    if(h.indexOf("id='roll-modal-stake'")<0||h.indexOf("At stake")<0)return "stake block missing: "+h;
+    if(h.indexOf("<b>close</b>")>=0||h.indexOf("&lt;b&gt;close&lt;/b&gt;")<0)return "the stake is model text and must be escaped: "+h;
+    if(h.indexOf("waits on your die")>=0)return "the waiting line must give way to the stake";
+    if((h.match(/<button\b/g)||[]).length!==2)return "exactly two ways out";
+    var p=rollModalHtml({label:"Stealth check",mod:1,dc:12});if(p.indexOf("roll-modal-stake")>=0||p.indexOf("The Game Master waits on your die.")<0)return "no stake: the waiting line stays: "+p;
+    return true;
+  });
+  t("#750 prompt: while the player rolls and the switch is on the MECHANICS clause asks for the stake as the tag's LAST field (never in the prose too); the GM-rolls wording is #371's; the switch off drops both; the CHECK doc line names the field",function(){
+    makeWorld();var was=diceStakeClause,wasP=playerRollsDice;try{
+      diceStakeClause=true;playerRollsDice=true;var pr=buildSysPrompt().stable;
+      if(pr.indexOf("name what failure would cost as the LAST field of the tag")<0||pr.indexOf("do not say it in the prose as well")<0)return "the player-rolls clause does not ask for the field";
+      if(pr.indexOf("say in one clause what failure would cost")>=0)return "the player-rolls clause still asks for prose";
+      if(pr.indexOf("A LAST field of plain words is the STAKE")<0)return "the CHECK doc line does not name the field";
+      playerRollsDice=false;var gm=buildSysPrompt().stable;if(gm.indexOf(" Before any roll, say in one clause what failure would cost. If nothing is genuinely at risk")<0||gm.indexOf("LAST field")>=0)return "the GM-rolls wording moved";
+      diceStakeClause=false;playerRollsDice=true;var off=buildSysPrompt().stable;if(off.indexOf("what failure would cost as the LAST field")>=0)return "the switch off must drop the ask";
+      return true;
+    }finally{diceStakeClause=was;playerRollsDice=wasP;}
+  });
+  t("#750 the turn: [CHECK:] files the stake on the pending check and says it on the summary line; the live story card shows it escaped; a FAILED roll's note hands the stake back to the GM and a success does not; the read-aloud tail",function(){
+    makeWorld();var wasP=playerRollsDice;try{playerRollsDice=true;worldState.turn=12;
+      var r=applyMuts("You draw breath. [CHECK:Draconic Breath|+3|DC 14|the pikeguard's reed <i>pike</i> finds you first]");
+      var pc=worldState.pendingCheck;if(!pc||pc.stake!=="the pikeguard's reed <i>pike</i> finds you first")return "not filed: "+JSON.stringify(pc);
+      var said=(r&&r.muts?r.muts:[]).join(" | ");if(said.indexOf("at stake: the pikeguard's reed")<0)return "the summary line must say it: "+said;
+      var h=diceTxt("[CHECK:Draconic Breath|+3|DC 14|the pikeguard's reed <i>pike</i> finds you first]");if(h.indexOf("dice-pending")<0||h.indexOf("at stake: the pikeguard")<0||h.indexOf("<i>pike</i>")>=0)return "live card: "+h;
+      var bad=resolveCheck(pc,2),good=resolveCheck(pc,19);
+      if(bad.outcome!=="failed"||bad.note.indexOf("failure would cost: the pikeguard's reed <i>pike</i> finds you first")<0)return "a failed roll must hand the stake back: "+bad.note;
+      if(good.outcome!=="success"||good.note.indexOf("failure would cost")>=0)return "a success owes no stake: "+good.note;
+      if(rollStakeSpeech(pc)!==" Roll for Draconic Breath. At stake: the pikeguard's reed <i>pike</i> finds you first.")return "speech: "+rollStakeSpeech(pc);
+      if(rollStakeSpeech({label:"Leap",stake:"you fall."})!==" Roll for Leap. At stake: you fall.")return "speech must not double the stop";
+      if(rollStakeSpeech(null)!==""||rollStakeSpeech({label:"Leap"})!=="")return "no stake, no tail";
+      var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),sn=g.slice(g.indexOf("function speakNarration("),g.indexOf("function speakNarration(")+900);
+      if(sn.indexOf("rollStakeSpeech(worldState.pendingCheck)")<0||sn.indexOf("TTS.speakResponse(clean+_stk,sp?speakerVoiceMap(sp,clean):null);")<0)return "speakNarration must speak the stake after the narration, the map cut over the narration alone";
+      return true;
+    }finally{playerRollsDice=wasP;delete worldState.pendingCheck;}
+  });
+
   section("#371 — the stake clause behind a switch, and the rolled-outcome ratio");
   t("#371 the stake clause rides both MECHANICS contracts while diceStakeClause is on and vanishes byte-identically when it is off; the File menu carries the checkbox wired to toggleDiceStake and loaded at boot",function(){
     makeWorld();var was=diceStakeClause,wasP=playerRollsDice;try{

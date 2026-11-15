@@ -226,7 +226,15 @@ function rollDamageFaces(d){var out=[],i;for(i=0;i<d.n;i++)out.push(1+Math.floor
 function damageTotal(d,faces){var s=0,i;for(i=0;i<faces.length;i++)s+=faces[i];return Math.max(0,s+(d.mod||0));}
 function damageRollText(d,faces){var parts=faces.join(" + ");if(d.mod)parts+=(d.mod>0?" + ":" \u2212 ")+Math.abs(d.mod);return d.text+" = "+parts+((faces.length>1||d.mod)?" = "+damageTotal(d,faces):"");}
 /* The modifier seat is read as dice first (#654): "1d4+2" stripped to its digits used to parse as +14. */
-function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10);if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg};}
+/* #750 (owner 2026-11-14: "the stakes should be here in the dice modal"): the STAKE rides the tag too \u2014 a prose field after
+   the modifier's seat (two words or more, never a DC and never dice), read BEFORE the DC so a stake that mentions one is
+   never taken for it. Model text: capped at CHECK_STAKE_MAX, escaped wherever it is painted. null without one. */
+var CHECK_STAKE_MAX=200;
+function checkStakeField(f,i){var s=String(f||"").trim();if(i<2||!s||parseDamageExpr(s)||/^DC\s*\d+/i.test(s)||!/[A-Za-z]{2,}\s+\S*[A-Za-z]{2,}/.test(s))return null;s=s.replace(/^(?:at\s+)?stake\s*[:\u2014-]\s*/i,"").trim();return s?s.slice(0,CHECK_STAKE_MAX):null;}
+function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,stake=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10);if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var sk=checkStakeField(p[i],i);if(sk){if(!stake)stake=sk;continue;}var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg,stake:stake};}
+/* #750: what the narration read aloud adds while a roll with a stake waits \u2014 the tag is stripped from the prose, so a
+   listener (Car Mode, the read-aloud) would otherwise never hear what the modal shows. "" without a stake. Pure. */
+function rollStakeSpeech(chk){return (chk&&chk.label&&chk.stake)?" Roll for "+chk.label+". At stake: "+chk.stake+(/[.!?]$/.test(chk.stake)?"":"."):"";}
 function resolveCheck(chk,roll,faces){var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
   /* #654: a hit keeps the damage the click rolled (success, or no DC to judge by \u2014 the GM decides whether it lands); a miss
      or a fumble drops the faces and says so. No faces (a caller that rolled none) leaves the damage to the GM, silently. */
@@ -234,7 +242,7 @@ function resolveCheck(chk,roll,faces){var total=roll+(chk.mod||0),outcome=(chk.d
   if(chk.dmg&&hit&&faces&&faces.length){var dt=damageTotal(chk.dmg,faces),dx=damageRollText(chk.dmg,faces);damage={text:dx,faces:faces.slice(),total:dt,sides:chk.dmg.sides};
     dmgLine=(chk.dc!=null?" The blow lands for "+dt+" damage ("+dx+")":" If the blow lands it deals "+dt+" damage ("+dx+")")+" \u2014 apply it with [ENEMY_HP:]; the damage is rolled too, never roll it again.";}
   else if(chk.dmg&&!hit)dmgLine=" A miss deals no damage; roll none.";
-  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+dmgLine+" Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
+  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+((chk.stake&&!hit)?" The player was told before rolling that failure would cost: "+chk.stake+" \u2014 it is owed now.":"")/* #750 */+dmgLine+" Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
   /* #666 (owner 2026-10-24): the record STATES its face — "d20 = 1 + 1 = 2", "d20 = 7" when nothing is added — the GM's own
      #350 stated form, so the card prints the natural roll and the handler reads the total after the last "=" (#660). */
   var stated="d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod)+" = "+total:"");
@@ -2741,7 +2749,8 @@ function rollModalHtml(chk){
   return "<div style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-bottom:6px;'>"+escHtml(chk.label)+"</div>"
     +"<div style='font-size:20px;color:var(--acc);font-weight:bold;margin-bottom:6px;'>"+escHtml(formula)+"</div>"
     +(chk.dmg&&chk.dmg.text?"<div style='font-size:14px;color:var(--t1);margin-bottom:6px;'>"+escHtml(chk.dmg.text)+" on a hit</div>":"")
-    +"<div style='font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:14px;'>The Game Master waits on your die.</div>"
+    +(chk.stake?"<div id='roll-modal-stake' style='font-size:13px;color:var(--t0);line-height:1.5;margin-bottom:14px;'><span style='font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);display:block;margin-bottom:2px;'>At stake</span>"+escHtml(chk.stake)+"</div>"/* #750: the stake the GM named in the tag, before the roll \u2014 model text, escaped */
+      :"<div style='font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:14px;'>The Game Master waits on your die.</div>")
     +"<div style='display:flex;gap:8px;'><button class='qa' id='roll-modal-roll' style='flex:2;min-height:48px;font-size:16px;font-weight:bold;background:var(--acc);color:var(--on-acc);border:none;'>&#127922; Roll</button>"
     +"<button class='qa' id='roll-modal-hold' style='flex:1;min-height:48px;' title='No roll is made; say what you do instead'>Hold back</button></div>";
 }

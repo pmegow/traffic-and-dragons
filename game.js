@@ -1117,7 +1117,8 @@ function deriveAndStampSpeakers(clean,raw,entry,trOwn){
 function speakNarration(clean,sp){
   if(typeof TTS==="undefined")return;
   if(!TTS.isOn()&&!(typeof carMode!=="undefined"&&carMode))return;   // muted: map kept, no read
-  TTS.speakResponse(clean,sp?speakerVoiceMap(sp,clean):null);
+  var _stk=(typeof rollStakeSpeech==="function"&&typeof worldState!=="undefined"&&worldState)?rollStakeSpeech(worldState.pendingCheck):"";/* #750: the stake rides the tag, which the prose never carries — a listener hears it after the narration, in the narrator's voice (the speaker map is cut over `clean` alone) */
+  TTS.speakResponse(clean+_stk,sp?speakerVoiceMap(sp,clean):null);
 }
 // Narration entry point for a NON-commit caller (rerollLast) — derive+stamp, persist, speak.
 // commitGmTurn no longer routes through here: it calls the halves itself around its single save.
