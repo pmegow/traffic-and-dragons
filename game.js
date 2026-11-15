@@ -1129,6 +1129,7 @@ function speakNarration(clean,sp){
   if(typeof TTS==="undefined")return;
   if(!TTS.isOn()&&!(typeof carMode!=="undefined"&&carMode))return;   // muted: map kept, no read
   var _stk=(typeof rollStakeSpeech==="function"&&typeof worldState!=="undefined"&&worldState)?rollStakeSpeech(worldState.pendingCheck):"";/* #750: the stake rides the tag, which the prose never carries — a listener hears it after the narration, in the narrator's voice (the speaker map is cut over `clean` alone) */
+  if(!String(clean+_stk).trim())return;/* #767: a roll request with no prose and no stake has nothing to read */
   TTS.speakResponse(clean+_stk,sp?speakerVoiceMap(sp,clean):null);
 }
 // Narration entry point for a NON-commit caller (rerollLast) — derive+stamp, persist, speak.
@@ -2808,11 +2809,14 @@ function commitGmTurn(resp,opts){
      null buttons, the JP0-11 size cap skips the page-hide flush on any mature save, and the
      second device rendered the newest narration buttonless. UA6 unchanged: state+history+speakers
      still persist here, before any display step. */
+  var _held=!_refusal&&/\[CHECK:/.test(String(resp))&&checkHoldsProse(worldState.pendingCheck);/* #767: this reply asks for a roll the player's own action needs — its prose waits for the dice (computed before the persist: it displays nothing) */
   var _audioSaved=saveLocal();
-  var narEl=addMsg("narrator",(dice||"")+"<p>"+escProse(clean)+"</p>",{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse: escape model output before it hits the story DOM (audit E11) */
+  var narEl=addMsg("narrator",(dice||"")+preRollProseHtml(clean,_held),{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse (in preRollProseHtml): escape model output before it hits the story DOM (audit E11) */
+  preRollReveal(narEl);/* #767: prose an EARLIER roll held is shown once a new turn lands (a roll the player answered by typing has no dice to wait for); this turn's own stays held */
   if(!_refusal&&_audioSaved!==false)audioScenePublish("turn",true);
   if(_spMap&&narEl)narEl._sp=_spMap;   // the per-message replay button reads this at click time
-  speakNarration(clean,_spMap);/* #96: map derived from the response's own [SAY:] tags; #177: entry + owning array were captured together at the stamp */
+  var _heldSpeech=_held&&!(typeof carMode!=="undefined"&&carMode);/* #767: held prose is not read out either; Car Mode has no page to hold it on and its loop waits on the narration, so a drive hears it as before */
+  speakNarration(_heldSpeech?"":clean,_heldSpeech?null:_spMap);/* #96: map derived from the response's own [SAY:] tags; #177: entry + owning array were captured together at the stamp */
   generateActions(narEl);
   processPendingCompanionSheets();// draw up sheets for any narrative-path join this turn (audit P2)
   /* #81: [ITEM_DEF:] proposals queued by this turn go to the player NOW — the confirm modal is
@@ -3063,6 +3067,12 @@ async function sendAction(override,opts){
 // along so the transcript and the provenance ring keep the roll exactly as a GM-rolled one.
 var DICE_REVEAL_MAX_MS=20000;  /* #759: the longest a roll's numbers and the GM's reply wait on dice that have not come to rest */
 var DICE_DAMAGE_AFTER_MS=700;  /* #759: how long a landed d20 stays before it leaves and the damage dice come in */
+/* #767: show every held pre-roll prose block, except those inside `except` (the message a commit has just added, whose
+   own roll is still waiting). Returns how many were shown. */
+function preRollReveal(except){
+  if(typeof document==="undefined"||typeof document.querySelectorAll!=="function")return 0;
+  var els=document.querySelectorAll(".pre-roll-held"),i;var n=0;for(i=0;i<els.length;i++){if(except&&typeof except.contains==="function"&&except.contains(els[i]))continue;els[i].className="pre-roll";n++;}return n;
+}
 function rollPendingCheck(){
   var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
   var faces=(chk.dmg&&typeof rollDamageFaces==="function")?rollDamageFaces(chk.dmg):null;/* #654: the damage is rolled with the d20 — resolveCheck keeps it only on a hit */
@@ -3077,6 +3087,7 @@ function rollPendingCheck(){
   if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){holder=document.createElement("div");holder.className="dice-reveal";el.parentNode.replaceChild(holder,el);paint();}}
   if(typeof Sound!=="undefined")Sound.play("click_glass");
   if(typeof saveAll==="function")saveAll();
+  diceRevealWait().then(function(){preRollReveal();});/* #767: the prose the roll held is shown when the dice have come to rest (at once on a page with no dice); asked before the send so the #759 send-then-return pair stays as it was */
   sendAction(r.note,{silent:true,rollTag:r.diceTag});
   if(!live)return;
   var guard=setTimeout(function(){if(diceRevealAdvance(rev,"all")){paint();if(typeof console!=="undefined")console.warn("[dice] #759 the dice did not come to rest within "+DICE_REVEAL_MAX_MS+" ms \u2014 the roll is shown without them");}},DICE_REVEAL_MAX_MS);
@@ -3093,7 +3104,7 @@ function rollPendingCheck(){
 // and the input focused for what the player does instead. Nothing is sent: the next action is theirs.
 function reconsiderPendingCheck(){
   var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
-  delete worldState.pendingCheck;
+  delete worldState.pendingCheck;preRollReveal();/* #767: Hold back — the held prose was said (it is in the GM's context), so it is shown */
   worldState.checkWithdrawnPing={turn:worldState.turn,label:chk.label,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null)};
   if(typeof diceLogFile==="function")diceLogFile({by:"player",label:chk.label,face:null,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null),total:null,outcome:"withdrawn"});
   if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){var wrap=document.createElement("div");wrap.innerHTML='<div class="dice-block" style="opacity:.6;"><span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+escHtml(chk.label)+'</span>d20 &middot; withdrawn</div>';if(wrap.firstChild)el.parentNode.replaceChild(wrap.firstChild,el);}

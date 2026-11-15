@@ -395,7 +395,7 @@ function rebuildNarrativeFromTranscript(maxEntries,clearFirst){
   if(typeof _storyDomAllow!=="undefined"&&n>STORY_DOM_CAP)_storyDomAllow=n;/* #206b: a deliberate deeper rebuild is not trimmed back to the base cap on its own appends */
   for(i=start;i<tr.length;i++){var e=tr[i];
     if(e.r==="player")addMsg("player",escHtml(e.x),{rebuild:true});/* #206b: a rebuilt player line is not live play */
-    else lastNar=addMsg("narrator","<p>"+escProse(e.x)+"</p>",{replayText:e.x,turn:e.t,sp:e.sp,ck:e.ck});/* #9: sp rides the entry, so a rebuilt old turn replays with its original voices *//* transcript is model/user text — escape on replay (audit E11) */
+    else lastNar=addMsg("narrator",preRollProseHtml(e.x,i===tr.length-1&&checkHoldsProse(worldState.pendingCheck)),{replayText:e.x,turn:e.t,sp:e.sp,ck:e.ck});/* #767: a reload is not a way to read the prose a waiting roll holds *//* #9: sp rides the entry, so a rebuilt old turn replays with its original voices *//* transcript is model/user text — escape on replay (audit E11) */
   }
   if(lastNar&&worldState.lastActions){var bd=document.createElement("div");bd.innerHTML=buildActionButtons(worldState.lastActions);if(bd.firstChild)lastNar.appendChild(bd.firstChild);}
   if(typeof storyEarlierNote==="function")storyEarlierNote();/* #206b */

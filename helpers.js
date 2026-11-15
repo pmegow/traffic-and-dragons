@@ -240,6 +240,19 @@ function rollStakeSpeech(chk){return (chk&&chk.label&&chk.stake)?" Roll for "+ch
    d20 (Kaelon: [CHECK:Draconic Breath|+3|DC 14]). [CHECK:Draconic Breath|2d6] is the damage alone: the player rolls it,
    the GM rolls each target's save and applies the result. The record's outcome is "damage" (no face: the #371 ratio and
    the #374 risk counter do not count it). */
+/* #767 NOTHING HAPPENS BEFORE THE DICE (owner 2026-11-15, Kaelon's greataxe: "The narrative happens before the die roll.
+   Once the player sends the attack command, nothing else should happen until those dice are rolled, then narrate the
+   outcome"). Mechanism: the player-rolls contract said "emit [CHECK:] and STOP before the outcome", so the GM narrated
+   the whole swing and stopped at the blade's edge — the story had already happened when the die was offered.
+   Two parts. (1) The rule (api.js CHECK_NO_NARRATION): a roll the player's OWN action needs is the tag and nothing else;
+   the reply to the roll narrates the attempt and its outcome together. (2) The hold (here): prose that arrives beside such
+   a roll anyway is kept off the page until the dice have come to rest, then shown above the result — it is in the
+   transcript and the GM's context either way, so it is delayed, never dropped. A SAVE is the exception both times: the
+   world forces it on the hero, and the prose that causes it (the floor gives way) is what the player is rolling against. */
+var CHECK_SAVE_RE=/\bsav(?:e|es|ing)\b/i;
+function checkHoldsProse(chk){return !!(chk&&typeof chk.label==="string"&&!CHECK_SAVE_RE.test(chk.label));}
+/* A narration's prose, held (hidden until preRollReveal) or shown. One renderer for the live turn and the replay. */
+function preRollProseHtml(clean,held){var p="<p>"+escProse(clean)+"</p>";return held?'<div class="pre-roll pre-roll-held">'+p+"</div>":p;}
 function resolveDamageOnly(chk,faces){var f=(faces&&faces.length)?faces:rollDamageFaces(chk.dmg),dt=damageTotal(chk.dmg,f),dx=damageRollText(chk.dmg,f);
   return {roll:null,total:dt,outcome:"damage",dmgOnly:true,damage:{text:dx,faces:f.slice(),total:dt,sides:chk.dmg.sides},diceTag:"[DICE:"+chk.label+"|"+dx+"|damage]",
     note:"[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": "+dt+" damage ("+dx+"). No attack roll was called for. This is the damage BEFORE any saving throw: roll each target's save yourself, halve or cancel it as the ability's own rules say, and apply the result with [ENEMY_HP:]. The damage is final \u2014 never roll it again and do not emit another [DICE:] for it.]"};}
@@ -250,7 +263,7 @@ function resolveCheck(chk,roll,faces){if(chk&&chk.dmgOnly&&chk.dmg)return resolv
   if(chk.dmg&&hit&&faces&&faces.length){var dt=damageTotal(chk.dmg,faces),dx=damageRollText(chk.dmg,faces);damage={text:dx,faces:faces.slice(),total:dt,sides:chk.dmg.sides};
     dmgLine=(chk.dc!=null?" The blow lands for "+dt+" damage ("+dx+")":" If the blow lands it deals "+dt+" damage ("+dx+")")+" \u2014 apply it with [ENEMY_HP:]; the damage is rolled too, never roll it again.";}
   else if(chk.dmg&&!hit)dmgLine=" A miss deals no damage; roll none.";
-  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+((chk.stake&&!hit)?" The player was told before rolling that failure would cost: "+chk.stake+" \u2014 it is owed now.":"")/* #750 */+dmgLine+" Narrate the outcome of that check now; the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
+  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+((chk.stake&&!hit)?" The player was told before rolling that failure would cost: "+chk.stake+" \u2014 it is owed now.":"")/* #750 */+dmgLine+" Narrate the attempt and its outcome now, as one moment — nothing of it has been told yet (#767); the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
   /* #666 (owner 2026-10-24): the record STATES its face — "d20 = 1 + 1 = 2", "d20 = 7" when nothing is added — the GM's own
      #350 stated form, so the card prints the natural roll and the handler reads the total after the last "=" (#660). */
   var stated="d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod)+" = "+total:"");
