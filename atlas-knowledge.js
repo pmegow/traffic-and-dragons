@@ -7,6 +7,31 @@ function atlasKnowledgeContext(){
   if(!k&&w)k=w.location+(w.sublocation?"|"+w.sublocation:"");
   return k&&typeof locResolve==="function"?locResolve(k):k;
 }
+/* #756 (owner 2026-11-14, Kaelon at The Ironwood Heart: "there are several places listed, but none are drawn on the map";
+   rulings by chips: ask the GM for directions, and drop the entries that are the place itself). Two mechanisms:
+   (1) A place was listed as a feature OF ITSELF: the extractor read "the winding path yields to the Ironwood Heart" inside
+       The Ironwood Heart and filed "Ironwood Heart" there, position unknown. atlasKnowledgeSelfLabel is the one test — the
+       label, a leading "the" and punctuation folded, IS the containing place's own name. The extractor skips such a record
+       and the player's sheet does not show one already on file; the record itself is never rewritten.
+   (2) A feature disclosed without a bearing can only be listed, and nothing ever asked for the bearing afterwards. The
+       player-known block now names the features of the current place whose direction is OWED (atlasKnowledgeOwed, capped
+       at ATLAS_KNOWLEDGE_OWED_CAP) with the directive that settles each — the core has always let a handle's "unknown"
+       bearing be established once (MapKnowledge.prepare), nothing taught the GM to do it. */
+var ATLAS_KNOWLEDGE_OWED_CAP=6;
+function atlasKnowledgeFold(s){return String(s==null?"":s).toLowerCase().replace(/^\s*the\s+/,"").replace(/[^a-z0-9]+/g," ").trim();}
+function atlasKnowledgeSelfLabel(container,label){
+  var leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(container):String(container==null?"":container).split("|").pop(),a=atlasKnowledgeFold(leaf);
+  return !!a&&a===atlasKnowledgeFold(label);
+}
+/* The features of one place the player's sheet shows: the projection without the place's own name. */
+function atlasKnowledgeShown(container,features){var out=[],i;for(i=0;i<features.length;i++)if(!atlasKnowledgeSelfLabel(container,features[i].label))out.push(features[i]);return out;}
+/* The features of one place whose direction is owed: shown, and position unknown. */
+function atlasKnowledgeOwed(container,features){var shown=atlasKnowledgeShown(container,features),out=[],i;for(i=0;i<shown.length;i++)if(shown[i].bearing==="unknown")out.push(shown[i]);return out;}
+function atlasKnowledgeOwedLine(container,features){
+  var owed=atlasKnowledgeOwed(container,features),parts=[],i;if(!owed.length)return "";
+  for(i=0;i<owed.length&&i<ATLAS_KNOWLEDGE_OWED_CAP;i++)parts.push("[MAP_REVEAL:"+owed[i].id+"|"+owed[i].label+"|<bearing>|"+owed[i].mode+"]");
+  return "DIRECTION OWED: "+owed.length+" feature"+(owed.length>1?"s":"")+" here "+(owed.length>1?"are":"is")+" known without a direction, so the player's map can only list "+(owed.length>1?"them":"it")+". When the story has established where one lies from this place, settle it ONCE with its handle and a real bearing: "+parts.join(" ")+(owed.length>ATLAS_KNOWLEDGE_OWED_CAP?" (and "+(owed.length-ATLAS_KNOWLEDGE_OWED_CAP)+" more)":"")+". Leave one alone when it is this place itself, a phrase that only describes it, or a thing with no fixed position — never invent a direction to clear the list.\n";
+}
 var ATLAS_KNOWLEDGE_DIRECTIONS={N:"north",NE:"northeast",E:"east",SE:"southeast",S:"south",SW:"southwest",W:"west",NW:"northwest"};
 function atlasKnowledgeReceipt(e){
   var label=String(e.label||""),direction=Object.prototype.hasOwnProperty.call(ATLAS_KNOWLEDGE_DIRECTIONS,e.bearing)?ATLAS_KNOWLEDGE_DIRECTIONS[e.bearing]:null;
@@ -161,6 +186,7 @@ function atlasKnowledgePlayerBlock(){
     for(i=0;i<p.features.length&&i<40;i++){f=p.features[i];out+=f.id+": "+f.label+" ("+f.mode+", "+(f.bearing==="unknown"?"position unknown":f.bearing)+").\n";}
     if(p.features.length>40)out+="Additional known features are omitted from this brief.\n";
     if(!p.features.length)out+="No landmarks have been disclosed here.\n";
+    out+=atlasKnowledgeOwedLine(k,p.features);/* #756: the directions the map still owes */
   }catch(e){out+="The map knowledge could not be read; no private geography is substituted.\n";if(typeof console!=="undefined")console.warn("[map knowledge] public brief refused: "+((e&&e.message)||e));}
   return out+"Positions are schematic unless explicitly established; do not infer metres, routes, interiors, ownership, or exploration.\n\n";
 }
@@ -168,8 +194,8 @@ function atlasKnowledgePrompt(){
   if(!atlasKnowledgeActive())return "";
   return atlasKnowledgePlayerBlock()+
     "PUBLIC MAP DISCLOSURES: world facts and accepted changes constrain the map; a generated layout never overrules the story.\n"+
-    "On EVERY narrated turn, disclose newly introduced FIXED geographic features that help the player navigate or act: distinctive trees or stones, buildings, paths, exits, and destinations. Include features described in NPC dialogue, directions, EXIT descriptions, and SUGGEST targets, even while the party stands still. Exclude NPCs, creatures (including a living stone elemental), portable items, ordinary terrain texture, and absent, removed, or hypothetical structures. Suggestion-only utility calls are read-only: no new map facts or MAP_REVEAL.\n"+
-    "Before finalizing, check each such feature against PLAYER-KNOWN GEOGRAPHY. For a new feature emit [MAP_REVEAL:new|public label|bearing|observed]; use reported instead of observed for testimony. For an existing feature use its f-handle only when disclosing a new name or other newly learned attribute. Do not repeat unchanged discoveries or declare an existing feature as new. Do not change its established direction.\n"+
+    "On EVERY narrated turn, disclose newly introduced FIXED geographic features that help the player navigate or act: distinctive trees or stones, buildings, paths, exits, and destinations. Include features described in NPC dialogue, directions, EXIT descriptions, and SUGGEST targets, even while the party stands still. Exclude the place the party stands in and any phrase that only describes it, NPCs, creatures (including a living stone elemental), portable items, ordinary terrain texture, and absent, removed, or hypothetical structures. Suggestion-only utility calls are read-only: no new map facts or MAP_REVEAL.\n"+
+    "Before finalizing, check each such feature against PLAYER-KNOWN GEOGRAPHY. For a new feature emit [MAP_REVEAL:new|public label|bearing|observed]; use reported instead of observed for testimony. For an existing feature use its f-handle only when disclosing a new name or other newly learned attribute, or to settle a direction listed under DIRECTION OWED. Do not repeat unchanged discoveries or declare an existing feature as new. Do not change its established direction.\n"+
     "Bearings: N, NE, E, SE, S, SW, W, NW, unknown. Use unknown when no bearing is established; a direction is not a distance. Disclose only the label actually learned. Do not classify its type; the map uses neutral labelled pins. Seeing a hut reveals neither owner nor interior; keep a generic label until its name is learned. Testimony remains reported until the party actually perceives the feature; do not narrate a reported destination as newly seen.\n"+
     "Place each directive at top level, never inside another tag. Narrate naturally; do not write or imitate the engine's formulaic \"You see/hear of [label]\" confirmations. This directive is PUBLIC NARRATION: the engine inserts and speaks its discovery sentence here. Never use a disclosure for secrets, negation, hypotheticals, or private preparation.\n"+
     "Put LOCATION/SUBLOCATION before disclosures belonging there: each directive belongs to the place in force at its position. For a new room, use the full building — room path in SUBLOCATION; a bare room name cannot establish its building. Never invent a feature, owner, interior, bearing, or measurement to populate the drawing.\n"+"\n";

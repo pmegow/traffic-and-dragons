@@ -1352,7 +1352,7 @@ function atlasThingAt(zoneId,x,y){
 /* the markers TnDMaps.markers / view.setMarkers take for a sheet — derived from the store, never stored */
 function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)")}]:[];}
 /* the entered zones, root first then in order of entry */
-function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?atlasPublicPlace(A,id):atlasRow(A.zones,id)));}
+function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?(atlasJourneyIs(A,id)||atlasPublicPlace(A,id))/* #757: the journey sheet is always there */:atlasRow(A.zones,id)));}
 function atlasZones(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive();return publicAtlas?atlasPublicPlacesList(publicAtlas):[];}
   var A=atlasLive();if(!A)return [];
   return Object.keys(A.zones).map(function(id){var r=A.zones[id];return {id:id,kind:r.kind,name:r.name||id,parent:r.parent,turn:r.turn,redrawn:r.redrawn||null};});
@@ -1362,7 +1362,7 @@ function atlasTrail(zoneId){var A=atlasLive(),out=[],z=zoneId,guard=0;if(!A)retu
 /* #711 round 4 (owner 2026-11-08): the party's LOCATION TRAIL for the HUD plaque — the chain of zones the party stands in
    (the last mapped place once the story has left the map; the region alone before the party is placed), as the library's
    tiers {key, text, current}: the sheet shown now is current. Built on character location: browsing up leaves it as it is. */
-function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive(),place=publicAtlas?atlasPublicPlace(publicAtlas,publicAtlas.at):null;return place&&place.container===atlasPublicContext()?[{key:place.id,text:place.name,current:place.id===shownZone}]:[];}var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
+function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive(),place=publicAtlas?atlasPublicPlace(publicAtlas,publicAtlas.at):null;var _jt=publicAtlas?[{key:atlasJourneyId(publicAtlas),text:ATLAS_JOURNEY_TITLE,current:atlasJourneyIs(publicAtlas,shownZone)}]:[];/* #757: the plaque's first tier opens the journey sheet */return place&&place.container===atlasPublicContext()?_jt.concat([{key:place.id,text:place.name,current:place.id===shownZone}]):_jt;}var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
 /* #711 round 4: the player's NOTE on a map thing (in place of the retired hand tie) — kept on the campaign
    (worldState.atlas.notes, keyed zone|thing id), the player's own words, never read by the engine's rules; capped at
    ATLAS_NOTE_MAX; an empty note is removed. The card carries it (atlasCard's `note`). */

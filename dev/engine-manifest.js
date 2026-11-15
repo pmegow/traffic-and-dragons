@@ -43,6 +43,7 @@ var ENGINE_MANIFEST = [
   { file: "atlas-knowledge-extract.js", sym: "atlasExtractionSource" },
   { file: "atlas-discovery.js", sym: "atlasDiscoveryRequest" },
   { file: "atlas-public-places.js", sym: "atlasPublicPlacesRead" },
+  { file: "atlas-public-journey.js", sym: "atlasJourneyRead" },
   { file: "atlas-public-landscape.js", sym: "atlasPublicLandscape" },
   { file: "atlas-public.js",       sym: "atlasPublicEnable" },
   { file: "admission.js",          sym: "sheetAdmit" },/* #599 (b): ONE sheet admission registry, every door */

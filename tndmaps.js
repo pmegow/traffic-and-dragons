@@ -1,11 +1,11 @@
-/* TnD Maps 0.22.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.23.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.22.0";
+  NS.VERSION = "0.23.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -6621,6 +6621,8 @@
         schematicWaterWash: { fill: pond, alpha: 0.65, join: "round" },
         schematicRoad: { fill: paper, stroke: soft, width: 1.35, join: "round" },
         schematicPath: { stroke: soft, width: 1.5, dash: [4, 3], cap: "round", join: "round" },
+        schematicLink: { stroke: soft, width: 1.8, cap: "round", join: "round" },
+        schematicLinkUnsure: { stroke: soft, width: 1.6, dash: [1, 6], cap: "round", join: "round", alpha: 0.8 },
         schematicRiver: { fill: pond, stroke: soft, width: 0.9, join: "round" },
         scaleBox: { fill: ink, stroke: ink, width: 0.8 },
         scaleBoxEmpty: { fill: land, stroke: ink, width: 0.8 },
@@ -8579,7 +8581,7 @@
   var BEARINGS = { N: [0, -1], NE: [1, -1], E: [1, 0], SE: [1, 1], S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1], unknown: [0, 0] };
   var MODES = { observed: 1, reported: 1 };
   var ICONS = { hut: "door", building: "door", room: "door", door: "door", arch: "door", cave: "cave", camp: "tent", stairs: "stairs", settlement: "tower", ruin: "tower", spring: "well", tree: "tree", bridge: "bridge" };
-  var MAX_FEATURES = 256;
+  var MAX_FEATURES = 256, MAX_LINKS = 512, LINK_GAP = 14;
   function object(o) { return o && typeof o === "object" && !Array.isArray(o); }
   function fields(o, allowed, where) {
     NS.assert(object(o), where + " must be an object");
@@ -8600,6 +8602,25 @@
     var ids = Object.create(null);
     features.forEach(function (f) { feature(f, input, height); NS.assert(!NS.own(ids, f.id), "duplicate schematic feature id", { id: f.id }); ids[f.id] = true; });
   }
+  /* LINKS (v0.23.0, the game's journey sheet: "I can't see the path I took to get here"). A link is an ACCEPTED fact the
+     caller supplies — the party travelled between these two places — never an inferred road: it joins two PLACED features
+     and nothing else. `sure` says whether the caller knows the direction of that way; an unsure link is drawn dotted, so
+     a placement that only shows the order of travel is never read as a bearing. The landscape's routes stay local samples. */
+  function links(list, features) {
+    NS.assert(Array.isArray(list) && list.length <= MAX_LINKS, "schematic links must be an array of at most " + MAX_LINKS + " entries");
+    var byId = Object.create(null), ids = Object.create(null), pairs = Object.create(null);
+    features.forEach(function (f) { byId[f.id] = f; });
+    list.forEach(function (l) {
+      fields(l, ["id", "from", "to", "sure"], "schematic link"); string(l.id, 120, "schematic link id"); string(l.from, 120, "schematic link end"); string(l.to, 120, "schematic link end");
+      NS.assert(!NS.own(ids, l.id), "duplicate schematic link id", { id: l.id }); ids[l.id] = true;
+      NS.assert(typeof l.sure === "boolean", "schematic link must say whether its direction is sure", { id: l.id });
+      var a = NS.own(byId, l.from), b = NS.own(byId, l.to);
+      NS.assert(a && b && l.from !== l.to, "schematic link must join two different supplied features", { id: l.id });
+      NS.assert(a.bearing !== "unknown" && b.bearing !== "unknown", "schematic link cannot reach an unplaced feature", { id: l.id });
+      var pair = l.from < l.to ? l.from + "\n" + l.to : l.to + "\n" + l.from;
+      NS.assert(!NS.own(pairs, pair), "duplicate schematic link between the same two features", { id: l.id }); pairs[pair] = true;
+    });
+  }
   /* Integer arithmetic keeps these illustrative anchors identical across engines. Only the feature's own id and
      bearing choose its position, so adding another fact cannot move an accepted anchor. */
   function anchor(f) {
@@ -8609,7 +8630,7 @@
     return [WIDTH / 2 + b[0] * r - b[1] * side, HEIGHT / 2 + b[1] * r + b[0] * side];
   }
   function schematic(spec) {
-    fields(spec, ["scale", "title", "features", "landscape"], "schematic specification");
+    fields(spec, ["scale", "title", "features", "landscape", "links"], "schematic specification");
     NS.assert(NS.own(SCALES, spec.scale), "unknown schematic scale", { scale: spec.scale }); string(spec.title, 240, "schematic title"); list(spec.features, true);
     var unplaced = spec.features.filter(function (f) { return f.bearing === "unknown"; }).map(function (f) { return f.id; }).sort(), height = Math.max(HEIGHT, 520 + unplaced.length * 26);
     var doc = { format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "schematic", version: NS.VERSION },
@@ -8617,10 +8638,11 @@
       features: spec.features.map(function (f) { var unknown = f.bearing === "unknown", p = unknown ? [40, 510 + unplaced.indexOf(f.id) * 26] : anchor(f); return { id: f.id, name: f.name, kind: f.kind, bearing: f.bearing, mode: f.mode, x: p[0], y: p[1], unplaced: unknown }; }),
       portals: [], warnings: [] };
     if (spec.landscape !== undefined) doc.landscape = NS.publicLandscape.copy(spec.landscape, doc.features);
+    if (spec.links !== undefined) { links(spec.links, doc.features); doc.links = spec.links.map(function (l) { return { id: l.id, from: l.from, to: l.to, sure: l.sure }; }); }
     return doc;
   }
   function validate(doc) {
-    fields(doc, ["format", "ver", "generator", "frame", "title", "scale", "features", "portals", "warnings", "landscape"], "schematic document");
+    fields(doc, ["format", "ver", "generator", "frame", "title", "scale", "features", "portals", "warnings", "landscape", "links"], "schematic document");
     fields(doc.frame, ["width", "height", "precision"], "schematic frame"); fields(doc.title, ["name"], "schematic title"); fields(doc.generator, ["name", "version"], "schematic generator");
     string(doc.generator.version, 40, "schematic generator version");
     NS.assert(doc.format === NS.DOC_FORMAT && doc.ver === NS.DOC_VER && doc.generator.name === "schematic", "not a supported schematic document");
@@ -8631,6 +8653,7 @@
     doc.features.forEach(function (f) { NS.assert(!f.unplaced || (f.x === 40 && f.y === 510 + unplaced.indexOf(f.id) * 26), "unplaced schematic feature must stay in the labelled list"); if (!f.unplaced) point([f.x, f.y]); });
     NS.assert(Array.isArray(doc.portals) && doc.portals.length === 0 && Array.isArray(doc.warnings) && doc.warnings.length === 0, "schematic documents cannot carry generated portals or warnings");
     if (doc.landscape !== undefined) NS.publicLandscape.validate(doc.landscape, doc.features);
+    if (doc.links !== undefined) links(doc.links, doc.features);
     return doc;
   }
   function label(f) { return f.name + (f.mode === "reported" ? " (reported)" : "") + (f.bearing === "unknown" ? " (position unknown)" : ""); }
@@ -8648,6 +8671,15 @@
     function layer(name) { var items = []; layers.push({ name: name, items: items }); return items; }
     var frame = layer("frame"), landscape = doc.landscape && NS.publicLandscape.build(doc.landscape, doc.features);
     if (landscape && landscape.items.length) layers.push({ name: "landscape", items: landscape.items });
+    if (doc.links && doc.links.length) {
+      var ways = layer("links");
+      doc.links.forEach(function (l) {
+        var a = doc.features.filter(function (f) { return f.id === l.from; })[0], b = doc.features.filter(function (f) { return f.id === l.to; })[0];
+        var dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy);
+        if (len <= LINK_GAP * 2) return;   /* two anchors this close leave no room for a line: the pins say it */
+        ways.push({ t: "path", pts: [[a.x + dx / len * LINK_GAP, a.y + dy / len * LINK_GAP], [b.x - dx / len * LINK_GAP, b.y - dy / len * LINK_GAP]], closed: false, s: l.sure ? "schematicLink" : "schematicLinkUnsure", meta: { kind: "link", id: l.id, sure: l.sure } });
+      });
+    }
     var furn = layer("furniture"), marks = layer("features"), labels = layer("labels");
     C.furniture(doc.frame, fitText(doc.title.name, "", "title", WIDTH - 80, style), "Schematic — distances and sizes are not established", style, furn, lay, frame);
     if (unknown) {
@@ -8678,7 +8710,7 @@
     return { text: doc.title.name + ". Schematic: no distances or travel times are established." + (doc.features.length ? "\n" + doc.features.map(function (f) { return label(f) + " — " + (f.bearing === "unknown" ? "position unknown" : f.bearing) + "."; }).join("\n") : "\nNo landmarks have been supplied."),
       facts: doc.features.map(function (f) { return { kind: "feature", id: f.id, name: f.name, featureKind: f.kind, bearing: f.bearing, mode: f.mode, precision: "schematic" }; }) };
   }
-  NS.schematic = schematic; NS.schematic.validate = validate; NS.schematic.SCALES = SCALES; NS.schematic.BEARINGS = BEARINGS; NS.schematic.MAX_FEATURES = MAX_FEATURES;
+  NS.schematic = schematic; NS.schematic.validate = validate; NS.schematic.SCALES = SCALES; NS.schematic.BEARINGS = BEARINGS; NS.schematic.MAX_FEATURES = MAX_FEATURES; NS.schematic.MAX_LINKS = MAX_LINKS;
   build.areaFog = false;
   NS.scene.BUILDERS.schematic = build; NS.digest.DIGESTS.schematic = digest;
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
@@ -8691,11 +8723,18 @@
   var NS = root.TnDMaps, C = NS.scene.common, U = NS.util;
   function layout(scene, markers, styleName) {
     var style = NS.style.get(styleName || scene.style), lay = C.Layout(scene.width, scene.height, style);
-    var words = Object.create(null), originals = Object.create(null), featureHits = [], fixed = [], labels = [], markerItems = [], markerHits = [], leaders = [], extent = null, spatial = null, unplaced = false;
+    var words = Object.create(null), originals = Object.create(null), featureHits = [], fixed = [], labels = [], markerItems = [], markerHits = [], leaders = [], extent = null, spatial = null, unplaced = false, linked = scene.layers.some(function (l) { return l.name === "links"; });
     function include(b, placed) { if (!b) return; extent = extent ? [Math.min(extent[0], b[0]), Math.min(extent[1], b[1]), Math.max(extent[2], b[2]), Math.max(extent[3], b[3])] : b.slice(); if (placed !== false) spatial = spatial ? [Math.min(spatial[0], b[0]), Math.min(spatial[1], b[1]), Math.max(spatial[2], b[2]), Math.max(spatial[3], b[3])] : b.slice(); }
     function block(b) { lay.block((b[0] + b[2]) / 2, (b[1] + b[3]) / 2, b[2] - b[0], b[3] - b[1]); }
     include(scene.landscapeBounds);
     scene.layers.forEach(function (l) {
+      /* A link is a fact drawn between two pins (v0.23.0): no banner may lie across it. Its line is fenced off
+         in small steps before any label is placed, so a label takes another side of its pin. */
+      if (l.name === "links") l.items.forEach(function (c) {
+        var a = c.pts[0], b = c.pts[1], dx = b[0] - a[0], dy = b[1] - a[1], n = Math.max(1, Math.ceil(Math.sqrt(dx * dx + dy * dy) / 12)), i, x, y;
+        for (i = 0; i <= n; i++) { x = a[0] + dx * i / n; y = a[1] + dy * i / n; block([x - 5, y - 5, x + 5, y + 5]); }
+        include([Math.min(a[0], b[0]), Math.min(a[1], b[1]), Math.max(a[0], b[0]), Math.max(a[1], b[1])]);
+      });
       if (l.name === "labels") l.items.forEach(function (c) {
         if (c.meta && c.meta.kind === "feature") { words[c.meta.id] = { text: c.text, style: c.s }; originals[c.meta.id] = c; }
         else if (!c.meta || c.meta.kind !== "marker") fixed.push(c);
@@ -8730,7 +8769,11 @@
            name outside the map. Search vertical space at a bounded x before widening the whole phone view. */
         return [-28, 42, -62, 76, -96, 110, -130, 144].map(function (dy) { return { x: cx, y: y + dy }; }).concat(x > scene.width / 2 ? side.reverse() : side);
       }
-      return marker ? vertical.concat(side) : side.concat(vertical.reverse());
+      /* A sheet with links fences its lines off, so a pin at a junction can lose all four usual places. It is then
+         offered more, farther out — never before the usual four, and never on a sheet without links, whose layout
+         is exactly what it was. */
+      var more = linked && !marker ? [{ x: x, y: y + 76 }, { x: x, y: y - 72 }, { x: x + 18, y: y + 36, anchor: "start" }, { x: x - 18, y: y + 36, anchor: "end" }, { x: x + 18, y: y - 24, anchor: "start" }, { x: x - 18, y: y - 24, anchor: "end" }, { x: x, y: y + 110 }, { x: x, y: y - 106 }] : [];
+      return marker ? vertical.concat(side) : side.concat(vertical.reverse()).concat(more);
     }
     markers.forEach(function (m) {
       var K = NS.own(NS.markers.KINDS, m.kind), word = m.label || K.label, hit = { t: "hit", kind: "marker", id: m.id, x: m.x, y: m.y, r: K.hitR }, cmd, note;

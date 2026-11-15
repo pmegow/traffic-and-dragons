@@ -77,7 +77,7 @@ else{
     {label:"tnd import ignores the save version gate",find:'var _ivi=worldVersionIssue(ws);if(_ivi)',replace:'var _ivi="";if(_ivi)',mustFail:PREFIX+"old client refuses activated saves at local and import doors before any write"}
   ]});
   rc|=sabotage.prove({file:"tndmaps.js",command:["node",["dev/sabotage-733-map-migration.js","--checks"]],only:BOUNDARY,cases:[
-    {label:"the schematic API accepts a private source document",find:'fields(spec, ["scale", "title", "features", "landscape"], "schematic specification");',replace:'fields(spec, ["scale", "title", "features", "landscape", "source"], "schematic specification");',mustFail:BOUNDARY+"schematic specifications refuse every private source field before rendering"},
+    {label:"the schematic API accepts a private source document",find:'fields(spec, ["scale", "title", "features", "landscape", "links"], "schematic specification");',replace:'fields(spec, ["scale", "title", "features", "landscape", "links", "source"], "schematic specification");',/* #757: TnD Maps 0.23.0 added the accepted "links" field; same mutation */mustFail:BOUNDARY+"schematic specifications refuse every private source field before rendering"},
     {label:"nested private metadata can ride inside a public document",find:'string(doc.generator.version, 40, "schematic generator version");',replace:'',mustFail:BOUNDARY+"schematic document validation refuses nested private metadata"}
   ]});
   process.exitCode=rc?1:0;

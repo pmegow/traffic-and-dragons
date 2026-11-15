@@ -5,11 +5,12 @@ var _atlasPublicMemo=null;
 function atlasPublicContext(){return atlasKnowledgeContext()||"Current place";}
 /* Schematic units stay independent of terrain. Private start classifications never set scale. */
 function atlasPublicScale(){return "wild";}
-function atlasPublicTitle(zoneId){var A=atlasLive(),place=A?atlasPublicPlace(A,zoneId||A.at||A.seed):null;return place?place.name:"Current place";}
+function atlasPublicTitle(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return ATLAS_JOURNEY_TITLE;/* #757 */var place=A?atlasPublicPlace(A,zoneId||A.at||A.seed):null;return place?place.name:"Current place";}
 function atlasPublicDoc(zoneId){
-  var A=atlasLive(),place=A?atlasPublicPlace(A,zoneId):null,k,p,signature,doc,landscape;
+  var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyDoc(A);/* #757: the journey sheet */
+  var place=A?atlasPublicPlace(A,zoneId):null,k,p,signature,doc,landscape;
   if(!place)throw new Error("public atlas: that sheet is not available");
-  k=place.container;p=atlasKnowledgeProjection(k);landscape=atlasPublicLandscape(place.name,p.features);
+  k=place.container;p=atlasKnowledgeProjection(k);p={features:atlasKnowledgeShown(k,p.features)};/* #756: a place is not a feature of itself */landscape=atlasPublicLandscape(place.name,p.features);
   signature=JSON.stringify([place.id,k,place.name,atlasPublicScale(),p,landscape]);
   if(_atlasPublicMemo&&_atlasPublicMemo.signature===signature)return _atlasPublicMemo.doc;
   var spec={scale:atlasPublicScale(),title:place.name,features:p.features.map(function(f){return {id:f.id,name:f.label,kind:"landmark",bearing:f.bearing,mode:f.mode};})};
@@ -27,11 +28,12 @@ function atlasPublicFollow(){
     return {changed:changed,at:A.at,spot:null,off:null,entered:[]};
   }catch(e){atlasProblem("following the public map",e);return null;}
 }
-function atlasPublicParty(zoneId){var A=atlasLive(),place=A?atlasPublicPlace(A,zoneId):null;return place&&place.container===atlasPublicContext()?{x:400,y:275,exact:false,last:false,key:null}:null;}
+function atlasPublicParty(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */var place=A?atlasPublicPlace(A,zoneId):null;return place&&place.container===atlasPublicContext()?{x:400,y:275,exact:false,last:false,key:null}:null;}
 
 function atlasPublicCard(zoneId,target){
-  var A=atlasLive(),place=A?atlasPublicPlace(A,zoneId):null,p,i,f,t,doc;
-  if(!place)return null;p=atlasKnowledgeProjection(place.container);
+  var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyCard(A,target);/* #757 */
+  var place=A?atlasPublicPlace(A,zoneId):null,p,i,f,t,doc;
+  if(!place)return null;p=atlasKnowledgeProjection(place.container);p={features:atlasKnowledgeShown(place.container,p.features)};/* #756 */
   if(!target||target.id==null)return null;
   doc=atlasPublicDoc(zoneId);
   for(i=0;i<p.features.length;i++)if(p.features[i].id===target.id){
