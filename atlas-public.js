@@ -30,6 +30,14 @@ function atlasPublicFollow(){
 }
 function atlasPublicParty(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */var place=A?atlasPublicPlace(A,zoneId):null;return place&&place.container===atlasPublicContext()?{x:400,y:275,exact:false,last:false,key:null,label:place.name}:null;}/* #764 (owner 2026-11-15: "the party is at Petrified Mire, might as well call it that"): a public sheet IS the place the party stands in, so its marker bears the place's name */
 
+/* #769: the visited sheet a feature of this place IS — a sub-location of it bearing the feature's name (a leading "the",
+   case and punctuation folded). The den pinned on the ridge opens the den. null when the party has not been inside. */
+function atlasPublicChildSheet(A,place,label){
+  var rows=atlasPublicPlacesList(A),want=atlasKnowledgeFold(label),pre=place.container+"|",i,r;
+  if(!want)return null;
+  for(i=0;i<rows.length;i++){r=rows[i];if(r.container.indexOf(pre)===0&&atlasKnowledgeFold(r.name)===want)return r.id;}
+  return null;
+}
 function atlasPublicCard(zoneId,target){
   var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyCard(A,target);/* #757 */
   var place=A?atlasPublicPlace(A,zoneId):null,p,i,f,t,doc;
@@ -38,7 +46,7 @@ function atlasPublicCard(zoneId,target){
   doc=atlasPublicDoc(zoneId);
   for(i=0;i<p.features.length;i++)if(p.features[i].id===target.id){
     f=p.features[i];t=doc.features.filter(function(x){return x.id===f.id;})[0];
-    return {id:f.id,x:t.x,y:t.y,title:f.label,word:(f.mode==="reported"?"Reported":"Observed")+" · "+(f.bearing==="unknown"?"Position not established":f.bearing)+". Disclosed on turn "+f.source.turn+".",opens:null,unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,f.id)};
+    return {id:f.id,x:t.x,y:t.y,title:f.label,word:(f.mode==="reported"?"Reported":"Observed")+" · "+(f.bearing==="unknown"?"Position not established":f.bearing)+". Disclosed on turn "+f.source.turn+".",opens:atlasPublicChildSheet(A,place,f.label),unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,f.id)};
   }
   return null;
 }

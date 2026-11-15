@@ -1,5 +1,5 @@
 {
-  "version": "v1.1437",
+  "version": "v1.1438",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -93,6 +93,7 @@
     "A wizard import goes straight to the character; the map draws a mire's reeds, names the party's place, and prints each discovery once.",
     "The map now gets a direction for everything the party sees: the GM must give one, and the game asks when it does not.",
     "Nothing is narrated before a roll: the GM asks for the dice alone, and any early prose waits until they land.",
-    "A map discovery no longer prints twice when the GM writes the line itself."
+    "A map discovery no longer prints twice when the GM writes the line itself.",
+    "Going inside a den or cave gives it a map sheet of its own; floors, rubble and mist are no longer pinned."
   ]
 }

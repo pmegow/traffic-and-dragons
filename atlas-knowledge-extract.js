@@ -75,6 +75,7 @@ function atlasExtractionRecords(events,source){
     seg=null;for(j=0;j<source.segments.length;j++)if(source.segments[j].id===e.source)seg=source.segments[j];if(!seg)return refuse("extraction names an unknown public source");
     var event={op:"disclose",id:"new",label:e.label,proposalKind:"",bearing:e.bearing,mode:e.mode,quote:e.quote};p=MapKnowledge.eventProblem(event);if(p)return refuse(p);
     if(atlasKnowledgeSelfLabel(seg.container,e.label)){if(typeof console!=="undefined")console.info("[map knowledge] #756 '"+e.label+"' is the place itself ("+seg.container+"); not filed as a feature of it");continue;}/* skipped, never a refusal: the rest of the batch stands */
+    if(atlasKnowledgeScenery(e.label)){if(typeof console!=="undefined")console.info("[map knowledge] #770 '"+e.label+"' is scenery, not a place; not filed");continue;}
     at=seg.text.indexOf(e.quote);if(at<0||e.quote.indexOf(e.label)<0)return refuse("extraction quote or literal public label is absent from its source");
     if(seg.text.indexOf(e.quote,at+1)>=0)return refuse("extraction quotation is ambiguous in its public source");
     if(!Object.prototype.hasOwnProperty.call(bearings,e.bearing))return refuse("extraction bearing is invalid");

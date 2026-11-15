@@ -13,7 +13,7 @@ var knowledge = [
   { label: "a leading \"the\" makes the place a stranger to itself", find: '.replace(/^\\s*the\\s+/,"")', replace: "", mustFail: T1 },
   { label: "a part of the name is taken for the place", find: "return !!a&&a===atlasKnowledgeFold(label);", replace: "return !!a&&a.indexOf(atlasKnowledgeFold(label))>=0;", mustFail: T1 },
   { label: "a sub-location is judged by its whole key", find: '(typeof locDisplayLeaf==="function")?locDisplayLeaf(container):String(container==null?"":container).split("|").pop()', replace: 'String(container==null?"":container)', mustFail: T1 },
-  { label: "the sheet shows the place as its own feature", find: "if(!atlasKnowledgeSelfLabel(container,features[i].label))out.push(features[i]);", replace: "out.push(features[i]);", mustFail: T3 },
+  { label: "the sheet shows the place as its own feature", find: "if(!atlasKnowledgeSelfLabel(container,features[i].label)&&!atlasKnowledgeScenery(features[i].label))out.push(features[i]);"/* #770: the line gained the scenery test; same mutation */, replace: "out.push(features[i]);", mustFail: T3 },
   { label: "a placed feature is asked for a direction", find: 'if(shown[i].bearing==="unknown")out.push(shown[i]);', replace: "out.push(shown[i]);", mustFail: T4 },
   { label: "the ask names no handle", find: 'parts.push("[MAP_REVEAL:"+owed[i].id+"|"', replace: 'parts.push("[MAP_REVEAL:new|"', mustFail: T4 },
   { label: "a report is asked for as an observation", find: '"|<bearing>|"+owed[i].mode+"]"', replace: '"|<bearing>|observed]"', mustFail: T4 },

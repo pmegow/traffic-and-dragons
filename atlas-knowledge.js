@@ -23,8 +23,31 @@ function atlasKnowledgeSelfLabel(container,label){
   var leaf=(typeof locDisplayLeaf==="function")?locDisplayLeaf(container):String(container==null?"":container).split("|").pop(),a=atlasKnowledgeFold(leaf);
   return !!a&&a===atlasKnowledgeFold(label);
 }
-/* The features of one place the player's sheet shows: the projection without the place's own name. */
-function atlasKnowledgeShown(container,features){var out=[],i;for(i=0;i<features.length;i++)if(!atlasKnowledgeSelfLabel(container,features[i].label))out.push(features[i]);return out;}
+/* #769, #770 (owner 2026-11-15, the nest at Shattered Ridge: "6 map labels overlap and are omitted"; "the nest is treated as
+   a dungeon rather than overlapping site after site"; rulings by chips: its own sheet, and plain scenery kept off).
+   Two mechanisms piled one sheet high. (1) The party went INSIDE the beast's den and the GM never declared it, so every
+   thing found inside was filed on Shattered Ridge. A sub-location has always had a sheet of its own; nothing told the GM
+   that entering a den is entering one. The standing rules now say so (ENCLOSED SITES), a sheet past
+   ATLAS_KNOWLEDGE_CROWDED features says so again on the turn's brief, and the parent sheet's pin for the site opens the
+   site's sheet (atlas-public.js). (2) Plain scenery was pinned ("stone floor"): the ground underfoot is not a place.
+   atlasKnowledgeScenery is the one test — a plain phrase whose head noun is a surface or loose matter; a NAME (a capital
+   past the phrase's first letter: the Black Floor) is never scenery. It is kept out at both doors (the GM's directive,
+   the landmark reader) and a record already on file is not shown; the record itself is never rewritten. */
+var ATLAS_KNOWLEDGE_CROWDED=8;
+var ATLAS_KNOWLEDGE_SCENERY=["floor","floors","ceiling","ground","rubble","debris","dirt","dust","mud","soil","fog","mist","smoke","air","darkness","shadows","gloom"];
+function atlasKnowledgeScenery(label){
+  var raw=String(label==null?"":label).replace(/^\s*(?:the|a|an)\s+/i,"").trim(),words;
+  if(!raw||/[A-Z]/.test(raw.slice(1)))return false;/* a name is a place, whatever its last word */
+  words=atlasKnowledgeFold(raw).split(" ");
+  return ATLAS_KNOWLEDGE_SCENERY.indexOf(words[words.length-1])>=0;
+}
+/* The features of one place the player's sheet shows: the projection without the place's own name and without scenery. */
+function atlasKnowledgeShown(container,features){var out=[],i;for(i=0;i<features.length;i++)if(!atlasKnowledgeSelfLabel(container,features[i].label)&&!atlasKnowledgeScenery(features[i].label))out.push(features[i]);return out;}
+/* The brief's line for a sheet that has grown crowded: the usual cause is a site the party is inside and nobody declared. */
+function atlasKnowledgeCrowdedLine(container,features){
+  var n=atlasKnowledgeShown(container,features).length;
+  return n>=ATLAS_KNOWLEDGE_CROWDED?"SHEET CROWDED: "+n+" features are filed on this one place, more than its sheet can label. If the party is INSIDE a site within it (a den, a lair, a cave, ruins, a building), that site is owed its own sheet: declare it now with [SUBLOCATION:its name] and file what is inside it there.\n":"";
+}
 /* The features of one place whose direction is owed: shown, and position unknown. */
 function atlasKnowledgeOwed(container,features){var shown=atlasKnowledgeShown(container,features),out=[],i;for(i=0;i<shown.length;i++)if(shown[i].bearing==="unknown")out.push(shown[i]);return out;}
 function atlasKnowledgeOwedLine(container,features){
@@ -152,6 +175,7 @@ function atlasKnowledgeCommitResult(raw,parsed,opts){
     if(problem)return refuse("state",problem,"; existing map data was preserved");
     token=(opts&&opts.commit)||("gm:"+worldState.turn+":"+Date.now().toString(36)+":"+Math.random().toString(36).slice(2));
     items=typeof atlasKnowledgeExitSelect==="function"?atlasKnowledgeExitSelect(q.items,s,token):q.items;
+    items=items.filter(function(x){if(x.directive.indexOf("[MAP_REVEAL:")!==0||!atlasKnowledgeScenery(x.event.label))return true;if(typeof console!=="undefined")console.info("[map knowledge] #770 '"+x.event.label+"' is scenery, not a place; not filed");return false;});/* #770: skipped, never a refusal — the rest of the turn's declarations stand */
     if(!items.length)return result;
     for(i=0;i<items.length;i++){
       item=items[i];
@@ -214,6 +238,7 @@ function atlasKnowledgePlayerBlock(){
     if(p.features.length>40)out+="Additional known features are omitted from this brief.\n";
     if(!p.features.length)out+="No landmarks have been disclosed here.\n";
     out+=atlasKnowledgeOwedLine(k,p.features);/* #756: the directions the map still owes */
+    out+=atlasKnowledgeCrowdedLine(k,p.features);/* #769 */
   }catch(e){out+="The map knowledge could not be read; no private geography is substituted.\n";if(typeof console!=="undefined")console.warn("[map knowledge] public brief refused: "+((e&&e.message)||e));}
   return out+"Positions are schematic unless explicitly established; do not infer metres, routes, interiors, ownership, or exploration.\n\n";
 }
@@ -225,5 +250,6 @@ function atlasKnowledgePrompt(){
     "Before finalizing, check each such feature against PLAYER-KNOWN GEOGRAPHY. For a new feature emit [MAP_REVEAL:new|public label|bearing|observed]; use reported instead of observed for testimony. For an existing feature use its f-handle only when disclosing a new name or other newly learned attribute, or to settle a direction listed under DIRECTION OWED. Do not repeat unchanged discoveries or declare an existing feature as new. Do not change its established direction.\n"+
     "Bearings: N, NE, E, SE, S, SW, W, NW, unknown. A feature the party perceives (observed) lies somewhere: give it a real bearing. You are the author; where the narration has not said, decide, and your choice becomes the fact. unknown is only for testimony (reported) whose direction was not told. A direction is not a distance. Disclose only the label actually learned. Do not classify its type; the map uses neutral labelled pins. Seeing a hut reveals neither owner nor interior; keep a generic label until its name is learned. Testimony remains reported until the party actually perceives the feature; do not narrate a reported destination as newly seen.\n"+
     "Place each directive at top level, never inside another tag. Narrate naturally; do not write or imitate the engine's formulaic \"You see/hear of [label]\" confirmations. This directive is PUBLIC NARRATION: the engine inserts and speaks its discovery sentence here. Never use a disclosure for secrets, negation, hypotheticals, or private preparation.\n"+
+    "ENCLOSED SITES: when the party goes INSIDE a site within this place \u2014 a den, a lair, a nest, a cave, a tunnel, ruins, a building, a camp \u2014 declare it that turn with [SUBLOCATION:its name], using the name the map already knows it by when one is listed, BEFORE anything disclosed inside it. What is found inside belongs to that site's own sheet, never to the place around it; [SUBLOCATION_LEAVE] when the party comes back out. The floor, the ground, rubble, mist and the like are scenery, never map features.\n"+
     "Put LOCATION/SUBLOCATION before disclosures belonging there: each directive belongs to the place in force at its position. For a new room, use the full building — room path in SUBLOCATION; a bare room name cannot establish its building. Never invent a feature, owner, interior, or measurement to populate the drawing; choosing the bearing of a feature the party sees is authorship, not invention.\n"+"\n";
 }
