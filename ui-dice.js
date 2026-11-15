@@ -179,20 +179,28 @@ function diceLiveMute(){
 }
 
 /* Throws `dice` ([{type,value}]) over the story; the click that dismisses them runs opts.onClose. */
+/* #759: can this page show dice at all? The reveal holds numbers back only where dice will show them. */
+function diceRevealLive(){return diceRollEnv()&&_diceLive.state!=="failed"&&!diceLivePageRefusal();}
 function diceLiveRoll(dice,label,opts){
   if(!diceRollEnv())return false;
   if(_diceLive.state==="failed"){diceLiveSay();return false;}
   diceLiveWhenReady(function(){
     var overlay;
     try{overlay=diceLiveOverlay();}
-    catch(e){diceLiveStartFailed(e,{roll:label},true);return;}
+    catch(e){diceLiveStartFailed(e,{roll:label},true);if(opts&&typeof opts.onSettle==="function")opts.onSettle();/* #759: dice that never started hold nothing back */return;}
     var layer=diceLiveLayer(),token=++_diceLive.token;
     layer.classList.remove("out");layer.classList.remove("leaving");layer.classList.remove("ready");layer.classList.add("on");
     if(opts&&opts.over)layer.classList.add("over");else layer.classList.remove("over");/* the test d20 is thrown ABOVE the Dice appearance modal and takes no click (index.html #dice-layer.over) */
     /* #677: a die lying ready is thrown from where it lies; the layer comes back under the modal level and the click dismisses */
     layer.onclick=opts&&opts.over?null:function(){diceLiveClose(token,opts);};/* the only way out: the settled dice stay until the player clicks (owner 2026-10-20) */
     diceLiveMute();
-    overlay.roll(dice).then(function(r){if(r){_diceLive.last=r.dice.map(function(d){return d.type+":"+d.value;});_diceLive.lastAimed=r.dice.some(function(d){return !!d.aimed;});}}).catch(function(e){diceLiveFail("the roll did not play ("+(e&&e.message||e)+")",{roll:label});diceLiveClose(token,null);});
+    /* #759: opts.onSettle runs when THESE dice have come to rest (a roll a newer one took over never calls it — its
+       onClose has); opts.autoClose (ms) then sends them away by the player's exit without a click, which runs onClose —
+       the damage dice throw right after the d20 lands (owner ruling 2026-11-14). A roll that failed to play settles too,
+       so nothing waits on dice that never came. */
+    overlay.roll(dice).then(function(r){if(r){_diceLive.last=r.dice.map(function(d){return d.type+":"+d.value;});_diceLive.lastAimed=r.dice.some(function(d){return !!d.aimed;});}
+      if(r&&token===_diceLive.token){if(opts&&typeof opts.onSettle==="function")opts.onSettle();if(opts&&opts.autoClose>0)setTimeout(function(){diceLiveClose(token,opts);},opts.autoClose);}
+    }).catch(function(e){diceLiveFail("the roll did not play ("+(e&&e.message||e)+")",{roll:label});if(opts&&typeof opts.onSettle==="function")opts.onSettle();diceLiveClose(token,null);});
   });
   return true;
 }

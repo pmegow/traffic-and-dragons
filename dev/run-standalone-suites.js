@@ -23,6 +23,7 @@ var SUITES = [
   "dev/tests-730-designer-abilities.js",
   "dev/tests-722-silence-opening.js",
   "dev/tests-718-enemy-card.js",
+  "dev/tests-759-dice-reveal.js",/* #759: the dice reveal the roll — no number before its die lands; the reply waits on the dice */
   "dev/tests-757-journey.js",/* #757: the journey sheet — visited places joined by travelled ways, public facts only */
   "dev/tests-756-map-directions.js",/* #756: a place is not a feature of itself; the GM is asked for the directions the map owes */
   "dev/tests-754-damage-only.js",/* #754: the damage-only roll — a breath weapon has no d20 of the hero's */

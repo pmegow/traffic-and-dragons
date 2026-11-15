@@ -36169,8 +36169,9 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     if(fn.indexOf('var faces=(chk.dmg&&typeof rollDamageFaces==="function")?rollDamageFaces(chk.dmg):null;')<0)return "the faces must be rolled from the check's dice";
     if(fn.indexOf("var r=resolveCheck(chk,rollD20(),faces);")<0)return "resolveCheck must receive the faces";
     if(fn.indexOf("dmg:r.damage")<0)return "the record must carry the damage";
-    var after=fn.indexOf('var after=r.damage?{onClose:function(){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}}:undefined;'),send=fn.indexOf("sendAction(r.note,{silent:true,rollTag:r.diceTag});"),show=fn.indexOf('if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);');
-    if(after<0||show<0)return "the damage dice must play through the d20 overlay's onClose, only when the hit rolled them";
+    /* #759 moved the sequence, not the rule: a roll with no damage ends at its d20; only a hit's d20 carries onClose:damage */
+    var after=fn.indexOf('if(!r.damage){if(!(typeof showDiceRoll==="function"&&showDiceRoll(r.roll,{onSettle:end,onClose:end})))end();return;}'),send=fn.indexOf("sendAction(r.note,{silent:true,rollTag:r.diceTag});"),show=fn.indexOf('autoClose:DICE_DAMAGE_AFTER_MS,onClose:damage})))end();');
+    if(after<0||show<0||show<after)return "the damage dice must play through the d20 overlay's onClose, only when the hit rolled them";
     if(send<0||show<send||after<send)return "showDiceRoll must follow sendAction";
     var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8");if(u.indexOf("opts.onClose()")<0)return "the overlay must call onClose when it closes";
     var was=playerRollsDice;try{

@@ -2799,6 +2799,24 @@ function checkLapseToAction(text){
 /* #758 (owner 2026-11-14, the first damage-only roll: "the die modal opened, but no die was available to roll"): the dice
    that lie ready under the roll modal are the dice the click will throw — the d20 for a check, the DAMAGE dice for a
    damage-only roll (#754 laid none, so the modal stood over an empty floor). Pure; showRollModal's one read. */
+/* #759 THE DICE REVEAL THE ROLL (owner 2026-11-14: "I haven't rolled for damage yet, but I know it's going to be a 2 as the
+   values are already printed... drawing the values first removes all sense of agency from the player"; rulings by chips:
+   the damage dice throw right after the d20 lands, and the GM's reply is held until the dice rest). Mechanism: the click
+   rolled every number at once (as it must — the turn is sent at once) and PAINTED them at once, on the story card, before a
+   die had moved; the damage waited on a second click while the card and then the GM's prose already said it.
+   The numbers are still rolled at the click and the turn is still sent at once. What changes is what is SHOWN: a reveal
+   has a stage — "cast" (the dice are in the air: no number), "d20" (the d20 has landed: its result, the damage still to
+   come), "all" — that only a die coming to rest advances. sendAction waits on it before it shows the reply
+   (diceRevealWait), so the prose never outruns the dice. A page with no dice (Car Mode, reduced motion, a failed start)
+   begins at "all": nothing is held. One reveal at a time; a new one finishes the old. Session state, never saved. */
+var _diceReveal=null;
+function diceRevealBegin(result,live){diceRevealFinish();var rev={r:result,stage:live?"cast":"all",waiters:[]};if(live)_diceReveal=rev;return rev;}
+function diceRevealStage(){return _diceReveal?_diceReveal.stage:"all";}
+/* Advances THE reveal in force (a stale one is refused); reaching "all" finishes it and lets the reply through. */
+function diceRevealAdvance(rev,stage){if(!rev||rev!==_diceReveal)return false;rev.stage=stage;if(stage==="all")diceRevealFinish();return true;}
+function diceRevealFinish(){var rev=_diceReveal,i;if(!rev)return;_diceReveal=null;rev.stage="all";var w=rev.waiters;rev.waiters=[];for(i=0;i<w.length;i++){try{w[i]();}catch(e){if(typeof console!=="undefined")console.warn("[dice] #759 a reveal waiter threw: "+(e&&e.message||e));}}}
+/* Resolves when no reveal is in force: at once without one. */
+function diceRevealWait(){return new Promise(function(done){if(!_diceReveal)done();else _diceReveal.waiters.push(done);});}
 function rollReadyDice(chk){var out=[],i;if(chk&&chk.dmgOnly&&chk.dmg){for(i=0;i<chk.dmg.n;i++)out.push({type:"d"+chk.dmg.sides});return out;}return [{type:"d20"}];}
 function rollModalHtml(chk){
   if(!chk||!chk.label)return "";

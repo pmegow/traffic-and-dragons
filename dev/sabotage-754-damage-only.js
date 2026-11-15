@@ -30,7 +30,7 @@ var prompt = [
   { label: "the MECHANICS line stops teaching the form", find: "emit the damage dice ALONE", replace: "emit the dice", mustFail: T4 }
 ];
 var game = [
-  { label: "the click throws a d20 that was never rolled", find: 'if(r.dmgOnly){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}', replace: "if(false){}", mustFail: T3 }
+  { label: "the click throws a d20 that was never rolled", find: 'if(r.dmgOnly){damage();return;}', replace: "",/* #759 */ mustFail: T3 }
 ];
 var modal = [
   { label: "a d20 lies ready under every modal, a damage-only one included", find: 'diceLivePresent(rollReadyDice(chk),chk.label);', replace: 'diceLivePresent([{type:"d20"}],chk.label);', mustFail: T3 }

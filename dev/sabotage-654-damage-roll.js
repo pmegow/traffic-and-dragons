@@ -65,10 +65,10 @@ prove("game.js", [
     find: "dmg:r.damage}", replace: "dmg:null}",
     mustFail: "the record must carry the damage" },
   { label: "the damage dice play on a miss too",
-    find: "var after=r.damage?{onClose:", replace: "var after=chk.dmg?{onClose:",
+    find: 'if(!r.damage){if(!(typeof showDiceRoll==="function"&&showDiceRoll(r.roll,{onSettle:end,onClose:end})))end();return;}', replace: "",/* #759: the miss no longer ends at its d20 — same regression */
     mustFail: "only when the hit rolled them" },
   { label: "the damage dice never play",
-    find: 'showDiceRoll(r.roll,after);', replace: 'showDiceRoll(r.roll);',
+    find: 'autoClose:DICE_DAMAGE_AFTER_MS,onClose:damage})))end();', replace: 'autoClose:DICE_DAMAGE_AFTER_MS})))end();',/* #759: the hit's d20 no longer carries the damage roll — same regression */
     mustFail: "only when the hit rolled them" }
 ]);
 prove("ui-dice.js", [

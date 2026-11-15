@@ -3224,6 +3224,16 @@ function cleanTxt(t){
    natural roll in bold with the arithmetic after it, so a 1 or a 20 reads as what it was; a bare total prints whole, as before.
    Both halves are model text: the face is digits by the match, the rest is escaped. */
 function diceRollHtml(f){var s=String(f||"?"),dm=s.match(/^(\s*\d{0,2}d(?!20\b)\d{1,2}\b.*?)(\d+)\s*$/i);if(dm)return escHtml(dm[1])+'<strong>'+dm[2]+'</strong>';/* #754: a damage-only record ("2d6 = 3 + 5 = 8") is no d20 — its total in bold */var m=s.match(/^\s*d20\s*[=:]\s*(\d{1,2})\b(.*)$/i);return m?'d20: <strong>'+m[1]+'</strong>'+escHtml(m[2]):'d20: <strong>'+escHtml(s)+'</strong>';}
+/* #759: the roll's story card at one stage of its reveal. "all" is the record as diceTxt prints it; "cast" names the roll
+   and shows NO number; "d20" shows the d20's own result and says the damage is still to come. Built from the record the
+   click filed (its label is model text and is escaped by diceTxt and here). */
+function diceRevealCardHtml(diceTag,stage){
+  var m=String(diceTag||"").match(/^\[DICE:([^\]]+)\]$/),p=m?m[1].split("|"):null;
+  if(!p||stage==="all")return diceTxt(diceTag);
+  if(stage==="d20"&&p.length<=3)return diceTxt(diceTag);/* nothing follows the d20: its landing shows the whole record */
+  if(stage==="d20"&&p.length>3)return diceTxt("[DICE:"+p.slice(0,3).join("|")+"]").replace(/<\/div>$/," &middot; <em class=\"roll-to-come\">damage dice to come</em></div>");
+  return '<div class="dice-block dice-cast"><span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+escHtml(p[0])+'</span><em class="roll-to-come">the dice are cast</em></div>';
+}
 function diceTxt(t){var out="",di;
   /* #329: a pending [CHECK:] renders as the die itself — clickable only while it is THE armed check (a lapsed or
      already-rolled one shows inert), so a reload never offers a roll the record no longer expects. */

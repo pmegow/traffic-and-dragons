@@ -3032,6 +3032,7 @@ async function sendAction(override,opts){
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
       if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
       var _mapDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
+      if(opts&&opts.silent&&opts.rollTag&&typeof diceRevealWait==="function")await diceRevealWait();/* #759: the reply to a roll is shown only once its dice have come to rest — requested at the click, held here, bounded by DICE_REVEAL_MAX_MS */
       commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
     }
     syncUI();if(!isTT)maybeRefreshSynopsis();/* #671: the story so far — due after an arc or act completed in this commit; fire-and-forget, the turn never waits on it */
@@ -3059,6 +3060,8 @@ async function sendAction(override,opts){
 // #329: the click on the pending die. Rolls client-side, shows the result where the die was, and sends the
 // engine note as a SILENT continuation (no player line, no engine notes) with the [DICE:] record riding
 // along so the transcript and the provenance ring keep the roll exactly as a GM-rolled one.
+var DICE_REVEAL_MAX_MS=20000;  /* #759: the longest a roll's numbers and the GM's reply wait on dice that have not come to rest */
+var DICE_DAMAGE_AFTER_MS=700;  /* #759: how long a landed d20 stays before it leaves and the damage dice come in */
 function rollPendingCheck(){
   var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
   var faces=(chk.dmg&&typeof rollDamageFaces==="function")?rollDamageFaces(chk.dmg):null;/* #654: the damage is rolled with the d20 — resolveCheck keeps it only on a hit */
@@ -3066,13 +3069,22 @@ function rollPendingCheck(){
   var _abFor=(typeof abilityNamedByCheck==="function"&&worldState.character)?abilityNamedByCheck(worldState.character,chk.label):null;/* #751: a roll made FOR a limited ability spends it — here, at the die, never at the ask (Hold back spends nothing) */
   if(_abFor){var _abUse=abilityMarkUsed(worldState.character,abilityParts(_abFor).nm,worldState.turn);if(_abUse.status==="used"){if(typeof showToast==="function")showToast(abilityParts(_abFor).nm.replace(/^\s*\[racial\]\s*/i,"")+" used"+(_abUse.row.back?" — ready again "+_abUse.row.back:""));if(typeof syncUI==="function")syncUI();}}
   if(typeof diceLogFile==="function")diceLogFile({by:"player",label:chk.label,face:r.roll,mod:chk.mod||0,dc:(chk.dc!=null?chk.dc:null),total:r.total,outcome:r.outcome,dmg:r.damage});/* #350: the authoritative record of the player's own roll; #654: with the damage it rolled */
-  if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){var wrap=document.createElement("div");wrap.innerHTML=diceTxt(r.diceTag);if(wrap.firstChild)el.parentNode.replaceChild(wrap.firstChild,el);}}
+  /* #759: the numbers are rolled and the turn is sent NOW; what the player is SHOWN waits on the dice (helpers.js ▸ THE
+     DICE REVEAL THE ROLL). live = this page will show dice; otherwise the card says everything at once, as it always did. */
+  var live=(typeof diceRevealLive==="function")&&diceRevealLive(),rev=diceRevealBegin(r,live),holder=null;
+  function paint(){if(holder)holder.innerHTML=diceRevealCardHtml(r.diceTag,rev.stage);}
+  if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){holder=document.createElement("div");holder.className="dice-reveal";el.parentNode.replaceChild(holder,el);paint();}}
   if(typeof Sound!=="undefined")Sound.play("click_glass");
   if(typeof saveAll==="function")saveAll();
   sendAction(r.note,{silent:true,rollTag:r.diceTag});
-  var after=r.damage?{onClose:function(){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}}:undefined;/* #654: the damage dice roll when the settled d20 is dismissed — only the faces a hit rolled, never on a miss */
-  if(r.dmgOnly){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}/* #754: no d20 was rolled — the damage dice are the roll */
-  else if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);/* #650: the rendered roll plays over the story AFTER the turn is on its way — never before it */
+  if(!live)return;
+  var guard=setTimeout(function(){if(diceRevealAdvance(rev,"all")){paint();if(typeof console!=="undefined")console.warn("[dice] #759 the dice did not come to rest within "+DICE_REVEAL_MAX_MS+" ms \u2014 the roll is shown without them");}},DICE_REVEAL_MAX_MS);
+  function end(){clearTimeout(guard);if(diceRevealAdvance(rev,"all"))paint();}
+  function damage(){if(!(typeof showDamageRoll==="function"&&showDamageRoll(r.damage.sides,r.damage.faces,{onSettle:end,onClose:end})))end();}/* a hit's dice, or a damage-only roll's: the reveal ends when they rest */
+  if(r.dmgOnly){damage();return;}/* #754: no d20 was rolled \u2014 the damage dice are the roll */
+  if(!r.damage){if(!(typeof showDiceRoll==="function"&&showDiceRoll(r.roll,{onSettle:end,onClose:end})))end();return;}
+  /* a hit: the d20 lands and shows its own result; it then leaves by itself and the damage dice come in as it goes (#670) */
+  if(!(typeof showDiceRoll==="function"&&showDiceRoll(r.roll,{onSettle:function(){if(diceRevealAdvance(rev,"d20"))paint();},autoClose:DICE_DAMAGE_AFTER_MS,onClose:damage})))end();
 }
 // #391: back out of a pending roll. The check lapses (the #329 rule already lets a typed action do this
 // silently); here it is VISIBLE — a "withdrawn" dice record (no face, so #371's ratio and #374's risk

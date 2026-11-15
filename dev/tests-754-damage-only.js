@@ -44,7 +44,8 @@ test('the result is the damage alone: no face, outcome "damage", a note that lea
 test('the turn: the tag arms it, the modal and the card show the dice and no d20, the click files the damage and plays the damage dice', () => {
   fresh(); const was = playerRollsDice; let sent = [], d20 = 0, dmg = [];
   const _s = global.sendAction, _d = global.showDiceRoll, _m = global.showDamageRoll;
-  global.sendAction = function (note, opts) { sent.push({ note: note, opts: opts }); }; global.showDiceRoll = function () { d20++; }; global.showDamageRoll = function (sides, faces) { dmg.push([sides, faces.length]); };
+  global.diceRevealLive = function () { return true; };/* #759: this page shows dice */
+  global.sendAction = function (note, opts) { sent.push({ note: note, opts: opts }); }; global.showDiceRoll = function () { d20++; return true; }; global.showDamageRoll = function (sides, faces) { dmg.push([sides, faces.length]); return true; };
   try {
     playerRollsDice = true;
     const r = applyMuts('You exhale. [CHECK:Draconic Breath|2d6]'), pc = worldState.pendingCheck;
@@ -67,7 +68,7 @@ test('the turn: the tag arms it, the modal and the card show the dice and no d20
     assert.ok(diceTxt('[DICE:Stealth check|d20 = 7|success]').indexOf('d20: <strong>7</strong>') >= 0, 'a d20 record prints as before');
     delete worldState.pendingCheck; const lapsed = diceTxt('[CHECK:Draconic Breath|2d6]');
     assert.ok(lapsed.indexOf('2d6 &middot; unrolled') >= 0, lapsed);
-  } finally { playerRollsDice = was; global.sendAction = _s; global.showDiceRoll = _d; global.showDamageRoll = _m; delete worldState.pendingCheck; }
+  } finally { playerRollsDice = was; global.sendAction = _s; global.showDiceRoll = _d; global.showDamageRoll = _m; delete global.diceRevealLive; diceRevealFinish(); delete worldState.pendingCheck; }
   const um = src('ui-modals.js');
   assert.ok(um.indexOf('if(typeof diceLivePresent==="function")diceLivePresent(rollReadyDice(chk),chk.label);') >= 0, 'the modal lays the dice the click will throw');
   assert.deepEqual(rollReadyDice(parseCheckTag('Draconic Breath|2d6')), [{ type: 'd6' }, { type: 'd6' }], '#758: a damage-only roll lays its own dice, never a d20');
