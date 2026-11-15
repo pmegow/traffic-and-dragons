@@ -2505,6 +2505,9 @@ function buildNpcFormsBlock(){
     out.push("\u2022 "+n.name+" \u2014 now in the "+(formOf(n,n)||"unstated")+" form."+(n.desc?" True appearance: "+formSentence(n.desc):"")+(n.altDesc?" Alternate appearance: "+formSentence(n.altDesc):"")+(n.altWhen?" Cue: "+formSentence(n.altWhen):"")+" Emit "+formTagPair(n.name)+" the moment they change.");}
   return out.length?"FORMS (GM-only \u2014 these characters have a true form and an alternate; the player's sheet shows only the current one, so never describe the other as seen until they change):\n"+out.join("\n")+"\n\n":"";
 }
+/* #760: how a listed creature is named in a fight (the bestiary block's header). The foe's name is the engine's only way to
+   the entry's record, portrait and description — said to the GM as the reason. */
+var BESTIARY_NAME_RULE="Start a listed creature under its name EXACTLY as written below, in the singular, even when there are several: one [COMBAT_START:] under that name with [COMBAT_GROUP:N] for how many, and one tag per kind in a mixed band. Never a plural, a paraphrase or an invented collective for a listed creature — the name is how its record and portrait are found:";
 function buildSysPrompt(){
   healEndingMoments(worldState,memory);
   if(typeof sceneRefsEnsure==="function")sceneRefsEnsure();/* #168: gameplay activates referential protection before the response that may need it */
@@ -2761,7 +2764,11 @@ function buildSysPrompt(){
   // status: opening an act deliberately rewrites this cached block; turns and encounters cannot.
   var bestiaryBlock="";
   if(worldState.bestiary&&worldState.bestiary.length){
-    var _bls=["BESTIARY — the creatures of this campaign. Reach for these before inventing new monsters, and keep their nature, threat, and behaviour canonical. Combat stats still go through [COMBAT_START:]/[COMBAT_STATS:] as usual:"];
+    /* #760 (owner 2026-11-15: "steer the GM to start foes under the blueprint's creature names"): the Kaelon GM started a
+       band of listed fae as "Fey Skirmishers" — a name no entry bears, so the engine found no record, no portrait and no
+       description (#752 reads a plural; a collective it cannot read, and must not guess). BESTIARY_NAME_RULE says the
+       name IS the lookup. It rides this block only, so a campaign with no bestiary is byte-identical. */
+    var _bls=["BESTIARY — the creatures of this campaign. Reach for these before inventing new monsters, and keep their nature, threat, and behaviour canonical. Combat stats still go through [COMBAT_START:]/[COMBAT_STATS:] as usual. "+BESTIARY_NAME_RULE];
     var _bi;for(_bi=0;_bi<worldState.bestiary.length;_bi++){
       var _bc=worldState.bestiary[_bi],_bm=[];
       if(!creatureAvailable(_bc))continue;

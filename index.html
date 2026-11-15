@@ -467,7 +467,8 @@ button, a, .sc, .fp, .qa, label, select, input, textarea {
       </div>
     </div></div></div>
 <div id="char-screen">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:10px;position:relative;">
+  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:10px;position:relative;">
+    <button class="ib" id="cs-import-char-top" title="Bring a saved character into this campaign">Import character</button><!-- #761 (owner 2026-11-15): the File menu's Save / Load ▸ Import Character, one click away -->
     <button class="ib" id="cs-file-btn" title="Load a saved campaign or import a character">File &#9660;</button>
     <div id="cs-file-menu" style="display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bg1);border:1px solid var(--brd);border-radius:var(--r);min-width:175px;z-index:200;padding:4px 0;box-shadow:0 4px 16px rgba(0,0,0,.6);">
       <!-- Menu contents rendered at boot by buildFileMenus() (ui.js) - ONE spec, three mounts. -->

@@ -5505,7 +5505,7 @@ function runEngineTests(R){
   t("#719 legacy creatures keep the exact bestiary bytes",function(){
     makeWorld();worldState.bestiary=[{name:"Wolf",kind:"beast",threat:"low",notes:"Hunts in packs."}];
     var p=buildSysPrompt().stable,a=p.indexOf("BESTIARY"),b=p.indexOf("\n\n",a);
-    var want="BESTIARY — the creatures of this campaign. Reach for these before inventing new monsters, and keep their nature, threat, and behaviour canonical. Combat stats still go through [COMBAT_START:]/[COMBAT_STATS:] as usual:\n• Wolf (beast, threat: low) — Hunts in packs.";
+    var want="BESTIARY — the creatures of this campaign. Reach for these before inventing new monsters, and keep their nature, threat, and behaviour canonical. Combat stats still go through [COMBAT_START:]/[COMBAT_STATS:] as usual. "+BESTIARY_NAME_RULE+"\n• Wolf (beast, threat: low) — Hunts in packs.";/* #760: the header gained the naming rule, on purpose; the entry bytes are as they were */
     return p.slice(a,b)===want?true:"legacy bestiary bytes changed";
   });
   t("#719 public appearance and GM truth travel separately through the prompt and save export",function(){

@@ -295,6 +295,8 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   document.getElementById("fm-export-bp").addEventListener("click",exportBlueprint);
   document.getElementById("fm-export-narr").addEventListener("click",exportNarrativeHtml);
   document.getElementById("fm-save-memento").addEventListener("click",saveNarrativeMemento);
+  /* #761 (owner 2026-11-15): the wizard's Import character button, left of File — the same door as the menu row above */
+  var _ict=document.getElementById("cs-import-char-top");if(_ict)_ict.addEventListener("click",showCharacterBrowser);
   // (import-char-btn is already wired in the shared _menus loop above — audit E66 removed the duplicate here)
   document.getElementById("fm-newgame").addEventListener("click",newGame);
   document.getElementById("fm-carmode").addEventListener("click",function(){closeAllMenus();showCarMode();});
