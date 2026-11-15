@@ -3572,8 +3572,27 @@ function bestiaryRecord(name){
   for(i=0;i<list.length;i++)if(list[i]&&typeof list[i].displayName==="string"&&list[i].displayName.trim().toLowerCase()===key){
     if(match){console.warn("[bestiary] ambiguous public name: "+name);return null;}match=list[i];
   }
-  return match;
+  if(match)return match;
+  /* #752 (owner 2026-11-14, Kaelon: "no portrait for the Dragonfly-Winged Fen Lancers"): the GM starts a GROUP under the
+     plural of the entry's name ("…Fen Lancers" for the entry "…Fen Lancer"), and an exact match found no entry — so the
+     card had no portrait and no description, and the entry was never counted as met. The plural is tried LAST, after
+     both exact passes, against an entry's own name and then its public name; two entries that fit is none. */
+  var sing=bestiarySingulars(key),s,hits=[];
+  for(s=0;s<sing.length&&!hits.length;s++)for(i=0;i<list.length;i++){var e=list[i];if(!e)continue;
+    if(String(e.name||"").toLowerCase()===sing[s]||(typeof e.displayName==="string"&&e.displayName.trim().toLowerCase()===sing[s])){if(hits.indexOf(e)<0)hits.push(e);}}
+  if(hits.length>1){console.warn("[bestiary] ambiguous plural name: "+name);return null;}
+  return hits.length?hits[0]:null;
 }
+/* The singular forms a plural name may stand for, most specific first: "wolves" → wolf, wolfe; "harpies" → harpy;
+   "witches" → witch; "lancers" → lancer; "spearmen" → spearman. Only the LAST word is turned. [] for a name with none. */
+function bestiarySingulars(key){var k=String(key||"").toLowerCase().trim(),out=[];
+  function add(v){if(v&&v!==k&&out.indexOf(v)<0)out.push(v);}
+  if(/men$/.test(k))add(k.replace(/men$/,"man"));
+  if(/ves$/.test(k)){add(k.replace(/ves$/,"f"));add(k.replace(/ves$/,"fe"));}
+  if(/ies$/.test(k))add(k.replace(/ies$/,"y"));
+  if(/(?:ch|sh|s|x|z)es$/.test(k))add(k.replace(/es$/,""));
+  if(/s$/.test(k)&&!/ss$/.test(k))add(k.replace(/s$/,""));
+  return out;}
 /* #743 (R13): the name the engine may SAY for a foe follows that foe's form — the live row of the current fight when one
    bears the name, else the entry's starting form (a disguise: its public name; a true-starting entry: its own). */
 function creaturePublicName(name){

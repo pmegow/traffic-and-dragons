@@ -762,6 +762,13 @@ function validateSuggestion(text,man){
 // with overland travel from inside a sealed sub-location) — construction keeps candidates
 // scene-plausible, validateSuggestion is the belt, and the terminal generic is the axiomatic
 // floor (names no entity, no capability, no destination), so the loop provably terminates.
+function suggestionCombatCands(){
+  var f=(worldState&&worldState.combat&&worldState.combat.foes)||[],out=[],i;
+  for(i=0;i<f.length;i++){if(!f[i]||f[i].down||!(f[i].hp>0))continue;var nm=(typeof foePublicName==="function")?foePublicName(f[i]):f[i].name;if(nm)out.push("Press the attack on "+nm+".");}
+  if(!out.length)return out;/* no living foe: the fight is over in all but the tag — the quiet list serves */
+  out.push("Fall back and guard yourself.");out.push("Watch for an opening.");
+  return out;
+}
 function suggestionFallback(man,taken){
   var cands=[],i,j;
   if(man.back)cands.push("Head back toward "+man.back+".");
@@ -777,6 +784,10 @@ function suggestionFallback(man,taken){
   for(i=0;i<man.npcs.length;i++)cands.push("Talk things over with "+man.npcs[i]+".");
   cands.push("Rest and take stock of the situation.");
   cands.push("Study your surroundings carefully.");
+  /* #753 (owner 2026-11-14, Kaelon, two fen lancers on the field: "one of the suggested actions is 'Count your coin and
+     think'"): the list above was written for a quiet scene and never asked whether a fight was open. In a fight the
+     candidates are the fight's own — each living foe by the name the player is shown, then two moves that name nothing. */
+  var _fight=suggestionCombatCands();if(_fight.length)cands=_fight;
   for(i=0;i<cands.length;i++){
     var dup=false;
     for(j=0;j<taken.length;j++){if(String(taken[j]).toLowerCase()===cands[i].toLowerCase()){dup=true;break;}}

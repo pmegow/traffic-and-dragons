@@ -23,6 +23,7 @@ var SUITES = [
   "dev/tests-730-designer-abilities.js",
   "dev/tests-722-silence-opening.js",
   "dev/tests-718-enemy-card.js",
+  "dev/tests-752-field-fixes.js",/* #752: a plural foe name finds its bestiary entry; #753: the fallback suggestion knows a fight is open */
   "dev/tests-751-ability-uses.js",/* #751: limited ability uses — the recharge table, the two tags, rests and fights, the roll, the prompt, the panel */
   "dev/tests-743-forms.js",/* #743: two forms — the starting form, what each form shows, the label, the card, the blueprint doors */
   "dev/tests-684-atlas-engine.js",/* #684: the atlas engine — recipes, entry by exact name, the never-guess rule, We are here, drift, the fixture gate */
