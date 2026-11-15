@@ -1263,7 +1263,7 @@ function showRollModal(){
   if(!chk||typeof document==="undefined")return false;
   if(typeof carMode!=="undefined"&&carMode)return false;
   modalShell("roll-modal",rollModalHtml(chk),{wireClose:false,noEscape:true,maxWidth:360,align:"flex-start",boxExtra:"text-align:center;"});
-  if(typeof diceLivePresent==="function")diceLivePresent([{type:"d20"}],chk.label);/* #677 (dice-sim 0.80.0): the d20 lies ready at the bottom of the story, above the backdrop; Roll throws it from where it lies */
+  if(!chk.dmgOnly&&typeof diceLivePresent==="function")diceLivePresent([{type:"d20"}],chk.label);/* #754: a damage-only roll throws no d20, so none lies ready *//* #677 (dice-sim 0.80.0): the d20 lies ready at the bottom of the story, above the backdrop; Roll throws it from where it lies */
   function take(fn){
     if(busy){showToast("One moment — the turn is still landing.");return;}
     closeRollModal(true);fn();/* the die stays for the roll: showDiceRoll throws it from where it lies */

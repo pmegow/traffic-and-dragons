@@ -231,11 +231,19 @@ function damageRollText(d,faces){var parts=faces.join(" + ");if(d.mod)parts+=(d.
    never taken for it. Model text: capped at CHECK_STAKE_MAX, escaped wherever it is painted. null without one. */
 var CHECK_STAKE_MAX=200;
 function checkStakeField(f,i){var s=String(f||"").trim();if(i<2||!s||parseDamageExpr(s)||/^DC\s*\d+/i.test(s)||!/[A-Za-z]{2,}\s+\S*[A-Za-z]{2,}/.test(s))return null;s=s.replace(/^(?:at\s+)?stake\s*[:\u2014-]\s*/i,"").trim();return s?s.slice(0,CHECK_STAKE_MAX):null;}
-function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,stake=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10);if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var sk=checkStakeField(p[i],i);if(sk){if(!stake)stake=sk;continue;}var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg,stake:stake};}
+function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,stake=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10);if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var sk=checkStakeField(p[i],i);if(sk){if(!stake)stake=sk;continue;}var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg,stake:stake,dmgOnly:!!(dmg&&dc===null&&parseDamageExpr(p[1]))};}/* #754: dice where the modifier sits and no DC = no d20 at all, the player rolls the damage alone */
 /* #750: what the narration read aloud adds while a roll with a stake waits \u2014 the tag is stripped from the prose, so a
    listener (Car Mode, the read-aloud) would otherwise never hear what the modal shows. "" without a stake. Pure. */
 function rollStakeSpeech(chk){return (chk&&chk.label&&chk.stake)?" Roll for "+chk.label+". At stake: "+chk.stake+(/[.!?]$/.test(chk.stake)?"":"."):"";}
-function resolveCheck(chk,roll,faces){var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
+/* #754 (owner ruling 2026-11-14, "yes, damage only"): an effect the TARGETS save against (a breath weapon, a save-for-half
+   spell) has no d20 of the hero's, and the damage had no check to ride — so the GM rolled all of it itself, or invented a
+   d20 (Kaelon: [CHECK:Draconic Breath|+3|DC 14]). [CHECK:Draconic Breath|2d6] is the damage alone: the player rolls it,
+   the GM rolls each target's save and applies the result. The record's outcome is "damage" (no face: the #371 ratio and
+   the #374 risk counter do not count it). */
+function resolveDamageOnly(chk,faces){var f=(faces&&faces.length)?faces:rollDamageFaces(chk.dmg),dt=damageTotal(chk.dmg,f),dx=damageRollText(chk.dmg,f);
+  return {roll:null,total:dt,outcome:"damage",dmgOnly:true,damage:{text:dx,faces:f.slice(),total:dt,sides:chk.dmg.sides},diceTag:"[DICE:"+chk.label+"|"+dx+"|damage]",
+    note:"[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": "+dt+" damage ("+dx+"). No attack roll was called for. This is the damage BEFORE any saving throw: roll each target's save yourself, halve or cancel it as the ability's own rules say, and apply the result with [ENEMY_HP:]. The damage is final \u2014 never roll it again and do not emit another [DICE:] for it.]"};}
+function resolveCheck(chk,roll,faces){if(chk&&chk.dmgOnly&&chk.dmg)return resolveDamageOnly(chk,faces);var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
   /* #654: a hit keeps the damage the click rolled (success, or no DC to judge by \u2014 the GM decides whether it lands); a miss
      or a fumble drops the faces and says so. No faces (a caller that rolled none) leaves the damage to the GM, silently. */
   var hit=outcome!=="failed"&&outcome!=="fumble",damage=null,dmgLine="";
@@ -2790,10 +2798,10 @@ function checkLapseToAction(text){
 // (roll-modal-hold → reconsiderPendingCheck) — the composer, the tabs and the menus wait behind the backdrop.
 function rollModalHtml(chk){
   if(!chk||!chk.label)return "";
-  var formula="d20"+(chk.mod?(chk.mod>0?"+":"")+chk.mod:"")+(chk.dc!=null?" vs DC "+chk.dc:"");
+  var only=!!(chk.dmgOnly&&chk.dmg),formula=only?chk.dmg.text+" damage":"d20"+(chk.mod?(chk.mod>0?"+":"")+chk.mod:"")+(chk.dc!=null?" vs DC "+chk.dc:"");/* #754: a damage-only roll shows its dice, never a d20 */
   return "<div style='font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-bottom:6px;'>"+escHtml(chk.label)+"</div>"
     +"<div style='font-size:20px;color:var(--acc);font-weight:bold;margin-bottom:6px;'>"+escHtml(formula)+"</div>"
-    +(chk.dmg&&chk.dmg.text?"<div style='font-size:14px;color:var(--t1);margin-bottom:6px;'>"+escHtml(chk.dmg.text)+" on a hit</div>":"")
+    +(chk.dmg&&chk.dmg.text&&!only?"<div style='font-size:14px;color:var(--t1);margin-bottom:6px;'>"+escHtml(chk.dmg.text)+" on a hit</div>":"")
     +(chk.stake?"<div id='roll-modal-stake' style='font-size:13px;color:var(--t0);line-height:1.5;margin-bottom:14px;'><span style='font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);display:block;margin-bottom:2px;'>At stake</span>"+escHtml(chk.stake)+"</div>"/* #750: the stake the GM named in the tag, before the roll \u2014 model text, escaped */
       :"<div style='font-size:12px;color:var(--t2);line-height:1.5;margin-bottom:14px;'>The Game Master waits on your die.</div>")
     +"<div style='display:flex;gap:8px;'><button class='qa' id='roll-modal-roll' style='flex:2;min-height:48px;font-size:16px;font-weight:bold;background:var(--acc);color:var(--on-acc);border:none;'>&#127922; Roll</button>"

@@ -3071,7 +3071,8 @@ function rollPendingCheck(){
   if(typeof saveAll==="function")saveAll();
   sendAction(r.note,{silent:true,rollTag:r.diceTag});
   var after=r.damage?{onClose:function(){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}}:undefined;/* #654: the damage dice roll when the settled d20 is dismissed — only the faces a hit rolled, never on a miss */
-  if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);/* #650: the rendered roll plays over the story AFTER the turn is on its way — never before it */
+  if(r.dmgOnly){if(typeof showDamageRoll==="function")showDamageRoll(r.damage.sides,r.damage.faces);}/* #754: no d20 was rolled — the damage dice are the roll */
+  else if(typeof showDiceRoll==="function")showDiceRoll(r.roll,after);/* #650: the rendered roll plays over the story AFTER the turn is on its way — never before it */
 }
 // #391: back out of a pending roll. The check lapses (the #329 rule already lets a typed action do this
 // silently); here it is VISIBLE — a "withdrawn" dice record (no face, so #371's ratio and #374's risk

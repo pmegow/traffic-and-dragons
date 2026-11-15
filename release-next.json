@@ -1,5 +1,5 @@
 {
-  "version": "v1.1427",
+  "version": "v1.1428",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -83,6 +83,7 @@
     "The standalone dice roller replaces File with the same bug icon as TnD; it opens Report Bug / Feature Request directly.",
     "The roll window shows what failure would cost before you roll, and the read-aloud says it.",
     "Abilities show Passive, Ready or Not Ready, and a once-a-day ability stays spent until you rest.",
-    "A group of foes shows its creature's portrait, and a replaced suggestion in a fight is a fighting move."
+    "A group of foes shows its creature's portrait, and a replaced suggestion in a fight is a fighting move.",
+    "A breath weapon is now your roll: you roll its damage and the GM rolls the targets' saves."
   ]
 }
