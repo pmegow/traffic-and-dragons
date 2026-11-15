@@ -1,11 +1,10 @@
 #panel h1 { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
 #panel h1 span { min-width: 0; }
-#file-button, #file-menu button, #feedback-dialog button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; min-height: 44px; cursor: pointer; }
-#file-button { flex-shrink: 0; font-size: 13px; font-weight: 400; }
-#file-menu { position: fixed; z-index: 30; width: max-content; max-width: calc(100vw - 16px); padding: 5px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 28px #0008; }
-#file-menu button { width: 100%; border: 0; text-align: left; font-size: 14px; }
-#file-button:hover, #file-menu button:hover, #feedback-dialog button:hover { background: #252b35; }
-#file-button:focus-visible, #file-menu button:focus-visible, #feedback-dialog :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
+#report-button, #feedback-dialog button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; min-height: 44px; cursor: pointer; }
+#report-button { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 10px; }
+#report-button svg { width: 20px; height: 20px; }
+#report-button:hover, #feedback-dialog button:hover { background: #252b35; }
+#report-button:focus-visible, #feedback-dialog :focus-visible { outline: 2px solid var(--acc); outline-offset: 2px; }
 #feedback-dialog { top: var(--top-inset); width: min(520px, calc(100vw - 24px)); max-height: calc(100dvh - var(--top-inset) - 24px); padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); color: var(--text); overflow-y: auto; }
 #feedback-dialog::backdrop { background: #000b; }
 .feedback-heading { display: flex; align-items: flex-start; gap: 12px; justify-content: space-between; }
