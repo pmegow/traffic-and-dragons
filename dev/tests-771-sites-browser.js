@@ -58,7 +58,7 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #771 sites
  await check('the mouth opens the ridge; the ridge\'s pin for the lair opens the lair again',async()=>{
    const got=await page.evaluate(()=>{atlasPaneTap({id:'way-1'});const card=document.getElementById('atlas-card'),btn=card.querySelector('[data-act="open"]'),text=card.textContent;if(btn)btn.click();return {text:text,had:!!btn};});await settle();await settle();
    assert.equal(got.had,true);assert.match(got.text,/The way to Shattered Ridge/);
-   let r=await snap();assert.equal(r.gen,'wild');assert.equal(r.kind,'mountain');assert.ok(r.names.indexOf(LAIR)>=0,'the lair is a thing on the ridge');assert.equal(r.labels.filter(l=>l.kind==='marker').length,0,'the party is not on the ridge');
+   let r=await snap();assert.equal(r.gen,'wild');assert.equal(r.kind,'mountain');assert.ok(r.names.indexOf(LAIR)>=0,'the lair is a thing on the ridge');assert.equal(r.labels.filter(l=>l.kind==='marker').length,0,'the party is not on the ridge');for(const l of r.labels)assert.ok(l.size>=13.99,'opened from a card, '+l.text+' renders at '+l.size+' px');
    await page.screenshot({path:path.join(shots,'map-771-site-ridge-390x844.png')});
    const back=await page.evaluate(()=>{const d=_atlasPane.view.doc(),pin=d.features.filter(f=>f.name==='Wyrm Lair')[0];atlasPaneTap({id:pin.id});const btn=document.getElementById('atlas-card').querySelector('[data-act="open"]');if(btn)btn.click();return !!btn;});await settle();await settle();
    assert.equal(back,true);r=await snap();assert.equal(r.kind,'cave');assert.equal(r.labels.filter(l=>l.kind==='marker').length,1);

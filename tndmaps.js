@@ -1,11 +1,11 @@
-/* TnD Maps 0.25.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.25.1 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.25.0";
+  NS.VERSION = "0.25.1";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -8097,7 +8097,11 @@
       var r = null, j; for (j = 0; j < vis.rooms.length; j++) if (vis.rooms[j].id === f.room) r = vis.rooms[j];
       if (!r) return;
       var face = f.reported ? "storyHeard" : "storyFeature", fs = style.text[face].size, bb = G.bbox(r.poly), hw = (bb[2] - bb[0]) / 2, hh = (bb[3] - bb[1]) / 2;
-      var cands = [{ x: r.x, y: r.y + fs * 0.36 }, { x: r.x, y: r.y + hh + fs * 0.95 }, { x: r.x, y: r.y - hh - fs * 0.35 }, { x: r.x + hw + 1.5, y: r.y + fs * 0.36, anchor: "start" }, { x: r.x - hw - 1.5, y: r.y + fs * 0.36, anchor: "end" }, { x: r.x, y: r.y + hh + fs * 2.1 }, { x: r.x, y: r.y - hh - fs * 1.5 }];
+      var cands = [{ x: r.x, y: r.y + fs * 0.36 }, { x: r.x, y: r.y + hh + fs * 0.95 }, { x: r.x, y: r.y - hh - fs * 0.35 }, { x: r.x + hw + 1.5, y: r.y + fs * 0.36, anchor: "start" }, { x: r.x - hw - 1.5, y: r.y + fs * 0.36, anchor: "end" }, { x: r.x, y: r.y + hh + fs * 2.1 }, { x: r.x, y: r.y - hh - fs * 1.5 },
+        /* a crowd of things in neighbouring chambers: the corners, then further out — a name is moved, never dropped, while there is paper */
+        { x: r.x + hw, y: r.y + hh + fs * 0.95, anchor: "start" }, { x: r.x - hw, y: r.y + hh + fs * 0.95, anchor: "end" }, { x: r.x + hw, y: r.y - hh - fs * 0.35, anchor: "start" }, { x: r.x - hw, y: r.y - hh - fs * 0.35, anchor: "end" },
+        { x: r.x + hw + 1.5, y: r.y + fs * 1.7, anchor: "start" }, { x: r.x - hw - 1.5, y: r.y + fs * 1.7, anchor: "end" }, { x: r.x + hw + 1.5, y: r.y - fs * 1.0, anchor: "start" }, { x: r.x - hw - 1.5, y: r.y - fs * 1.0, anchor: "end" },
+        { x: r.x, y: r.y + hh + fs * 3.3 }, { x: r.x, y: r.y - hh - fs * 2.7 }, { x: r.x + hw + 1.5, y: r.y + hh + fs * 2.1, anchor: "start" }, { x: r.x - hw - 1.5, y: r.y + hh + fs * 2.1, anchor: "end" }];
       var cmd = lay.place(f.name, face, cands, { kind: "feature", id: f.id }, null); if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
     });
 

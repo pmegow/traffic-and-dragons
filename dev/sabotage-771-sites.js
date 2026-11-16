@@ -66,6 +66,8 @@ var rules = [
 ];
 var pane = [
   { label: "the pane frames only open ground as a drawn sheet", find: "function atlasPaneDrawn(doc){return atlasSheetDrawn(doc);}", replace: 'function atlasPaneDrawn(doc){return !!doc&&!!doc.generator&&doc.generator.name==="wild";}', mustFail: T12 },
+  { label: "a drawn sheet the party is not on opens at the whole-sheet fit", find: "  if(!how&&fresh&&atlasKnowledgeActive()&&atlasPaneDrawn(doc))how={};", replace: "", mustFail: T12 },
+  { label: "a repaint of the shown sheet throws the player's view away", find: "fresh=P.zone!==zoneId;", replace: "fresh=true;", mustFail: T12 },
   { label: "a sheet the party is not on opens at the empty frame's middle", find: "how.party?how.party.x:atlasSheetStand(d)[0]", replace: "how.party?how.party.x:d.frame.width/2", mustFail: T12 }
 ];
 var failed = sabotage.prove({ file: "atlas-public-sheet.js", command: CMD, only: P, cases: sheet });

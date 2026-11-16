@@ -50,6 +50,7 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #771 brows
    const got=await page.evaluate(()=>{atlasPaneTap({id:'way-1'});const card=document.getElementById('atlas-card'),btn=card.querySelector('[data-act="open"]');const text=card.textContent;if(btn)btn.click();return {text:text,had:!!btn};});await settle();await settle();
    assert.equal(got.had,true);assert.match(got.text,/The way to The Crossroads of Ashenveil/);assert.match(got.text,/never stated/);
    const r=await snap();assert.equal(r.gen,'wild');assert.equal(r.ground,'heath');assert.deepEqual(r.exits,[['way-1','Petrified Mire','S',false]]);assert.equal(r.labels.filter(l=>l.kind==='marker').length,0,'the party is not on this sheet');
+   for(const l of r.labels)assert.ok(l.size>=13.99,'opened from a card, '+l.text+' renders at '+l.size+' px');
    await page.screenshot({path:path.join(shots,'map-771-crossroads-390x844.png')});
    await page.locator('#atlas-party').click();await settle();await settle();const back=await snap();assert.equal(back.ground,'marsh');assert.equal(back.labels.filter(l=>l.kind==='marker').length,1);
  });

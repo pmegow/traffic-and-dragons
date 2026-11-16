@@ -171,6 +171,8 @@ test('a drawn sheet is a place on its ground or a site in its rock; a pin sheet 
   assert.ok(atlasThings(legacy).length > 3, 'a legacy cave\'s named chambers are still its things');
   worldState.atlas.drawn = false; atlasForget(); assert.equal(atlasDoc(at.lair).generator.name, 'schematic', 'the campaign switch keeps pin sheets for sites too');
   const ui = fs.readFileSync(path.join(__dirname, '..', 'ui-atlas.js'), 'utf8'); assert.match(ui, /function atlasPaneDrawn\(doc\)\{return atlasSheetDrawn\(doc\);\}/, 'the pane frames a site as it frames a drawn place');
+  assert.match(ui, /if\(!how&&fresh&&atlasKnowledgeActive\(\)&&atlasPaneDrawn\(doc\)\)how=\{\};/, 'a drawn sheet the party is not on is framed too, when it is newly shown');
+  assert.match(ui, /fresh=P\.zone!==zoneId;/, 'and only then: a repaint keeps the player\'s view');
   assert.match(ui, /atlasSheetStand\(d\)\[0\]/, 'and opens a sheet the party is not on at the middle chamber, never the empty frame\'s middle');
 });
 

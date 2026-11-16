@@ -270,8 +270,9 @@ function atlasPaneFrame(how){
 /* show one entered zone's sheet: the document, the party marker, the fog, the select (full); framed on the party when
    asked (toParty) or on a carried view; a dock not yet sized owes the framing to its first sizing */
 function atlasPaneShow(zoneId,toParty,carry){
-  var A=atlasLive(),P=_atlasPane,doc,reveal,markers,rooms,zones,sel,how;
+  var A=atlasLive(),P=_atlasPane,doc,reveal,markers,rooms,zones,sel,how,fresh;
   if(!A||!P||!atlasZoneKnown(A,zoneId))return false;
+  fresh=P.zone!==zoneId;/* another sheet than the one shown: a repaint of the same sheet keeps the player's view */
   try{
     /* #717 the fog of war: what this sheet may show — an area, a list of rooms, or null (the fog off) — is read BEFORE the view
        is touched (the review of 2026-11-09, finding 5: setDoc clears the fog in force, so a failure after it drew the new
@@ -306,6 +307,7 @@ function atlasPaneShow(zoneId,toParty,carry){
   atlasPaneCard(null);
   how=carry?{carry:carry}:(toParty?{party:atlasPartyIn(zoneId)}:null);
   if(how&&!how.carry&&!how.party)how=null;/* the party is not on this sheet: the fit the document came with */
+  if(!how&&fresh&&atlasKnowledgeActive()&&atlasPaneDrawn(doc))how={};/* #771 P2: a drawn sheet opened from the plaque or a card, the party elsewhere — its middle, no smaller than its names read at; the whole-sheet fit put them at 3 px on a phone */
   if(how){if(P.host==="dock"&&!P.size)P.frame=how;else atlasPaneFrame(how);}
   return true;
 }
