@@ -3039,6 +3039,7 @@ async function sendAction(override,opts){
       if(opts&&opts.silent&&opts.rollTag&&typeof diceRevealWait==="function")await diceRevealWait();/* #759: the reply to a roll is shown only once its dice have come to rest — requested at the click, held here, bounded by DICE_REVEAL_MAX_MS */
       commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
       if(typeof atlasDirectionsSettle==="function")await atlasDirectionsSettle(resp,txt);/* #766: the map asks for the directions it is still owed — after the commit, inside the turn; never throws */
+      if(typeof atlasGroundSettle==="function")await atlasGroundSettle(resp,txt);/* #771: and for the ground of a place whose name does not say it — once per place; never throws */
     }
     syncUI();if(!isTT)maybeRefreshSynopsis();/* #671: the story so far — due after an arc or act completed in this commit; fire-and-forget, the turn never waits on it */
   }catch(e){th.remove();
@@ -3827,6 +3828,7 @@ async function beginAdventure(){
     var _openingDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
     commitGmTurn(resp,{mapExtraction:_openingDiscoveries,userMsg:intro,audioScope:_openingAudioScope,isOpening:true,onMutated:function(){_openingCommitted=true;/* E82 latch for the opening (user ruling 2026-07-16) */}});
     if(typeof atlasDirectionsSettle==="function")await atlasDirectionsSettle(resp,"");/* #766: the opening's seen features too */
+    if(typeof atlasGroundSettle==="function")await atlasGroundSettle(resp,"");/* #771: the opening place's ground too */
     if(typeof showFirstTurnOverlay==="function")showFirstTurnOverlay();/* #307: four sentences, once per device, after the first scene is on screen */
     syncUI();
     _promptCampaignFolder();

@@ -1,5 +1,5 @@
 {
-  "version": "v1.1440",
+  "version": "v1.1441",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -96,6 +96,7 @@
     "A map discovery no longer prints twice when the GM writes the line itself.",
     "Going inside a den or cave gives it a map sheet of its own; floors, rubble and mist are no longer pinned.",
     "A place whose name says its ground is drawn: reeds, pools and crags, each discovery toward its direction, with exits back.",
-    "On the map, a place inside a place inside another opens from its own parent and leads back to it."
+    "On the map, a place inside a place inside another opens from its own parent and leads back to it.",
+    "A place whose name does not say its ground is now asked of the story once, so its map sheet is drawn too."
   ]
 }

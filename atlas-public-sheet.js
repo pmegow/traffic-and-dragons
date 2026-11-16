@@ -6,8 +6,10 @@
    decides only what the ground looks like. This file turns ONE place's PUBLIC record into the recipe TnD Maps 0.24.0
    draws as a story sheet — read at every draw, never stored, nothing private read:
      ground    the place's own name says it (Petrified Mire is marsh, Shattered Ridge is mountain) — the phrase's head
-               noun, one row of nouns per ground of the library; else a plain observed feature says it (deep timber);
-               else NOTHING is drawn and the place keeps its pin sheet. The engine never guesses a ground.
+               noun, one row of nouns per ground of the library; else the STORY says it — asked once per place over the
+               turn's public narration (atlas-ground.js, owner 2026-11-15: 8 of his campaign's 10 places had no ground
+               word in their name) and kept in atlas.grounds; while nothing was answered a plain observed feature may
+               say it (deep timber); else NOTHING is drawn and the place keeps its pin sheet. The engine never guesses.
      exits     a world place: every way the party travelled to or from it (memory.map.edges), toward the place it leads
                to. A place inside another: the way back out to the place around it. The direction is the story's — a
                public feature of one end bearing the other's name with a stated bearing (the journey sheet's rule) —
@@ -53,14 +55,51 @@ function atlasSheetIsGround(terrain,label){
   for(i=0;i<ATLAS_SHEET_GROUNDS.length;i++)if(ATLAS_SHEET_GROUNDS[i].terrain===terrain)return ATLAS_SHEET_GROUNDS[i].nouns.indexOf(p)>=0;
   return false;
 }
-/* The ground a place is drawn on, or null (no drawing): its own name, else the first plain observed feature that says one. */
-function atlasSheetGround(place,features){
-  var name=place.container?atlasSheetLeaf(place.container):place.name,row=atlasSheetRow(ATLAS_SHEET_GROUNDS,name),i,f,w;
+/* What the story may answer when a place's name does not say its ground (atlas-ground.js asks, once per place): one of
+   the library's six terrains, or "other" — not open country (a building, underground, a town's streets, water), which
+   keeps its pin sheet. ONE table: the ask's words and the reader's vocabulary both derive from it. */
+var ATLAS_GROUND_OTHER="other";
+var ATLAS_GROUND_WORDS=[
+  {ground:"forest",says:"woodland: trees, a grove, a clearing among trees, jungle"},
+  {ground:"marsh",says:"wet ground: swamp, bog, fen, reeds, flooded land"},
+  {ground:"desert",says:"dry waste: sand, dunes, badlands, barren flats"},
+  {ground:"mountain",says:"high rock: peaks, cliffs, a ridge, a gorge, a pass"},
+  {ground:"hills",says:"rolling high ground: hills, downs, bluffs"},
+  {ground:"heath",says:"open low ground: grass, meadow, moor, plain, farmland"},
+  {ground:ATLAS_GROUND_OTHER,says:"not open country: inside a building, underground or in a cave, the streets of a settlement, on water"}
+];
+function atlasGroundWord(g){var i;for(i=0;i<ATLAS_GROUND_WORDS.length;i++)if(ATLAS_GROUND_WORDS[i].ground===g)return ATLAS_GROUND_WORDS[i];return null;}
+/* The ground the story answered for a place, or null (never asked, or a record that cannot be read — said on the console
+   and asked again). Read through the identity layer, so a merged place keeps its answer. */
+function atlasGroundStored(A,container){
+  var store=A&&A.grounds,keys,i,r,want;
+  if(!store||typeof store!=="object")return null;
+  keys=Object.keys(store);want=atlasPublicPlaceKey(container);
+  for(i=0;i<keys.length;i++){
+    if(atlasPublicPlaceKey(keys[i])!==want)continue;
+    r=store[keys[i]];
+    if(r&&typeof r==="object"&&typeof r.ground==="string"&&atlasGroundWord(r.ground))return r.ground;
+    if(typeof console!=="undefined")console.warn("[sheet] the ground recorded for "+keys[i]+" cannot be read; it will be asked again");
+  }
+  return null;
+}
+/* The ground a place's NAME says, or null: its head noun; a place that is a WAY wears the ground it runs through. */
+function atlasSheetNameGround(place){
+  var name=place.container?atlasSheetLeaf(place.container):place.name,row=atlasSheetRow(ATLAS_SHEET_GROUNDS,name),i,w;
   if(row)return row.terrain;
-  if(ATLAS_SHEET_WAY_NOUNS.indexOf(atlasSheetNoun(name))>=0){/* a place that is a WAY wears the ground it runs through: the Forest Road is forest */
+  if(ATLAS_SHEET_WAY_NOUNS.indexOf(atlasSheetNoun(name))>=0){/* the Forest Road is forest */
     w=String(name).toLowerCase().replace(/[^a-z' ]+/g," ").split(" ");
     for(i=0;i<w.length-1;i++){row=atlasSheetRow(ATLAS_SHEET_GROUNDS,w[i]);if(row)return row.terrain;}
   }
+  return null;
+}
+/* The ground a place is drawn on, or null (no drawing): its own name; else what the story answered (place.ground —
+   "other" is an answer: no drawing, and no feature overrides it); else, while nothing was answered, the first plain
+   observed feature that says one. */
+function atlasSheetGround(place,features){
+  var named=atlasSheetNameGround(place),row,i,f;
+  if(named)return named;
+  if(place.ground)return place.ground===ATLAS_GROUND_OTHER?null:(atlasGroundWord(place.ground)?place.ground:null);
   for(i=0;i<features.length;i++){f=features[i];if(f.mode!=="observed"||atlasPublicLandscapeNamed(f.label))continue;row=atlasSheetRow(ATLAS_SHEET_GROUNDS,f.label);if(row)return row.terrain;}
   return null;
 }
@@ -133,7 +172,7 @@ function atlasSheetRecipe(place,features,ways,inside){
 }
 /* The recipe of a visited sheet from the live record, or null. A failure to read it is said once and the pin sheet stands. */
 function atlasSheetOf(A,place,features){
-  try{return atlasSheetRecipe(place,features,atlasSheetWays(A,place),atlasSheetInside(A,place,features));}
+  try{return atlasSheetRecipe(Object.assign({},place,{ground:atlasGroundStored(A,place.container)}),features,atlasSheetWays(A,place),atlasSheetInside(A,place,features));}
   catch(e){atlasSheetProblem(place,"reading the record for the drawing of "+place.name,e);return null;}
 }
 function atlasSheetProblem(place,where,e){
