@@ -39,7 +39,7 @@ test('the tables name only what the library draws, and no noun stands in two row
 test('the ground is what the place\'s own name says: its head noun, a way wearing the ground it runs through', () => {
   assert.equal(ground(MIRE), 'marsh'); assert.equal(ground('Shattered Ridge'), 'mountain'); assert.equal(ground(CROSS), 'heath', 'an "of …" tail is set aside');
   assert.equal(ground('The Boundary Clearing'), 'forest'); assert.equal(ground('The Forest Road'), 'forest'); assert.equal(ground('Dunes of Ash'), 'desert'); assert.equal(ground('The Low Downs'), 'hills');
-  assert.equal(ground('Forest Gate Tavern'), null, 'the LAST word decides: a tavern is not a forest');
+  assert.equal(ground('Forest Gate Market'), null, 'the LAST word decides: a market is not a forest');
   assert.equal(ground('Ashenveil'), null); assert.equal(ground('The Wyrm\'s Lair'), null, 'a den is not open ground');
   assert.equal(ground('The King\'s Road'), null, 'a way through no named ground says nothing');
 });
