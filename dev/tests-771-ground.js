@@ -87,6 +87,7 @@ test('the sheet draws the answered ground; other keeps the pin sheet; the name o
   assert.equal(sheet().kind, 'forest', 'nothing answered yet: a plain seen feature may say the ground');
   atlasGroundFile(worldState.atlas, 'Reedglass Keep', 'other');
   assert.notEqual(sheet().generator.name, 'wild', 'the story said it is not open country: a thicket in its yard does not make it a forest');
+  assert.equal(atlasSheetGround({ container: 'Reedglass Keep', name: 'Reedglass Keep', ground: 'other' }, []), null, '"other" is no ground: the library is never handed it');
   assert.equal(atlasSheetGround({ container: MIRE, name: MIRE, ground: 'forest' }, []), 'marsh', 'the name outranks an answer');
   assert.equal(atlasSheetGround({ container: HEART, name: HEART, ground: 'lava' }, []), null, 'a word the library does not draw draws nothing');
 });
