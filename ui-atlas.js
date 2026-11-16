@@ -141,6 +141,14 @@ function atlasDockResized(){
   if(P.restore)atlasDockRestore();else if(!atlasPaneFrame(P.frame))P.view.fit();/* no framing owed (no party on the sheet): the sheet fitted to the stage's first real size */
   P.frame=null;
 }
+/* The full pane's stage changed size (the list panel under it came, grew or went): the point at the stage's middle stays there, and the map is drawn at its new size. */
+function atlasFullResized(){
+  var P=_atlasPane,st=document.getElementById("atlas-stage"),w,h;
+  if(!P||P.host!=="full"||!P.view||!st)return;
+  w=st.clientWidth;h=st.clientHeight;if(!w||!h)return;
+  if(P.size&&(P.size[0]!==w||P.size[1]!==h))P.view.pan((w-P.size[0])/2,(h-P.size[1])/2);
+  P.size=[w,h];
+}
 /* FULL SCREEN: the same pane as a modal, with the mapped-places select; the dock's pane goes while it is up, its point and
    zoom carried (owner 2026-11-08: keep the relative position and zoom of the drawer) and kept for the way back */
 function showAtlasFull(zoneId){
@@ -174,7 +182,8 @@ function atlasPaneHtml(host){
     +(full?"":"<button type='button' class='atlas-fab' id='atlas-full' title='Open the map full screen' aria-label='Open the map full screen' style='bottom:8px;right:8px;'>"+ATLAS_ENLARGE_SVG+"</button>")
     +"<button type='button' class='atlas-fab' id='atlas-party' title='Go to where the party is' aria-label='Go to where the party is' style='bottom:8px;right:"+(full?8:46)+"px;'>"+ATLAS_DAGGER_SVG+"</button>"
     +"<div id='atlas-card' aria-live='polite' style='display:none;position:absolute;z-index:3;left:12px;bottom:12px;width:calc(100% - 24px);max-width:380px;box-sizing:border-box;background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;padding:12px;'></div>"
-    +"</div>";
+    +"</div>"
+    +"<div id='atlas-list' style='flex:none;'></div>";/* owner 2026-11-16 ("Position not established is blocking the map… make it a separate panel from the main map view"): what the map knows without a position is listed HERE, under the stage, never over it */
 }
 /* build the pane's markup into a host element (the dock) and wire it */
 function atlasPaneBuild(container,host){
@@ -186,7 +195,7 @@ function atlasPaneBuild(container,host){
 function atlasPaneWire(host){
   var A=atlasLive(),canvas=document.getElementById("atlas-canvas"),el;
   try{
-    _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true,fit:atlasKnowledgeActive()?"content":"sheet",unplaced:atlasKnowledgeActive()?"list":"sheet"}),zone:null,target:null,host:host,size:null,frame:null};
+    _atlasPane={view:TnDMaps.view(canvas,atlasDoc(A.at||A.seed),{style:"ink",hud:true,bounds:true,fit:atlasKnowledgeActive()?"content":"sheet",unplaced:atlasKnowledgeActive()?"list":"sheet",unplacedHost:atlasKnowledgeActive()?document.getElementById("atlas-list"):null}),zone:null,target:null,host:host,size:null,frame:null};
   }catch(e){_atlasPane=null;atlasProblem("opening the map",e);return false;}
   _atlasPane.view.on("mapclick",function(pt,hit){atlasPaneTap(atlasPaneTargetOf(pt,hit));});
   _atlasPane.view.on("hudclick",function(m){var B=atlasLive();if(m&&m.key!=null&&B&&atlasZoneKnown(B,m.key))atlasPaneShow(m.key,true);});/* a tier of the plaque's trail: that sheet framed on the party at ATLAS_HOME_ZOOM — every tier is the party's chain, so the party is on each (a sheet above shows it at the way down); going UP once fell to the whole-sheet fit (owner 2026-11-09) */
@@ -194,6 +203,8 @@ function atlasPaneWire(host){
   if((el=document.getElementById("atlas-full")))el.addEventListener("click",function(){var P=_atlasPane;showAtlasFull(P?P.zone:undefined);});
   if((el=document.getElementById("atlas-zones")))el.addEventListener("change",function(){if(this.value)atlasPaneShow(this.value);});
   canvas.addEventListener("keydown",atlasPaneKey);/* #696: a place is picked by keyboard too */
+  /* the list panel under the stage grows and empties with the sheet shown, and the stage gives it the room: in the full pane no window resize says so (the dock has its own observer) */
+  if(host==="full"&&typeof ResizeObserver==="function"&&(el=document.getElementById("atlas-stage"))){_atlasPane.ro=new ResizeObserver(function(){atlasFullResized();});_atlasPane.ro.observe(el);}
   document.getElementById("atlas-card").addEventListener("click",function(e){
     var act=e.target&&e.target.getAttribute&&e.target.getAttribute("data-act");
     if(act==="note")atlasPaneNoteOpen();

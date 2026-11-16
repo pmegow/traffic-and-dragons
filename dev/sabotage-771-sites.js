@@ -21,6 +21,7 @@ var T1 = P + "a name says a site as it says a ground: a lair, a den, caverns are
   B3 = P + "the door stands in the wall toward the place it leads back to; a direction nobody stated lays it to the south",
   B4 = P + "the story names the rooms: each thing toward its bearing from the room the door opens into, a report in its own face, what has no direction listed",
   B5 = P + "the party is drawn in the room the door opens into, and every card answers in a building: a thing, the door, the pin that opens it",
+  L1 = P + "what the map knows without a position is listed in a panel of its own under the map, in the drawer and full screen",
   B6 = P + "a building nobody travelled into keeps its pin sheet; the story may answer \"building\", and an \"other\" from before buildings is asked once more";
 var sheet = [
   { label: "a lair is no site", find: '"den","lair","burrow"', replace: '"den","burrow"', mustFail: T1 },
@@ -89,6 +90,10 @@ var rules = [
   { label: "the GM is not told how to write a site inside a sub-location", find: " A site inside a sub-location the party already stands in is written as a path,", replace: " A site may be written", mustFail: T11 }
 ];
 var pane = [
+  { label: "the list is laid over the map again", find: "unplaced:atlasKnowledgeActive()?\"list\":\"sheet\",unplacedHost:atlasKnowledgeActive()?document.getElementById(\"atlas-list\"):null}", replace: "unplaced:atlasKnowledgeActive()?\"list\":\"sheet\"}", mustFail: L1 },
+  { label: "the pane has no list panel", find: "    +\"<div id='atlas-list' style='flex:none;'></div>\";", replace: "    +\"\";", mustFail: L1 },
+  { label: "the full pane never follows its stage", find: "if(host===\"full\"&&typeof ResizeObserver===\"function\"&&(el=document.getElementById(\"atlas-stage\")))", replace: "if(false&&typeof ResizeObserver===\"function\"&&(el=document.getElementById(\"atlas-stage\")))", mustFail: L1 },
+  { label: "a stage that changed size loses the point at its middle", find: "P.view.pan((w-P.size[0])/2,(h-P.size[1])/2);", replace: "P.view.pan(0,0);", mustFail: L1 },
   { label: "the pane frames only open ground as a drawn sheet", find: "function atlasPaneDrawn(doc){return atlasSheetDrawn(doc);}", replace: 'function atlasPaneDrawn(doc){return !!doc&&!!doc.generator&&doc.generator.name==="wild";}', mustFail: T12 },
   { label: "a drawn sheet the party is not on opens at the whole-sheet fit", find: "  if(!how&&fresh&&atlasKnowledgeActive()&&atlasPaneDrawn(doc))how={};", replace: "", mustFail: T12 },
   { label: "a repaint of the shown sheet throws the player's view away", find: "fresh=P.zone!==zoneId;", replace: "fresh=true;", mustFail: T12 },

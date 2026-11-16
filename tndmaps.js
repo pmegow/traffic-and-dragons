@@ -1,11 +1,11 @@
-/* TnD Maps 0.26.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.27.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.26.0";
+  NS.VERSION = "0.27.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -9194,6 +9194,8 @@
     opts = opts || {};
     var fitMode = opts.fit || "sheet", listMode = opts.unplaced || "sheet";
     NS.assert(listMode === "sheet" || listMode === "list", "view unplaced must be sheet or list");
+    var listHost = opts.unplacedHost || null;   /* v0.27.0: an element of the host's own that holds the list, beside the map — the list then covers no map and takes none of its area */
+    NS.assert(!listHost || (listMode === "list" && typeof listHost.appendChild === "function"), "view unplacedHost must be an element, with unplaced: \"list\"", { unplaced: listMode });
     NS.assert(fitMode === "sheet" || fitMode === "content", "view fit must be sheet or content");
     var styleName = opts.style || "ink", scene = null, baseScene = null, exportScene = null, listUi = null, listFactory = null, markers = [], layers = {}, listeners = {}, hits = [];
     var bounds = !!opts.bounds;   /* v0.16.0: the sheet fills the view — on an axis where the sheet is larger than the view no paper edge comes inside it, on one where it is smaller the sheet sits centred; every move (a pan, a zoom, a pinch, center, pan(), a resize) is clamped (clampT) */
@@ -9253,7 +9255,7 @@
     function compose() {
       exportScene = markers.length ? NS.markers.apply(baseScene, markers, styleName) : baseScene;
       var factory = listMode === "list" ? NS.own(NS.viewLists, doc.generator.name) : null;
-      if (factory !== listFactory) { if (listUi) listUi.destroy(); listFactory = factory; listUi = factory ? factory(canvas, activateUnplaced) : null; }
+      if (factory !== listFactory) { if (listUi) listUi.destroy(); listFactory = factory; listUi = factory ? factory(canvas, activateUnplaced, listHost) : null; }
       if (listUi) { listUi.update(doc, styleName); listUi.select(selected); }
       scene = listUi ? listUi.project(exportScene) : exportScene; hits = [];
       tipOf = {};
@@ -9511,19 +9513,25 @@
 
 /* ───── 91-unplaced-list.js ───── */
 /* 91-unplaced-list.js — unknown positions are a screen-sized, scrollable list. The interactive
-   projection omits their ledger geometry; the complete scene remains available for export. */
+   projection omits their ledger geometry; the complete scene remains available for export.
+   v0.27.0: given a HOST element (view opts.unplacedHost) the list is laid in it, in the page's flow — a panel of
+   the host's beside the map; it then covers no map and reserves none of its area. Without one it floats over the
+   bottom of the map, as before. */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps, U = NS.util;
-  function create(canvas, activate) {
-    NS.assert(canvas.parentNode, "an unplaced list needs a mounted canvas");
+  var HOSTED_ROWS = 132;   /* a hosted list shows about three rows, then scrolls */
+  function create(canvas, activate, host) {
+    NS.assert(host || canvas.parentNode, "an unplaced list needs a mounted canvas");
     var panel = document.createElement("section"), heading = document.createElement("div"), body = document.createElement("div");
     var entries = [], ids = Object.create(null), buttons = [], signature = null, selection = null, palette = null;
     panel.setAttribute("data-tnd-unplaced", ""); panel.setAttribute("aria-label", "Position not established");
-    panel.style.cssText = "display:none;position:absolute;z-index:2;box-sizing:border-box;border:1px solid;line-height:1.4;overflow:hidden;";
+    panel.style.cssText = host ? "display:none;box-sizing:border-box;border-top:1px solid;line-height:1.4;overflow:hidden;width:100%;" : "display:none;position:absolute;z-index:2;box-sizing:border-box;border:1px solid;line-height:1.4;overflow:hidden;";
+    if (host) panel.setAttribute("data-tnd-unplaced-hosted", "");
     heading.textContent = "Position not established"; heading.style.cssText = "font-weight:bold;font-size:14px;padding:8px 10px;border-bottom:1px solid;";
     body.style.cssText = "overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;touch-action:pan-y;";
-    panel.appendChild(heading); panel.appendChild(body); canvas.parentNode.appendChild(panel);
+    panel.appendChild(heading); panel.appendChild(body); (host || canvas.parentNode).appendChild(panel);
+    if (host) body.style.maxHeight = HOSTED_ROWS + "px";
     function buttonFrom(node) { while (node && node !== panel) { if (node.getAttribute && node.hasAttribute("data-tnd-unplaced-id")) return node; node = node.parentNode; } return null; }
     function onClick(e) { var b = buttonFrom(e.target); if (!b) return; e.stopPropagation(); activate(b.getAttribute("data-tnd-unplaced-id")); }
     function onKey(e) {
@@ -9572,7 +9580,7 @@
       return out;
     }
     function layout(size, area) {
-      if (!entries.length) return 0;
+      if (!entries.length || host) return 0;   /* a hosted list is the host's to lay out: none of the map's area is its */
       var cap = Math.max(44, Math.min(240, (area.bottom - area.top) * 0.42)), headingHeight, height, r, offset, origin, left, top;
       panel.style.width = Math.max(1, area.right - area.left) + "px";
       headingHeight = heading.offsetHeight;

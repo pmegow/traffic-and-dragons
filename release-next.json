@@ -1,5 +1,5 @@
 {
-  "version": "v1.1444",
+  "version": "v1.1445",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -100,6 +100,7 @@
     "A place whose name does not say its ground is now asked of the story once, so its map sheet is drawn too.",
     "A cave, den or lair the party enters is drawn as its own map inside the place around it, with its way back out.",
     "A map sheet opened from the plaque or a card opens at a readable zoom, and crowded cave names stay on the map.",
-    "An inn, temple, keep or house the party enters is drawn as its own floor plan, with the door back out."
+    "An inn, temple, keep or house the party enters is drawn as its own floor plan, with the door back out.",
+    "On the map, things without a known position are listed in a panel under the map instead of over it."
   ]
 }

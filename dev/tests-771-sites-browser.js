@@ -46,6 +46,7 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #771 sites
  });
  await check('what has no direction is a readable row that opens its card',async()=>{
    const r=await snap();assert.equal(r.rows.length,1);assert.match(r.rows[0].text,/a hidden hoard.*Reported/);assert.ok(r.rows[0].size>=14);
+   const lay=await page.evaluate(()=>{const p=document.querySelector('[data-tnd-unplaced]'),s=document.getElementById('atlas-stage').getBoundingClientRect(),r=p.getBoundingClientRect(),c=document.getElementById('atlas-canvas');return {host:p.parentNode.id,top:r.top,bottom:r.bottom,stageBottom:s.bottom,stageH:s.height,canvasH:c.clientHeight,vh:innerHeight,over:!!document.getElementById('atlas-stage').querySelector('[data-tnd-unplaced]')};});assert.equal(lay.host,'atlas-list');assert.equal(lay.over,false);assert.ok(lay.top>=lay.stageBottom-0.5,'the list lies under the map, not over it: '+JSON.stringify(lay));assert.ok(lay.bottom<=lay.vh+0.5,'and on screen');assert.ok(Math.abs(lay.canvasH-lay.stageH)<1&&lay.stageH>200,'the map keeps the rest of the pane');
    const card=await page.evaluate(id=>{document.querySelector('button[data-tnd-unplaced-id="'+id+'"]').click();return document.getElementById('atlas-card').textContent;},r.rows[0].id);
    assert.match(card,/a hidden hoard/);assert.match(card,/Position not established/);
  });
@@ -89,6 +90,7 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #771 sites
    await page.evaluate(()=>{atlasPaneClose();showAtlas();});await settle();await settle();await settle();
    const r=await snap();assert.equal(r.kind,'cave');assert.equal(r.dropped,0);for(const l of r.labels)assert.ok(l.size>=13.99,l.text+' renders at '+l.size+' px');
    assert.ok(inView(r),'party on screen in the drawer: '+JSON.stringify(r.party)+' in '+r.w+'x'+r.h);
+   const lay=await page.evaluate(()=>{const p=document.querySelector('[data-tnd-unplaced]'),s=document.getElementById('atlas-stage').getBoundingClientRect(),r=p.getBoundingClientRect(),c=document.getElementById('atlas-canvas');return {host:p.parentNode.id,top:r.top,bottom:r.bottom,stageBottom:s.bottom,stageH:s.height,canvasH:c.clientHeight,vh:innerHeight,over:!!document.getElementById('atlas-stage').querySelector('[data-tnd-unplaced]')};});assert.equal(lay.host,'atlas-list');assert.equal(lay.over,false);assert.ok(lay.top>=lay.stageBottom-0.5,'the list lies under the map, not over it: '+JSON.stringify(lay));assert.ok(lay.bottom<=lay.vh+0.5,'and on screen');assert.ok(Math.abs(lay.canvasH-lay.stageH)<1&&lay.stageH>200,'the map keeps the rest of the pane');
    await page.screenshot({path:path.join(shots,'map-771-site-drawer-1280x840.png')});
  });
  await check('no unexpected browser exceptions or map warnings',async()=>{assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>__mapToasts.filter(t=>/fail|could not|overlap/i.test(t))),[]);});

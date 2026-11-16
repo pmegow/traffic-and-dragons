@@ -250,6 +250,18 @@ test('a building nobody travelled into keeps its pin sheet; the story may answer
   assert.match(atlasGroundAsk({ place: HALLS, container: key, features: [] }, 'x', '').system + atlasGroundAsk({ place: HALLS, container: key, features: [] }, 'x', '').user, /"building"|building/);
 });
 
+test('what the map knows without a position is listed in a panel of its own under the map, in the drawer and full screen', () => {
+  const ui = fs.readFileSync(path.join(__dirname, '..', 'ui-atlas.js'), 'utf8'), html = ui.slice(ui.indexOf('function atlasPaneHtml(host){'), ui.indexOf('function atlasPaneBuild('));
+  const stage = html.indexOf("<div id='atlas-stage'"), card = html.indexOf("<div id='atlas-card'"), list = html.indexOf("<div id='atlas-list' style='flex:none;'></div>");
+  assert.ok(stage > 0 && card > stage && list > card, 'the list panel follows the stage: it is no child of it');
+  assert.match(html.slice(card, list), /<\/div>"\n\s*\+"<\/div>"\n\s*\+"$/, 'the stage is closed before the list panel opens');
+  assert.match(ui, /unplaced:atlasKnowledgeActive\(\)\?"list":"sheet",unplacedHost:atlasKnowledgeActive\(\)\?document\.getElementById\("atlas-list"\):null\}/, 'the view is handed the panel, on public maps');
+  assert.match(ui, /if\(host==="full"&&typeof ResizeObserver==="function"&&\(el=document\.getElementById\("atlas-stage"\)\)\)\{_atlasPane\.ro=new ResizeObserver\(function\(\)\{atlasFullResized\(\);\}\);_atlasPane\.ro\.observe\(el\);\}/, 'the full pane follows its stage\'s size');
+  assert.match(ui, /if\(P\.size&&\(P\.size\[0\]!==w\|\|P\.size\[1\]!==h\)\)P\.view\.pan\(\(w-P\.size\[0\]\)\/2,\(h-P\.size\[1\]\)\/2\);/, 'and keeps the point at its middle');
+  assert.equal(typeof atlasFullResized, 'undefined', 'a DOM shell: not part of the engine');
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'tndmaps.js'), 'utf8'), /opts\.unplacedHost/, 'the vendored library lays a hosted list');
+});
+
 (async function () {
   for (const [name, fn] of queue) { try { await fn(); count++; console.log('PASS #771 sites ' + name); } catch (e) { failed++; console.error('FAIL #771 sites ' + name + ': ' + (e && e.message)); } }
   if (only && !matched) { console.error('matched 0 tests'); process.exit(1); }
