@@ -125,7 +125,7 @@ test('a place inside another has the way back out; the place around it opens it 
 test('an exit or a feature added later moves nothing that was drawn, and two draws are one document', () => {
   setup(MIRE); const mire = worldState.atlas.at; turn('[MAP_REVEAL:new|sunken pool|W|observed][MAP_REVEAL:new|bone cairn|E|observed]');
   const before = atlasDoc(mire), b0 = drawn(before); atlasForget(); assert.equal(JSON.stringify(atlasDoc(mire)), JSON.stringify(before), 'deterministic');
-  go(CROSS); go(MIRE); turn('[MAP_REVEAL:new|calcified grove|NE|observed]');
+  go(CROSS); go(MIRE); assert.equal(atlasDoc(mire).portals.length, 1, 'a new way is drawn at once, though no feature changed'); turn('[MAP_REVEAL:new|calcified grove|NE|observed]');
   const after = atlasDoc(mire); assert.equal(after.portals.length, 1); assert.equal(after.features.length, 3);
   assert.equal(JSON.stringify(after.relief), JSON.stringify(before.relief), 'the ground');
   assert.equal(drawn({ relief: after.relief, features: after.features.slice(0, 2) }), b0, 'the two things that stood');
