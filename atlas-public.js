@@ -34,9 +34,9 @@ function atlasPublicParty(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))
 /* #769: the visited sheet a feature of this place IS — a sub-location of it bearing the feature's name (a leading "the",
    case and punctuation folded). The den pinned on the ridge opens the den. null when the party has not been inside. */
 function atlasPublicChildSheet(A,place,label){
-  var rows=atlasPublicPlacesList(A),want=atlasKnowledgeFold(label),pre=place.container+"|",i,r;
+  var rows=atlasPublicPlacesList(A),want=atlasKnowledgeFold(label),i,r;
   if(!want)return null;
-  for(i=0;i<rows.length;i++){r=rows[i];if(r.container.indexOf(pre)===0&&atlasKnowledgeFold(r.name)===want)return r.id;}
+  for(i=0;i<rows.length;i++){r=rows[i];if(atlasSheetParent(r.container)===place.container&&atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.id;}/* #771: its OWN child — a den two steps down opens from the place it is in */
   return null;
 }
 function atlasPublicCard(zoneId,target){

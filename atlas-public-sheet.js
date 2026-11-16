@@ -55,25 +55,30 @@ function atlasSheetIsGround(terrain,label){
 }
 /* The ground a place is drawn on, or null (no drawing): its own name, else the first plain observed feature that says one. */
 function atlasSheetGround(place,features){
-  var row=atlasSheetRow(ATLAS_SHEET_GROUNDS,place.name),i,f,w;
+  var name=place.container?atlasSheetLeaf(place.container):place.name,row=atlasSheetRow(ATLAS_SHEET_GROUNDS,name),i,f,w;
   if(row)return row.terrain;
-  if(ATLAS_SHEET_WAY_NOUNS.indexOf(atlasSheetNoun(place.name))>=0){/* a place that is a WAY wears the ground it runs through: the Forest Road is forest */
-    w=String(place.name).toLowerCase().replace(/[^a-z' ]+/g," ").split(" ");
+  if(ATLAS_SHEET_WAY_NOUNS.indexOf(atlasSheetNoun(name))>=0){/* a place that is a WAY wears the ground it runs through: the Forest Road is forest */
+    w=String(name).toLowerCase().replace(/[^a-z' ]+/g," ").split(" ");
     for(i=0;i<w.length-1;i++){row=atlasSheetRow(ATLAS_SHEET_GROUNDS,w[i]);if(row)return row.terrain;}
   }
   for(i=0;i<features.length;i++){f=features[i];if(f.mode!=="observed"||atlasPublicLandscapeNamed(f.label))continue;row=atlasSheetRow(ATLAS_SHEET_GROUNDS,f.label);if(row)return row.terrain;}
   return null;
 }
+/* A container's steps: the world place, then each step of the path beneath it. "Petrified Mire|Shattered Ridge — Wyrm
+   Lair" is the lair in the ridge in the mire: its parent is "Petrified Mire|Shattered Ridge", never the mire. */
+function atlasSheetSteps(container){var k=String(container==null?"":container),i=k.indexOf("|");return i<0?[k]:[k.slice(0,i)].concat(atlasPathParts(k.slice(i+1)));}
+function atlasSheetParent(container){var s=atlasSheetSteps(container);return s.length<2?null:(s.length<3?s[0]:s[0]+"|"+atlasPathJoin(s.slice(1,-1)));}
+function atlasSheetLeaf(container){var s=atlasSheetSteps(container);return s[s.length-1];}
 /* The ways out of a place: [{id, key, name, bearing|null, to}] in a stable order — key is the container it leads to, to
    the visited sheet a tap opens (null when the party never stood there itself). */
 function atlasSheetWays(A,place){
-  var rows=atlasPublicPlacesList(A),k=place.container,cut=k.lastIndexOf("|"),out=[],places,legs,i,l,other,p,parent,b;
+  var rows=atlasPublicPlacesList(A),k=place.container,out=[],places,legs,i,l,other,p,parent=atlasSheetParent(k),b,leaf;
   function sheetOf(key){var j;for(j=0;j<rows.length;j++)if(rows[j].container===key)return rows[j].id;return null;}
-  if(cut>=0){
-    parent=k.slice(0,cut);b=null;
-    try{p=atlasKnowledgeProjection(parent).features;for(i=0;i<p.length&&!b;i++)if(p[i].bearing!=="unknown"&&atlasKnowledgeSelfLabel(k,p[i].label))b=ATLAS_JOURNEY_OPPOSITE[p[i].bearing];}
+  if(parent!==null){
+    b=null;leaf=atlasKnowledgeFold(atlasSheetLeaf(k));
+    try{p=atlasKnowledgeProjection(parent).features;for(i=0;i<p.length&&!b;i++)if(p[i].bearing!=="unknown"&&leaf&&atlasKnowledgeFold(p[i].label)===leaf)b=ATLAS_JOURNEY_OPPOSITE[p[i].bearing];}
     catch(e){if(typeof console!=="undefined")console.warn("[sheet] the way back out could not be read: "+((e&&e.message)||e));}
-    out.push({key:parent,name:atlasPublicPlaceName(parent),bearing:b,lean:"S",to:sheetOf(parent)});
+    out.push({key:parent,name:atlasSheetLeaf(parent),bearing:b,lean:"S",to:sheetOf(parent)});
   }else{
     places=atlasJourneyPlaces(A);legs=atlasJourneyLegs(places);
     for(i=0;i<legs.length;i++){
@@ -88,11 +93,11 @@ function atlasSheetWays(A,place){
 }
 /* The visited places INSIDE this one that none of its shown features names: [{id, name, to}]. */
 function atlasSheetInside(A,place,features){
-  var rows=atlasPublicPlacesList(A),pre=place.container+"|",out=[],i,j,r,named;
+  var rows=atlasPublicPlacesList(A),out=[],i,j,r,named,leaf;
   for(i=0;i<rows.length;i++){
-    r=rows[i];if(r.container.indexOf(pre)!==0||r.container.slice(pre.length).indexOf("|")>=0)continue;
-    named=false;for(j=0;j<features.length&&!named;j++)if(atlasKnowledgeFold(features[j].label)===atlasKnowledgeFold(r.name))named=true;
-    if(!named)out.push({id:"in-"+(out.length+1),name:r.name,to:r.id});
+    r=rows[i];if(atlasSheetParent(r.container)!==place.container)continue;/* its own children only: what lies two steps down is its child's */
+    leaf=atlasSheetLeaf(r.container);named=false;for(j=0;j<features.length&&!named;j++)if(atlasKnowledgeFold(features[j].label)===atlasKnowledgeFold(leaf))named=true;
+    if(!named)out.push({id:"in-"+(out.length+1),name:leaf,to:r.id});
   }
   return out;
 }
@@ -124,7 +129,7 @@ function atlasSheetRecipe(place,features,ways,inside){
     edits.push(e);
   }
   for(i=0;i<inside.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push({id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
-  return {terrain:terrain,ways:ways,inside:inside,params:{seed:place.id+"/sheet",width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,terrain:terrain,title:place.name,site:{exits:exits,unplaced:listed},edits:edits}};
+  return {terrain:terrain,ways:ways,inside:inside,params:{seed:place.id+"/sheet",width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,terrain:terrain,title:atlasSheetLeaf(place.container)||place.name,site:{exits:exits,unplaced:listed},edits:edits}};
 }
 /* The recipe of a visited sheet from the live record, or null. A failure to read it is said once and the pin sheet stands. */
 function atlasSheetOf(A,place,features){

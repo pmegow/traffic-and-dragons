@@ -24,8 +24,8 @@ var extract = [
 ];
 var pub = [
   { label: "the parent's pin opens nothing", find: "opens:atlasPublicChildSheet(A,place,f.label)||(w?w.to:null),", replace: "opens:(w?w.to:null),", mustFail: T4 },
-  { label: "a same-named site of another place is opened", find: "if(r.container.indexOf(pre)===0&&atlasKnowledgeFold(r.name)===want)return r.id;", replace: "if(atlasKnowledgeFold(r.name)===want)return r.id;", mustFail: T4 },
-  { label: "the site must be spelled exactly as its pin", find: "if(r.container.indexOf(pre)===0&&atlasKnowledgeFold(r.name)===want)return r.id;", replace: "if(r.container.indexOf(pre)===0&&r.name===label)return r.id;", mustFail: T4 }
+  { label: "a same-named site of another place is opened", find: "if(atlasSheetParent(r.container)===place.container&&atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.id;", replace: "if(atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.id;", mustFail: T4 },
+  { label: "the site must be spelled exactly as its pin", find: "if(atlasSheetParent(r.container)===place.container&&atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.id;", replace: "if(atlasSheetParent(r.container)===place.container&&atlasSheetLeaf(r.container)===label)return r.id;", mustFail: T4 }
 ];
 var failed = sabotage.prove({ file: "atlas-knowledge.js", command: CMD, only: P, cases: knowledge });
 if (!failed) failed = sabotage.prove({ file: "atlas-knowledge-extract.js", command: CMD, only: P, cases: extract });

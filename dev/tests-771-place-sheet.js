@@ -57,9 +57,9 @@ test('no ground known: the pin sheet stays — the engine never guesses a ground
 });
 
 test('the recipe: features in the order disclosed, each toward its bearing; a plain observed noun picks its mark', () => {
-  const r = atlasSheetRecipe(place(MIRE), [feat('f3', 'bone cairn', 'E', 'observed', 5), feat('f1', 'sunken pool', 'W', 'observed', 2), feat('f2', 'beast\'s den', 'SW', 'observed', 2), feat('f4', 'frozen trail', 'S', 'observed', 6)], [], []);
+  const r = atlasSheetRecipe(place(MIRE), [feat('f3', 'bone cairn', 'E', 'observed', 1), feat('f1', 'sunken pool', 'W', 'observed', 2), feat('f2', 'beast\'s den', 'SW', 'observed', 2), feat('f4', 'frozen trail', 'S', 'observed', 6)], [], []);
   assert.equal(r.params.terrain, 'marsh'); assert.equal(r.params.title, MIRE); assert.equal(r.params.seed, 's1/sheet');
-  assert.deepEqual(r.params.edits.map(e => [e.id, e.kind, e.bearing, e.mode]), [['f1', 'pond', 'W', 'observed'], ['f2', 'den', 'SW', 'observed'], ['f3', 'cairn', 'E', 'observed'], ['f4', 'custom', 'S', 'observed']]);
+  assert.deepEqual(r.params.edits.map(e => [e.id, e.kind, e.bearing, e.mode]), [['f3', 'cairn', 'E', 'observed'], ['f1', 'pond', 'W', 'observed'], ['f2', 'den', 'SW', 'observed'], ['f4', 'custom', 'S', 'observed']], 'the turn disclosed, then the id');
   assert.deepEqual(r.params.site, { exits: [], unplaced: [] });
 });
 
@@ -73,8 +73,8 @@ test('a NAME, a report and a long label: the plain mark, a ring, a cut — never
 
 test('what has no direction is listed, never drawn; the ground itself and an exit\'s own place are not pins', () => {
   const ways = [{ id: 'way-1', key: CROSS, name: CROSS, bearing: 'S', lean: 'N', to: 'k771' }];
-  const r = atlasSheetRecipe(place(MIRE), [feat('f1', 'a secret aqueduct', 'unknown', 'reported'), feat('f2', 'mire', 'S'), feat('f3', 'fen', 'N'), feat('f4', 'the crossroads of Ashenveil', 'S'), feat('f5', 'ridge', 'N'), feat('f6', 'Black Fen', 'E')], ways, [{ id: 'in-1', name: 'Shattered Ridge', to: 'k771/public/2' }]);
-  assert.deepEqual(r.params.edits.map(e => e.name), ['ridge', 'Black Fen'], 'mire and fen are this marsh\'s own ground; a ridge is a thing seen from it; a NAMED fen is a place');
+  const r = atlasSheetRecipe(place(MIRE), [feat('f1', 'a secret aqueduct', 'unknown', 'reported'), feat('f2', 'mire', 'S'), feat('f3', 'fen', 'N'), feat('f4', 'the crossroads of Ashenveil', 'S'), feat('f5', 'ridge', 'N'), feat('f6', 'Black Fen', 'E'), feat('f7', 'The Fen', 'W')], ways, [{ id: 'in-1', name: 'Shattered Ridge', to: 'k771/public/2' }]);
+  assert.deepEqual(r.params.edits.map(e => e.name), ['ridge', 'Black Fen', 'The Fen'], 'mire and fen are this marsh\'s own ground; a ridge is a thing seen from it; a NAMED fen is a place');
   assert.deepEqual(r.params.site.unplaced, [{ id: 'f1', name: 'a secret aqueduct', mode: 'reported' }, { id: 'in-1', name: 'Shattered Ridge', mode: 'observed' }]);
   assert.deepEqual(r.params.site.exits, [{ id: 'f4', name: CROSS, sure: true, bearing: 'S' }], 'the feature that names the place IS the exit, under its own id');
 });
@@ -85,8 +85,8 @@ test('a way whose direction nobody stated is dotted, and its two ends agree: onw
   assert.deepEqual(back.map(p => [p.kind, p.name, p.bearing, p.sure]), [['exit', MIRE, 'S', false]]);
   assert.deepEqual(there.map(p => [p.kind, p.name, p.bearing, p.sure]), [['exit', CROSS, 'N', false]], 'the next place has its exit back to the previous one');
   assert.equal(atlasDoc(mire).paths.filter(p => p.sure === false).length, 1, 'drawn dotted');
-  const r = atlasSheetRecipe(place(MIRE), [], [{ id: 'way-1', name: 'A', bearing: 'S', lean: 'N' }, { id: 'way-2', name: 'B', bearing: null, lean: 'S' }, { id: 'way-3', name: 'C', bearing: null, lean: 'S' }], []);
-  assert.deepEqual(r.params.site.exits.map(e => [e.bearing, e.sure]), [['S', true], ['SE', false], ['SW', false]], 'a stated direction keeps its edge; the unstated take the next free ones');
+  const r = atlasSheetRecipe(place(MIRE), [], [{ id: 'way-1', name: 'B', bearing: null, lean: 'S' }, { id: 'way-2', name: 'A', bearing: 'S', lean: 'N' }, { id: 'way-3', name: 'C', bearing: null, lean: 'S' }], []);
+  assert.deepEqual(r.params.site.exits.map(e => [e.bearing, e.sure]), [['SE', false], ['S', true], ['SW', false]], 'a stated direction keeps its edge whatever the order; the unstated take the next free ones');
 });
 
 test('the story states a way\'s direction: the exit lies along it, solid, and the far end is its opposite', () => {
@@ -112,6 +112,14 @@ test('a place inside another has the way back out; the place around it opens it 
   const listed = atlasDoc(mire).site.unplaced; assert.deepEqual(listed.map(u => u.name), ['Sunken Hollow'], 'a place inside that no feature names is listed');
   const inCard = atlasCard(mire, { id: listed[0].id }); assert.equal(inCard.title, 'Sunken Hollow'); assert.equal(inCard.opens, hollow);
   assert.deepEqual(atlasSheetWays(worldState.atlas, atlasPublicPlace(worldState.atlas, hollow)).map(w => [w.name, w.bearing, w.lean]), [[MIRE, null, 'S']], 'no feature of the mire names the hollow: the way back is unstated');
+  /* two steps down: the lair in the ridge in the mire (the owner's hierarchy) */
+  go(MIRE, 'Shattered Ridge'); turn('[MAP_REVEAL:new|wyrm lair|W|observed]'); const lair = go(MIRE, 'Shattered Ridge \u2014 Wyrm Lair'), A = worldState.atlas;
+  assert.equal(atlasPublicPlace(A, lair).container, RIDGE + ' \u2014 Wyrm Lair'); assert.equal(atlasSheetParent(RIDGE + ' \u2014 Wyrm Lair'), RIDGE); assert.equal(atlasSheetParent(RIDGE), MIRE); assert.equal(atlasSheetParent(MIRE), null);
+  assert.deepEqual(atlasSheetWays(A, atlasPublicPlace(A, lair)).map(w => [w.name, w.bearing, w.to]), [['Shattered Ridge', 'E', ridge]], 'the lair\u2019s way out leads to the ridge, east: the ridge saw it to the west');
+  assert.deepEqual(atlasDoc(mire).site.unplaced.map(u => u.name), ['Sunken Hollow'], 'the mire does not list what lies inside the ridge');
+  const lairPin = atlasDoc(ridge).features.filter(f => f.name === 'wyrm lair')[0]; assert(lairPin, 'the ridge pins it'); assert.equal(atlasCard(ridge, { id: lairPin.id }).opens, lair, 'and its pin opens it');
+  const fen = go(MIRE, 'Shattered Ridge — Black Fen'); assert.equal(atlasDoc(fen).kind, 'marsh', 'a nested place is drawn on the ground its OWN name says'); assert.equal(atlasDoc(fen).title.name, 'Black Fen', 'and titled by its own name, not its path');
+  assert.equal(atlasDoc(ridge).title.name, 'Shattered Ridge'); assert.deepEqual(atlasSheetInside(A, atlasPublicPlace(A, ridge), []).map(x => x.name), ['Wyrm Lair', 'Black Fen'], 'unnamed by a feature, each is listed under its own name, not its path');
 });
 
 test('an exit or a feature added later moves nothing that was drawn, and two draws are one document', () => {
