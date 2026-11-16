@@ -34,6 +34,7 @@ test('three stationary discoveries change only knowledge and every public surfac
  doc.features.forEach(f=>{assert.ok(cleanTxt(raw).includes(f.name));assert.equal(atlasCard(A.seed,{id:f.id}).title,f.name);assert.equal(atlasThingShown(A.seed,f),true);});
  assert.equal(atlasReveal(A.seed),null);assert.equal(atlasPartyIn(A.seed).exact,false);assert.ok(!/map is right|Stalgind/.test(atlasMapBlock()));
  assert.equal(atlasDoc(A.seed),doc,'repeat read reuses one document');
+ A.drawn=false;atlasForget();assert.deepEqual(atlasDoc(A.seed).features.map(f=>f.name),['Bear Spring','The Boar Tree','The Waystone Arch'],'#771: the PIN sheet of the same place shows the same three');delete A.drawn;atlasForget();
 });
 test('changing place cannot carry discoveries into another container',()=>{
  setup();const A=worldState.atlas;atlasKnowledgeCommit('[MAP_REVEAL:new|Bear Spring|spring|SW|observed]');
@@ -44,6 +45,7 @@ test('private place classification cannot label a public sheet or change its sce
  setup();const A=worldState.atlas,first=JSON.stringify(atlasDoc(A.seed));
  A.kinds['The Boundary Clearing']={kind:'settlement',size:'city',by:'model'};atlasForget();
  assert.equal(JSON.stringify(atlasDoc(A.seed)),first,'private start classification is not public scene input');
+ A.drawn=false;atlasForget();const pin=JSON.stringify(atlasDoc(A.seed));delete A.kinds['The Boundary Clearing'];atlasForget();assert.equal(JSON.stringify(atlasDoc(A.seed)),pin,'#771: nor of the PIN sheet (a campaign with drawn sheets off)');A.kinds['The Boundary Clearing']={kind:'settlement',size:'city',by:'model'};delete A.drawn;atlasForget();
  worldState.world.sublocation='Western Trail';atlasFollow();
  assert.equal(atlasZones()[0].kind,'schematic','an outdoor sublocation must not be called an interior');
  assert.equal(atlasWhere().zoneKind,'schematic');
@@ -69,6 +71,7 @@ test('public adapter ignores upstream classification and archival quote fields',
   assert.equal(doc.features[0].kind,'custom');assert.equal(card.title,'High canopy stairs');
   assert.equal(card.word,'Observed · N. Disclosed on turn 0.');
   assert(!/PRIVATE|\b(?:arch|spring|ruin)\b/.test(JSON.stringify([doc,card])));
+  A.drawn=false;atlasForget();const pin=atlasDoc(A.seed);assert.equal(pin.features[0].kind,'landmark','#771: the PIN sheet keeps the neutral landmark');assert(!/PRIVATE|arch|spring|ruin/.test(JSON.stringify(pin.features)));delete A.drawn;
  }finally{atlasKnowledgeProjection=real;atlasForget();}
 });
 test('literal public labels remain intact without inferring a type from their nouns',()=>{
