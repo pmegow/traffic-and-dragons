@@ -1,0 +1,8 @@
+AssertionError [ERR_ASSERTION]: #773 three 20000-character fields no longer show the old limit warning
+    at C:\Projects\traffic-and-dragons\dev\tests-designer-creatures-browser.js:33:1 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: false,
+  expected: true,
+  operator: '=='
+}

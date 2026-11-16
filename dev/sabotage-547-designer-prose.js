@@ -8,11 +8,11 @@ failed+=sabotage.prove({file:'designer-prose.js',command:['node',['dev/tests-des
  {label:'identity names automatically rewritten',find:'if(f.identity)throw',replace:'if(false&&f.identity)throw',mustFail:'identity labels are never silently renamed by shortening'}
 ]});
 failed+=sabotage.prove({file:'globals.js',command:['node',['dev/run-tests.js','class bible (#72)']],cases:[
- {label:'blueprint caps return to their old limits',find:'premise:12500,backstory:2500,field:4000,rule:6000,environment:400',replace:'premise:2500,backstory:2500,field:800,rule:1200,environment:80',mustFail:'#748 blueprint text limits are fivefold and preserve the full boundary on import'}
+ {label:'blueprint caps return to their old limits',find:'premise:62500,backstory:2500,field:20000,rule:30000,environment:2000',replace:'premise:12500,backstory:2500,field:4000,rule:6000,environment:400',mustFail:'#773 blueprint text limits are fivefold again and preserve the full boundary on import'}
 ]});
 failed+=sabotage.prove({file:'game.js',command:['node',['dev/run-tests.js','class bible (#72)']],cases:[
  {label:'authoring drafts clamped again',find:'!(opts&&opts.preserveProse)&&',replace:'',mustFail:'blueprint authoring preserves overlong drafts while runtime normalization still caps them'},
- {label:'habitat retains the old hardcoded limit',find:'add(c,["environment"],"creatures."+i+".",caps.environment)',replace:'add(c,["environment"],"creatures."+i+".",80)',mustFail:'#748 blueprint text limits are fivefold and preserve the full boundary on import'},
+ {label:'habitat retains the old hardcoded limit',find:'add(c,["environment"],"creatures."+i+".",caps.environment)',replace:'add(c,["environment"],"creatures."+i+".",400)',mustFail:'#773 blueprint text limits are fivefold again and preserve the full boundary on import'},
  {label:'runtime cap removed',find:'f.owner[f.key]=clampStr(f.owner[f.key],f.limit);',replace:'',mustFail:'#315 normalizeBlueprint clamps every imported prose field'}
 ]});
 failed+=sabotage.prove({file:'blueprint-designer.html',skip:!chrome.path,command:['node',['dev/tests-designer-creatures-browser.js']],cases:[

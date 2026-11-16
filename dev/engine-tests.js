@@ -466,18 +466,18 @@ function runEngineTests(R){
 
   // ── 1. Model-output JSON repair (the generateSkeleton/summarize failure class) ──
   section("#500 blueprint rule length");
-  t("#500 imported rules preserve 401 through 6000 characters and cap at 6000",function(){
-    var sizes=[399,400,401,1199,1200,1201,5999,6000,6001],rules=sizes.map(function(n){return new Array(n).join("x")+".";});
+  t("#500 imported rules preserve 401 through 30000 characters and cap at 30000",function(){
+    var sizes=[399,400,401,1199,1200,1201,5999,6000,6001,29999,30000,30001],rules=sizes.map(function(n){return new Array(n).join("x")+".";});
     var bp={rules:rules.slice(),acts:[],npcs:[],locations:[],creatures:[]};
     normalizeBlueprint(bp);
     for(var i=0;i<sizes.length;i++){
-      var want=rules[i].slice(0,6000);
+      var want=rules[i].slice(0,30000);
       if(bp.rules[i]!==want)return "length "+sizes[i]+" became "+bp.rules[i].length+"; expected "+want.length;
     }
-    return IMPORT_CAPS.rule===6000?true:"rule cap must be 6000";
+    return IMPORT_CAPS.rule===30000?true:"rule cap must be 30000";
   });
-  t("#500 the campaign prompt preserves the same 6000-character rule boundary",function(){
-    makeWorld();var saved=customRules.slice(),rule=new Array(6000).join("q")+"!";
+  t("#500 the campaign prompt preserves the same 30000-character rule boundary",function(){
+    makeWorld();var saved=customRules.slice(),rule=new Array(30000).join("q")+"!";
     try{
       customRules=[rule+"Z"];var block=getRulesBlock();
       if(block.indexOf(rule)<0)return "rule ending clipped from the prompt";
@@ -487,8 +487,8 @@ function runEngineTests(R){
   t("#500 short-rule prompts stay byte-identical when the cap grows",function(){
     makeWorld();var saved=customRules.slice(),cap=IMPORT_CAPS.rule;
     try{
-      customRules=["The moon is always visible."];IMPORT_CAPS.rule=1200;
-      var old=buildSysPrompt();IMPORT_CAPS.rule=6000;var current=buildSysPrompt();
+      customRules=["The moon is always visible."];IMPORT_CAPS.rule=6000;
+      var old=buildSysPrompt();IMPORT_CAPS.rule=30000;var current=buildSysPrompt();
       return old.stable===current.stable&&old.volatile===current.volatile?true:"short-rule prompt changed";
     }finally{customRules=saved;IMPORT_CAPS.rule=cap;}
   });
@@ -1250,13 +1250,13 @@ function runEngineTests(R){
     var rb=getRulesBlock();customRules.length=0;Array.prototype.push.apply(customRules,saved);
     return rb.indexOf(new Array(IMPORT_CAPS.rule+2).join("x"))<0?true:"an over-limit custom rule reached the prompt uncut";
   });
-  t("#748 blueprint text limits are fivefold and preserve the full boundary on import",function(){
-    var expected={premise:12500,field:4000,rule:6000,environment:400},k;
+  t("#773 blueprint text limits are fivefold again and preserve the full boundary on import",function(){
+    var expected={premise:62500,field:20000,rule:30000,environment:2000},k;
     for(k in expected)if(IMPORT_CAPS[k]!==expected[k])return k+" limit "+IMPORT_CAPS[k]+"; expected "+expected[k];
     if(IMPORT_CAPS.backstory!==2500)return "unrelated backstory limit changed";
     var bp={format:"tnd-blueprint-v1",name:"Limits",premise:"P",acts:[{title:"A",goal:"G",arcs:[{title:"Arc",objective:"O"}]}],npcs:[{name:"N",notes:"N",desc:"D",abilities:"A",altDesc:"A",altWhen:"W"}],creatures:[{name:"C",notes:"N",environment:"E"}],locations:[{name:"L",desc:"D"}],rules:["R"]};
     var fields=blueprintTextFields(bp),before=[];
-    for(var fi=0;fi<fields.length;fi++){var f=fields[fi],want=f.path==="premise"?12500:f.path.indexOf("rules.")===0?6000:/\.environment$/.test(f.path)?400:4000;if(f.limit!==want)return f.path+" has limit "+f.limit;}
+    for(var fi=0;fi<fields.length;fi++){var f=fields[fi],want=f.path==="premise"?62500:f.path.indexOf("rules.")===0?30000:/\.environment$/.test(f.path)?2000:20000;if(f.limit!==want)return f.path+" has limit "+f.limit;}
     fields.forEach(function(f){f.owner[f.key]=new Array(f.limit+1).join("x");before.push(f.owner[f.key]);});
     normalizeBlueprint(bp);fields=blueprintTextFields(bp);
     for(var j=0;j<fields.length;j++)if(fields[j].owner[fields[j].key]!==before[j])return fields[j].path+" clipped at the allowed boundary";
@@ -1284,7 +1284,7 @@ function runEngineTests(R){
     normalizeBlueprint(draft);return draft.npcs[0].notes.length===IMPORT_CAPS.field?true:"runtime bound lost";
   });
   t("#315 clampImportedCharacter caps a .char's backstory and appearance and every list string, and is a no-op on a sane sheet",function(){
-    var big=new Array(9000).join("z");
+    var big=new Array(Math.max(IMPORT_CAPS.backstory,IMPORT_CAPS.field)+2).join("z");
     var c={name:"Q",cls:"Rogue",backstory:big,appear:big,trait:big,inventory:[big,"Rope"],abilities:[{nm:"A",ds:big}],storyBeats:[{text:big,turn:1}]};
     var r=clampImportedCharacter(c);
     if(c.backstory.length>IMPORT_CAPS.backstory||c.appear.length>IMPORT_CAPS.field||c.trait.length>IMPORT_CAPS.field)return "prose uncapped";

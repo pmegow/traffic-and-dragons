@@ -1,0 +1,165 @@
+STORAGE KEYS OK — 70 keys, DOC/contracts/sync.md's table matches the tree
+[#264] review-call whitelist contract OK — both review sites gated, sheet sync ungated
+[#405] manual QA header contract OK — 20 dev/qa-*.js scripts declare themselves manual
+[#481 G1] testRuns ignore contract OK — testRuns/ is gitignored
+[#481 F2] image src contract OK — 17 concatenated <img> src sites, all through safeImgSrc
+[#213] refusal-copy census OK — 36 registry rows, 30 shipped reasons, 0 unmapped
+[#311] engine-only tag tier OK — 19 tag(s), each taught by an engine note
+[voice-lab] contract OK — 14 voices × 12 dials, prompts and the shipped table name-free (75 forbidden words)
+[blueprint-designer] contract OK — class roster + World Ages + secret gates wired, seam present, save-free/publish-gated, gateway-aware
+[#312] satellite palette contract OK — 23 page(s) on satellite.css, no forked :root tokens
+[#290] home page contract OK — read-only surface, shared handoff key, 8 curated original(s)
+[#62] character editor contract OK — portable-sheet surface, wrapper pinned, 9 list fields registered
+[#599 b] admission contract OK — 7 install doors + 2 previews through sheetAdmit, 5 internal transfers, 14 reasoned exemptions, no hand-run step
+[#599 b4] inventory boundary contract OK — 86 engine files, 7 rules, 0 reasoned exemptions, 25 hosts paired
+[#337] campaign slot writer contract OK — transport paths AND snapshotActiveCamp use writeCampaignSlot/writeLiveKeys; the switch frees the target slot before the snapshot
+[#289] menu tier contract OK — 8 operator rows flagged, the Sync button and the Dev tools drawer operator-only (#634), the Voice Settings row open with its key fields dev-only (#622), toggle re-applied on account load
+[#634] theme palette contract OK — 25 light tokens equal website/themes.css, one key (tnd_theme_v1) read before paint and by the toggle
+[#423] import ownership contract OK — shell routes through importSaveData, resolver asks ownership, sync re-homes once on reason foreign_campaign
+[#429] batch drop battery registered
+[#430] ledger rows live battery registered
+[#467] retired OpenAI voice battery registered
+[bug-tracker] contract OK — report fields stay inert and browser seam is present
+[syntax] script syntax contract OK — every <script src> in index.html parses
+[sound] 'click_glass' skipped — no AudioContext
+[quest] blocked re-creation of archived quest 'Lost Cause' (failed) — a follow-up needs a NEW title
+[presence] 'Rat' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 2' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 2' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Ogre Chieftain' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Ogre Whelp' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Ogre Chieftain' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Ogre Whelp' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Ogre Chieftain' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[tags] ACT_COMPLETE: "Totally Wrong" does not match the ACTIVE act "Act Two" — ignored, nothing closed (#233)
+[xp] GM award 900 XP clamped to 30 (10× level; quests, bosses and acts are engine-paid — #302)
+[rag] #469 ⑥ 1 excerpt(s) withheld — they retell an earlier adventure the street is not talking about
+[rag] #469 ⑥ 1 excerpt(s) withheld — they retell an earlier adventure the street is not talking about
+[persona] Daeris: 0 usable line(s) in this campaign — the carried voice lines stay
+[persona] Morwen: 0 usable line(s) in this campaign — the carried voice lines stay
+[persona] Daeris: 0 usable line(s) in this campaign — the carried voice lines stay
+[import] 6 over-long field(s) on Q clamped at import (#315)
+[presence] 'Chain-Dragger' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Chain-Dragger' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 0' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 0' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 1' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 1' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 2' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 2' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 3' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 3' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 4' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 4' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 5' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 5' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 6' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 6' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 7' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 7' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 8' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 8' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 9' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 9' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 10' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 10' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 11' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 11' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 12' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 12' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 13' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 13' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 14' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat 14' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Chain-Dragger' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Chain-Dragger' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Bone Warden' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Bone Warden' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[identity] irreversible write QUARANTINED for Nobody Slain (handle -): summary death lacks matching scene-handle evidence
+[presence] 'Slaver Thug' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Slaver Boss' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Slaver Thug' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[combat] COMBAT_END:victory closed with 1 foe(s) still standing — resolved as slain; the narration outranks an untagged hp bar (#214)
+[presence] 'Guard' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Captain' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Guard' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[combat] COMBAT_END:victory closed with 1 foe(s) still standing — resolved as slain; the narration outranks an untagged hp bar (#214)
+[presence] 'Archer' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[combat] COMBAT_END:victory closed with 1 foe(s) still standing — resolved as slain; the narration outranks an untagged hp bar (#214)
+[presence] 'Slaver Thug' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Slaver Thug' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[tags] COMBAT_END arrived with NO active combat — no-op (premature [COMBAT_END:] earlier? the v1.224 C1 class / UA27)
+[identity] irreversible write QUARANTINED for Slaver Thug (handle -): summary death lacks matching scene-handle evidence
+[identity] irreversible write QUARANTINED for Old Tam (handle -): summary death lacks matching scene-handle evidence
+[presence] 'Slaver Thug' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Slaver Thug' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [status tag]
+[xp] GM award 40 XP clamped to 10 (10× level; quests, bosses and acts are engine-paid — #302)
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [status tag]
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [death report]
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [combat]
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [combat]
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [canon envelope]
+[identity] irreversible write QUARANTINED for Ambassador Ferrin Lyle (handle -): plot armor: Ambassador Ferrin Lyle is load-bearing until Act 3 “Whose Hand Moves You” and cannot die yet
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [summary]
+[identity] #319 Ambassador Ferrin Lyle: death refused — plot armor until Act 3 “Whose Hand Moves You” (escape 1 of 2) [status tag]
+[clock] #216: GM declared 'evening' but the clock reads Day 1, 6:00 am (12h off-band) — GM-decides reconcile nudge armed
+[clock] #216: GM declared 'evening' but the clock reads Day 1, 6:10 am (11h off-band) — GM-decides reconcile nudge armed
+[sound] 'click_glass' skipped — no AudioContext
+[presence] 'Tag-Shrike' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[identity] 1 incidental tag(s) ejected from canon claim shrike_kill_sump and applied as ordinary tags: ENEMY_SLAIN (#175 — one stray tag must never void a death and its rewards)
+[presence] 'Tag-Shrike' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Bone Warden' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[identity] canon transaction warden_dies QUARANTINED: scene evidence does not bind the claimed victim
+[identity] canon transaction nobody_dies QUARANTINED: scene evidence does not bind the claimed victim
+[presence] 'Chain-Dragger' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Chain-Dragger' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[review] #321 verdict synthesized into tags for "The Descent": step: Seize control of the core console and direct the falling city, completed
+[tags] #264 review-call whitelist stripped 2 out-of-scope tag name(s): TIME_CHECK, TIME_ADVANCE (allowed: QUEST, QUEST_STEP, ITEM_DEF, XP, GOLD, ITEM_GAINED)
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[denouement] no RECORD line — the closing paragraph is attributed to its hero
+[sound] 'click_glass' skipped — no AudioContext
+[denouement] no RECORD line — the closing paragraph is attributed to its hero
+[sound] 'click_glass' skipped — no AudioContext
+[denouement] no RECORD line — the closing paragraph is attributed to its hero
+[initiative] [COMPANION_INITIATIVE:Zed] — no companion sheet by that name; ignored (#386)
+[clock] #216: GM declared 'dawn' but the clock reads Day 4, 9:45 am (2h off-band) — GM-decides reconcile nudge armed
+[attire] extractor named 'Zed' — no party member by that name; dropped (#388)
+[clock] repair "good" applied: 500 → 660 (receipt rides the save — a second run on ANY device refuses)
+[combat] COMBAT_END:victory before any fight — every foe in the tracker was introduced after the close; absorbed, the new encounter carries (#225/#254)
+[combat] COMBAT_END:victory closed the old fight, but Bodyguard entered AFTER the close tag — exempt from its resolution and carried into a new encounter (#254)
+[presence] 'Bodyguard' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[presence] 'Rat' (combat) is not on the roster — no presence derived (refuse-and-warn, never create; registration is [NPC:]'s job)
+[sound] 'click_glass' skipped — no AudioContext
+[tags] no party member matches 'Nobody' — companion tag dropped (#136③)
+[tags] COMPANION_SKILL_SUCCESS: unknown skill id 'Made Up Skill' — no increment (#136③)
+[migrate] #101: spell labels stripped to bible bare names on Tess
+[migrate] legacy episodic-memory OFF flag cleared — RAG is standard behavior (v1.349)
+[presence] #194 epoch set at t5 — every earlier statusTurn/lastSeen/guestbook stamp is legacy-grade (refused as death evidence since v1.760 — re-witnessing restores it)
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[denouement] no RECORD line — the closing paragraph is attributed to its hero
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[sound] 'click_glass' skipped — no AudioContext
+[death] no camp on file — nowhere to wake; the death stands until a camp exists (#300)
+[sound] 'click_glass' skipped — no AudioContext
+FILTERED GREEN — "class bible (#72)": 1 section(s) matched, 153 assertions passed — NOT the full suite

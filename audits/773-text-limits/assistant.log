@@ -1,0 +1,19 @@
+PASS #724 assistant module is available
+PASS #724 advice uses text-only current context and never changes the draft
+PASS #724 fivefold caps govern explicit writes and the model instructions
+PASS #724 ten habitat soldiers are previewed then applied atomically
+PASS #724 custom classes update restricted roster and preview implicit changes
+PASS #724 act and arc edits retain their neighbors and class deletion adjusts the roster
+PASS #724 follow-up context includes only the bounded previous exchange
+PASS #724 wrong actions duplicate targets ambiguous identities and invalid late edits are atomic
+PASS #724 partial updates preserve public fields images and gates without review deletion state
+PASS #724 #743 the alternate form is assistant text: accepted, validated, and its image never sent or lost
+PASS #724 stale response stale apply and replacement drafts are refused
+PASS #724 view review and edition changes survive apply without invalidating the proposal
+PASS #724 truncated malformed excessive and overlong output are refused
+PASS #724 resolved padded targets really change the intended object
+PASS #724 conflicting gates and wrong field types never reach the draft
+PASS #724 preview reflects the final normalized value
+PASS #724 limits cover every explicit write without borrowing another items exception
+PASS #724 renames cannot collide and exact rule updates do not use substring matches
+#724 assistant: 18 passed, 0 failed

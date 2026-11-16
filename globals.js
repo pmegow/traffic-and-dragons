@@ -122,7 +122,7 @@ var SPELL_CANON_WINDOW=30;  // #311 ②: canonical spell rules inject only for s
 // #315 (review C5): every untrusted string that reaches the GM prompt is capped at import. The fence RULE
 // lives in DEFAULT_RULES; these sizes are shared by authoring, runtime imports and the prompt rule block.
 // Backstory is a separate character-import bound, outside the Blueprint Designer field registry.
-var IMPORT_CAPS={premise:12500,backstory:2500,field:4000,rule:6000,environment:400};
+var IMPORT_CAPS={premise:62500,backstory:2500,field:20000,rule:30000,environment:2000};
 // #317 (review B11, owner taste: whispers over ledgers): reputation as RUMOUR. At a sized settlement the
 // engine asks, every WHISPERS_EVERY turns, for one line of what is said about the party — authored by the
 // GM from the recent decisions and finished quests — filed by [WHISPER:] on a ring and served back as
@@ -443,7 +443,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1445";
+var APP_VERSION="v1.1446";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

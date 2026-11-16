@@ -1,5 +1,5 @@
 {
-  "version": "v1.1445",
+  "version": "v1.1446",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -101,6 +101,7 @@
     "A cave, den or lair the party enters is drawn as its own map inside the place around it, with its way back out.",
     "A map sheet opened from the plaque or a card opens at a readable zoom, and crowded cave names stay on the map.",
     "An inn, temple, keep or house the party enters is drawn as its own floor plan, with the door back out.",
-    "On the map, things without a known position are listed in a panel under the map instead of over it."
+    "On the map, things without a known position are listed in a panel under the map instead of over it.",
+    "Blueprint text limits increase fivefold again: 20,000 characters per ordinary field, with matching import and assistant limits."
   ]
 }

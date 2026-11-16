@@ -735,3 +735,7 @@ Publish Dice 0.99.8 through its publisher; host version/cache markers and releas
 ## 2026-11-14 - #748 owner-requested Blueprint limits
 
 Owner explicitly requested fivefold text limits. Shared `IMPORT_CAPS` values and the habitat registry entry change together so authoring does not accept text runtime import would then truncate. Assistant bounds and guidance use that registry; backstory stays separate. Existing overflow fixtures were lengthened to keep exercising rejection. Boundary/import and real-browser proofs plus 35 named mutations pass; no parser, memory or prompt-builder code is changed.
+
+## 2026-11-16 - #773 owner-requested Blueprint limit increase
+
+Owner explicitly requested another fivefold increase. Only the shared cap registry and version markers change at runtime; imports, Designer warnings and assistant instructions already read that table. No parser, memory or prompt-builder edits. New boundaries are pinned before the change; old overflow fixtures are kept above the active cap, with exact saved-text comparisons after reload. Character backstory remains separately bounded.
