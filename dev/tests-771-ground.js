@@ -51,7 +51,7 @@ test('the request carries public text only, bounded, and its words are the table
   const terrains = ATLAS_GROUND_WORDS.filter(w => !w.draws && w.ground !== ATLAS_GROUND_OTHER).map(w => w.ground), sites = ATLAS_GROUND_WORDS.filter(w => w.draws);
   assert.deepEqual(terrains.slice().sort(), TnDMaps.wild.terrains().slice().sort(), 'one word per terrain the library draws');
   assert.deepEqual(terrains.slice().sort(), ATLAS_SHEET_GROUNDS.map(g => g.terrain).sort(), 'and per row of the name rule');
-  assert.deepEqual(sites.map(w => w.draws).sort(), ATLAS_SHEET_SITES.map(x => x.draws).sort(), '#771 P2: one word per site kind the map draws');
+  assert.deepEqual(sites.map(w => w.draws).sort(), Array.from(new Set(ATLAS_SHEET_SITES.map(x => x.draws))).sort(), '#771 P2: one word per site kind the map draws');
   for (const w of sites) assert.ok(ATLAS_SHEET_DRAWS[w.draws].site && w.as, 'a site word names a drawing and how it is said');
   assert.equal(words[words.length - 1], ATLAS_GROUND_OTHER, 'other closes the list');
   assert.equal(words[words.length - 1], ATLAS_GROUND_OTHER);
@@ -79,7 +79,7 @@ test('filing keeps the answer once per place in a registered store and never rep
   assert.ok(KEYED_STORE_PATHS.world.indexOf('atlas.grounds') >= 0, 'registered, so a load keeps it keyed');
   const again = atlasGroundFile(A, HEART, 'marsh'); assert.equal(again.ok, false); assert.match(again.reason, /already established/);
   assert.equal(atlasGroundStored(A, HEART), 'forest', 'the first answer stands');
-  assert.equal(atlasGroundSaid(HEART, 'forest'), 'Map: The Ironwood Heart is drawn as forest.'); assert.equal(atlasGroundSaid('Reedglass Keep', 'other'), '');
+  assert.equal(atlasGroundSaid(HEART, 'forest'), 'Map: The Ironwood Heart is drawn as forest.'); assert.equal(atlasGroundSaid('Reedglass Quay', 'other'), '');
 });
 
 test('the sheet draws the answered ground; other keeps the pin sheet; the name outranks an answer; a feature speaks only while nothing was answered', () => {
@@ -89,11 +89,11 @@ test('the sheet draws the answered ground; other keeps the pin sheet; the name o
   atlasGroundFile(A, HEART, 'forest');
   const drawn = sheet(); assert.equal(drawn.generator.name, 'wild'); assert.equal(drawn.kind, 'forest'); assert.deepEqual(drawn.features.map(f => f.name), ['a ring of iron-barked trunks']);
   assert.equal(JSON.stringify(sheet()), JSON.stringify(drawn), 'the same record draws the same sheet');
-  setup('Reedglass Keep'); reveal('[MAP_REVEAL:new|deep thicket|N|observed]');
+  setup('Reedglass Quay'); reveal('[MAP_REVEAL:new|deep thicket|N|observed]');
   assert.equal(sheet().kind, 'forest', 'nothing answered yet: a plain seen feature may say the ground');
-  atlasGroundFile(worldState.atlas, 'Reedglass Keep', 'other');
+  atlasGroundFile(worldState.atlas, 'Reedglass Quay', 'other');
   assert.notEqual(sheet().generator.name, 'wild', 'the story said it is not open country: a thicket in its yard does not make it a forest');
-  assert.equal(atlasSheetGround({ container: 'Reedglass Keep', name: 'Reedglass Keep', ground: 'other' }, []), null, '"other" is no ground: the library is never handed it');
+  assert.equal(atlasSheetGround({ container: 'Reedglass Quay', name: 'Reedglass Quay', ground: 'other' }, []), null, '"other" is no ground: the library is never handed it');
   assert.equal(atlasSheetGround({ container: MIRE, name: MIRE, ground: 'forest' }, []), 'marsh', 'the name outranks an answer');
   assert.equal(atlasSheetGround({ container: HEART, name: HEART, ground: 'lava' }, []), null, 'a word the library does not draw draws nothing');
 });
@@ -108,7 +108,7 @@ test('the ask runs once after a turn, files the answer, saves and tells the play
   assert.equal(atlasGroundStored(worldState.atlas, HEART), 'forest'); assert.equal(saves, 1, 'saved'); assert.deepEqual(toasts, ['Map: The Ironwood Heart is drawn as forest.']);
   assert.equal(sheet().kind, 'forest', 'and the sheet is drawn');
   log.length = 0; assert.equal(await atlasGroundSettle('More prose.', ''), null); assert.equal(log.length, 0, 'answered: no request');
-  setup('Reedglass Keep'); gm(answer('other'), log); assert.equal(await atlasGroundSettle('Cold halls.', ''), 'other');
+  setup('Reedglass Quay'); gm(answer('other'), log); assert.equal(await atlasGroundSettle('Cold halls.', ''), 'other');
   assert.equal(saves, 1, 'other is kept too'); assert.deepEqual(toasts, [], 'and nothing is announced for a place that stays as it was');
   log.length = 0; setup(MIRE); assert.equal(await atlasGroundSettle('Prose.', ''), null); assert.equal(log.length, 0, 'a named ground: no request');
   setup(); worldState.atlas.knowledge = 0; assert.equal(await atlasGroundSettle('Prose.', ''), null); assert.equal(log.length, 0, 'no public map: no request');

@@ -77,7 +77,14 @@ Each phase ends with something the owner can look at, and nothing later starts u
 - **Stability:** the rock is the seed's alone; a later thing never moves an earlier one; a second way is listed, never a second mouth (it would redraw the rock). The one redraw left: a way back whose direction is first stated AFTER the party entered turns the cave to face it.
 - **Hierarchy:** a bare `[SUBLOCATION:X]` written inside a sub-place is filed INSIDE it when that sub-place's sheet already shows X (the lair pinned on the ridge), and a known place is found where it is; `[SUBLOCATION_LEAVE]` steps out one place; the plaque reads Petrified Mire › Shattered Ridge › Wyrm Lair and each tier opens its sheet. The GM's map rules say both.
 - **Not drawn:** a cave nobody travelled into (no way on record; the start of a campaign inside a cave) keeps its pin sheet.
-- **Known limits:** a site first disclosed and entered in the SAME reply is filed beside the place, not inside it (the sheet does not show it yet), unless the GM writes the path; features the story filed on the ridge before the lair was declared stay on the ridge; buildings, built vaults and towns still answer `other`.
+- **Known limits:** a site first disclosed and entered in the SAME reply is filed beside the place, not inside it (the sheet does not show it yet), unless the GM writes the path; features the story filed on the ridge before the lair was declared stay on the ridge; built vaults and towns still answer `other` (buildings: see below).
+
+## P2 as built: buildings (v1.1444)
+
+- **What is a building:** a place whose name's head noun says so, one table row per PLAN (inn, tavern → inn; temple, church, chapel → temple; keep, tower, fort, castle → keep; house, hut, bothy, hall, mill, smithy, shop and the like → house), or whose ground the story answered `building` (edition 3 of the vocabulary; an `other` answered before is asked once more), drawn on the house plan.
+- **The drawing:** TnD Maps 0.26.0's story sheet for a building. The generator lays the walls of the plan on ONE floor and names nothing: every room is a nameless bare room (no furniture, no back door, no stair, every inner doorway open). The first way the party came in is the one door, in the wall toward the place it leads back to (unstated: south), named for it. The party is drawn in the room the door opens into; each feature with a bearing names the free room toward it from there, in the order disclosed; the rest is listed. No scale, no floor count, no area.
+- **Stability:** as a cave's. The walls are the seed's and the door's wall; a later thing never moves an earlier one; a second way is listed.
+- **Known limits:** a thing toward the door's own side finds no room and is listed (the door's room is at the front); a plan has few rooms (a house about five, an inn about eight), so a building with many things lists the later ones; the story said nothing of floors, so there is one; a building nobody travelled into keeps its pin sheet; a built vault underground (a crypt, a cellar, a sewer) and a town's streets still answer `other`.
 
 ## Known gaps to close in the map library
 

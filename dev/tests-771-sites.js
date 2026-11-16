@@ -32,10 +32,10 @@ function lair(bearing) {
   return { ridge: ridge, lair: id };
 }
 
-test('a name says a site as it says a ground: a lair, a den, caverns are a cave; a mire is open ground; a keep is neither', () => {
+test('a name says a site as it says a ground: a lair, a den, caverns are a cave; a mire is open ground; a quay is neither', () => {
   const kind = n => atlasSheetNameKind({ id: 's', name: n, container: n });
   for (const n of ['Wyrm Lair', 'The Crystal Caverns', "The Smugglers' Den", 'Old Copper Mine', 'The Cave of Echoes', 'Rat Warren']) assert.deepEqual(kind(n), { draws: 'cave' }, n);
-  assert.deepEqual(kind('Petrified Mire'), { draws: 'wild', terrain: 'marsh' }); assert.equal(kind('Reedglass Keep'), null); assert.equal(kind('The Ironwood Heart'), null);
+  assert.deepEqual(kind('Petrified Mire'), { draws: 'wild', terrain: 'marsh' }); assert.equal(kind('Reedglass Quay'), null); assert.equal(kind('The Ironwood Heart'), null);
   assert.deepEqual(atlasSheetNameKind({ id: 's', name: LAIR, container: MIRE + '|' + LAIR_SUB }), { draws: 'cave' }, 'a place inside others is named by its own step');
   const grounds = [].concat.apply([], ATLAS_SHEET_GROUNDS.map(g => g.nouns));
   for (const s of ATLAS_SHEET_SITES) { assert.ok(ATLAS_SHEET_DRAWS[s.draws] && ATLAS_SHEET_DRAWS[s.draws].site, 'a site row names a site drawing'); for (const n of s.nouns) assert.equal(grounds.indexOf(n), -1, n + ' is a site noun and never a ground noun'); }
@@ -174,6 +174,80 @@ test('a drawn sheet is a place on its ground or a site in its rock; a pin sheet 
   assert.match(ui, /if\(!how&&fresh&&atlasKnowledgeActive\(\)&&atlasPaneDrawn\(doc\)\)how=\{\};/, 'a drawn sheet the party is not on is framed too, when it is newly shown');
   assert.match(ui, /fresh=P\.zone!==zoneId;/, 'and only then: a repaint keeps the player\'s view');
   assert.match(ui, /atlasSheetStand\(d\)\[0\]/, 'and opens a sheet the party is not on at the middle chamber, never the empty frame\'s middle');
+});
+
+const TOWN = 'Ashenveil', INN = 'The Gilded Spur Inn', walls = d => JSON.stringify([d.rooms.map(r => [r.id, r.poly]), d.floors.map(f => f.outline), d.windows]);
+// a town, the inn seen to the `bearing` of its middle, the party inside the inn
+function inn(bearing) { setup(TOWN); if (bearing !== null) turn(rev(INN, bearing || 'N')); return go(TOWN, INN); }
+
+test('a name says a building and its plan: an inn, a temple, a keep, a hut; a crypt is none', () => {
+  const kind = n => atlasSheetNameKind({ id: 's', name: n, container: n });
+  assert.deepEqual(kind(INN), { draws: 'building', plan: 'inn', size: [18, 16] }); assert.equal(kind('The Drowned Tavern').plan, 'inn');
+  assert.equal(kind('Temple of Ash').plan, 'temple'); assert.equal(kind('Reedglass Keep').plan, 'keep'); assert.equal(kind('The Black Tower').plan, 'keep');
+  assert.equal(kind("Henthein's Bothy").plan, 'house'); assert.equal(kind('The Old Mill').plan, 'house'); assert.equal(kind('The Sunken Crypt'), null, 'a built vault underground is no building');
+  for (const s of ATLAS_SHEET_SITES) if (s.draws === 'building') { assert.ok(TnDMaps.interior.PROGRAMS[s.plan], s.plan + ' is a plan the library lays'); assert.ok(s.size[0] * s.size[1] < 320, 'under the size the library gives a courtyard'); }
+  assert.ok(TnDMaps.interior.PROGRAMS[atlasGroundWord('building').plan]);
+  assert.equal(atlasSheetIsSite('building', 'inn'), true); assert.equal(atlasSheetIsSite('building', 'the tower'), true, 'every row of the kind is read, not the first'); assert.equal(atlasSheetIsSite('building', 'cave'), false); assert.equal(atlasSheetIsSite('cave', 'inn'), false);
+  assert.equal(atlasSheetGround({ id: 's', name: INN, container: INN }, []), null, 'a building is no open ground');
+});
+
+test('the inn in the town is drawn as a building: one floor of nameless bare rooms, one door back to the town, no scale and no floor count', () => {
+  const id = inn('N'), doc = atlasDoc(id);
+  assert.equal(doc.generator.name, 'interior'); assert.equal(doc.kind, 'inn'); assert.equal(doc.title.name, INN); assert.equal(doc.site.where, 'within ' + TOWN);
+  assert.equal(doc.frame.precision, 'schematic'); assert.ok(atlasSheetDrawn(doc)); assert.deepEqual(doc.levels, [0]);
+  assert.ok(doc.rooms.length > 4); for (const r of doc.rooms) { assert.equal(r.name, '', 'the generator names no room'); assert.deepEqual(r.furniture, [], 'and furnishes none'); }
+  assert.equal(doc.portals.length, 1); assert.equal(doc.portals[0].name, 'to ' + TOWN); assert.equal(doc.portals[0].id, 'way-1');
+  assert.deepEqual(doc.features, []); assert.deepEqual(doc.unplaced, []);
+  const text = JSON.stringify(TnDMaps.scene.build(doc, 'ink')); assert.doesNotMatch(text, /Ground floor|on foot| m²|common room|kitchen/i); assert.match(text, /to Ashenveil/);
+  assert.equal(JSON.stringify(atlasDoc(id)), JSON.stringify(doc), 'two draws of one record are one document');
+  atlasForget(); assert.equal(atlasDoc(id).stats.ms, undefined, 'the document carries no timing');
+  worldState.atlas.drawn = false; atlasForget(); assert.equal(atlasDoc(id).generator.name, 'schematic', 'the campaign switch keeps pin sheets for buildings too');
+});
+
+test('the door stands in the wall toward the place it leads back to; a direction nobody stated lays it to the south', () => {
+  const door = b => { const d = atlasDoc(inn(b)), p = d.portals[0], o = d.floors[0].outline, xs = o.map(q => q[0]), ys = o.map(q => q[1]); return { x: p.x, y: p.y, x0: Math.min.apply(null, xs), x1: Math.max.apply(null, xs), y0: Math.min.apply(null, ys), y1: Math.max.apply(null, ys) }; };
+  let p = door('N'); assert.ok(Math.abs(p.y - p.y1) < 12 && p.x > p.x0 + 40 && p.x < p.x1 - 40, 'the inn lies north of the town: its door is in the south wall');
+  p = door('E'); assert.ok(Math.abs(p.x - p.x0) < 12, 'east of it: the door is in the west wall');
+  p = door('S'); assert.ok(Math.abs(p.y - p.y0) < 12, 'south of it: the north wall');
+  p = door(null); assert.ok(Math.abs(p.y - p.y1) < 12, 'never stated: south, as a place inside another lays its way back');
+  const f = atlasSheetFootprint(10, 6, 'S'), a = f[ATLAS_SHEET_FRONT], b = f[(ATLAS_SHEET_FRONT + 1) % 4]; assert.ok(a[1] === b[1] && a[1] > 0 && Math.abs(a[0] - b[0]) === 200, 'its front edge is the wide southern one');
+});
+
+test('the story names the rooms: each thing toward its bearing from the room the door opens into, a report in its own face, what has no direction listed', () => {
+  const id = inn('N'); turn(rev('the long bar', 'N') + rev('a kitchen door', 'E') + rev('the cellar hatch', 'W', 'reported') + rev('a loose floorboard', 'unknown', 'reported') + rev('inn', 'S'));
+  const doc = atlasDoc(id), by = {}; doc.features.forEach(f => { by[f.name] = f; });
+  assert.deepEqual(doc.features.map(f => f.name), ['the long bar', 'a kitchen door', 'the cellar hatch'], 'in the order disclosed; "inn" in an inn names the walls, not a thing');
+  assert.ok(by['the long bar'].y < doc.story.at[1]); assert.ok(by['a kitchen door'].x > doc.story.at[0]); assert.ok(by['the cellar hatch'].x < doc.story.at[0]);
+  assert.equal(by['the cellar hatch'].reported, true); assert.equal(new Set(doc.features.map(f => f.room)).size, 3); assert.ok(doc.features.every(f => f.room !== doc.story.room));
+  assert.deepEqual(doc.unplaced.map(u => u.name), ['a loose floorboard']);
+  const scene = TnDMaps.scene.build(doc, 'ink'), text = JSON.stringify(scene); for (const n of ['the long bar', 'a kitchen door', 'the cellar hatch']) assert.ok(text.indexOf(n) > 0, n + ' is on the plan'); assert.deepEqual(scene.dropped, []);
+  assert.deepEqual(atlasThings(doc).map(t => t.name).sort(), ['a kitchen door', 'a loose floorboard', 'the cellar hatch', 'the long bar', 'to ' + TOWN].sort(), 'the things of the sheet are the story\'s and the door; a nameless room is no thing');
+  const before = JSON.stringify(doc.features), w0 = walls(doc); turn(rev('a second bar', 'N') + rev('a rope ladder', 'unknown'));
+  const later = atlasDoc(id); assert.equal(JSON.stringify(later.features.slice(0, 3)), before, 'a later thing never moves an earlier one'); assert.equal(walls(later), w0, 'and the walls never change');
+});
+
+test('the party is drawn in the room the door opens into, and every card answers in a building: a thing, the door, the pin that opens it', () => {
+  const id = inn('N'); turn(rev('the long bar', 'N') + rev('a loose floorboard', 'unknown', 'reported'));
+  const doc = atlasDoc(id), party = atlasPartyIn(id), bar = doc.features[0], entry = doc.rooms.filter(r => r.entry)[0], town = atlasPublicPlacesList(worldState.atlas).filter(r => r.container === TOWN)[0].id;
+  assert.deepEqual([party.x, party.y], doc.story.at); assert.equal(doc.story.room, entry.id); assert.equal(party.label, INN); assert.deepEqual(atlasSheetStand(doc), doc.story.at);
+  let card = atlasCard(id, { id: bar.id }); assert.equal(card.title, 'the long bar'); assert.deepEqual([card.x, card.y], [bar.x, bar.y]);
+  card = atlasCard(id, { id: 'way-1' }); assert.equal(card.title, 'The way to ' + TOWN); assert.equal(card.opens, town, 'the door opens the town'); assert.deepEqual([card.x, card.y], [doc.portals[0].x, doc.portals[0].y]);
+  card = atlasCard(id, { id: doc.unplaced[0].id }); assert.equal(card.title, 'a loose floorboard'); assert.deepEqual([card.x, card.y], doc.story.at);
+  assert.deepEqual(atlasTrailItems(id).map(t => [t.text, t.current]), [[ATLAS_JOURNEY_TITLE, false], [TOWN, false], [INN, true]]);
+});
+
+test('a building nobody travelled into keeps its pin sheet; the story may answer "building", and an "other" from before buildings is asked once more', async () => {
+  setup(INN); assert.equal(atlasDoc(worldState.atlas.at).generator.name, 'schematic', 'a building has a door, and the engine does not invent where');
+  const HALLS = 'The Cold Halls'; setup(TOWN); const id = go(TOWN, HALLS), A = worldState.atlas, key = TOWN + '|' + HALLS;
+  assert.equal(atlasDoc(id).generator.name, 'schematic');
+  A.grounds = keyedDict(); A.grounds[key] = { ground: 'other', turn: 2, by: 'story', set: 2 };
+  assert.equal(atlasGroundStale(A, key), true, 'answered when a building was "other"'); assert.equal(atlasGroundOwed().place, HALLS);
+  global.callGM = async function () { return '{"ground":"building"}'; };
+  assert.equal(await atlasGroundSettle('Stone corridors and a cold hearth.', ''), 'building');
+  assert.deepEqual(toasts, ['Map: The Cold Halls is drawn as a building.']); assert.equal(atlasGroundOwed(), null);
+  const doc = atlasDoc(id); assert.equal(doc.generator.name, 'interior'); assert.equal(doc.kind, 'house'); assert.equal(doc.portals[0].name, 'to ' + TOWN);
+  assert.equal(atlasGroundFile(A, key, 'forest').ok, false, 'a site answered is never replaced');
+  assert.match(atlasGroundAsk({ place: HALLS, container: key, features: [] }, 'x', '').system + atlasGroundAsk({ place: HALLS, container: key, features: [] }, 'x', '').user, /"building"|building/);
 });
 
 (async function () {

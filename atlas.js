@@ -55,11 +55,13 @@ var ATLAS_BUILDERS={
   "interior>dungeon":{via:"id",make:function(doc,via){return TnDMaps.dungeon.fromInterior(doc,via);}}
 };
 /* the NAMED THINGS of a document, per generator, beside its portals (which every document carries) */
+/* The things of a sheet of rooms: its rooms, and on a story sheet the story's things and what found no room (listed: it stands where the party is drawn). */
+function atlasStoryThings(d){return (d.rooms||[]).concat(d.features||[],(d.unplaced||[]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0],y:d.story.at[1],unplaced:true};}));}
 var ATLAS_THINGS={
   region:function(d){return [].concat(d.places||[],d.caves||[],d.features||[]);},
   town:function(d){return [].concat(d.establishments||[],d.landmarks||[]);},
-  dungeon:function(d){return (d.rooms||[]).concat(d.features||[],(d.unplaced||[]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0],y:d.story.at[1],unplaced:true};}));},/* #771 P2: a story cave's chambers are nameless; its things are the story's (features), and what found no chamber is listed */
-  interior:function(d){return d.rooms||[];},
+  dungeon:atlasStoryThings,/* #771 P2: a story cave's chambers are nameless; its things are the story's (features), and what found no chamber is listed */
+  interior:atlasStoryThings,/* #771 P2: a story building's rooms are nameless too */
   wild:function(d){return (d.features||[]).concat(((d.site&&d.site.unplaced)||[]).map(function(u){return {id:u.id,name:u.name,x:d.frame.width/2,y:d.frame.height/2,unplaced:true};}));},/* #771: a story sheet's listed things — known without a position, so never a camera target */
   schematic:function(d){return d.features||[];}
 };

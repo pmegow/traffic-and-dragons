@@ -18,10 +18,13 @@
                reported is a ring. A feature that IS the place an exit leads to is the exit, not a second pin.
      listed    what has no direction, and a visited place inside this one that no feature names: listed, never drawn.
      sites     #771 P2 (owner: "the hierarchy should be Petrified Mire: Shattered Ridge: Wyrm lair"): a place that is not
-               open country is drawn as what it IS — ATLAS_SHEET_SITES, one row per kind (a cave today; a building is
-               the next entry). A cave is the library's rock with nameless chambers: the way the party came in is its
+               open country is drawn as what it IS — ATLAS_SHEET_SITES, a row per kind (a cave; a building by
+               its plan). A cave is the library's rock with nameless chambers: the way the party came in is its
                mouth, named for the place it leads back to; each feature with a bearing names the free chamber toward
                it; the rest is listed. A cave nobody travelled into (no way on record) keeps its pin sheet.
+               A building is the library's walls on one floor with nameless bare rooms: the way the party came in is
+               its door, in the wall toward the place it leads back to; each feature with a bearing names the free
+               room toward it from the room the door opens into; the rest is listed.
    Stability: the library's story sheet moves nothing when an exit is added; features are handed over in the order the
    story disclosed them, so a later one never takes an earlier one's ground. */
 var ATLAS_SHEET_GROUNDS=[
@@ -43,16 +46,23 @@ var ATLAS_SHEET_KINDS=[
 ];
 var ATLAS_SHEET_WAY_NOUNS=["road","causeway","highway","path","trail","track","lane","way"];
 /* #771 P2: what a place that is NOT open country is drawn as, by its name's head noun. One row per site kind: the drawing
-   (ATLAS_SHEET_DRAWS) and the nouns that say it. A noun here is never a noun of a ground above. */
+   (ATLAS_SHEET_DRAWS) and the nouns that say it. A noun here is never a noun of a ground above. A BUILDING row also says its
+   plan (the library's building program: how the walls are laid — never a room's name) and its size, wide by deep, in the
+   library's metres (the sheet states no distance: the size only gives the story's names room). */
 var ATLAS_SHEET_SITES=[
-  {draws:"cave",nouns:["cave","caves","cavern","caverns","grotto","grottoes","den","lair","burrow","warren","tunnel","tunnels","mine","mines"]}
+  {draws:"cave",nouns:["cave","caves","cavern","caverns","grotto","grottoes","den","lair","burrow","warren","tunnel","tunnels","mine","mines"]},
+  {draws:"building",plan:"inn",size:[18,16],nouns:["inn","tavern","alehouse","taproom","taphouse","hostel","hostelry","roadhouse"]},
+  {draws:"building",plan:"temple",size:[14,22],nouns:["temple","church","chapel","cathedral","abbey","monastery","priory","sanctum","sanctuary"]},
+  {draws:"building",plan:"keep",size:[18,17],nouns:["keep","tower","fort","fortress","castle","citadel","stronghold","bastion","palace","manor"]},
+  {draws:"building",plan:"house",size:[14,11],nouns:["house","hut","cabin","shack","hovel","cottage","bothy","lodge","farmhouse","homestead","hall","guildhall","barn","mill","stable","stables","smithy","forge","shop","store","workshop","library","barracks","gaol","jail","prison","warehouse","bathhouse","hospital","infirmary","academy","school"]}
 ];
+/* A building the story only ANSWERED to be one (its name says no kind) takes the plan and size of its ground word. */
 var ATLAS_SHEET_BEARINGS=["N","NE","E","SE","S","SW","W","NW"];
 /* A plain one-word label that is a noun of the sheet's OWN site kind names the site, not a thing in it. */
 function atlasSheetIsSite(draws,label){
   var p=String(label||"").toLowerCase().replace(/^(?:the|a|an) /,"").replace(/[^a-z' ]+/g," ").replace(/\s+/g," ").trim(),i;
   if(!p||p.indexOf(" ")>=0||atlasPublicLandscapeNamed(label))return false;
-  for(i=0;i<ATLAS_SHEET_SITES.length;i++)if(ATLAS_SHEET_SITES[i].draws===draws)return ATLAS_SHEET_SITES[i].nouns.indexOf(p)>=0;
+  for(i=0;i<ATLAS_SHEET_SITES.length;i++)if(ATLAS_SHEET_SITES[i].draws===draws&&ATLAS_SHEET_SITES[i].nouns.indexOf(p)>=0)return true;/* every row of the kind: a building has several */
   return false;
 }
 var ATLAS_SHEET_CAVE_SIZE="town",ATLAS_SHEET_CAVE_REACH=290,ATLAS_SHEET_STORY_CAP=64;/* how much rock a site gets (the library's extent word: some 17 chambers), how far from the sheet's middle its mouth stands, how many things a site names */
@@ -80,7 +90,7 @@ function atlasSheetIsGround(terrain,label){
 var ATLAS_GROUND_OTHER="other";
 /* The edition of the vocabulary below. An "other" answered under an OLDER edition is asked once more (a cave was "other"
    until edition 2); a terrain or a site, once answered, is never asked or replaced. A new site kind is a new edition. */
-var ATLAS_GROUND_SET=2;
+var ATLAS_GROUND_SET=3;/* 2: a cave. 3: a building. */
 var ATLAS_GROUND_WORDS=[
   {ground:"forest",says:"woodland: trees, a grove, a clearing among trees, jungle"},
   {ground:"marsh",says:"wet ground: swamp, bog, fen, reeds, flooded land"},
@@ -89,7 +99,8 @@ var ATLAS_GROUND_WORDS=[
   {ground:"hills",says:"rolling high ground: hills, downs, bluffs"},
   {ground:"heath",says:"open low ground: grass, meadow, moor, plain, farmland"},
   {ground:"cave",draws:"cave",as:"a cave",says:"underground in natural rock: a cave, a den, a lair, a burrow, tunnels, a mine"},
-  {ground:ATLAS_GROUND_OTHER,says:"none of these: inside a building, a built cellar or vault, the streets of a settlement, on water"}
+  {ground:"building",draws:"building",plan:"house",size:[14,11],as:"a building",says:"inside a building above ground: a house, an inn, a temple, a keep, a tower, a shop"},
+  {ground:ATLAS_GROUND_OTHER,says:"none of these: a built cellar, crypt or vault underground, the streets of a settlement, on water"}
 ];
 function atlasGroundWord(g){var i;for(i=0;i<ATLAS_GROUND_WORDS.length;i++)if(ATLAS_GROUND_WORDS[i].ground===g)return ATLAS_GROUND_WORDS[i];return null;}
 /* The ground the story answered for a place, or null (never asked, or a record that cannot be read — said on the console
@@ -112,9 +123,11 @@ function atlasGroundRecord(A,container){
 /* What a place's NAME says it is drawn as, or null: {draws:"wild", terrain} for open ground, {draws:<site>} for a site. */
 function atlasSheetNameKind(place){
   var name=place.container?atlasSheetLeaf(place.container):place.name,site=atlasSheetRow(ATLAS_SHEET_SITES,name),terrain;
-  if(site)return {draws:site.draws};
+  if(site)return atlasSheetSiteKind(site);
   terrain=atlasSheetNameGround(place);return terrain?{draws:"wild",terrain:terrain}:null;
 }
+/* What a row of ATLAS_SHEET_SITES (or a site word of ATLAS_GROUND_WORDS) draws: the kind, and for a building its plan and size. */
+function atlasSheetSiteKind(row){return row.plan?{draws:row.draws,plan:row.plan,size:row.size}:{draws:row.draws};}
 /* The ground a place's NAME says, or null: its head noun; a place that is a WAY wears the ground it runs through. */
 function atlasSheetNameGround(place){
   var name=place.container?atlasSheetLeaf(place.container):place.name,row=atlasSheetRow(ATLAS_SHEET_GROUNDS,name),i,w;
@@ -129,14 +142,14 @@ function atlasSheetNameGround(place){
    "other" is an answer: no drawing, and no feature overrides it); else, while nothing was answered, the first plain
    observed feature that says one. */
 function atlasSheetGround(place,features){var k=atlasSheetKind(place,features);return k&&k.draws==="wild"?k.terrain:null;}
-/* What a place is drawn as, or null (its pin sheet stays): {draws:"wild", terrain} | {draws:<a site of ATLAS_SHEET_DRAWS>}. */
+/* What a place is drawn as, or null (its pin sheet stays): {draws:"wild", terrain} | {draws:<a site of ATLAS_SHEET_DRAWS>} (a building with its plan and size). */
 function atlasSheetKind(place,features){
   var named=atlasSheetNameKind(place),word,row,i,f;
   if(named)return named;
   if(place.ground){
     word=atlasGroundWord(place.ground);
     if(!word||place.ground===ATLAS_GROUND_OTHER)return null;
-    return word.draws?{draws:word.draws}:{draws:"wild",terrain:place.ground};
+    return word.draws?atlasSheetSiteKind(word):{draws:"wild",terrain:place.ground};
   }
   for(i=0;i<features.length;i++){f=features[i];if(f.mode!=="observed"||atlasPublicLandscapeNamed(f.label))continue;row=atlasSheetRow(ATLAS_SHEET_GROUNDS,f.label);if(row)return {draws:"wild",terrain:row.terrain};}
   return null;
@@ -190,7 +203,7 @@ function atlasSheetRecipe(place,features,ways,inside){
   /* a feature that names the place a way leads to IS that way: one thing on the sheet, under the feature's own id — so its card, and a note the player wrote on it, stay with it */
   ways=ways.map(function(x){var named=byName[atlasKnowledgeFold(x.name)];if(named)isWay[named.id]=true;return {id:named?named.id:x.id,key:x.key,name:x.name,bearing:x.bearing,lean:x.lean,to:x.to,feature:named?named.id:null};});
   if(draw.site){/* #771 P2: a site (a cave) — its own params from the same sorted record */
-    params=draw.params(place,sorted,ways,inside,isWay);
+    params=draw.params(place,sorted,ways,inside,isWay,kind);
     return params?{draws:kind.draws,generator:draw.generator,terrain:null,ways:ways,inside:inside,params:params}:null;
   }
   for(i=0;i<ways.length;i++)if(ways[i].bearing)used[ways[i].bearing]=true;
@@ -214,34 +227,64 @@ function atlasSheetRecipe(place,features,ways,inside){
   for(i=0;i<inside.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push({id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
   return {draws:"wild",generator:draw.generator,terrain:terrain,ways:ways,inside:inside,params:{seed:place.id+"/sheet",width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,terrain:terrain,title:atlasSheetLeaf(place.container)||place.name,site:{exits:exits,unplaced:listed},edits:edits}};
 }
-/* A CAVE's params (TnDMaps.generate("dungeon", …), the library's story sheet for a natural site), or null when no way into
+/* A cave's sheet (TnDMaps.generate("dungeon", …), the library's story sheet for a natural site), or null when no way into
    it is on record (a cave has a mouth; the engine does not invent where). The FIRST way — how the party first came in — is
    the mouth the rock grows from, at the edge toward the place it leads back to (unstated: the south edge, the way a place
    inside another lays its way back); a later way would redraw the rock, so it is listed, never a second mouth. */
-function atlasSheetCaveParams(place,sorted,ways,inside,isWay){
-  var first=ways[0],b,a,story=[],listed=[],i,f,parent=atlasSheetParent(place.container);
+/* What a SITE's sheet is told, the same for every site kind, or null when no way into it is on record (a site has a way in;
+   the engine does not invent where): {first, b, story, listed} — the FIRST way (how the party first came in), the edge or
+   wall it stands toward (its bearing; unstated: south, the way a place inside another lays its way back), the things with
+   a bearing in the order disclosed, and what is listed: a later way, a thing without a direction, a place inside. */
+function atlasSheetSiteStory(draws,sorted,ways,inside,isWay){
+  var first=ways[0],b,story=[],listed=[],i,f;
   if(!first)return null;
-  b=first.bearing||first.lean||"S";a=ATLAS_SHEET_BEARINGS.indexOf(b)*Math.PI/4;
+  b=first.bearing||first.lean||"S";
   for(i=1;i<ways.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push({id:ways[i].id,name:atlasSheetCut("The way to "+ways[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
   for(i=0;i<sorted.length;i++){
     f=sorted[i];if(isWay[f.id])continue;
-    if(atlasSheetIsSite("cave",f.label))continue;/* "cave" in a cave: the rock is drawn, not named */
+    if(atlasSheetIsSite(draws,f.label))continue;/* "cave" in a cave, "inn" in an inn: the site is drawn, not named */
     if(f.bearing==="unknown"||story.length>=ATLAS_SHEET_STORY_CAP){if(listed.length<ATLAS_SHEET_LIST_CAP)listed.push({id:f.id,name:atlasSheetCut(f.label,ATLAS_SHEET_LIST_NAME_MAX),mode:f.mode});continue;}
     story.push({id:f.id,name:atlasSheetCut(f.label,ATLAS_SHEET_NAME_MAX),bearing:f.bearing,mode:f.mode});
   }
   for(i=0;i<inside.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push({id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
-  return {seed:place.id+"/sheet",width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,title:atlasSheetLeaf(place.container)||place.name,site:{kind:"cave",heading:ATLAS_JOURNEY_OPPOSITE[b],where:parent===null?null:"within "+atlasSheetLeaf(parent),town:{name:null,size:ATLAS_SHEET_CAVE_SIZE},
-    portals:[{id:first.id,kind:"cave",name:atlasSheetCut("to "+first.name,ATLAS_SHEET_WAY_MAX),x:Math.round(ATLAS_SHEET_CENTRE[0]+Math.sin(a)*ATLAS_SHEET_CAVE_REACH),y:Math.round(ATLAS_SHEET_CENTRE[1]-Math.cos(a)*ATLAS_SHEET_CAVE_REACH)}],story:story,unplaced:listed}};
+  return {first:first,b:b,story:story,listed:listed};
+}
+/* Where a site lies, in the story's words: within the place around it; nothing for a place of the world's own level. */
+function atlasSheetWithin(place){var parent=atlasSheetParent(place.container);return parent===null?null:"within "+atlasSheetLeaf(parent);}
+function atlasSheetCaveParams(place,sorted,ways,inside,isWay){
+  var s=atlasSheetSiteStory("cave",sorted,ways,inside,isWay),a;
+  if(!s)return null;
+  a=ATLAS_SHEET_BEARINGS.indexOf(s.b)*Math.PI/4;
+  return {seed:place.id+"/sheet",width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,title:atlasSheetLeaf(place.container)||place.name,site:{kind:"cave",heading:ATLAS_JOURNEY_OPPOSITE[s.b],where:atlasSheetWithin(place),town:{name:null,size:ATLAS_SHEET_CAVE_SIZE},
+    portals:[{id:s.first.id,kind:"cave",name:atlasSheetCut("to "+s.first.name,ATLAS_SHEET_WAY_MAX),x:Math.round(ATLAS_SHEET_CENTRE[0]+Math.sin(a)*ATLAS_SHEET_CAVE_REACH),y:Math.round(ATLAS_SHEET_CENTRE[1]-Math.cos(a)*ATLAS_SHEET_CAVE_REACH)}],story:s.story,unplaced:s.listed}};
+}
+/* A BUILDING's params (TnDMaps.generate("interior", …), the library's story sheet for a building: one floor, nameless bare
+   rooms, one door), or null when no way into it is on record. The FIRST way is its door, in the wall toward the place it
+   leads back to (unstated: the south wall) and named for it; each feature with a bearing names the free room toward it from
+   the room the door opens into; the rest, and a later way, is listed. The walls are a rectangle of the kind's size. */
+function atlasSheetBuildingParams(place,sorted,ways,inside,isWay,kind){
+  var s=atlasSheetSiteStory("building",sorted,ways,inside,isWay);
+  if(!s)return null;
+  return {seed:place.id+"/sheet",title:atlasSheetLeaf(place.container)||place.name,site:{kind:kind.plan,footprint:atlasSheetFootprint(kind.size[0],kind.size[1],s.b),front:ATLAS_SHEET_FRONT,where:atlasSheetWithin(place),
+    exit:{id:s.first.id,name:atlasSheetCut("to "+s.first.name,ATLAS_SHEET_WAY_MAX)},story:s.story,unplaced:s.listed}};
+}
+/* A building's walls: a rectangle wide by deep (the library's metres), turned so the wall its door stands in faces bearing b.
+   Edge ATLAS_SHEET_FRONT of the polygon is that wall. */
+var ATLAS_SHEET_FRONT=2,ATLAS_SHEET_UNITS_PER_M=20;
+function atlasSheetFootprint(wide,deep,b){
+  var a=ATLAS_SHEET_BEARINGS.indexOf(b)*Math.PI/4-Math.PI,hw=wide*ATLAS_SHEET_UNITS_PER_M/2,hd=deep*ATLAS_SHEET_UNITS_PER_M/2,c=Math.cos(a),s=Math.sin(a);
+  return [[-hw,-hd],[hw,-hd],[hw,hd],[-hw,hd]].map(function(p){return [Math.round((p[0]*c-p[1]*s)*10)/10,Math.round((p[0]*s+p[1]*c)*10)/10];});
 }
 /* ONE row per drawing: the library generator and, for a site, its params. A new site kind is an entry here, a row of
    ATLAS_SHEET_SITES and a word of ATLAS_GROUND_WORDS. */
 var ATLAS_SHEET_DRAWS={
   wild:{generator:"wild",site:false,timings:["ms"]},
-  cave:{generator:"dungeon",site:true,params:atlasSheetCaveParams,timings:["spine","rooms","total"]}
+  cave:{generator:"dungeon",site:true,params:atlasSheetCaveParams,timings:["spine","rooms","total"]},
+  building:{generator:"interior",site:true,params:atlasSheetBuildingParams,timings:["ms"]}
 };
 /* Is this document a DRAWN sheet (a place on its own ground, a site in its own rock), not a pin sheet? */
-function atlasSheetDrawn(doc){return !!doc&&!!doc.generator&&(doc.generator.name==="wild"||(doc.generator.name==="dungeon"&&!!doc.story));}
-/* Where the party is drawn on a sheet it stands in: a site's middle chamber, a drawn ground's middle, a pin sheet's. */
+function atlasSheetDrawn(doc){return !!doc&&!!doc.generator&&(doc.generator.name==="wild"||((doc.generator.name==="dungeon"||doc.generator.name==="interior")&&!!doc.story));}
+/* Where the party is drawn on a sheet it stands in: a cave's middle chamber, the room a building's door opens into, a drawn ground's middle, a pin sheet's. */
 var ATLAS_SHEET_PIN_CENTRE=[400,275];
 function atlasSheetStand(doc){return !atlasSheetDrawn(doc)?ATLAS_SHEET_PIN_CENTRE:(doc.story&&doc.story.at?doc.story.at:ATLAS_SHEET_CENTRE);}
 /* The recipe of a visited sheet from the live record, or null. A failure to read it is said once and the pin sheet stands. */

@@ -1,11 +1,11 @@
-/* TnD Maps 0.25.1 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.26.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.25.1";
+  NS.VERSION = "0.26.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -4404,7 +4404,14 @@
 
   /* ── params ── */
   var DEFAULTS = { seed: null, culture: "common", title: null, site: {}, floors: null, cellar: null, rooms: {}, edits: [] };
-  var SITE_KEYS = ["kind", "name", "word", "footprint", "front", "town", "mPerUnit", "above", "district"];
+  var SITE_KEYS = ["kind", "name", "word", "footprint", "front", "town", "mPerUnit", "above", "district", "story", "unplaced", "where", "exit"];
+  /* v0.26.0, the story's sheet for a building (as 44-dungeon.js draws a cave's): the generator lays the walls and names NOTHING —
+     one floor, every room a nameless "room", no furniture, no back door, no stair down, every inner doorway open —, and the
+     caller's things (site.story: [{id, name, bearing, mode: observed|reported}], in the order the story disclosed them) each
+     take the free room nearest their bearing from the room the door opens into, within STORY_REACH degrees; one that finds none is listed
+     with what has no direction (site.unplaced). site.exit {id, name} names the front door for where it leads; site.where is
+     the caption. The sheet states no distance (frame.precision "schematic"). */
+  var BEARINGS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"], MAX_STORY = 64, MAX_STORY_NAME = 40, MAX_UNPLACED = 64, STORY_REACH = 67.5, STORY_MODES = { observed: 1, reported: 1 }, MAX_WHERE = 120, MAX_EXIT_NAME = 80, STORY_WORD = "room", NO_STORY_ROOM = { passage: 1, stair: 1, court: 1, closet: 1 };
   function resolveParams(input) {
     var P = U.extend({}, DEFAULTS, input || {}), k, S;
     for (k in input || {}) if (Object.prototype.hasOwnProperty.call(input, k) && !Object.prototype.hasOwnProperty.call(DEFAULTS, k)) NS.fail("unknown parameter", { param: k, known: Object.keys(DEFAULTS) });
@@ -4426,6 +4433,22 @@
     NS.assert(NS.own(SIZE_INDEX, S.town.size) !== undefined, "site.town.size must be hamlet|village|town|city", { size: S.town.size });
     P.rooms = P.rooms || {}; P.edits = P.edits || [];
     validateCounts(P.rooms, S.kind); validateEdits(P.edits);
+    if (S.story !== undefined) {
+      var seenS = {};
+      NS.assert(S.exit === undefined || (S.exit && typeof S.exit === "object" && typeof S.exit.id === "string" && S.exit.id.length > 0 && S.exit.id.length <= 40 && typeof S.exit.name === "string" && S.exit.name.trim().length > 0 && S.exit.name.length <= MAX_EXIT_NAME), "site exit must be {id, name (1–" + MAX_EXIT_NAME + " characters)}: what the front door is called for where it leads", { exit: S.exit });
+      if (S.exit) { S.exit = { id: S.exit.id, name: S.exit.name }; seenS[S.exit.id] = true; }
+      seenS["door-front"] = true;
+      NS.assert(Array.isArray(S.story) && S.story.length <= MAX_STORY && S.story.every(function (f) { var ok = f && typeof f === "object" && typeof f.id === "string" && f.id.length > 0 && f.id.length <= 40 && !seenS[f.id] && !GENERATED_ID.test(f.id) && typeof f.name === "string" && f.name.trim().length > 0 && f.name.length <= MAX_STORY_NAME && BEARINGS.indexOf(f.bearing) >= 0 && NS.own(STORY_MODES, f.mode) === 1; if (ok) seenS[f.id] = true; return ok; }), "site story must be a list of at most " + MAX_STORY + " {id, name (1–" + MAX_STORY_NAME + " characters), bearing: " + BEARINGS.join("|") + ", mode: observed|reported}, each id once, none the door's and none like a generated one (kind-n)", { story: S.story });
+      NS.assert(!Object.keys(P.rooms).length && !P.edits.length, "give the rooms by the story (site.story) or by the author's rooms and edits, not both", { rooms: P.rooms, edits: P.edits.length });
+      NS.assert(P.floors === null && P.cellar === null, "the story's sheet is one floor: leave floors and cellar unset", { floors: P.floors, cellar: P.cellar });
+      NS.assert(S.where === undefined || S.where === null || (typeof S.where === "string" && S.where.length <= MAX_WHERE), "site where must be a string of at most " + MAX_WHERE + " characters (where the building stands, in the story's words)", { where: S.where });
+      S.story = S.story.map(function (f) { return { id: f.id, name: f.name, bearing: f.bearing, mode: f.mode }; });
+    } else NS.assert(S.exit === undefined && S.where === undefined, "site exit and site where belong to the story's sheet (give site.story, an empty list too)", { exit: S.exit, where: S.where });
+    if (S.unplaced !== undefined) {
+      NS.assert(S.story !== undefined, "site unplaced belongs to the story's sheet (give site.story, an empty list too)", { unplaced: S.unplaced });
+      NS.assert(Array.isArray(S.unplaced) && S.unplaced.length <= MAX_UNPLACED && S.unplaced.every(function (u) { return u && typeof u === "object" && typeof u.id === "string" && u.id.length > 0 && u.id.length <= 40 && typeof u.name === "string" && u.name.trim().length > 0 && u.name.length <= 200 && NS.own(STORY_MODES, u.mode) === 1; }), "site unplaced must be a list of at most " + MAX_UNPLACED + " {id, name, mode: observed|reported}", { unplaced: S.unplaced });
+      S.unplaced = S.unplaced.map(function (u) { return { id: u.id, name: u.name, mode: u.mode }; });
+    }
     S.mPerUnit = M_PER_UNIT;
     S.above = S.above || { generator: "town", site: null, id: null, name: S.town.name };
     S.district = S.district || null;
@@ -4837,7 +4860,7 @@
       court = { x0: ccx - cw / 2, y0: ccy - chh / 2, x1: ccx + cw / 2, y1: ccy + chh / 2 };
     }
     /* how many levels: the program's say over the footprint, the author's over the program */
-    var ups = P.floors !== null ? P.floors : PR.floors(areaM2, si), hasCellar = P.cellar !== null ? P.cellar : PR.cellar(areaM2, rng), levelsList = [], L;
+    var ups = S.story ? 0 : P.floors !== null ? P.floors : PR.floors(areaM2, si), hasCellar = S.story ? false : P.cellar !== null ? P.cellar : PR.cellar(areaM2, rng), levelsList = [], L;   /* v0.26.0: the story's sheet is the ground floor — the story said nothing of a cellar or a floor above */
     if (hasCellar) levelsList.push(-1); for (L = 0; L <= ups; L++) levelsList.push(L);
     var nLevels = levelsList.length;
     /* the room list of every floor, with the author's say — counts per kind, removes by id, adds — and every spec's id
@@ -4990,8 +5013,8 @@
     if (!entry) { var bestLen = 0; ground.forEach(function (r) { var fw = frontWall(r); if (fw) { var l = G.dist(fw.p, fw.q); if (l > bestLen) { bestLen = l; entry = r; } } }); }
     NS.assert(entry, "no room reaches the front of the building for a door", { front: S.front });
     var fw0 = frontWall(entry), front = addDoor(entry, null, fw0, "entrance", "door", fw0.t);
-    var portals = [{ id: "door-front", kind: "door", name: "the front door", x: front.x, y: front.y, way: "out", to: { generator: S.above.generator || "town", site: S.above.site || null, id: S.above.id || null } }];
-    if (PR.back) {   /* from the program's room when it has an outer wall besides the front; else from the passage, which runs along the back wall when it is a side one */
+    var portals = [{ id: S.exit ? S.exit.id : "door-front", kind: "door", name: S.exit ? S.exit.name : "the front door", x: front.x, y: front.y, way: "out", to: { generator: S.above.generator || "town", site: S.above.site || null, id: S.above.id || null } }];
+    if (PR.back && !S.story) {   /* (the story's sheet has the one door the party came in by) from the program's room when it has an outer wall besides the front; else from the passage, which runs along the back wall when it is a side one */
       var cands2 = []; ground.forEach(function (r) { if (r.kind === PR.back) cands2.push(r); }); ground.forEach(function (r) { if (r.kind === "passage") cands2.push(r); });
       function backWallOf(r) { var bestW = null; r.exterior.forEach(function (i) { var a = r.local[i], b = r.local[(i + 1) % r.local.length]; if (Math.abs(a[1]) < EPS && Math.abs(b[1]) < EPS) return; var l = G.dist(a, b); if (l >= ENTRY_W + 0.8 * K && (!bestW || l > bestW.len)) bestW = { p: putG(a), q: putG(b), len: l }; }); return bestW; }
       for (var bi = 0; bi < cands2.length; bi++) {
@@ -5001,6 +5024,7 @@
     }
     /* the ways DOWN: a room whose spec is a portal (a temple's crypt stair, a keep's stair to its dungeons) is a portal
        of kind stairs into that dungeon site; the level beneath (dungeon.fromInterior) carries it as its one way up */
+    if (S.story) rooms.forEach(function (r) { delete r.portal; });   /* the story told of no way down */
     rooms.forEach(function (r) { if (r.portal) portals.push({ id: r.id, kind: "stairs", name: r.name, x: r.x, y: r.y, way: "down", to: { generator: "dungeon", site: r.portal, id: r.id } }); });
     /* the stairs: one flight joins the stair rooms of neighbouring levels */
     levelsList.forEach(function (level, i) {
@@ -5036,6 +5060,27 @@
     });
     /* furnishing, from the seed by room id; every piece carries an id the game can point at (a chest to loot, a bed to search) */
     var frontLine = [putG([0, 0]), putG([frame.len, 0])];
+    /* v0.26.0, the story's sheet: the rooms lose every name and word the program dealt, the doorways stand open, nothing furnishes them; the story's things take the rooms */
+    var story = null;
+    if (S.story) {
+      var nameable = rooms.filter(function (r) { return !NO_STORY_ROOM[r.kind]; }), home = entry, taken = {};   /* the room the door opens into: where the party is drawn, and what a bearing is read from */
+      rooms.forEach(function (r) { r.name = ""; r.word = STORY_WORD; r.furnish = "passage"; delete r.renamed; delete r.note; });
+      doors.forEach(function (d) { d.state = d.kind === "door" ? "arch" : "door"; });
+      story = { at: [home.x, home.y], room: home.id, features: [], unplaced: (S.unplaced || []).slice() };
+      taken[home.id] = true;
+      S.story.forEach(function (f) {
+        var want = BEARINGS.indexOf(f.bearing) * 45, best = null, bestOff = Infinity, bestD = Infinity;
+        nameable.forEach(function (r) {
+          if (taken[r.id]) return;
+          var ang = Math.atan2(r.x - home.x, -(r.y - home.y)) * 180 / Math.PI, off = Math.abs(((ang - want) % 360 + 540) % 360 - 180), d = G.dist([r.x, r.y], [home.x, home.y]);
+          if (off > STORY_REACH) return;
+          if (off < bestOff - 1e-9 || (Math.abs(off - bestOff) <= 1e-9 && d < bestD)) { best = r; bestOff = off; bestD = d; }
+        });
+        if (!best) { if (story.unplaced.length < MAX_UNPLACED) story.unplaced.push({ id: f.id, name: f.name, mode: f.mode }); else warnings.push("story " + f.id + ": no free room toward " + f.bearing + " and the list is full — not shown"); return; }
+        taken[best.id] = true;
+        story.features.push({ id: f.id, kind: "story", name: f.name, room: best.id, x: best.x, y: best.y, bearing: f.bearing, mode: f.mode, reported: f.mode === "reported" });
+      });
+    }
     rooms.forEach(function (r) { r.furniture = furnish(r, r.floorPoly, doors.filter(function (d) { return d.rooms.indexOf(r.id) >= 0; }), r.floor === 0 ? frontLine : null, NS.Rng(seed + "/furnish/" + r.id)); r.furniture.forEach(function (it, i) { it.id = r.id + "-f" + (i + 1); }); });
 
     /* the document */
@@ -5046,14 +5091,16 @@
       return o;
     });
     var stats = { rooms: docRooms.length, doors: doors.length, floors: floors.length, areaM2: Math.round(areaM2), ms: Math.round(NS.terrain.now() - t0) };
-    return {
+    var doc = {
       format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "interior", version: NS.VERSION },
-      seed: seed, params: input, frame: { width: sheetW, height: sheetH, kmPerUnit: M_PER_UNIT / 1000, mPerUnit: M_PER_UNIT },
+      seed: seed, params: input, frame: story ? { width: sheetW, height: sheetH, kmPerUnit: M_PER_UNIT / 1000, mPerUnit: M_PER_UNIT, precision: "schematic" } /* v0.26.0: the story stated no distance, so the sheet draws no scale */ : { width: sheetW, height: sheetH, kmPerUnit: M_PER_UNIT / 1000, mPerUnit: M_PER_UNIT },
       title: { name: title, kind: S.word }, site: S, kind: key, word: S.word, facing: facing, areaM2: Math.round(areaM2), levels: levelsList,
       floors: floors.map(function (f) { return { level: f.level, name: f.name, outline: f.outline, rooms: f.rooms }; }),
       rooms: docRooms, doors: doors.map(function (d) { return { id: d.id, kind: d.kind, rooms: d.rooms, floor: d.floor, x: d.x, y: d.y, a: d.a, width: d.width, state: d.state, into: d.into }; }),
       windows: windows, stairs: stairs, portals: portals, warnings: warnings, stats: stats
     };
+    if (story) { doc.features = story.features; doc.unplaced = story.unplaced; doc.story = { at: story.at, room: story.room }; }
+    return doc;
   }
 
   /* ── nesting: the interior of a town's building, by the town's portal into it (null: the first) ── the footprint is
@@ -5105,7 +5152,8 @@
   }
   /* the point bearings and distances are reckoned from: the front door */
   function reference(doc) { var p = doc.portals[0]; return { x: p ? p.x : doc.frame.width / 2, y: p ? p.y : doc.frame.height / 2, word: "the front door", at: "by the front door" }; }
-  function caption(doc) { var S = doc.site; return doc.word + (S.town && S.town.name ? " in " + S.town.name : "") + " · " + doc.floors.length + (doc.floors.length === 1 ? " floor" : " floors") + ", " + doc.areaM2 + " m² · the door opens to the " + doc.facing; }
+  function caption(doc) { var S = doc.site; if (doc.story) return S.where || "";   /* v0.26.0: the story said where it stands, or nothing is said — never a floor count or an area */
+    return doc.word + (S.town && S.town.name ? " in " + S.town.name : "") + " · " + doc.floors.length + (doc.floors.length === 1 ? " floor" : " floors") + ", " + doc.areaM2 + " m² · the door opens to the " + doc.facing; }
   function floorName(level) { return FLOOR_NAMES[String(level)] || "level " + level; }
   /* the words for what furnishes a room: "a hearth, four tables and a counter" */
   var NUMBERS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"];
@@ -5126,6 +5174,11 @@
     doc.rooms.forEach(function (r, i) { NS.assert(r.id && !ids[r.id] && r.kind && typeof r.word === "string" && typeof r.name === "string" && Array.isArray(r.poly) && r.poly.length >= 3 && Array.isArray(r.floorPoly) && r.floorPoly.length >= 3 && isFinite(r.x) && isFinite(r.y) && levels[r.floor] && Array.isArray(r.furniture) && r.furniture.every(function (it) { return FIXTURES[it.kind] && isFinite(it.x) && isFinite(it.y); }) && (r.note === undefined || typeof r.note === "string"), "room " + i + " is malformed or its id is not unique", { room: r }); ids[r.id] = true; });
     doc.doors.forEach(function (d, i) { NS.assert(d.id && Array.isArray(d.rooms) && d.rooms.length === 2 && ids[d.rooms[0]] && (d.rooms[1] === null || ids[d.rooms[1]]) && DOOR_STATES[d.state] && isFinite(d.x) && isFinite(d.y) && d.width > 0, "door " + i + " is malformed", { door: d }); });
     doc.stairs.forEach(function (s, i) { NS.assert(s.id && Array.isArray(s.rooms) && ids[s.rooms[0]] && ids[s.rooms[1]] && levels[s.from] && levels[s.to], "stair " + i + " is malformed", { stair: s }); });
+    if (doc.site && doc.site.story) {
+      NS.assert(doc.frame.precision === "schematic" && Array.isArray(doc.features) && Array.isArray(doc.unplaced) && doc.story && ids[doc.story.room] && Array.isArray(doc.story.at), "a story sheet carries its features, its unplaced list and where the party is drawn", { story: doc.story });
+      doc.features.forEach(function (f, i) { NS.assert(f && typeof f.id === "string" && !ids[f.id] && typeof f.name === "string" && f.name.length > 0 && ids[f.room] && isFinite(f.x) && isFinite(f.y) && NS.own(STORY_MODES, f.mode) === 1, "story feature " + i + " is malformed, or stands in no room", { feature: f }); });
+      doc.rooms.forEach(function (r) { NS.assert(r.name === "" && r.furniture.length === 0, "a story sheet's rooms are nameless and bare", { room: r.id }); });
+    }
     var pids = {};
     doc.portals.forEach(function (p, i) { NS.assert(p.id && !pids[p.id] && ((p.kind === "door" && p.way === "out") || (p.kind === "stairs" && p.way === "down" && p.to && p.to.generator === "dungeon")) && isFinite(p.x) && isFinite(p.y) && p.to && p.to.generator, "portal " + i + " is malformed or its id is not unique", { portal: p }); pids[p.id] = true; });
     return doc;
@@ -7752,8 +7805,9 @@
     },
     /* an interior: a pin is in a room (the floors lie side by side on the sheet, so the nearest room centre is its room) */
     interior: function (doc) {
-      return { points: doc.rooms.map(function (r) { return { name: r.name + " (" + NS.interior.floorName(r.floor).toLowerCase() + ")", x: r.x, y: r.y, at: "in" }; }), closeUnits: 4 / doc.frame.mPerUnit,
-        dist: function (u) { var m = Math.round(u * doc.frame.mPerUnit); return { value: m, unit: "m", text: m + " m" }; } };
+      return { points: doc.rooms.filter(function (r) { return r.name !== ""; }).map(function (r) { return { name: r.name + " (" + NS.interior.floorName(r.floor).toLowerCase() + ")", x: r.x, y: r.y, at: "in" }; }).concat((doc.features || []).map(function (f) { return { name: f.name, x: f.x, y: f.y, at: "in" }; })) /* v0.26.0: a story building's rooms have no names; its things do */, closeUnits: 4 / doc.frame.mPerUnit,
+        dist: function (u) { if (doc.frame.precision === "schematic") return { value: null, unit: "", text: "" };   /* a story sheet states no distance */
+          var m = Math.round(u * doc.frame.mPerUnit); return { value: m, unit: "m", text: m + " m" }; } };
     }
   };
   function describe(doc, markers) {
@@ -8221,12 +8275,14 @@
     rooms.forEach(function (r) { r.furniture.forEach(function (it) { var draw = FIX[it.kind]; NS.assert(draw && I.FIXTURES[it.kind], "no drawer for this fixture", { kind: it.kind }); draw(it, P(it.x, it.y, it.a), I.fixtureSize(it.kind), fixtures); }); });
     /* hits: the doors out first (a click on the threshold is the way out), then the rooms */
     portals.forEach(function (p) { hits.push({ t: "hit", kind: "portal", id: p.id, x: p.x, y: p.y, r: 0.9 * K }); });
-    rooms.forEach(function (r) { var bb = G.bbox(r.floorPoly); hits.push({ t: "hit", kind: "room", id: r.id, x: r.x, y: r.y, r: Math.max(0.6 * K, Math.min(bb[2] - bb[0], bb[3] - bb[1]) * 0.45) }); });
+    rooms.forEach(function (r) { var bb = G.bbox(r.floorPoly), told = null, q;
+      if (doc.story) { for (q = 0; q < doc.features.length; q++) if (doc.features[q].room === r.id) told = doc.features[q]; if (!told) return; }   /* v0.26.0, the story's sheet: a room is clicked as the thing the story put in it; a nameless room is walls and floor, nothing to open */
+      hits.push({ t: "hit", kind: told ? "feature" : "room", id: told ? told.id : r.id, x: r.x, y: r.y, r: Math.max(0.6 * K, Math.min(bb[2] - bb[0], bb[3] - bb[1]) * 0.45) }); });
 
     /* furniture of the sheet, the floor captions, the labels */
     var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
-    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit }, doc.title.name, I.caption(doc), style, furn, lay, frameL);
-    doc.floors.forEach(function (f) {
+    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit, precision: doc.frame.precision }, doc.title.name, I.caption(doc), style, furn, lay, frameL);
+    if (!doc.story) doc.floors.forEach(function (f) {   /* a story sheet is one floor and says nothing of others */
       var bb = G.bbox(f.outline), cx = (bb[0] + bb[2]) / 2, y = bb[3] + 18, cmd = C.plainText(f.name, "labelFloor", cx, y, style);
       furn.push(cmd); lay.block(cx, y - 4, cmd.width + 12, 14);
     });
@@ -8243,12 +8299,22 @@
       var cmd = lay.place(p.name, "labelLandmark", cands, { kind: "portal", id: p.id }, { icon: ["door", "arrowUp"] }); if (cmd) { labels.push(cmd); C.hitBox(hits, "portal", p.id, cmd.box); }
     });
     var sz2 = style.text.labelRoom.size;
-    rooms.slice().sort(function (a, b) { return (b.hub ? 1 : 0) - (a.hub ? 1 : 0) || b.areaM2 - a.areaM2; }).forEach(function (r) {
+    rooms.filter(function (r) { return r.name !== ""; }).sort(function (a, b) { return (b.hub ? 1 : 0) - (a.hub ? 1 : 0) || b.areaM2 - a.areaM2; }).forEach(function (r) {
       var bb = G.bbox(r.floorPoly), hw = (bb[2] - bb[0]) / 2, hh = (bb[3] - bb[1]) / 2, c = G.centroid(r.floorPoly);
       var cands = [{ x: c[0], y: c[1] + sz2 * 0.36 }, { x: c[0], y: c[1] - hh * 0.5 }, { x: c[0], y: c[1] + hh * 0.5 + sz2 * 0.36 }, { x: c[0] - hw * 0.4, y: c[1] + sz2 * 0.36 }, { x: c[0] + hw * 0.4, y: c[1] + sz2 * 0.36 }];
       var cmd = lay.place(r.name, "labelRoom", cands, { kind: "room", id: r.id }, r.kind === "stair" ? { icon: "stairs" } : r.portal ? { icon: ["stairs", "arrowDown"] } : null); if (cmd) { labels.push(cmd); C.hitBox(hits, "room", r.id, cmd.box); }
     });
     void featureLabels;
+    /* v0.26.0, the story's sheet: the story's things, each on the room it took — the only names on the plan but the door's */
+    if (doc.story) lay.block(doc.story.at[0] + 72, doc.story.at[1] + 2, 136, 20);   /* where the party's marker and its name are drawn */
+    (doc.features || []).forEach(function (f) {
+      var r = shown[f.room] ? byId[f.room] : null; if (!r) return;
+      var face = f.reported ? "storyHeard" : "storyFeature", fs = style.text[face].size, bb = G.bbox(r.floorPoly), hw = (bb[2] - bb[0]) / 2, hh = (bb[3] - bb[1]) / 2;
+      var cands = [{ x: r.x, y: r.y + fs * 0.36 }, { x: r.x, y: r.y - hh * 0.5 }, { x: r.x, y: r.y + hh * 0.5 + fs * 0.36 }, { x: r.x, y: r.y + hh + fs * 0.95 }, { x: r.x, y: r.y - hh - fs * 0.35 }, { x: r.x + hw + 1.5, y: r.y + fs * 0.36, anchor: "start" }, { x: r.x - hw - 1.5, y: r.y + fs * 0.36, anchor: "end" },
+        { x: r.x, y: r.y - hh * 0.8 }, { x: r.x, y: r.y + hh * 0.8 + fs * 0.36 }, { x: r.x + hw, y: r.y + hh + fs * 0.95, anchor: "start" }, { x: r.x - hw, y: r.y + hh + fs * 0.95, anchor: "end" }, { x: r.x + hw, y: r.y - hh - fs * 0.35, anchor: "start" }, { x: r.x - hw, y: r.y - hh - fs * 0.35, anchor: "end" },
+        { x: r.x, y: r.y + hh + fs * 2.1 }, { x: r.x, y: r.y - hh - fs * 1.5 }, { x: r.x, y: r.y + hh + fs * 3.3 }, { x: r.x, y: r.y - hh - fs * 2.7 }];   /* a name is moved, never dropped, while there is paper */
+      var cmd = lay.place(f.name, face, cands, { kind: "feature", id: f.id }, null); if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
+    });
     var hitLayer = layer("hits"); for (i = 0; i < hits.length; i++) hitLayer.push(hits[i]);
     return { width: W, height: H, x0: X, y0: Y, style: style.name, layers: layers, dropped: lay.dropped, unit: 8 };
   }
@@ -9524,6 +9590,7 @@
   }
   NS.viewLists.schematic = create;
   NS.viewLists.wild = create;
+  NS.viewLists.interior = create;   /* v0.26.0: a story building (doc.unplaced); any other interior has nothing to list and shows no panel */
   NS.viewLists.dungeon = create;   /* v0.25.0: a story cave (doc.unplaced); any other dungeon has nothing to list and shows no panel */   /* v0.24.0: a story sheet lists what is known without a direction (site.unplaced) */
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 

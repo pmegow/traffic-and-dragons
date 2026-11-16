@@ -4,7 +4,7 @@
 //   node dev/sabotage-771-sites.js
 var sabotage = require("./sabotage.js");
 var P = "FAIL #771 sites ", CMD = ["node", ["dev/tests-771-sites.js"]];
-var T1 = P + "a name says a site as it says a ground: a lair, a den, caverns are a cave; a mire is open ground; a keep is neither",
+var T1 = P + "a name says a site as it says a ground: a lair, a den, caverns are a cave; a mire is open ground; a quay is neither",
   T2 = P + "the lair on the ridge is drawn as a cave: nameless rock, the mouth back to the ridge, no scale and no level",
   T3 = P + "the mouth stands toward the place it leads back to; a direction nobody stated lays it to the south",
   T4 = P + "the story names the chambers: each thing toward its bearing from the middle chamber, a report in its own face, what has no direction listed",
@@ -15,24 +15,47 @@ var T1 = P + "a name says a site as it says a ground: a lair, a den, caverns are
   T9 = P + "a site named on the sheet the party stands in is filed INSIDE that place; leaving steps out one; a known place is found as before",
   T10 = P + "off the public map a leave is the world place, as always",
   T11 = P + "the GM is told: a leave steps out one place, and a site inside a sub-location is written as a path",
-  T12 = P + "a drawn sheet is a place on its ground or a site in its rock; a pin sheet and a legacy dungeon are neither";
+  T12 = P + "a drawn sheet is a place on its ground or a site in its rock; a pin sheet and a legacy dungeon are neither",
+  B1 = P + "a name says a building and its plan: an inn, a temple, a keep, a hut; a crypt is none",
+  B2 = P + "the inn in the town is drawn as a building: one floor of nameless bare rooms, one door back to the town, no scale and no floor count",
+  B3 = P + "the door stands in the wall toward the place it leads back to; a direction nobody stated lays it to the south",
+  B4 = P + "the story names the rooms: each thing toward its bearing from the room the door opens into, a report in its own face, what has no direction listed",
+  B5 = P + "the party is drawn in the room the door opens into, and every card answers in a building: a thing, the door, the pin that opens it",
+  B6 = P + "a building nobody travelled into keeps its pin sheet; the story may answer \"building\", and an \"other\" from before buildings is asked once more";
 var sheet = [
   { label: "a lair is no site", find: '"den","lair","burrow"', replace: '"den","burrow"', mustFail: T1 },
-  { label: "a name that says a site is not read", find: "  if(site)return {draws:site.draws};\n", replace: "", mustFail: T1 },
-  { label: "a site the story answered is handed to the ground generator", find: 'return word.draws?{draws:word.draws}:{draws:"wild",terrain:place.ground};', replace: 'return {draws:"wild",terrain:place.ground};', mustFail: T8 },
+  { label: "a name that says a site is not read", find: "  if(site)return atlasSheetSiteKind(site);\n", replace: "", mustFail: T1 },
+  { label: "a site the story answered is handed to the ground generator", find: 'return word.draws?atlasSheetSiteKind(word):{draws:"wild",terrain:place.ground};', replace: 'return {draws:"wild",terrain:place.ground};', mustFail: T8 },
   { label: "a cave with no way on record is given a mouth the story never told", find: "  if(!first)return null;", replace: '  if(!first)first={id:"way-1",name:"nowhere",bearing:null,lean:"S",key:"",to:null};', mustFail: T7 },
   { label: "the mouth ignores where the way back leads", find: 'b=first.bearing||first.lean||"S";', replace: 'b="S";', mustFail: T3 },
-  { label: "the rock runs toward its own mouth", find: "heading:ATLAS_JOURNEY_OPPOSITE[b],", replace: "heading:b,", mustFail: T3 },
+  { label: "a building's door ignores where the way back leads", find: 'b=first.bearing||first.lean||"S";', replace: 'b="S";', mustFail: B3 },
+  { label: "the rock runs toward its own mouth", find: "heading:ATLAS_JOURNEY_OPPOSITE[s.b],", replace: "heading:s.b,", mustFail: T3 },
   { label: "a later way is dropped, not listed", find: "for(i=1;i<ways.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push(", replace: "for(i=1;i<0;i++)listed.push(", mustFail: T7 },
   { label: "a thing with no direction is dropped from a cave", find: 'if(f.bearing==="unknown"||story.length>=ATLAS_SHEET_STORY_CAP){if(listed.length<ATLAS_SHEET_LIST_CAP)listed.push(', replace: 'if(f.bearing==="unknown"||story.length>=ATLAS_SHEET_STORY_CAP){if(false)listed.push(', mustFail: T4 },
-  { label: "\"cave\" in a cave is named as a thing", find: '    if(atlasSheetIsSite("cave",f.label))continue;/* "cave" in a cave: the rock is drawn, not named */\n', replace: "", mustFail: T4 },
+  { label: "\"cave\" in a cave is named as a thing", find: '    if(atlasSheetIsSite(draws,f.label))continue;/* "cave" in a cave, "inn" in an inn: the site is drawn, not named */\n', replace: "", mustFail: T4 },
   { label: "the place the mouth leads to is also a chamber", find: "    f=sorted[i];if(isWay[f.id])continue;\n    if(atlasSheetIsSite(", replace: "    f=sorted[i];\n    if(atlasSheetIsSite(", mustFail: T5 },
-  { label: "a site does not say what it lies within", find: 'where:parent===null?null:"within "+atlasSheetLeaf(parent),', replace: "where:null,", mustFail: T2 },
-  { label: "the mouth is not named for the place it leads to", find: 'name:atlasSheetCut("to "+first.name,ATLAS_SHEET_WAY_MAX),', replace: "name:null,", mustFail: T2 },
+  { label: "a site does not say what it lies within", find: 'return parent===null?null:"within "+atlasSheetLeaf(parent);}', replace: "return null;}", mustFail: T2 },
+  { label: "the mouth is not named for the place it leads to", find: 'kind:"cave",name:atlasSheetCut("to "+s.first.name,ATLAS_SHEET_WAY_MAX),', replace: 'kind:"cave",name:null,', mustFail: T2 },
   { label: "a cave's document carries its timings", find: 'timings:["spine","rooms","total"]', replace: "timings:[]", mustFail: T2 },
-  { label: "a legacy dungeon counts as a drawn story sheet", find: '(doc.generator.name==="dungeon"&&!!doc.story)', replace: '(doc.generator.name==="dungeon")', mustFail: T12 },
+  { label: "a legacy dungeon counts as a drawn story sheet", find: '((doc.generator.name==="dungeon"||doc.generator.name==="interior")&&!!doc.story)', replace: '(doc.generator.name==="dungeon"||doc.generator.name==="interior")', mustFail: T12 },
   { label: "the party is drawn at the empty frame's middle in a cave", find: "(doc.story&&doc.story.at?doc.story.at:ATLAS_SHEET_CENTRE)", replace: "ATLAS_SHEET_CENTRE", mustFail: T6 },
   { label: "an \"other\" from before the vocabulary knew a cave is never asked again", find: "return !!r&&r.ground===ATLAS_GROUND_OTHER&&!(r.set>=ATLAS_GROUND_SET);", replace: "return false;", mustFail: T8 }
+];
+var building = [
+  { label: "an inn is no building", find: 'nouns:["inn","tavern",', replace: 'nouns:["tavern",', mustFail: B1 },
+  { label: "only the first building row is read for a thing's own-kind name", find: "if(ATLAS_SHEET_SITES[i].draws===draws&&ATLAS_SHEET_SITES[i].nouns.indexOf(p)>=0)return true;", replace: "if(ATLAS_SHEET_SITES[i].draws===draws)return ATLAS_SHEET_SITES[i].nouns.indexOf(p)>=0;", mustFail: B1 },
+  { label: "a building row loses its plan", find: "return row.plan?{draws:row.draws,plan:row.plan,size:row.size}:{draws:row.draws};", replace: "return {draws:row.draws};", mustFail: B1 },
+  { label: "a building is not counted a drawn sheet", find: '(doc.generator.name==="dungeon"||doc.generator.name==="interior")&&!!doc.story', replace: '(doc.generator.name==="dungeon")&&!!doc.story', mustFail: B2 },
+  { label: "a building does not say what it lies within", find: "front:ATLAS_SHEET_FRONT,where:atlasSheetWithin(place),", replace: "front:ATLAS_SHEET_FRONT,where:null,", mustFail: B2 },
+  { label: "the door is not named for the place it leads to", find: 'exit:{id:s.first.id,name:atlasSheetCut("to "+s.first.name,ATLAS_SHEET_WAY_MAX)},', replace: "", mustFail: B2 },
+  { label: "a building's document carries its timing", find: 'params:atlasSheetBuildingParams,timings:["ms"]', replace: "params:atlasSheetBuildingParams,timings:[]", mustFail: B2 },
+  { label: "the walls never turn to the way back", find: "atlasSheetFootprint(kind.size[0],kind.size[1],s.b)", replace: 'atlasSheetFootprint(kind.size[0],kind.size[1],"S")', mustFail: B3 },
+  { label: "the door stands in the wall away from the way back", find: "var a=ATLAS_SHEET_BEARINGS.indexOf(b)*Math.PI/4-Math.PI,hw=", replace: "var a=ATLAS_SHEET_BEARINGS.indexOf(b)*Math.PI/4,hw=", mustFail: B3 },
+  { label: "the front edge is a side wall", find: "var ATLAS_SHEET_FRONT=2,", replace: "var ATLAS_SHEET_FRONT=1,", mustFail: B3 },
+  { label: "a building's things are not handed to the walls", find: "story:s.story,unplaced:s.listed}};\n}\n/* A building's walls", replace: "story:[],unplaced:s.listed}};\n}\n/* A building's walls", mustFail: B4 },
+  { label: "what has no direction is dropped from a building", find: "exit:{id:s.first.id,name:atlasSheetCut(\"to \"+s.first.name,ATLAS_SHEET_WAY_MAX)},story:s.story,unplaced:s.listed}};", replace: "exit:{id:s.first.id,name:atlasSheetCut(\"to \"+s.first.name,ATLAS_SHEET_WAY_MAX)},story:s.story,unplaced:[]}};", mustFail: B4 },
+  { label: "the story's answer \"building\" draws nothing", find: '{ground:"building",draws:"building",plan:"house",size:[14,11],as:"a building",', replace: '{ground:"building",as:"a building",', mustFail: B6 },
+  { label: "an \"other\" from before buildings is never asked again", find: "var ATLAS_GROUND_SET=3;", replace: "var ATLAS_GROUND_SET=2;", mustFail: B6 }
 ];
 var ground = [
   { label: "a new answer carries no edition", find: 'by:"story",set:ATLAS_GROUND_SET};', replace: 'by:"story"};', mustFail: T8 },
@@ -55,6 +78,7 @@ var atlas = [
   { label: "a leave never asks the public map where it lands", find: 'function atlasPlaceLeave(sub){return (typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&sub!=null)?atlasPublicLeave(sub):null;}', replace: "function atlasPlaceLeave(sub){return null;}", mustFail: T9 },
   { label: "a leave steps out one in every campaign", find: 'function atlasPlaceLeave(sub){return (typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&sub!=null)?atlasPublicLeave(sub):null;}', replace: "function atlasPlaceLeave(sub){return sub!=null?atlasPublicLeave(sub):null;}", mustFail: T10 },
   { label: "a cave's things are not the story's", find: "(d.rooms||[]).concat(d.features||[],", replace: "(d.rooms||[]).concat([],", mustFail: T4 },
+  { label: "a building's things are not the story's", find: "  interior:atlasStoryThings,", replace: "  interior:function(d){return d.rooms||[];},", mustFail: B4 },
   { label: "what found no chamber is no thing of the sheet", find: "(d.unplaced||[]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0]", replace: "([]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0]", mustFail: T4 }
 ];
 var identity = [
@@ -71,6 +95,7 @@ var pane = [
   { label: "a sheet the party is not on opens at the empty frame's middle", find: "how.party?how.party.x:atlasSheetStand(d)[0]", replace: "how.party?how.party.x:d.frame.width/2", mustFail: T12 }
 ];
 var failed = sabotage.prove({ file: "atlas-public-sheet.js", command: CMD, only: P, cases: sheet });
+if (!failed) failed = sabotage.prove({ file: "atlas-public-sheet.js", command: CMD, only: P, cases: building });
 if (!failed) failed = sabotage.prove({ file: "atlas-ground.js", command: CMD, only: P, cases: ground });
 if (!failed) failed = sabotage.prove({ file: "atlas-public.js", command: CMD, only: P, cases: pub });
 if (!failed) failed = sabotage.prove({ file: "atlas.js", command: CMD, only: P, cases: atlas });

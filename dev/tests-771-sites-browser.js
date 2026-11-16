@@ -1,11 +1,11 @@
 // #771 P2, a site in the real pane: the lair inside the ridge inside the mire, drawn as a cave, on a phone and in the desktop
-// drawer. Local files only; every foreign request is aborted. TND_SHOT_DIR keeps map-771-site-*.png (the visual evidence).
+// drawer; then a bothy in the mire, drawn as a building. Local files only; every foreign request is aborted. TND_SHOT_DIR keeps map-771-site-*.png (the visual evidence).
 //   node dev/tests-771-sites-browser.js
 const fs=require('fs'),os=require('os'),path=require('path'),assert=require('assert/strict');
 const {chromium}=require('./cdp-browser.js');
 const root=path.resolve(__dirname,'..'),shots=process.env.TND_SHOT_DIR||fs.mkdtempSync(path.join(os.tmpdir(),'tnd-map771s-'));
 const types={'.html':'text/html','.css':'text/css','.js':'application/javascript','.json':'application/json','.png':'image/png','.mp3':'audio/mpeg','.ttf':'font/ttf','.webmanifest':'application/manifest+json'};
-const MIRE='Petrified Mire',RIDGE='Shattered Ridge',LAIR='Wyrm Lair';
+const MIRE='Petrified Mire',RIDGE='Shattered Ridge',LAIR='Wyrm Lair',BOTHY='The Reed Bothy';
 function fixture(){const e=require('./load-engine.js');e.loadEngine();e.makeTestWorld();worldState.campId='map771s-browser';worldState.ver=SAVE_VER;worldState.world.location=MIRE;worldState.world.sublocation=null;worldState.turn=1;worldState.transcript=[{r:'gm',x:'You stand in the mire.',t:0}];memory.campId=worldState.campId;memory.map.nodes[MIRE]=newMapNode(0,null,{visits:1,description:'PRIVATE: a buried vault lies under the reeds.'});return JSON.parse(JSON.stringify({world:worldState,memory}));}
 let fail=0,pass=0;
 async function check(name,fn){try{await fn();pass++;console.log('PASS #771 sites browser '+name);}catch(e){fail++;console.error('FAIL #771 sites browser '+name+' — '+e.stack);}}
@@ -67,6 +67,22 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #771 sites
    let sub=await page.evaluate(()=>{__gm('You climb back out.\n[SUBLOCATION_LEAVE]');return worldState.world.sublocation;});assert.equal(sub,RIDGE);
    sub=await page.evaluate(()=>{__gm('You climb back in.\n[SUBLOCATION:Wyrm Lair]');return worldState.world.sublocation;});assert.equal(sub,RIDGE+' — '+LAIR);
    await page.evaluate(()=>{atlasPaneShow(worldState.atlas.at,true);});await settle();await settle();const r=await snap();assert.equal(r.kind,'cave');assert.deepEqual(r.names,['the great nest','a heap of bones','the far tunnel'],'nothing moved while the party was out');
+ });
+ await check('a phone opens the bothy as a building: nameless rooms, the things the story named, the door back to the mire',async()=>{
+   await page.evaluate(()=>{__gm('You climb out of the dark.\n[SUBLOCATION_LEAVE]');__gm('Down to the reeds.\n[SUBLOCATION_LEAVE]');__gm('A roof shows through the reeds.\n[MAP_REVEAL:new|The Reed Bothy|E|observed]');
+    __gm('You duck inside.\n[SUBLOCATION:The Reed Bothy]\n[MAP_REVEAL:new|a cold hearth|N|observed]\n[MAP_REVEAL:new|a narrow cot|E|observed]\n[MAP_REVEAL:new|a root cellar|unknown|reported]');atlasPaneShow(worldState.atlas.at,true);});
+   await settle();await settle();await settle();
+   const r=await snap();assert.equal(r.sub,BOTHY);assert.equal(r.gen,'interior');assert.equal(r.kind,'house');assert.equal(r.story,true);assert.equal(r.dropped,0);
+   assert.deepEqual(r.names,['a cold hearth','a narrow cot']);assert.deepEqual(r.portals,[['way-1','to '+MIRE]]);
+   const party=r.labels.filter(l=>l.kind==='marker');assert.equal(party.length,1);assert.equal(party[0].text,BOTHY);assert.ok(inView(r),'the party is on screen: '+JSON.stringify(r.party)+' in '+r.w+'x'+r.h);
+   for(const l of r.labels)assert.ok(l.size>=13.99,l.text+' renders at '+l.size+' px');
+   assert.equal(r.labels.filter(l=>l.kind==='feature').length,2);assert.equal(r.labels.filter(l=>l.kind==='portal').length,1);
+   assert.doesNotMatch(r.painted,/Ground floor|m²|\bKitchen\b|\bStoreroom\b/);assert.equal(r.rows.length,1);assert.match(r.rows[0].text,/a root cellar/);
+   assert.deepEqual(r.trail.slice(1),[MIRE,BOTHY]);
+   await page.screenshot({path:path.join(shots,'map-771-building-phone-390x844.png')});
+   const got=await page.evaluate(()=>{atlasPaneTap({id:'way-1'});const card=document.getElementById('atlas-card'),btn=card.querySelector('[data-act="open"]');return {text:card.textContent,had:!!btn};});
+   assert.match(got.text,/The way to Petrified Mire/);assert.equal(got.had,true,'the door opens the mire');
+   const sub=await page.evaluate(()=>{__gm('Out into the reeds.\n[SUBLOCATION_LEAVE]');__gm('Up the ridge.\n[SUBLOCATION:Shattered Ridge]');__gm('Into the dark again.\n[SUBLOCATION:Wyrm Lair]');atlasPaneShow(worldState.atlas.at,true);return worldState.world.sublocation;});await settle();await settle();assert.equal(sub,RIDGE+' — '+LAIR,'back in the lair for the checks that follow');
  });
  await page.setViewportSize({width:1280,height:840});
  await check('the desktop drawer shows the same cave, readable, with the party in view',async()=>{
