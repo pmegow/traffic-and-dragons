@@ -1,0 +1,77 @@
+// dev/sabotage-771-place-sheet.js — proves the guards of #771 P1 (the place sheet: a visited place drawn on its own
+// ground from public facts — the ground its name says, an exit for every way travelled, each feature toward its bearing).
+//   node dev/sabotage-771-place-sheet.js
+var sabotage = require("./sabotage.js");
+var P = "FAIL #771 ", CMD = ["node", ["dev/tests-771-place-sheet.js"]];
+var T1 = P + "the tables name only what the library draws, and no noun stands in two rows",
+  T2 = P + "the ground is what the place's own name says: its head noun, a way wearing the ground it runs through",
+  T3 = P + "a plain observed feature may say the ground; a NAME elsewhere, or a report, never does",
+  T4 = P + "no ground known: the pin sheet stays — the engine never guesses a ground",
+  T5 = P + "the recipe: features in the order disclosed, each toward its bearing; a plain observed noun picks its mark",
+  T6 = P + "a NAME, a report and a long label: the plain mark, a ring, a cut — never a type from a name's last word",
+  T7 = P + "what has no direction is listed, never drawn; the ground itself and an exit's own place are not pins",
+  T8 = P + "a way whose direction nobody stated is dotted, and its two ends agree: onward lies south, the way back north",
+  T9 = P + "the story states a way's direction: the exit lies along it, solid, and the far end is its opposite",
+  T10 = P + "a place inside another has the way back out; the place around it opens it from its pin, or lists it",
+  T11 = P + "an exit or a feature added later moves nothing that was drawn, and two draws are one document",
+  T12 = P + "the card of a drawn thing: where and when it was disclosed; of a listed one, that its position is not established",
+  T13 = P + "only public facts are read: a private description, kind or proposal changes no byte of the sheet",
+  T14 = P + "a drawing the library refuses is said once, and the pin sheet stands",
+  T15 = P + "the campaign switch: atlas.drawn === false keeps every place a pin sheet, and survives a save";
+var sheet = [
+  { label: "the sheet is the zone's oblong", find: "width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,terrain:terrain,", replace: "terrain:terrain,", mustFail: T11 },
+  { label: "a ground the library does not draw", find: '{terrain:"desert",nouns:["desert",', replace: '{terrain:"tundra",nouns:["desert",', mustFail: T1 },
+  { label: "a mark the library does not draw", find: '{kind:"cairn",nouns:["cairn"]}', replace: '{kind:"heap",nouns:["cairn"]}', mustFail: T1 },
+  { label: "the first word decides the ground", find: 'return p[p.length-1]||"";', replace: 'return p[0]||"";', mustFail: T2 },
+  { label: "an \"of\" tail is the head noun", find: '.replace(/ of .*$/,"")', replace: "", mustFail: T2 },
+  { label: "a mire is no ground", find: '"fens","mire","mires",', replace: '"fens","mires",', mustFail: T2 },
+  { label: "a way wears no ground", find: "if(ATLAS_SHEET_WAY_NOUNS.indexOf(atlasSheetNoun(place.name))>=0){", replace: "if(false){", mustFail: T2 },
+  { label: "any place wears a ground word in its name", find: "if(ATLAS_SHEET_WAY_NOUNS.indexOf(atlasSheetNoun(place.name))>=0){", replace: "if(true){", mustFail: T2 },
+  { label: "a named place elsewhere lends its ground", find: 'f=features[i];if(f.mode!=="observed"||atlasPublicLandscapeNamed(f.label))continue;row=', replace: 'f=features[i];if(f.mode!=="observed")continue;row=', mustFail: T3 },
+  { label: "hearsay draws the ground", find: 'f=features[i];if(f.mode!=="observed"||atlasPublicLandscapeNamed(f.label))continue;row=', replace: "f=features[i];if(atlasPublicLandscapeNamed(f.label))continue;row=", mustFail: T3 },
+  { label: "an unknown ground is guessed", find: "  if(!terrain)return null;", replace: '  if(!terrain)terrain="heath";', mustFail: T4 },
+  { label: "features are handed over in id order", find: "return (ta-tb)||(a.id<b.id?-1:a.id>b.id?1:0);", replace: "return (a.id<b.id?-1:a.id>b.id?1:0);", mustFail: T5 },
+  { label: "every thing is the plain mark", find: 'kind:row?row.kind:"custom",', replace: 'kind:"custom",', mustFail: T5 },
+  { label: "the sheet is drawn from the campaign's own seed", find: 'params:{seed:place.id+"/sheet",', replace: "params:{seed:place.id,", mustFail: T5 },
+  { label: "a name is typed by its last word", find: 'row=f.mode==="observed"&&!atlasPublicLandscapeNamed(f.label)?', replace: 'row=f.mode==="observed"?', mustFail: T6 },
+  { label: "a report is drawn as the thing", find: 'row=f.mode==="observed"&&!atlasPublicLandscapeNamed(f.label)?', replace: "row=!atlasPublicLandscapeNamed(f.label)?", mustFail: T6 },
+  { label: "a long label is handed over whole", find: "name:atlasSheetCut(f.label,ATLAS_SHEET_NAME_MAX),bearing:", replace: "name:f.label,bearing:", mustFail: T6 },
+  { label: "the ground itself is pinned", find: "    if(atlasSheetIsGround(terrain,f.label))continue;", replace: "", mustFail: T7 },
+  { label: "another ground's noun is taken for this one's", find: "if(ATLAS_SHEET_GROUNDS[i].terrain===terrain)return ATLAS_SHEET_GROUNDS[i].nouns.indexOf(p)>=0;", replace: "if(ATLAS_SHEET_GROUNDS[i].nouns.indexOf(p)>=0)return true;", mustFail: T7 },
+  { label: "a named fen is taken for the ground", find: 'if(!p||p.indexOf(" ")>=0||atlasPublicLandscapeNamed(label))return false;', replace: 'if(!p||p.indexOf(" ")>=0)return false;', mustFail: T7 },
+  { label: "the place an exit leads to is pinned too", find: "    if(isWay[f.id])continue;/* the exit says it */", replace: "", mustFail: T7 },
+  { label: "an exit a feature names keeps a second id", find: "return {id:named?named.id:x.id,key:x.key,", replace: "return {id:x.id,key:x.key,", mustFail: T9 },
+  { label: "a thing with no direction is dropped", find: 'if(listed.length<ATLAS_SHEET_LIST_CAP)listed.push({id:f.id,', replace: 'if(false)listed.push({id:f.id,', mustFail: T7 },
+  { label: "a place inside is not listed", find: "  for(i=0;i<inside.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push(", replace: "  for(i=0;i<0;i++)listed.push(", mustFail: T7 },
+  { label: "an unstated way is drawn as stated", find: "sure:!!w.bearing,bearing:w.bearing};", replace: "sure:true,bearing:w.bearing};", mustFail: T8 },
+  { label: "both ends of an unstated way lie south", find: 'lean:l.a===k?"S":"N",', replace: 'lean:"S",', mustFail: T8 },
+  { label: "an unstated way ignores its lean", find: "    if(!e.bearing&&w.lean&&!used[w.lean])e.bearing=w.lean;", replace: "", mustFail: T8 },
+  { label: "an unstated way takes a stated one's edge", find: "  for(i=0;i<ways.length;i++)if(ways[i].bearing)used[ways[i].bearing]=true;", replace: "", mustFail: T8 },
+  { label: "two unstated ways share an edge", find: "    used[e.bearing]=true;", replace: "", mustFail: T8 },
+  { label: "the far end lies the same way", find: "bearing:l.bearing?(l.a===k?l.bearing:ATLAS_JOURNEY_OPPOSITE[l.bearing]):null,", replace: "bearing:l.bearing?l.bearing:null,", mustFail: T9 },
+  { label: "a stated direction is dropped", find: "bearing:l.bearing?(l.a===k?l.bearing:ATLAS_JOURNEY_OPPOSITE[l.bearing]):null,", replace: "bearing:null,", mustFail: T9 },
+  { label: "the way back out lies the way the place lies", find: "atlasKnowledgeSelfLabel(k,p[i].label))b=ATLAS_JOURNEY_OPPOSITE[p[i].bearing];", replace: "atlasKnowledgeSelfLabel(k,p[i].label))b=p[i].bearing;", mustFail: T10 },
+  { label: "a place inside has no way out", find: '    out.push({key:parent,name:atlasPublicPlaceName(parent),bearing:b,lean:"S",to:sheetOf(parent)});', replace: "", mustFail: T10 },
+  { label: "the way out opens nothing", find: 'bearing:b,lean:"S",to:sheetOf(parent)});', replace: 'bearing:b,lean:"S",to:null});', mustFail: T10 },
+  { label: "a place a feature names is listed as well", find: "    if(!named)out.push({id:\"in-\"+(out.length+1),", replace: "    out.push({id:\"in-\"+(out.length+1),", mustFail: T10 },
+  { label: "a place two levels down is listed here", find: '||r.container.slice(pre.length).indexOf("|")>=0)continue;', replace: ")continue;", mustFail: T10 },
+  { label: "the document carries its timing", find: "if(doc.stats)delete doc.stats.ms;", replace: "", mustFail: T11 },
+  { label: "a refusal is said at every draw", find: "  if(_atlasSheetSaid===key)return;_atlasSheetSaid=key;", replace: "", mustFail: T14 },
+  { label: "a refusal is swallowed", find: '  atlasProblem(where+" (the pin sheet is shown instead)",e);', replace: "", mustFail: T14 }
+];
+var pub = [
+  { label: "the party stands at the pin sheet's middle on a drawn sheet", find: "{x:drawn?ATLAS_SHEET_CENTRE[0]:400,y:drawn?ATLAS_SHEET_CENTRE[1]:275,", replace: "{x:400,y:275,", mustFail: T12 },
+  { label: "the campaign switch is ignored", find: "  sheet=A.drawn===false?null:atlasSheetOf(A,place,p.features);", replace: "  sheet=atlasSheetOf(A,place,p.features);", mustFail: T15 },
+  { label: "the place is never drawn", find: "  doc=atlasSheetDoc(place,sheet)||TnDMaps.schematic(spec);", replace: "  doc=TnDMaps.schematic(spec);", mustFail: T8 },
+  { label: "a new exit does not redraw the sheet", find: "p,landscape,sheet?sheet.params:null]);", replace: "p,landscape]);", mustFail: T11 },
+  { label: "an exit has no card", find: "  if(sheet)for(i=0;i<sheet.ways.length;i++)if(sheet.ways[i].id===target.id&&!sheet.ways[i].feature){", replace: "  if(false)for(i=0;i<sheet.ways.length;i++)if(sheet.ways[i].id===target.id&&!sheet.ways[i].feature){", mustFail: T10 },
+  { label: "a feature that is an exit opens nothing", find: "opens:atlasPublicChildSheet(A,place,f.label)||(w?w.to:null),", replace: "opens:atlasPublicChildSheet(A,place,f.label),", mustFail: T9 },
+  { label: "a feature that is an exit has no point", find: "||(doc.portals||[]).filter(function(x){return x.id===f.id;})[0];", replace: ";", mustFail: T9 },
+  { label: "an exit's card opens nothing", find: 'so the way is drawn dotted.",opens:w.to,', replace: 'so the way is drawn dotted.",opens:null,', mustFail: T10 },
+  { label: "the exit's card gives the bare letter", find: '"The party travelled this way. It leads "+ATLAS_KNOWLEDGE_DIRECTIONS[w.bearing]+"."', replace: '"The party travelled this way. It leads "+w.bearing+"."', mustFail: T10 },
+  { label: "a place inside has no card", find: "  if(sheet)for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===target.id){", replace: "  if(false)for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===target.id){", mustFail: T10 },
+  { label: "a listed thing's card crashes for want of a point", find: "return {id:f.id,x:t?t.x:ATLAS_SHEET_CENTRE[0],y:t?t.y:ATLAS_SHEET_CENTRE[1],title:f.label,", replace: "return {id:f.id,x:t.x,y:t.y,title:f.label,", mustFail: T12 }
+];
+var failed = sabotage.prove({ file: "atlas-public-sheet.js", command: CMD, only: P, cases: sheet });
+if (!failed) failed = sabotage.prove({ file: "atlas-public.js", command: CMD, only: P, cases: pub });
+process.exit(failed ? 1 : 0);

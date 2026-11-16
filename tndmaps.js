@@ -1,11 +1,11 @@
-/* TnD Maps 0.23.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.24.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.23.0";
+  NS.VERSION = "0.24.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -5222,7 +5222,7 @@
   var OPS = { add: 1, remove: 1, rename: 1, note: 1, move: 1 };
 
   var DEFAULTS = { seed: null, width: 800, height: 550, terrain: "forest", culture: "common", title: null, site: {}, features: {}, edits: [] };
-  var SITE_KEYS = ["elevation", "slope", "coast", "lake", "river", "road", "caves", "place", "regionName", "regionSeed", "zone", "near", "within", "water", "seaName", "biome", "shore", "rivers", "roads"];
+  var SITE_KEYS = ["elevation", "slope", "coast", "lake", "river", "road", "caves", "place", "regionName", "regionSeed", "zone", "near", "within", "water", "seaName", "biome", "shore", "rivers", "roads", "exits", "unplaced"], MAX_EXITS = 16, MAX_UNPLACED = 64, MAX_WAY_NAME = 80;
   function validateCounts(counts) {
     NS.assert(counts && typeof counts === "object" && !Array.isArray(counts), "features must be an object of kind → count", { features: counts });
     Object.keys(counts).forEach(function (k) { NS.assert(NS.own(CATALOGUE, k) && k !== "custom", "unknown feature kind", { kind: k, known: Object.keys(CATALOGUE) }); NS.assert(U.isNum(counts[k]) && counts[k] >= 0 && counts[k] <= MAX_COUNT && counts[k] === Math.round(counts[k]), "feature count must be an integer in [0, " + MAX_COUNT + "]", { kind: k, count: counts[k] }); });
@@ -5234,7 +5234,9 @@
       NS.assert(e && NS.own(OPS, e.op), "edit " + i + ": op must be " + Object.keys(OPS).join("|"), { edit: e });
       NS.assert(typeof e.id === "string" && e.id.length && e.id.length <= 40, "edit " + i + ": id must be a short string", { edit: e });
       if (e.op === "add") { NS.assert(NS.own(CATALOGUE, e.kind), "edit " + i + ": unknown feature kind", { kind: e.kind, known: Object.keys(CATALOGUE) }); NS.assert(e.icon === undefined || e.icon === null || NS.own(NS.icons.ICONS, e.icon), "edit " + i + ": unknown icon", { icon: e.icon, known: NS.icons.names() }); if (e.kind === "custom") NS.assert(typeof e.word === "string" && e.word.length && e.word.length <= MAX_NAME, "edit " + i + ": a custom feature needs a word", { edit: e }); }
-      if (e.op === "add" || e.op === "move") NS.assert(Array.isArray(e.at) && e.at.length === 2 && U.isNum(e.at[0]) && U.isNum(e.at[1]), "edit " + i + ": at must be [x, y]", { edit: e });
+      if (e.op === "add" && e.mode !== undefined) NS.assert(e.mode === "observed" || e.mode === "reported", "edit " + i + ": mode must be observed or reported", { edit: e });
+      if (e.op === "add" && e.bearing !== undefined) NS.assert(BEARINGS.indexOf(e.bearing) >= 0 && e.at === undefined, "edit " + i + ": an add stands at a point (at) or toward a bearing (" + BEARINGS.join("|") + "), not both", { edit: e });
+      else if (e.op === "add" || e.op === "move") NS.assert(Array.isArray(e.at) && e.at.length === 2 && U.isNum(e.at[0]) && U.isNum(e.at[1]), "edit " + i + ": at must be [x, y]", { edit: e });
       if (e.op === "rename" || (e.op === "add" && e.name !== undefined && e.name !== null)) NS.assert(typeof e.name === "string" && e.name.trim().length && e.name.length <= MAX_NAME, "edit " + i + ": name must be 1–" + MAX_NAME + " characters", { edit: e });
       if (e.op === "note") NS.assert(typeof e.note === "string" && e.note.length <= MAX_NOTE, "edit " + i + ": note must be a string of at most " + MAX_NOTE + " characters", { edit: e });
     });
@@ -5267,6 +5269,17 @@
     if (S.rivers !== undefined) { NS.assert(Array.isArray(S.rivers) && S.rivers.every(function (v) { return v && Array.isArray(v.pts) && v.pts.length >= 2 && v.pts.every(function (p) { return isPt(p) && U.isNum(p[2]) && p[2] >= 1 && p[2] <= 80; }) && isEdge(v.from) && isEdge(v.to); }), "site rivers must be a list of {pts: [[x, y, metres wide], …], from, to: N|E|S|W|null} (wild.fromRegion makes it)", { rivers: S.rivers }); NS.assert(!S.river || !S.rivers.length, "give the river by its bearings (site.river) or by its course (site.rivers), not both", { river: S.river }); }
     if (S.roads !== undefined) { NS.assert(Array.isArray(S.roads) && S.roads.every(function (w) { return w && (w.kind === "road" || w.kind === "track") && isEnd(w.from) && isEnd(w.to); }), "site roads must be a list of {kind: road|track, from: {x, y, edge}, to: {x, y, edge}} (wild.fromRegion makes it)", { roads: S.roads }); NS.assert(!S.road || !S.roads.length, "give the road by its bearings (site.road) or by its ends (site.roads), not both", { road: S.road }); }
     S.water = !!(S.water || S.coast || S.lake || S.river || (S.rivers && S.rivers.length) || P.terrain === "marsh");
+    /* v0.24.0, the story's sheet: the ways out are the caller's (site.exits: each a track from the edge on its bearing to the
+       middle, named for where it leads; `sure: false` is a way whose direction nobody stated, drawn dotted), and what is
+       known without a direction is listed, never drawn (site.unplaced). With exits given — an empty list too — the ground
+       is the seed's alone: no track of the generator's own, a valley that does not follow a way, so an exit added later
+       moves nothing that was drawn. */
+    if (S.exits !== undefined) {
+      var seenX = {};
+      NS.assert(Array.isArray(S.exits) && S.exits.length <= MAX_EXITS && S.exits.every(function (e) { var ok = e && typeof e === "object" && typeof e.id === "string" && e.id.length > 0 && e.id.length <= 40 && !seenX[e.id] && BEARINGS.indexOf(e.bearing) >= 0 && typeof e.name === "string" && e.name.trim().length > 0 && e.name.length <= MAX_WAY_NAME && (e.sure === undefined || typeof e.sure === "boolean"); if (ok) seenX[e.id] = true; return ok; }), "site exits must be a list of at most " + MAX_EXITS + " {id, bearing: " + BEARINGS.join("|") + ", name, sure}, each id once", { exits: S.exits });
+      NS.assert(!S.road && !(S.roads && S.roads.length) && !S.zone, "give the ways out by the story's exits (site.exits) or by a road, not both", { road: S.road, roads: S.roads });
+    }
+    if (S.unplaced !== undefined) NS.assert(Array.isArray(S.unplaced) && S.unplaced.length <= MAX_UNPLACED && S.unplaced.every(function (u) { return u && typeof u === "object" && typeof u.id === "string" && u.id.length > 0 && u.id.length <= 40 && typeof u.name === "string" && u.name.trim().length > 0 && u.name.length <= 200 && (u.mode === "observed" || u.mode === "reported"); }), "site unplaced must be a list of at most " + MAX_UNPLACED + " {id, name, mode: observed|reported}", { unplaced: S.unplaced });
     validateCounts(P.features); validateEdits(P.edits);
     P.seed = String(P.seed);
     return P;
@@ -5411,9 +5424,11 @@
        between them is the zone's own, found further down) */
     var ways = [], siteRoads = S.roads || [];
     siteRoads.forEach(function (rd) { ways.push({ kind: T.path || rd.kind, a: [rd.from.x, rd.from.y], b: [rd.to.x, rd.to.y], from: rd.from.edge || null, to: rd.to.edge || null, joinA: !!rd.from.join, joinB: !!rd.to.join, towards: { from: say(rd.from.towards), to: say(rd.to.towards) }, roadsA: rd.from.roads || null, roadsB: rd.to.roads || null, road: rd.id, fixed: true }); });
+    var siteExits = S.exits || null, exitN = {};
+    if (siteExits) siteExits.forEach(function (e) { var k = exitN[e.bearing] = (exitN[e.bearing] || 0) + 1, slide = k === 1 ? 0 : (k % 2 ? -1 : 1) * 0.5 * Math.floor(k / 2), a = edgePoint(W, H, e.bearing, slide); ways.push({ kind: T.path || "track", a: a, b: [W / 2, H / 2], from: edgeOf(a, W, H), to: null, joinA: false, joinB: true, towards: { from: e.name, to: null }, roadsA: null, roadsB: null, fixed: true, exit: e }); });
     /* the valley line: a pass follows the river, else the road, else a seeded way across */
     var RL = T.relief, valley = null;
-    if (RL.valley) { valley = riverXY ? riverXY : S.road ? acrossLine(W, H, S.road.from, S.road.to, rng, 0.12) : ways.length && G.dist(ways[0].a, ways[0].b) > 60 ? bendLine(ways[0].a, ways[0].b, rng, 0.12) : acrossLine(W, H, rng.pick(["W", "N", "SW", "NW"]), rng.pick(["E", "S", "SE", "NE"]), rng, 0.12); }
+    if (RL.valley) { valley = riverXY ? riverXY : S.road ? acrossLine(W, H, S.road.from, S.road.to, rng, 0.12) : !siteExits && ways.length && G.dist(ways[0].a, ways[0].b) > 60 ? bendLine(ways[0].a, ways[0].b, rng, 0.12) : acrossLine(W, H, rng.pick(["W", "N", "SW", "NW"]), rng.pick(["E", "S", "SE", "NE"]), rng, 0.12); }
     /* the relief: a fractal base, a ridged share for rock, a V valley carved whose floor is a saddle; the land falls to the shore */
     var relief = new Float32Array(n), x, y, h, d, t, floor, vl;
     if (valley) { vl = 0; for (i = 1; i < valley.length; i++) vl += G.dist(valley[i - 1], valley[i]); }
@@ -5478,7 +5493,7 @@
        stands alone, between two spots INSIDE on a zone of a region — an edge it reached would lead to nothing on the
        sheet beyond. */
     var paths = [], pathsXY = [], pathXY = null, netNode = new Uint8Array(n), anyNet = false;
-    if (!siteRoads.length && (S.road || rng.chance(0.55))) {
+    if (!siteRoads.length && !siteExits && (S.road || rng.chance(0.55))) {
       if (S.zone && !S.road) {
         var ta = null, tb = null, tries2 = 0, sp;
         while (tries2++ < 24 && !tb) { sp = [MARGIN + rng.float() * (W - 2 * MARGIN), MARGIN + rng.float() * (H - 2 * MARGIN)]; if (inSea(sp[0], sp[1], 12) || nearRiver(sp[0], sp[1]) < riverW / 2 + 10) continue; if (!ta) ta = sp; else if (G.dist(ta, sp) >= 0.38 * W) tb = sp; }
@@ -5519,6 +5534,7 @@
       for (i = 1; i < xy.length; i++) for (k2 = 0; k2 < rivers.length; k2++) { var hit = M.crossPolyline(xy[i - 1], xy[i], rivers[k2].xy); if (hit) crossings.push({ x: U.round(hit.x, 1), y: U.round(hit.y, 1), kind: w.kind === "road" || w.kind === "causeway" ? "bridge" : rivers[k2].w > 10 ? "ford" : "plank" }); }
       w.path = { id: "path-" + (paths.length + 1), kind: w.kind, pts: roundPts(xy), from: w.from, to: w.to, towards: w.towards, crossings: crossings };
       if (w.road) w.path.road = w.road;
+      if (w.exit) { w.path.exit = w.exit.id; if (w.exit.sure === false) w.path.sure = false; }
       paths.push(w.path); pathsXY.push(xy); anyNet = true;
     });
     pathXY = pathsXY[0] || null;   /* the main way: the pass is its high point */
@@ -5592,12 +5608,36 @@
     if (saddle) { var sc = contextAt(saddle[0], saddle[1]); sc.saddle = true; cands.push(sc); }
     streams.forEach(function (s) { var hc = contextAt(s.head[0], s.head[1]); hc.spring = true; hc.water = false; cands.push(hc); });
     if (fallAt) { var fc = contextAt(fallAt.at[0], fallAt.at[1]); fc.fall = true; fc.water = false; cands.push(fc); }
-    var taken = [], features = [], reserved = {}, kinds = Object.keys(T.features), round, kind, K, fRng = NS.Rng(seed + "/features");
+    var taken = [], features = [], reserved = {}, kinds = siteExits ? [] : Object.keys(T.features) /* v0.24.0: a story sheet deals no thing of its own, and holds no spot for one */, round, kind, K, fRng = NS.Rng(seed + "/features");
     function free(c, clear) { var j; if (c.x < MARGIN || c.x > W - MARGIN || c.y < MARGIN || c.y > H - MARGIN) return false; for (j = 0; j < taken.length; j++) if (G.dist([c.x, c.y], [taken[j].x, taken[j].y]) < Math.max(SPACING, clear + taken[j].clear + 6)) return false; return true; }
     function best(kind) {
       var K2 = CATALOGUE[kind], scorer = WHERE[K2.where], top = null, ts = -Infinity, j, s2;
       for (j = 0; j < cands.length; j++) { if (cands[j].used) continue; s2 = scorer(cands[j]); if (s2 === -Infinity) continue; s2 += 0.08 * jit(seed + "/score/" + kind + "/" + j, 9); if (!free(cands[j], K2.clear || 0)) continue; if (K2.makes && inSea(cands[j].x, cands[j].y, (K2.makes.pool || K2.makes.wood || 0) + 8)) continue; if (K2.where !== "path" && K2.where !== "spring" && K2.where !== "fall" && K2.where !== "pool" && K2.where !== "saddle" && cands[j].dPath < 10) continue; if (s2 > ts) { ts = s2; top = cands[j]; } }
       return top;
+    }
+    /* v0.24.0: a thing the caller knows only by its BEARING from the middle stands on the best free ground of its kind in
+       that eighth of the sheet. The score reads the relief, the slope and the wet alone — never the tracks, which come as
+       exits are added: what stands must not move. Three passes: its kind of ground, any ground, any ground closer packed;
+       then the bare point on the bearing, so nothing the story named is ever left off. */
+    var spilled = {}, TOWARD = { high: 1, crag: 1, rock: 1, saddle: 1, low: -1, pool: -1, spring: -1, fall: -1 };
+    function sectorOf(x, y) { var ux = (x - W / 2) / (W / 2), uy = (y - H / 2) / (H / 2); return { r: Math.sqrt(ux * ux + uy * uy), b: BEARINGS[((Math.round(Math.atan2(ux, -uy) / (Math.PI / 4)) % 8) + 8) % 8] }; }
+    function freeBy(c, clear, gap) { var j; for (j = 0; j < taken.length; j++) if (G.dist([c.x, c.y], [taken[j].x, taken[j].y]) < Math.max(gap, clear + taken[j].clear + 6)) return false; return true; }
+    function spotToward(kind, bearing) {
+      var K2 = CATALOGUE[kind], lean = TOWARD[K2.where] || 0, pass, j, c, s2, sec, top, ts, gap, d;
+      for (pass = 0; pass < 3; pass++) {
+        gap = pass < 2 ? SPACING : 26; top = null; ts = -Infinity;
+        for (j = 0; j < cands.length; j++) {
+          c = cands[j]; if (c.used || c.water || c.poolAt || c.saddle || c.spring || c.fall) continue;
+          sec = sectorOf(c.x, c.y); if (sec.b !== bearing || sec.r < 0.26 || sec.r > 0.9) continue;
+          if (!freeBy(c, K2.clear || 0, gap)) continue;
+          s2 = (pass === 0 ? lean * c.relief + (K2.where === "firm" ? -c.wet : 0) : 0) - c.slope * 0.5 - 0.9 * Math.abs(sec.r - 0.42) + 0.08 * jit(seed + "/toward/" + c.x + "," + c.y, 9);
+          if (s2 > ts) { ts = s2; top = c; }
+        }
+        if (top) { top.used = true; return [top.x, top.y]; }
+      }
+      /* no free ground left in that eighth: round the bare point on the bearing, each later one a step further out on a sunflower turn — never two on one spot */
+      d = dirOf(bearing); j = spilled[bearing] = (spilled[bearing] || 0) + 1;
+      return [U.round(U.clamp(W / 2 + d[0] * W * 0.3 + Math.cos(j * 2.4) * 13 * Math.sqrt(j - 1), MARGIN, W - MARGIN), 1), U.round(U.clamp(H / 2 + d[1] * H * 0.3 + Math.sin(j * 2.4) * 13 * Math.sqrt(j - 1), MARGIN, H - MARGIN), 1)];
     }
     var FIRST = { pool: 1, saddle: 1, spring: 1, fall: 1 };
     kinds.sort(function (a, b) { return (FIRST[CATALOGUE[b].where] ? 1 : 0) - (FIRST[CATALOGUE[a].where] ? 1 : 0); });
@@ -5622,10 +5662,12 @@
       var f = byId[e.id], at;
       if (e.op === "add") {
         if (byId[e.id]) { warnings.push("add " + e.id + ": that id is already on the map"); return; }
-        at = [U.clamp(e.at[0], 2, W - 2), U.clamp(e.at[1], 2, H - 2)];
+        at = e.bearing !== undefined ? spotToward(e.kind, e.bearing) : [U.clamp(e.at[0], 2, W - 2), U.clamp(e.at[1], 2, H - 2)];
         if (inSea(at[0], at[1])) { warnings.push("add " + e.id + ": the point is in the water"); return; }
         K = CATALOGUE[e.kind]; f = { id: e.id, kind: e.kind, word: e.kind === "custom" ? e.word : K.word, icon: e.icon !== undefined ? e.icon : K.icon, name: e.name || namer.town("wild:" + e.kind, {}, K.patterns), x: U.round(at[0], 1), y: U.round(at[1], 1), ctx: contextAt(at[0], at[1]), authored: true };
         if (e.kind === "custom") f.custom = true;
+        if (e.bearing !== undefined) f.bearing = e.bearing;
+        if (e.mode === "reported") f.reported = true;
         features.push(f); byId[f.id] = f; taken.push({ x: f.x, y: f.y, clear: K.clear || 0 }); return;
       }
       /* what a removal took off is `gone` (1 until its own edit is passed, 2 after): the edit that did it is silent;
@@ -5694,7 +5736,9 @@
       if (w.fixed) { if (w.from) w.ends.push({ edge: w.from, at: w.a, towards: w.towards.from, roads: w.roadsA }); if (w.to) w.ends.push({ edge: w.to, at: w.b, towards: w.towards.to, roads: w.roadsB }); }
       else if (w.across && w.path) { var pa = w.path.pts[0], pb = w.path.pts[w.path.pts.length - 1]; w.ends.push({ edge: edgeOf(pa, W, H), at: pa, towards: w.towards.from, roads: null }); w.ends.push({ edge: edgeOf(pb, W, H), at: pb, towards: w.towards.to, roads: null }); }
     });
-    [["N", W / 2, 0, 0, -1], ["E", W, H / 2, 1, 0], ["S", W / 2, H, 0, 1], ["W", 0, H / 2, -1, 0]].forEach(function (E) {
+    /* v0.24.0: the story's exits are the sheet's ways on, each where its track leaves; the four nameless edges are not offered */
+    if (siteExits) ways.forEach(function (w) { if (w.exit) portals.push({ id: w.exit.id, kind: "exit", name: w.exit.name, x: U.round(w.a[0], 1), y: U.round(w.a[1], 1), bearing: w.exit.bearing, edge: w.from, way: "on", via: w.path ? w.path.id : null, towards: w.exit.name, sure: w.exit.sure !== false, to: { generator: "wild", id: null } }); });
+    else [["N", W / 2, 0, 0, -1], ["E", W, H / 2, 1, 0], ["S", W / 2, H, 0, 1], ["W", 0, H / 2, -1, 0]].forEach(function (E) {
       var at = [E[1], E[2]], way = null, end = null, k, j;
       for (k = 0; k < ways.length && !end; k++) for (j = 0; j < ways[k].ends.length && !end; j++) if (ways[k].ends[j].edge === E[0]) { way = ways[k]; end = ways[k].ends[j]; }
       if (end) at = [end.at[0], end.at[1]];
@@ -5708,7 +5752,7 @@
     var doc = {
       format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "wild", version: NS.VERSION },
       seed: seed, params: P,
-      frame: { width: W, height: H, mPerUnit: M_PER_UNIT, kmPerUnit: M_PER_UNIT / 1000 },
+      frame: siteExits ? { width: W, height: H, precision: "schematic" } /* v0.24.0: the story stated no distance, so the sheet states none: no scale, no metres */ : { width: W, height: H, mPerUnit: M_PER_UNIT, kmPerUnit: M_PER_UNIT / 1000 },
       title: { name: title, kind: P.terrain },
       site: S, kind: P.terrain, word: T.word,
       relief: { contours: contours, low: U.round(sortedH[0], 3), high: U.round(sortedH[sortedH.length - 1], 3), height: RL.height },
@@ -6302,6 +6346,14 @@
 
   function buildWild(doc) {
     var lines = [], facts = [], ref = NS.wild.reference(doc), S = doc.site, T = NS.wild.TERRAINS[doc.kind], WT = doc.water, A = doc.frame.width * doc.frame.height;
+    if (doc.frame.precision === "schematic") {   /* v0.24.0, the story's sheet: what the caller said, by bearing — never a distance, never a thing the generator found in the ground */
+      lines.push(doc.title.name + " is " + T.a + ". The sheet is not to scale.");
+      facts.push({ kind: "wild", name: doc.title.name, terrain: doc.kind, precision: "schematic" });
+      doc.portals.forEach(function (p) { lines.push("A way leads " + WORD[p.bearing] + " to " + p.name + (p.sure ? "" : " (its direction was never stated)") + "."); facts.push({ kind: "exit", id: p.id, name: p.name, bearing: p.bearing, sure: p.sure }); });
+      doc.features.forEach(function (f) { lines.push(f.name + (f.reported ? " is said to lie" : " lies") + (f.bearing ? " to the " + WORD[f.bearing] : " here") + "."); facts.push({ kind: "feature", id: f.id, name: f.name, bearing: f.bearing || null, mode: f.reported ? "reported" : "observed" }); });
+      (S.unplaced || []).forEach(function (u) { lines.push(u.name + (u.mode === "reported" ? " is reported" : " is known") + "; where it lies was never stated."); facts.push({ kind: "feature", id: u.id, name: u.name, bearing: null, mode: u.mode }); });
+      return { text: lines.join("\n"), facts: facts };
+    }
     lines.push(NS.wild.intro(doc));
     facts.push({ kind: "wild", name: doc.title.name, terrain: doc.kind, within: S.within, region: S.regionName, zone: S.zone ? S.zone.id : null, near: S.near, reference: ref.word });
     var rise = Math.round((doc.relief.high - doc.relief.low) * doc.relief.height * doc.frame.mPerUnit / 5) * 5;
@@ -6701,6 +6753,7 @@
         streamBand: { fill: pond, stroke: ink, width: 0.55, join: "round" },
         pool: { fill: pond, stroke: ink, width: 0.7, fillRule: "evenodd", join: "round" },
         wildTrack: { stroke: ink, width: 1.0, dash: [4.5, 3], cap: "round", join: "round" },
+        wildWayUnsure: { stroke: ink, width: 1.3, dash: [0.5, 5], cap: "round", join: "round" },
         wildTrail: { stroke: ink, width: 0.7, dash: [1.5, 3.2], cap: "round", join: "round" },
         wildCauseway: { stroke: ink, width: 0.6, cap: "round" },
         wildMark: { stroke: ink, width: 0.9, cap: "round", join: "round" },
@@ -6759,6 +6812,8 @@
         townSea: { font: SERIF, size: 12.5, style: "italic", letterSpacing: 3.8, fill: soft, halo: sea, haloWidth: 2.4, back: { shape: "plain", s: "slipSea" } },
         townLake: { font: SERIF, size: 8, style: "italic", letterSpacing: 0.8, fill: soft, halo: sea, haloWidth: 2, back: { shape: "plain", s: "slipSea" } },
         labelRoad: { font: SERIF, size: 9.5, style: "italic", letterSpacing: 0.5, fill: soft, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
+        storyFeature: { font: SERIF, size: 10, style: "italic", letterSpacing: 0.3, fill: ink, halo: paper, haloWidth: 2.4, back: { shape: "plaque", s: "slip" } },   /* v0.24.0: a story sheet is read on a phone at its fit, so its names are a third larger than a zone's */
+        storyHeard: { font: SERIF, size: 10, style: "italic", letterSpacing: 0.4, fill: soft, halo: paper, haloWidth: 2.2, back: { shape: "plain", s: "slip" } },
         wildFeature: { font: SERIF, size: 7.5, style: "italic", letterSpacing: 0.3, fill: ink, halo: paper, haloWidth: 2, back: { shape: "plaque", s: "slip" } },
         schematicMarker: { font: SERIF, size: 22, weight: "bold", letterSpacing: 0.4, fill: red, halo: paper, haloWidth: 2.6, back: { shape: "plaque", s: "slip" } },
         schematicNote: { font: SERIF, size: 18, style: "italic", fill: ink, halo: paper, haloWidth: 2.4, back: { shape: "plain", s: "slip" } },
@@ -7218,7 +7273,7 @@
     compassRose(w - 30, cy, 17, out, style);
     if (doc.frame.precision === "schematic") {
       out.push(plaque(8, h - 38, 176, 30));
-      out.push(plainText("Schematic — not to scale", "hudSmall", 96, h - 18, style));
+      out.push(plainText(doc.generator && doc.generator.name === "wild" ? "Not to scale" : "Schematic — not to scale", "hudSmall", 96, h - 18, style));
       return out;
     }
     /* the scale bar, bottom left: a fifth of the view wide, re-measured at this zoom */
@@ -7644,8 +7699,9 @@
     },
     /* a wild zone: from the nearest point of interest or way on, in metres */
     wild: function (doc) {
-      return { points: doc.features.map(function (f) { return { name: f.name, x: f.x, y: f.y, at: "at" }; }).concat(doc.portals.filter(function (p) { return p.kind !== "edge"; }).map(function (p) { return { name: p.name, x: p.x, y: p.y, at: "at" }; })).concat([{ name: NS.wild.reference(doc).word, x: NS.wild.reference(doc).x, y: NS.wild.reference(doc).y, at: "at" }]), closeUnits: 16 / doc.frame.mPerUnit,
-        dist: function (u) { var m = Math.round(u * doc.frame.mPerUnit / 10) * 10; return { value: m, unit: "m", text: m + " m" }; } };
+      return { points: doc.features.map(function (f) { return { name: f.name, x: f.x, y: f.y, at: "at" }; }).concat(doc.portals.filter(function (p) { return p.kind !== "edge"; }).map(function (p) { return { name: p.name, x: p.x, y: p.y, at: "at" }; })).concat([{ name: NS.wild.reference(doc).word, x: NS.wild.reference(doc).x, y: NS.wild.reference(doc).y, at: "at" }]), closeUnits: 16 / (doc.frame.mPerUnit || 1.25),
+        dist: function (u) { if (!doc.frame.mPerUnit) return { value: null, unit: "", text: "" };   /* v0.24.0: a story sheet states no distance */
+          var m = Math.round(u * doc.frame.mPerUnit / 10) * 10; return { value: m, unit: "m", text: m + " m" }; } };
     },
     /* an interior: a pin is in a room (the floors lie side by side on the sheet, so the nearest room centre is its room) */
     interior: function (doc) {
@@ -8232,6 +8288,7 @@
     /* the track */
     var paths = layer("paths");
     doc.paths.forEach(function (p) {
+      if (p.sure === false) { paths.push({ t: "path", pts: p.pts, closed: false, s: "wildWayUnsure", meta: { id: p.id } }); return; }   /* v0.24.0: a way whose direction nobody stated */
       if (p.kind === "road" || p.kind === "causeway") { paths.push({ t: "path", pts: ribbon(p.pts.map(function (q) { return [q[0], q[1], p.kind === "road" ? 5 : 4]; })), closed: true, s: "roadBand", meta: { id: p.id } }); }
       else paths.push({ t: "path", pts: p.pts, closed: false, s: p.kind === "track" ? "wildTrack" : "wildTrail", meta: { id: p.id } });
       if (p.kind === "causeway") { var rs = G.resample(p.pts, 9, false), j; for (j = 1; j < rs.length - 1; j++) { var a = rs[j - 1], b = rs[j + 1], dx = b[0] - a[0], dy = b[1] - a[1], l = Math.sqrt(dx * dx + dy * dy) || 1; paths.push({ t: "path", pts: [[rs[j][0] - dy / l * 3.2, rs[j][1] + dx / l * 3.2], [rs[j][0] + dy / l * 3.2, rs[j][1] - dx / l * 3.2]], closed: false, s: "wildCauseway" }); } }
@@ -8249,23 +8306,24 @@
     });
     doc.features.forEach(function (f) {
       var K = NS.wild.CATALOGUE[f.kind] || NS.wild.CATALOGUE.custom, mk = f.custom ? "stone" : K.mark;
-      if (mk && MARKS[mk]) { MARKS[mk](f, marks); lay.block(f.x, f.y, 14, 12); }
+      if (f.reported) { marks.push({ t: "circle", x: f.x, y: f.y, r: 3.2, s: "placeRing" }); lay.block(f.x, f.y, 10, 10); }   /* v0.24.0: heard of, not seen: a ring, never a drawn thing */
+      else if (mk && MARKS[mk]) { MARKS[mk](f, marks); lay.block(f.x, f.y, 14, 12); }
       hits.push({ t: "hit", kind: "feature", id: f.id, x: f.x, y: f.y, r: 11 });
     });
     /* furniture and labels */
     var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
     C.furniture(doc.frame, doc.title.name, NS.wild.caption(doc), style, furn, lay, frameL);
     doc.portals.forEach(function (p) {
-      if (p.kind === "edge") return;
+      if (p.kind === "edge" || p.kind === "exit") return;
       var sz = style.text.labelCave.size, r = 9, icon = p.kind === "cave" ? ["cave", "arrowDown"] : null, key = p.kind === "cave" ? "labelCave" : "labelVillage";
       var cands = [{ x: p.x + r, y: p.y + sz * 0.36, anchor: "start" }, { x: p.x - r, y: p.y + sz * 0.36, anchor: "end" }, { x: p.x, y: p.y + r + sz * 0.95 }, { x: p.x, y: p.y - r - sz * 0.3 }];
       var cmd = lay.place(p.name, key, cands, { kind: "portal", id: p.id }, icon ? { icon: icon } : null); if (cmd) { labels.push(cmd); C.hitBox(hits, "portal", p.id, cmd.box); }
     });
-    var fsz = style.text.wildFeature.size;
+    var story = doc.frame.precision === "schematic", fKey = story ? "storyFeature" : "wildFeature", fsz = style.text[fKey].size;
     doc.features.forEach(function (f) {
       var K = NS.wild.CATALOGUE[f.kind] || NS.wild.CATALOGUE.custom, off = K.makes && K.makes.pool ? K.makes.pool * 0.6 : K.mark ? 8 : 4, icon = f.icon || null;
       var cands = [{ x: f.x, y: f.y + off + fsz * 0.95 }, { x: f.x, y: f.y - off - fsz * 0.3 }, { x: f.x + off, y: f.y + fsz * 0.36, anchor: "start" }, { x: f.x - off, y: f.y + fsz * 0.36, anchor: "end" }, { x: f.x, y: f.y + off + fsz * 2.1 }, { x: f.x + off, y: f.y + off + fsz * 1.2, anchor: "start" }];
-      var cmd = lay.place(f.name, "wildFeature", cands, { kind: "feature", id: f.id }, icon ? { icon: icon } : null); if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
+      var cmd = lay.place(f.name, f.reported ? (story ? "storyHeard" : "townRoad") : fKey, cands, { kind: "feature", id: f.id }, icon ? { icon: icon } : null); if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
     });
     var named = NS.wild.rivers(doc).filter(function (v) { return v.name && v.pts.length > 6; })[0];
     if (named) {
@@ -8284,11 +8342,11 @@
     }
     /* the ways on: at every edge, "to Ashford" where the track leads somewhere named, else the bearing */
     doc.portals.forEach(function (p) {
-      if (p.kind !== "edge") return;
-      var text = p.towards ? "to " + p.towards : p.name.split(" ")[0];
-      var inx = p.bearing === "W" ? 22 : p.bearing === "E" ? -22 : 0, iny = p.bearing === "N" ? 16 : p.bearing === "S" ? -12 : 0;
-      var anc = p.bearing === "W" ? "start" : p.bearing === "E" ? "end" : "middle", sx2 = inx ? 0 : 1, sy2 = iny ? 0 : 1;   /* slid along the edge when the spot is taken (the title block at the top's middle) */
-      var cmdE = lay.place(text, "townRoad", [{ x: p.x + inx, y: p.y + iny + 4, anchor: anc }, { x: p.x + inx * 1.6, y: p.y + iny * 1.6 + 4, anchor: anc }, { x: p.x + inx + 40 * sx2, y: p.y + iny + 4 + 30 * sy2, anchor: anc }, { x: p.x + inx - 40 * sx2, y: p.y + iny + 4 - 30 * sy2, anchor: anc }, { x: p.x + inx * 1.6 + 70 * sx2, y: p.y + iny * 1.6 + 4, anchor: anc }], { kind: "portal", id: p.id }); if (cmdE) { featureLabels.push(cmdE); C.hitBox(hits, "portal", p.id, cmdE.box); }
+      if (p.kind !== "edge" && p.kind !== "exit") return;
+      var text = p.towards ? "to " + p.towards : p.name.split(" ")[0], side = p.kind === "exit" ? p.edge : p.bearing;
+      var inx = side === "W" ? 22 : side === "E" ? -22 : 0, iny = side === "N" ? 16 : side === "S" ? -12 : 0;
+      var anc = side === "W" ? "start" : side === "E" ? "end" : "middle", sx2 = inx ? 0 : 1, sy2 = iny ? 0 : 1;   /* slid along the edge when the spot is taken (the title block at the top's middle) */
+      var cmdE = lay.place(text, p.kind === "exit" ? fKey : "townRoad", [{ x: p.x + inx, y: p.y + iny + 4, anchor: anc }, { x: p.x + inx * 1.6, y: p.y + iny * 1.6 + 4, anchor: anc }, { x: p.x + inx + 40 * sx2, y: p.y + iny + 4 + 30 * sy2, anchor: anc }, { x: p.x + inx - 40 * sx2, y: p.y + iny + 4 - 30 * sy2, anchor: anc }, { x: p.x + inx * 1.6 + 70 * sx2, y: p.y + iny * 1.6 + 4, anchor: anc }].concat(p.kind === "exit" ? [{ x: p.x + inx * 5.8, y: p.y + iny * 5.8 + 4, anchor: anc }, { x: p.x + inx + 150 * sx2, y: p.y + iny + 4, anchor: anc }, { x: p.x + inx - 150 * sx2, y: p.y + iny + 4, anchor: anc }] : []) /* v0.24.0: a named way out is never lost under the title: below it, or well along the edge */, { kind: "portal", id: p.id }); if (cmdE) { featureLabels.push(cmdE); C.hitBox(hits, "portal", p.id, cmdE.box); }
     });
     var hitLayer = layer("hits"); for (i = 0; i < hits.length; i++) hitLayer.push(hits[i]);
     return { width: W, height: H, style: style.name, layers: layers, dropped: lay.dropped, unit: TREE_UNIT };
@@ -9356,7 +9414,7 @@
     function update(doc, styleName) {
       var uiStyle = NS.style.get(styleName).ui; NS.assert(uiStyle && uiStyle.unplaced, "style has no unplaced list palette"); palette = uiStyle.unplaced;
       panel.style.background = palette.background; panel.style.color = palette.color; panel.style.borderColor = palette.border; panel.style.font = palette.size + "px " + palette.font; heading.style.borderColor = palette.divider;
-      var next = doc.features.filter(function (f) { return f.unplaced; }).map(function (f) { return { id: f.id, name: f.name, mode: f.mode }; }), sig = JSON.stringify([styleName, next]), active, focusId, scroll;
+      var next = (doc.site && doc.site.unplaced ? doc.site.unplaced : doc.features.filter(function (f) { return f.unplaced; })).map(function (f) { return { id: f.id, name: f.name, mode: f.mode }; }), sig = JSON.stringify([styleName, next]), active, focusId, scroll;
       if (sig === signature) return;
       active = buttonFrom(document.activeElement); focusId = active && active.getAttribute("data-tnd-unplaced-id"); scroll = body.scrollTop;
       entries = next; signature = sig; ids = Object.create(null); buttons = []; body.textContent = "";
@@ -9383,7 +9441,7 @@
         if (c.meta && c.meta.kind === "feature" && NS.own(ids, c.meta.id)) return false;
         return !(c.t === "hit" && c.kind === "feature" && NS.own(ids, c.id));
       }) }; });
-      out.contentBounds = scene.spatialBounds;
+      if (scene.spatialBounds) out.contentBounds = scene.spatialBounds;
       return out;
     }
     function layout(size, area) {
@@ -9404,6 +9462,7 @@
     return { update: update, project: project, layout: layout, select: select, destroy: destroy };
   }
   NS.viewLists.schematic = create;
+  NS.viewLists.wild = create;   /* v0.24.0: a story sheet lists what is known without a direction (site.unplaced) */
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 99-api.js ───── */
@@ -9454,7 +9513,7 @@
     var gen = doc.generator && NS.own(NS.GENERATORS, doc.generator.name);
     NS.assert(gen, "document.generator.name must be a known generator", { generator: doc.generator, known: Object.keys(NS.GENERATORS) });
     NS.assert(Array.isArray(doc.warnings), "document.warnings must be an array", { warnings: doc.warnings });
-    NS.assert(gen.metric === false || doc.frame.kmPerUnit > 0, "metric document frame needs kmPerUnit", { frame: doc.frame });
+    NS.assert(gen.metric === false || doc.frame.precision === "schematic" || doc.frame.kmPerUnit > 0, "metric document frame needs kmPerUnit", { frame: doc.frame });
     return gen.validate(doc);
   }
   /* migrations: a table from version → the function that lifts a document to version + 1 */

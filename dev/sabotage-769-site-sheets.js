@@ -23,7 +23,7 @@ var extract = [
   { label: "the landmark reader files scenery", find: "    if(atlasKnowledgeScenery(e.label)){", replace: "    if(false){", mustFail: T2 }
 ];
 var pub = [
-  { label: "the parent's pin opens nothing", find: "opens:atlasPublicChildSheet(A,place,f.label),", replace: "opens:null,", mustFail: T4 },
+  { label: "the parent's pin opens nothing", find: "opens:atlasPublicChildSheet(A,place,f.label)||(w?w.to:null),", replace: "opens:(w?w.to:null),", mustFail: T4 },
   { label: "a same-named site of another place is opened", find: "if(r.container.indexOf(pre)===0&&atlasKnowledgeFold(r.name)===want)return r.id;", replace: "if(atlasKnowledgeFold(r.name)===want)return r.id;", mustFail: T4 },
   { label: "the site must be spelled exactly as its pin", find: "if(r.container.indexOf(pre)===0&&atlasKnowledgeFold(r.name)===want)return r.id;", replace: "if(r.container.indexOf(pre)===0&&r.name===label)return r.id;", mustFail: T4 }
 ];

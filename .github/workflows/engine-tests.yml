@@ -147,6 +147,8 @@ jobs:
         run: node dev/tests-684-atlas-browser.js
       - name: Public map knowledge browser gate
         run: node dev/tests-733-map-browser.js
+      - name: Place sheet browser suite (#771)
+        run: node dev/tests-771-place-sheet-browser.js
       - name: Legacy map copy import and rendered discoveries
         run: node dev/tests-733-map-legacy-browser.js
       - name: Narrated map discovery through story and opening entry points

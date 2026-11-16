@@ -60,7 +60,7 @@ var ATLAS_THINGS={
   town:function(d){return [].concat(d.establishments||[],d.landmarks||[]);},
   dungeon:function(d){return d.rooms||[];},
   interior:function(d){return d.rooms||[];},
-  wild:function(d){return d.features||[];},
+  wild:function(d){return (d.features||[]).concat(((d.site&&d.site.unplaced)||[]).map(function(u){return {id:u.id,name:u.name,x:d.frame.width/2,y:d.frame.height/2,unplaced:true};}));},/* #771: a story sheet's listed things — known without a position, so never a camera target */
   schematic:function(d){return d.features||[];}
 };
 /* a portal of one of these ways leads back to the zone this one hangs from */

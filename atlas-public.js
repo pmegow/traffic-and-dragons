@@ -8,14 +8,15 @@ function atlasPublicScale(){return "wild";}
 function atlasPublicTitle(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return ATLAS_JOURNEY_TITLE;/* #757 */var place=A?atlasPublicPlace(A,zoneId||A.at||A.seed):null;return place?place.name:"Current place";}
 function atlasPublicDoc(zoneId){
   var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyDoc(A);/* #757: the journey sheet */
-  var place=A?atlasPublicPlace(A,zoneId):null,k,p,signature,doc,landscape;
+  var place=A?atlasPublicPlace(A,zoneId):null,k,p,signature,doc,landscape,sheet;
   if(!place)throw new Error("public atlas: that sheet is not available");
   k=place.container;p=atlasKnowledgeProjection(k);p={features:atlasKnowledgeShown(k,p.features)};/* #756: a place is not a feature of itself */landscape=atlasPublicLandscape(place.name,p.features);
-  signature=JSON.stringify([place.id,k,place.name,atlasPublicScale(),p,landscape]);
+  sheet=A.drawn===false?null:atlasSheetOf(A,place,p.features);/* worldState.atlas.drawn === false is the campaign switch (no UI): pin sheets only *//* #771 P1: the place drawn on its own ground, when the story says what ground it is */
+  signature=JSON.stringify([place.id,k,place.name,atlasPublicScale(),p,landscape,sheet?sheet.params:null]);
   if(_atlasPublicMemo&&_atlasPublicMemo.signature===signature)return _atlasPublicMemo.doc;
   var spec={scale:atlasPublicScale(),title:place.name,features:p.features.map(function(f){return {id:f.id,name:f.label,kind:"landmark",bearing:f.bearing,mode:f.mode};})};
   if(landscape.terrain.length||landscape.routes.length)spec.landscape=landscape;
-  doc=TnDMaps.schematic(spec);
+  doc=atlasSheetDoc(place,sheet)||TnDMaps.schematic(spec);/* no ground known, or the drawing refused (said once): the pin sheet */
   _atlasPublicMemo={signature:signature,doc:doc};return doc;
 }
 function atlasPublicFollow(){
@@ -28,7 +29,7 @@ function atlasPublicFollow(){
     return {changed:changed,at:A.at,spot:null,off:null,entered:[]};
   }catch(e){atlasProblem("following the public map",e);return null;}
 }
-function atlasPublicParty(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */var place=A?atlasPublicPlace(A,zoneId):null;return place&&place.container===atlasPublicContext()?{x:400,y:275,exact:false,last:false,key:null,label:place.name}:null;}/* #764 (owner 2026-11-15: "the party is at Petrified Mire, might as well call it that"): a public sheet IS the place the party stands in, so its marker bears the place's name */
+function atlasPublicParty(zoneId){var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */var place=A?atlasPublicPlace(A,zoneId):null;var drawn=place&&atlasPublicDoc(zoneId).generator.name==="wild";return place&&place.container===atlasPublicContext()?{x:drawn?ATLAS_SHEET_CENTRE[0]:400,y:drawn?ATLAS_SHEET_CENTRE[1]:275,exact:false,last:false,key:null,label:place.name}:null;}/* #764 (owner 2026-11-15: "the party is at Petrified Mire, might as well call it that"): a public sheet IS the place the party stands in, so its marker bears the place's name */
 
 /* #769: the visited sheet a feature of this place IS — a sub-location of it bearing the feature's name (a leading "the",
    case and punctuation folded). The den pinned on the ridge opens the den. null when the party has not been inside. */
@@ -40,13 +41,23 @@ function atlasPublicChildSheet(A,place,label){
 }
 function atlasPublicCard(zoneId,target){
   var A=atlasLive();if(atlasJourneyIs(A,zoneId))return atlasJourneyCard(A,target);/* #757 */
-  var place=A?atlasPublicPlace(A,zoneId):null,p,i,f,t,doc;
+  var place=A?atlasPublicPlace(A,zoneId):null,p,i,f,t,doc,sheet,w,at;
   if(!place)return null;p=atlasKnowledgeProjection(place.container);p={features:atlasKnowledgeShown(place.container,p.features)};/* #756 */
   if(!target||target.id==null)return null;
   doc=atlasPublicDoc(zoneId);
+  /* #771 P1: on a drawn sheet a way out and a place inside are things too — each opens the sheet it leads to */
+  sheet=doc.generator&&doc.generator.name==="wild"?atlasSheetOf(A,place,p.features):null;
+  if(sheet)for(i=0;i<sheet.ways.length;i++)if(sheet.ways[i].id===target.id&&!sheet.ways[i].feature){
+    w=sheet.ways[i];at=(doc.portals||[]).filter(function(x){return x.id===w.id;})[0];
+    return {id:w.id,x:at?at.x:ATLAS_SHEET_CENTRE[0],y:at?at.y:ATLAS_SHEET_CENTRE[1],title:"The way to "+w.name,word:w.bearing?"The party travelled this way. It leads "+ATLAS_KNOWLEDGE_DIRECTIONS[w.bearing]+".":"The party travelled between these places. Its direction was never stated, so the way is drawn dotted.",opens:w.to,unvisited:false,partyHere:false,place:null,added:null,note:null};
+  }
+  if(sheet)for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===target.id){
+    w=sheet.inside[i];return {id:w.id,x:ATLAS_SHEET_CENTRE[0],y:ATLAS_SHEET_CENTRE[1],title:w.name,word:"A place within "+place.name+" the party has entered. Where it lies was never stated.",opens:w.to,unvisited:false,partyHere:false,place:null,added:null,note:null};
+  }
   for(i=0;i<p.features.length;i++)if(p.features[i].id===target.id){
-    f=p.features[i];t=doc.features.filter(function(x){return x.id===f.id;})[0];
-    return {id:f.id,x:t.x,y:t.y,title:f.label,word:(f.mode==="reported"?"Reported":"Observed")+" · "+(f.bearing==="unknown"?"Position not established":f.bearing)+". Disclosed on turn "+f.source.turn+".",opens:atlasPublicChildSheet(A,place,f.label),unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,f.id)};
+    f=p.features[i];t=doc.features.filter(function(x){return x.id===f.id;})[0]||(doc.portals||[]).filter(function(x){return x.id===f.id;})[0];
+    w=sheet?sheet.ways.filter(function(x){return x.feature===f.id;})[0]:null;/* #771: this feature is a way out — its card opens where the way leads */
+    return {id:f.id,x:t?t.x:ATLAS_SHEET_CENTRE[0],y:t?t.y:ATLAS_SHEET_CENTRE[1],title:f.label,word:(f.mode==="reported"?"Reported":"Observed")+" · "+(f.bearing==="unknown"?"Position not established":f.bearing)+". Disclosed on turn "+f.source.turn+".",opens:atlasPublicChildSheet(A,place,f.label)||(w?w.to:null),unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,f.id)};
   }
   return null;
 }

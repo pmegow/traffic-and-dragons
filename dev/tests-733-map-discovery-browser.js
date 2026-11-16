@@ -64,7 +64,7 @@ let pass=0,fail=0;
     const before=JSON.stringify(worldState.world),turn=worldState.turn,n=worldState.transcript.length,sl=sessionLog.length;
     await sendAction('Study the split without moving.');
     const saved={geo:JSON.stringify(memory.map.geography),transcript:JSON.stringify(worldState.transcript),session:JSON.stringify(sessionLog)};
-    const out={before,after:JSON.stringify(worldState.world),turn,now:worldState.turn,added:worldState.transcript.slice(n),sessionAdded:sessionLog.length-sl,calls:__calls,directions:window.__directionCalls||[],features:atlasKnowledgeProjection().features,shown:_atlasPane.view.doc().features.map(f=>f.name),geo:memory.map.geography};
+    const out={before,after:JSON.stringify(worldState.world),turn,now:worldState.turn,added:worldState.transcript.slice(n),sessionAdded:sessionLog.length-sl,calls:__calls,directions:window.__directionCalls||[],features:atlasKnowledgeProjection().features,shown:atlasThings(_atlasPane.view.doc()).map(f=>f.name),geo:memory.map.geography};
     if(!loadState())throw Error('saved story did not reload');out.reloaded={geo:JSON.stringify(memory.map.geography),transcript:JSON.stringify(worldState.transcript),session:JSON.stringify(sessionLog)};out.saved=saved;return out;
    });
    assert.equal(r.after,r.before);assert.equal(r.now,r.turn+1);assert.equal(r.calls.length,2);assert.equal(r.calls[1].opts.noHistory,true);assert.equal(r.calls[1].opts.noRetry,true);assert.equal(r.calls[1].opts.kind,'atlas');

@@ -13,7 +13,7 @@ test('the original seed generates the undisclosed hut inside the old visibility 
  assert.ok(hut);assert.equal(hut.name,"Stalgind's Hut");
  assert.ok(Math.hypot(hut.x-400,hut.y-275)*1.25<100,'reported hut is inside the legacy 100 m visibility radius');
  setup();const A=worldState.atlas,doc=atlasDoc(A.seed);
- assert.equal(doc.generator.name,'schematic');assert.equal(doc.features.length,0);
+ assert.equal(doc.generator.name,'wild','#771: a clearing is drawn on forest ground');assert.equal(doc.features.length,0,'and the drawing deals no thing of its own');assert.equal(doc.portals.length,0);assert.notEqual(doc.seed,A.seed,'drawn from the sheet\'s own seed, never one a private recipe used');
  const outputs=[doc,TnDMaps.scene.build(doc,'ink'),TnDMaps.digest(doc),atlasZones(),atlasMapBlock(),buildGeoBlock('player')];
  assert.ok(!JSON.stringify(outputs).includes('Stalgind'));assert.equal(atlasCard(A.seed,{id:'hut-1'}),null);
 });
@@ -53,8 +53,8 @@ test('classifier proposals cannot create public types glyphs or spoken assertion
  const raw=atlasKnowledgeCommit('[MAP_REVEAL:new|High canopy stairs|arch|N|observed] [MAP_REVEAL:new|Crossing shallows|spring|E|observed] [MAP_REVEAL:new|Ventilation stair|ruin|W|reported]');
  const doc=atlasDoc(A.seed),scene=TnDMaps.scene.build(doc,'ink'),cards=doc.features.map(f=>atlasCard(A.seed,{id:f.id}));
  assert.deepEqual(doc.features.map(f=>f.name),['High canopy stairs','Crossing shallows','Ventilation stair']);
- assert(doc.features.every(f=>f.kind==='landmark'),'all public glyphs use the neutral landmark contract');
- const marks=scene.layers.find(l=>l.name==='features').items;assert.equal(marks.length,3);assert(marks.every(c=>c.t==='circle'),'no classifier-specific icon geometry');
+ assert(doc.features.every(f=>f.kind==='custom'&&!f.icon),'#771: a mark comes from the public label\'s own noun or is the plain one — never from the proposal');
+ assert.equal(JSON.stringify(scene).indexOf('"icon"'),-1,'no classifier-specific icon geometry');
  const surfaces=[cleanTxt(raw),doc,scene,TnDMaps.digest(doc),cards,atlasKnowledgePlayerBlock(),buildGeoBlock('player')];
  assert(!/\b(?:arch|spring|ruin)\b/i.test(JSON.stringify(surfaces)),'raw classifier proposals cannot be asserted by a public surface');
  const proposals=Object.values(memory.map.geography.receipts).flatMap(r=>r.events).map(e=>e.proposalKind);
@@ -66,14 +66,14 @@ test('public adapter ignores upstream classification and archival quote fields',
  atlasKnowledgeProjection=()=>({container:'The Boundary Clearing',revision:99,features:[{id:'f1',label:'High canopy stairs',kind:'arch',bearing:'N',mode:'observed',source:{commit:'archive',turn:0,quote:'A PRIVATE ruin, a spring, and an arch.'}}]});
  try{
   atlasForget();const doc=atlasDoc(A.seed),card=atlasCard(A.seed,{id:'f1'});
-  assert.equal(doc.features[0].kind,'landmark');assert.equal(card.title,'High canopy stairs');
+  assert.equal(doc.features[0].kind,'custom');assert.equal(card.title,'High canopy stairs');
   assert.equal(card.word,'Observed · N. Disclosed on turn 0.');
   assert(!/PRIVATE|\b(?:arch|spring|ruin)\b/.test(JSON.stringify([doc,card])));
  }finally{atlasKnowledgeProjection=real;atlasForget();}
 });
 test('literal public labels remain intact without inferring a type from their nouns',()=>{
  setup();const A=worldState.atlas,raw=atlasKnowledgeCommit('[MAP_REVEAL:new|The Waystone Arch|S|observed]');
- const doc=atlasDoc(A.seed);assert.equal(doc.features.length,1);assert.equal(doc.features[0].name,'The Waystone Arch');assert.equal(doc.features[0].kind,'landmark');
+ const doc=atlasDoc(A.seed);assert.equal(doc.features.length,1);assert.equal(doc.features[0].name,'The Waystone Arch');assert.equal(doc.features[0].kind,'custom','#771: a NAME is never typed by its last word');
  assert(cleanTxt(raw).includes('The Waystone Arch'));assert(!cleanTxt(raw).includes(', an arch'));
  assert.equal(atlasCard(A.seed,{id:'f1'}).title,'The Waystone Arch');
 });
@@ -88,7 +88,8 @@ test('normalized map things preserve unknown-position metadata for camera decisi
  setup();atlasKnowledgeCommit('[MAP_REVEAL:new|A northern stone|N|observed] [MAP_REVEAL:new|The distant cairn|unknown|reported]');
  const doc=atlasDoc(worldState.atlas.seed),before=JSON.stringify(doc),things=atlasThings(doc);
  assert.equal(things.find(f=>f.name==='A northern stone').unplaced,false);
- assert.equal(things.find(f=>f.name==='The distant cairn').unplaced,true,'a ledger coordinate must never become a camera target');
+ assert.equal(things.find(f=>f.name==='The distant cairn').unplaced,true,'a ledger coordinate must never become a camera target');assert.equal(doc.features.some(f=>f.name==='The distant cairn'),false,'#771: on a drawn sheet it is not drawn at all');
+ assert.deepEqual(doc.site.unplaced.map(u=>u.name),['The distant cairn'],'it is listed');
  assert.equal(JSON.stringify(doc),before,'the normalization is read-only');
 });
 

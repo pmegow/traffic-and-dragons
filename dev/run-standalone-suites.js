@@ -24,6 +24,7 @@ var SUITES = [
   "dev/tests-722-silence-opening.js",
   "dev/tests-718-enemy-card.js",
   "dev/tests-769-site-sheets.js",/* #769: a site the party goes inside has its own sheet; #770: plain scenery is not a map feature */
+  "dev/tests-771-place-sheet.js",/* #771 P1: a place whose name says its ground is drawn, with its exits and features, from public facts */
   "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again */
   "dev/tests-767-no-narration-before-roll.js",/* #767: a roll the player's own action needs carries no narration; prose beside it waits for the dice */
   "dev/tests-766-directions.js",/* #766: the map asks for the directions it is owed; the GM is the author of a seen feature's bearing */

@@ -102,7 +102,7 @@ let pass=0,fail=0;
   }
   function privateSafe(r){assert.doesNotMatch(r.readers+r.painted,/Stalgind|secret cellar|UNDISCLOSED|PRIVATE/);assert.doesNotMatch(r.readers,/\d+ m\b|kmPerUnit|on foot/);}
   await page.goto('http://map744.test/index.html');await page.waitForFunction(()=>typeof commitGmTurn==='function'&&typeof showAtlasFull==='function');await stub();
-  await page.evaluate(f=>{worldState=f.world;worldState.ver=SAVE_VER;memory=f.memory;sessionLog=[];showGame();if(typeof initReplaySession==='function')initReplaySession();atlasCreate('744-browser');const r=atlasPublicEnable();if(!r.ok)throw Error(r.reason);atlasFollow();syncUI();showAtlasFull();},fx);
+  await page.evaluate(f=>{worldState=f.world;worldState.ver=SAVE_VER;memory=f.memory;sessionLog=[];showGame();if(typeof initReplaySession==='function')initReplaySession();atlasCreate('744-browser');worldState.atlas.drawn=false;/* #771: this suite guards the PIN sheets' travel and reload; the drawn sheet has dev/tests-771-place-sheet*.js */const r=atlasPublicEnable();if(!r.ok)throw Error(r.reason);atlasFollow();syncUI();showAtlasFull();},fx);
   await commit('You stand in The Boundary Clearing. Forest Road leads west, Old Mine Track north, Marsh Causeway east, and Waystone Arch Hill southeast.\n[MAP_REVEAL:new|Forest Road|W|observed]\n[MAP_REVEAL:new|Old Mine Track|N|observed]\n[MAP_REVEAL:new|Marsh Causeway|E|observed]\n[MAP_REVEAL:new|Waystone Arch Hill|SE|observed]',true);
   let clearing,forest,marsh,clearingFeatures,noteId;
   await check('opening disclosures show on the current phone sheet without private scenery',async()=>{

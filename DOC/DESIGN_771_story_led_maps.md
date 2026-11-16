@@ -1,6 +1,6 @@
 # Story-led maps (#771): plan
 
-Status: plan, not built. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
+Status: **P0 accepted, P1 built (v1.1439, TnD Maps 0.24.0)**; P2 to P4 not built. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
 
 ## What the owner asked for
 
@@ -60,11 +60,20 @@ Each phase ends with something the owner can look at, and nothing later starts u
 - **P3. Region.** Generated at Begin, fogged, places set onto it as visited. The journey sheet (#757) retires into it.
 - **P4. Existing campaigns and cleanup.** Recipes are built from the record at load. The landscape adapter (#744, #765) and the journey sheet are removed once nothing reads them.
 
+## P1 as built (v1.1439)
+
+- `atlas-public-sheet.js` turns one place's public record into the recipe the library draws; `atlas-public.js` draws it in place of the pin sheet and gives exits and places inside their cards. Nothing is stored: the sheet is read from the record at every draw.
+- **Ground:** the place's own name (head noun, one row of nouns per ground; a way wears the ground it runs through), else a plain observed feature. No ground known: the pin sheet stays.
+- **Exits:** a world place has one for every way the party travelled; a place inside another has the way back out. A direction is the story's (a feature of one end bearing the other's name); an unstated one is dotted, laid south onward and north back so the two ends agree.
+- **Features:** toward their bearing, in the order disclosed, on ground that fits the mark their plain noun earns. A name is never typed by its last word; a report is a ring; the ground's own noun ("mire" on a mire) and the place an exit leads to are not pins.
+- **Listed, not drawn:** what has no direction, and a visited place inside this one that no feature names.
+- **Not in P1:** the GM's one-word ground when the name does not say it; drawn tracks and rivers for the ones the story names; towns; sites (P2).
+
 ## Known gaps to close in the map library
 
-- A standalone wild sheet takes **one** road, from one bearing to another. A place with three exits needs several ways out.
-- Whether an addition (`edits`) can be placed "along bearing SW on wet ground" or only at a point the caller computes.
-- Whether adding an exit later redraws the ground. If it does, the library must change so it does not.
+- ~~A standalone wild sheet takes one road.~~ Closed in 0.24.0: `site.exits`, up to sixteen.
+- ~~An addition only at a computed point.~~ Closed in 0.24.0: an `add` takes a `bearing` and stands on the best free ground of its kind in that eighth.
+- ~~Adding an exit redraws the ground.~~ Closed in 0.24.0: a story sheet's relief and placed things do not move (pools and cover give way locally to the new track).
 - Node and Chrome draw one seed slightly differently (#698). A sheet must look the same wherever it is drawn.
 
 ## Open questions (for the owner, when their phase comes)

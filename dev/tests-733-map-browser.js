@@ -21,7 +21,7 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #733 brows
  await settle();
  await check('activation clears an open private pane even when public drawing fails',async()=>{
    const before=await page.evaluate(()=>!!_atlasPane&&_atlasPane.view.doc().generator.name);assert.notEqual(before,'schematic');assert.ok(before);
-   await page.evaluate(()=>{window.__realSchematic=TnDMaps.schematic;TnDMaps.schematic=function(){throw new Error('injected public drawing failure');};window.__activation=atlasPublicEnable();syncUI();});await settle();
+   await page.evaluate(()=>{window.__realSchematic=TnDMaps.schematic;TnDMaps.schematic=function(){throw new Error('injected public drawing failure');};worldState.atlas.drawn=false;/* #771: this suite guards the PIN sheet (a place whose ground is not known, or a campaign with the drawn sheets switched off); the drawn sheet has dev/tests-771-place-sheet*.js */window.__activation=atlasPublicEnable();syncUI();});await settle();
    const got=await page.evaluate(()=>({enabled:__activation.ok,privatePane:!!_atlasPane&&_atlasPane.view.doc().generator.name!=='schematic',canvases:document.querySelectorAll('#atlas-canvas').length,toasts:__mapToasts.slice()}));
    assert.equal(got.enabled,true);assert.equal(got.privatePane,false,'the previously private drawing must not survive the knowledge-mode switch');assert.equal(got.canvases,0,'a failed first public draw must leave no old canvas');assert.ok(got.toasts.some(x=>/injected public drawing failure/.test(x)));
    await page.screenshot({path:path.join(shots,'map-733-activation-refused.png')});

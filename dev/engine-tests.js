@@ -36755,7 +36755,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   });
   t("#744 the public Forest Road supplies forest and road ink without private candidates",function(){
     makeWorld();worldState.world.location="The Forest Road";worldState.world.sublocation=null;
-    atlasCreate("map744-forest",{knowledge:true});
+    atlasCreate("map744-forest",{knowledge:true});worldState.atlas.drawn=false;/* #771: the PIN sheet's landscape (a place drawn on its own ground is dev/tests-771-place-sheet.js) */
     atlasKnowledgeCommit("[MAP_REVEAL:new|King's halls|unknown|reported][MAP_REVEAL:new|deep timber|unknown|observed]");
     var doc=atlasDoc(worldState.atlas.at),scene=TnDMaps.scene.build(doc,"ink"),layer=scene.layers.filter(function(x){return x.name==="landscape";})[0];
     if(!layer||layer.items.length<10)return "Forest Road has no forest or road ink";
