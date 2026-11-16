@@ -13,8 +13,8 @@ var T1 = P + "what is owed: the party's place when its name says no ground and n
   T7 = P + "a failed, unreadable or stale ask records nothing and says so; the place stays owed",
   T8 = P + "the ask runs after the commit on a story turn and on the opening, and the file is loaded where the game loads";
 var ground = [
-  { label: "a place whose name says its ground is asked anyway", find: "if(!place||atlasSheetNameGround(place)||atlasGroundStored(A,place.container))return null;", replace: "if(!place||atlasGroundStored(A,place.container))return null;", mustFail: T1 },
-  { label: "an answered place is asked again", find: "if(!place||atlasSheetNameGround(place)||atlasGroundStored(A,place.container))return null;", replace: "if(!place||atlasSheetNameGround(place))return null;", mustFail: T1 },
+  { label: "a place whose name says its ground is asked anyway", find: "if(!place||atlasSheetNameKind(place)||(atlasGroundStored", replace: "if(!place||(atlasGroundStored", mustFail: T1 },
+  { label: "an answered place is asked again", find: "atlasSheetNameKind(place)||(atlasGroundStored(A,place.container)&&!atlasGroundStale(A,place.container)))return null;", replace: "atlasSheetNameKind(place))return null;", mustFail: T1 },
   { label: "a campaign with drawn sheets off is asked", find: "if(!A||A.drawn===false||!k)return null;", replace: "if(!A||!k)return null;", mustFail: T1 },
   { label: "a campaign without the public map is read anyway", find: "function atlasGroundOwed(){\n  if(!atlasKnowledgeActive())return null;", replace: "function atlasGroundOwed(){", mustFail: T1 },
   { label: "hearsay is offered as evidence of the ground", find: 'if(shown[i].mode==="observed")seen.push(shown[i].label);', replace: "seen.push(shown[i].label);", mustFail: T1 },
@@ -27,12 +27,12 @@ var ground = [
   { label: "an envelope with a stray field is taken", find: '!atlasExtractionFields(obj,["ground"])||', replace: "", mustFail: T3 },
   { label: "a reply cut short is read", find: 'if(finish&&(finish.cut||finish.cap))return refuse("the ground response ended early");', replace: "", mustFail: T3 },
   { label: "an unbounded reply is parsed", find: 'if(typeof reply!=="string"||reply.length>400)return refuse(', replace: 'if(typeof reply!=="string")return refuse(', mustFail: T3 },
-  { label: "a second answer replaces the first", find: 'if(atlasGroundStored(A,container))return refuse("the ground of "', replace: 'if(false)return refuse("the ground of "', mustFail: T4 },
+  { label: "a second answer replaces the first", find: "if(atlasGroundStored(A,container)&&!atlasGroundStale(A,container))return refuse(\"the ground of \"", replace: "if(false)return refuse(\"the ground of \"", mustFail: T4 },
   { label: "an unknown word is recorded", find: 'if(!atlasGroundWord(ground))return refuse("the ground is not one of the map\'s words");', replace: "", mustFail: T4 },
-  { label: "the record does not say whose answer it was", find: 'A.grounds[atlasPublicPlaceKey(container)]={ground:ground,turn:atlasTurn(),by:"story"};', replace: "A.grounds[atlasPublicPlaceKey(container)]={ground:ground,turn:atlasTurn()};", mustFail: T4 },
+  { label: "the record does not say whose answer it was", find: "A.grounds[atlasPublicPlaceKey(container)]={ground:ground,turn:atlasTurn(),by:\"story\",set:ATLAS_GROUND_SET};", replace: "A.grounds[atlasPublicPlaceKey(container)]={ground:ground,turn:atlasTurn(),set:ATLAS_GROUND_SET};", mustFail: T4 },
   { label: "the store is a plain object", find: "A.grounds=keyedDict();", replace: "A.grounds={};", mustFail: T4 },
-  { label: "a pin-sheet place is announced as drawn", find: 'return ground===ATLAS_GROUND_OTHER?"":"Map: "', replace: 'return "Map: "', mustFail: T4 },
-  { label: "the answer is not saved", find: '    if(typeof saveAll==="function")saveAll();\n    said=atlasGroundSaid(o.place,filed.ground);', replace: "    said=atlasGroundSaid(o.place,filed.ground);", mustFail: T6 },
+  { label: "a pin-sheet place is announced as drawn", find: "return ground===ATLAS_GROUND_OTHER||!w?\"\":\"Map: \"", replace: "return !w?\"\":\"Map: \"", mustFail: T4 },
+  { label: "the answer is not saved", find: "    if(typeof saveAll===\"function\")saveAll();\n    said=atlasGroundDraws(", replace: "    said=atlasGroundDraws(", mustFail: T6 },
   { label: "the player is not told", find: 'if(said&&typeof showToast==="function")showToast(said,6000);', replace: "", mustFail: T6 },
   { label: "the request carries the story's history", find: "options={noHistory:true,kind:ATLAS_GROUND_KIND,noRetry:true}", replace: "options={kind:ATLAS_GROUND_KIND,noRetry:true}", mustFail: T6 },
   { label: "the request carries the reply's tags", find: "ask=atlasGroundAsk(o,cleanTxt(resp),playerTxt);", replace: "ask=atlasGroundAsk(o,resp,playerTxt);", mustFail: T6 },
@@ -42,11 +42,12 @@ var ground = [
 ];
 var sheet = [
   { label: "the story's answer is not drawn", find: "Object.assign({},place,{ground:atlasGroundStored(A,place.container)})", replace: "Object.assign({},place,{ground:null})", mustFail: T5 },
-  { label: "\"other\" is drawn as a ground", find: "return place.ground===ATLAS_GROUND_OTHER?null:(atlasGroundWord(place.ground)?place.ground:null);", replace: "return atlasGroundWord(place.ground)?place.ground:null;", mustFail: T5 },
-  { label: "an answer outranks the name", find: "  var named=atlasSheetNameGround(place),row,i,f;\n  if(named)return named;\n  if(place.ground)", replace: "  var named=atlasSheetNameGround(place),row,i,f;\n  if(place.ground)", mustFail: T5 },
-  { label: "a feature overrides the story's \"other\"", find: "  if(place.ground)return place.ground===ATLAS_GROUND_OTHER", replace: "  if(place.ground&&place.ground!==ATLAS_GROUND_OTHER)return place.ground===ATLAS_GROUND_OTHER", mustFail: T5 },
-  { label: "a word the library does not draw reaches it", find: "(atlasGroundWord(place.ground)?place.ground:null)", replace: "place.ground", mustFail: T5 },
-  { label: "a record that cannot be read counts as an answer", find: 'if(r&&typeof r==="object"&&typeof r.ground==="string"&&atlasGroundWord(r.ground))return r.ground;', replace: 'if(r&&typeof r==="object"&&typeof r.ground==="string")return r.ground;', mustFail: T1 },
+  { label: "\"other\" is drawn as a ground", find: "if(!word||place.ground===ATLAS_GROUND_OTHER)return null;", replace: "if(!word)return null;", mustFail: T5 },
+  { label: "an answer outranks the name", find: "  var named=atlasSheetNameKind(place),word,row,i,f;\n  if(named)return named;\n  if(place.ground){", replace: "  var named=atlasSheetNameKind(place),word,row,i,f;\n  if(place.ground){", mustFail: T5 },
+  { label: "a feature overrides the story's \"other\"", find: "  if(place.ground){\n    word=atlasGroundWord(place.ground);", replace: "  if(place.ground&&place.ground!==ATLAS_GROUND_OTHER){\n    word=atlasGroundWord(place.ground);", mustFail: T5 },
+  { label: "a word the library does not draw reaches it", find: "    if(!word||place.ground===ATLAS_GROUND_OTHER)return null;\n    return word.draws?{draws:word.draws}:{draws:\"wild\",terrain:place.ground};", replace: "    if(place.ground===ATLAS_GROUND_OTHER)return null;\n    return word&&word.draws?{draws:word.draws}:{draws:\"wild\",terrain:place.ground};", mustFail: T5 },
+  { label: "a record that cannot be read counts as an answer", find: "if(r&&typeof r===\"object\"&&typeof r.ground===\"string\"&&atlasGroundWord(r.ground))return r;", replace: "if(r&&typeof r===\"object\"&&typeof r.ground===\"string\")return r;", mustFail: T1 },
+  { label: "a terrain answered under an older edition is asked again", find: "return !!r&&r.ground===ATLAS_GROUND_OTHER&&!(r.set>=ATLAS_GROUND_SET);", replace: "return !!r&&!(r.set>=ATLAS_GROUND_SET);", mustFail: T1 },
   { label: "the table loses a terrain the library draws", find: '  {ground:"hills",says:"rolling high ground: hills, downs, bluffs"},\n', replace: "", mustFail: T2 }
 ];
 var store = [{ label: "the grounds are not a registered keyed store", find: '"atlas.seen","atlas.grounds",', replace: '"atlas.seen",', mustFail: T4 }];

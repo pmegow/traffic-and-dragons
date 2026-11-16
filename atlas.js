@@ -58,7 +58,7 @@ var ATLAS_BUILDERS={
 var ATLAS_THINGS={
   region:function(d){return [].concat(d.places||[],d.caves||[],d.features||[]);},
   town:function(d){return [].concat(d.establishments||[],d.landmarks||[]);},
-  dungeon:function(d){return d.rooms||[];},
+  dungeon:function(d){return (d.rooms||[]).concat(d.features||[],(d.unplaced||[]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0],y:d.story.at[1],unplaced:true};}));},/* #771 P2: a story cave's chambers are nameless; its things are the story's (features), and what found no chamber is listed */
   interior:function(d){return d.rooms||[];},
   wild:function(d){return (d.features||[]).concat(((d.site&&d.site.unplaced)||[]).map(function(u){return {id:u.id,name:u.name,x:d.frame.width/2,y:d.frame.height/2,unplaced:true};}));},/* #771: a story sheet's listed things — known without a position, so never a camera target */
   schematic:function(d){return d.features||[];}
@@ -668,6 +668,9 @@ function atlasFoldLeaf(wk,leaf){
    resolver goes on as before: no atlas, a world the map does not know, a name on the world place's own sheet (a building
    is bare, as named), a bare name from the street. A pure read — a failure is reported once and answers null; the parser
    is never broken. */
+/* #771 P2: where [SUBLOCATION_LEAVE] leaves the party — the sub-location in force after it. null (the world place) in
+   every campaign but one on public map knowledge, where a place inside another steps out ONE (atlasPublicLeave). */
+function atlasPlaceLeave(sub){return (typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&sub!=null)?atlasPublicLeave(sub):null;}
 function atlasPlaceCanon(name,parent,sub,fresh){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicCanon(name,parent,sub);}
   var A=atlasLive(),X,wk,pos,parts,pre,leaf,f,xp,spotStripped=false;
   if(!A||!A.zones[A.seed])return null;
@@ -1362,7 +1365,7 @@ function atlasTrail(zoneId){var A=atlasLive(),out=[],z=zoneId,guard=0;if(!A)retu
 /* #711 round 4 (owner 2026-11-08): the party's LOCATION TRAIL for the HUD plaque — the chain of zones the party stands in
    (the last mapped place once the story has left the map; the region alone before the party is placed), as the library's
    tiers {key, text, current}: the sheet shown now is current. Built on character location: browsing up leaves it as it is. */
-function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive(),place=publicAtlas?atlasPublicPlace(publicAtlas,publicAtlas.at):null;var _jt=publicAtlas?[{key:atlasJourneyId(publicAtlas),text:ATLAS_JOURNEY_TITLE,current:atlasJourneyIs(publicAtlas,shownZone)}]:[];/* #757: the plaque's first tier opens the journey sheet */return place&&place.container===atlasPublicContext()?_jt.concat([{key:place.id,text:place.name,current:place.id===shownZone}]):_jt;}var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
+function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive();return publicAtlas?atlasPublicTrail(publicAtlas,shownZone):[];}var A=atlasLive(),chain,i,out=[];if(!A)return out;chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}
 /* #711 round 4: the player's NOTE on a map thing (in place of the retired hand tie) — kept on the campaign
    (worldState.atlas.notes, keyed zone|thing id), the player's own words, never read by the engine's rules; capped at
    ATLAS_NOTE_MAX; an empty note is removed. The card carries it (atlasCard's `note`). */

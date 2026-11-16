@@ -15,7 +15,7 @@ var knowledge = [
   { label: "one receipt silences every other disclosure of its place", find: "sk=JSON.stringify([item.container,e.quote]);", replace: "sk=JSON.stringify([item.container]);", mustFail: T2 }
 ];
 var pub = [
-  { label: "the public position names nothing", find: "exact:false,last:false,key:null,label:place.name}", replace: "exact:false,last:false,key:null}", mustFail: T3 }
+  { label: "the public position names nothing", find: "exact:false,last:false,key:null,label:atlasSheetDrawn(atlasPublicDoc(zoneId))?(atlasSheetLeaf(place.container)||place.name):place.name}", replace: "exact:false,last:false,key:null}", mustFail: T3 }
 ];
 var atlas = [
   { label: "the marker ignores the position's own name", find: 'label:p.label?p.label:(p.last?"Last mapped place"', replace: 'label:(p.last?"Last mapped place"', mustFail: T3 }

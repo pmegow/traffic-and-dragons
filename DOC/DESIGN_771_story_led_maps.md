@@ -1,6 +1,6 @@
 # Story-led maps (#771): plan
 
-Status: **P0 accepted, P1 built (v1.1439, TnD Maps 0.24.0)**; P2 to P4 not built. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
+Status: **P0 accepted, P1 built (v1.1439 to v1.1441, TnD Maps 0.24.0), P2 caves built (v1.1442, TnD Maps 0.25.0)**; buildings (the rest of P2), P3 and P4 not built. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
 
 ## What the owner asked for
 
@@ -69,6 +69,15 @@ Each phase ends with something the owner can look at, and nothing later starts u
 - **Features:** toward their bearing, in the order disclosed, on ground that fits the mark their plain noun earns. A name is never typed by its last word; a report is a ring; the ground's own noun ("mire" on a mire) and the place an exit leads to are not pins.
 - **Listed, not drawn:** what has no direction, and a visited place inside this one that no feature names.
 - **Not in P1:** the GM's one-word ground when the name does not say it; drawn tracks and rivers for the ones the story names; towns; sites (P2).
+
+## P2 as built: caves (v1.1442)
+
+- **What is a site:** a place whose name's head noun says so (lair, den, cave, caverns, grotto, burrow, warren, tunnels, mine), or whose ground the story answered `cave` (the ground ask's vocabulary gained the word; an `other` answered before is asked once more). One table row per site kind; a building is the next row.
+- **The drawing:** TnD Maps 0.25.0's story sheet for a natural site. The generator digs the rock and names nothing. The first way the party came in is the mouth, named for the place it leads back to, toward that place (unstated: south). Each feature with a bearing names the free chamber toward it from the middle chamber, in the order disclosed; one with no free chamber within 67.5 degrees, one with no direction, and a later way out are listed. No scale and no level.
+- **Stability:** the rock is the seed's alone; a later thing never moves an earlier one; a second way is listed, never a second mouth (it would redraw the rock). The one redraw left: a way back whose direction is first stated AFTER the party entered turns the cave to face it.
+- **Hierarchy:** a bare `[SUBLOCATION:X]` written inside a sub-place is filed INSIDE it when that sub-place's sheet already shows X (the lair pinned on the ridge), and a known place is found where it is; `[SUBLOCATION_LEAVE]` steps out one place; the plaque reads Petrified Mire › Shattered Ridge › Wyrm Lair and each tier opens its sheet. The GM's map rules say both.
+- **Not drawn:** a cave nobody travelled into (no way on record; the start of a campaign inside a cave) keeps its pin sheet.
+- **Known limits:** a site first disclosed and entered in the SAME reply is filed beside the place, not inside it (the sheet does not show it yet), unless the GM writes the path; features the story filed on the ridge before the lair was declared stay on the ridge; buildings, built vaults and towns still answer `other`.
 
 ## Known gaps to close in the map library
 

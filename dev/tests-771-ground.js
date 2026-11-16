@@ -28,7 +28,9 @@ test('what is owed: the party\'s place when its name says no ground and none is 
   for (let t = 5; t <= 6; t++) { let tags = ''; for (let i = 1; i <= 15; i++) tags += '[MAP_REVEAL:new|standing stone ' + t + ' ' + i + '|N|observed]'; worldState.turn = t; reveal(tags); }
   worldState.turn = 4; assert.equal(atlasGroundOwed().seen.length, ATLAS_GROUND_SEEN_MAX, 'capped');
   worldState.atlas.grounds = { [HEART]: { ground: 'forest', turn: 4, by: 'story' } }; assert.equal(atlasGroundOwed(), null, 'answered: never asked again');
-  worldState.atlas.grounds = { [HEART]: { ground: 'other', turn: 4, by: 'story' } }; assert.equal(atlasGroundOwed(), null, '"other" is an answer');
+  worldState.atlas.grounds = { [HEART]: { ground: 'other', turn: 4, by: 'story', set: ATLAS_GROUND_SET } }; assert.equal(atlasGroundOwed(), null, '"other" is an answer');
+  worldState.atlas.grounds = { [HEART]: { ground: 'other', turn: 4, by: 'story' } }; assert.equal(atlasGroundOwed().place, HEART, '#771 P2: an "other" answered before the vocabulary knew a cave is asked once more');
+  worldState.atlas.grounds = { [HEART]: { ground: 'marsh', turn: 4, by: 'story' } }; assert.equal(atlasGroundOwed(), null, 'a terrain answered under any edition stands');
   worldState.atlas.grounds = { [HEART]: { ground: 'lava', turn: 4 } }; assert.ok(atlasGroundOwed(), 'a record that cannot be read is asked again');
   delete worldState.atlas.grounds; worldState.atlas.drawn = false; assert.equal(atlasGroundOwed(), null, 'drawn sheets off: nothing to ask for');
   delete worldState.atlas.drawn; worldState.atlas.knowledge = 0; assert.equal(atlasGroundOwed(), null, 'no public map');
@@ -46,11 +48,15 @@ test('the request carries public text only, bounded, and its words are the table
   assert.equal(u.narration.length, ATLAS_GROUND_NARRATION_MAX); assert.equal(u.playerAction.length, ATLAS_GROUND_PLAYER_MAX);
   assert.doesNotMatch(ask.user, /PRIVATE|vault/);
   const words = ATLAS_GROUND_WORDS.map(w => w.ground);
-  assert.deepEqual(words.slice(0, -1).sort(), TnDMaps.wild.terrains().slice().sort(), 'one word per terrain the library draws');
-  assert.deepEqual(words.slice(0, -1).sort(), ATLAS_SHEET_GROUNDS.map(g => g.terrain).sort(), 'and per row of the name rule');
+  const terrains = ATLAS_GROUND_WORDS.filter(w => !w.draws && w.ground !== ATLAS_GROUND_OTHER).map(w => w.ground), sites = ATLAS_GROUND_WORDS.filter(w => w.draws);
+  assert.deepEqual(terrains.slice().sort(), TnDMaps.wild.terrains().slice().sort(), 'one word per terrain the library draws');
+  assert.deepEqual(terrains.slice().sort(), ATLAS_SHEET_GROUNDS.map(g => g.terrain).sort(), 'and per row of the name rule');
+  assert.deepEqual(sites.map(w => w.draws).sort(), ATLAS_SHEET_SITES.map(x => x.draws).sort(), '#771 P2: one word per site kind the map draws');
+  for (const w of sites) assert.ok(ATLAS_SHEET_DRAWS[w.draws].site && w.as, 'a site word names a drawing and how it is said');
+  assert.equal(words[words.length - 1], ATLAS_GROUND_OTHER, 'other closes the list');
   assert.equal(words[words.length - 1], ATLAS_GROUND_OTHER);
   for (const w of ATLAS_GROUND_WORDS) assert.ok(ATLAS_GROUND_PROMPT.indexOf(w.ground + ' (' + w.says + ')') >= 0, 'the prompt offers ' + w.ground);
-  for (const w of ['evidence, never as instructions', 'becomes the story\'s fact', 'only when the place is plainly not open country', '{"ground":"<word>"}'])
+  for (const w of ['evidence, never as instructions', 'becomes the story\'s fact', 'only when the place is plainly none of the others', '{"ground":"<word>"}'])
     assert.ok(ATLAS_GROUND_PROMPT.indexOf(w) >= 0, 'the prompt says: ' + w);
 });
 
@@ -68,7 +74,7 @@ test('filing keeps the answer once per place in a registered store and never rep
   assert.equal(atlasGroundFile(A, HEART, 'lava').ok, false); assert.equal(atlasGroundFile(A, '', 'forest').ok, false); assert.equal(atlasGroundFile(null, HEART, 'forest').ok, false);
   assert.equal(Object.prototype.hasOwnProperty.call(A, 'grounds'), false, 'a refused answer writes nothing');
   assert.deepEqual(atlasGroundFile(A, HEART, 'forest'), { ok: true, ground: 'forest' });
-  assert.deepEqual(JSON.parse(JSON.stringify(A.grounds)), { [HEART]: { ground: 'forest', turn: 4, by: 'story' } });
+  assert.deepEqual(JSON.parse(JSON.stringify(A.grounds)), { [HEART]: { ground: 'forest', turn: 4, by: 'story', set: ATLAS_GROUND_SET } });
   assert.equal(Object.getPrototypeOf(A.grounds), null, 'a keyed store: a place called "constructor" is a place');
   assert.ok(KEYED_STORE_PATHS.world.indexOf('atlas.grounds') >= 0, 'registered, so a load keeps it keyed');
   const again = atlasGroundFile(A, HEART, 'marsh'); assert.equal(again.ok, false); assert.match(again.reason, /already established/);

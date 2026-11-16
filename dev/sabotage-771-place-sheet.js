@@ -20,7 +20,7 @@ var T1 = P + "the tables name only what the library draws, and no noun stands in
   T15 = P + "the campaign switch: atlas.drawn === false keeps every place a pin sheet, and survives a save";
 var sheet = [
   { label: "a nested place's parent is the world place", find: "return s.length<2?null:(s.length<3?s[0]:s[0]+\"|\"+atlasPathJoin(s.slice(1,-1)));}", replace: "return s.length<2?null:s[0];}", mustFail: T10 },
-  { label: "a nested sheet is titled by its whole path", find: "title:atlasSheetLeaf(place.container)||place.name,site:", replace: "title:place.name,site:", mustFail: T10 },
+  { label: "a nested sheet is titled by its whole path", find: "title:atlasSheetLeaf(place.container)||place.name,site:{exits:", replace: "title:place.name,site:{exits:", mustFail: T10 },
   { label: "the sheet is the zone's oblong", find: "width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,terrain:terrain,", replace: "terrain:terrain,", mustFail: T11 },
   { label: "a ground the library does not draw", find: '{terrain:"desert",nouns:["desert",', replace: '{terrain:"tundra",nouns:["desert",', mustFail: T1 },
   { label: "a mark the library does not draw", find: '{kind:"cairn",nouns:["cairn"]}', replace: '{kind:"heap",nouns:["cairn"]}', mustFail: T1 },
@@ -31,20 +31,20 @@ var sheet = [
   { label: "any place wears a ground word in its name", find: "if(ATLAS_SHEET_WAY_NOUNS.indexOf(atlasSheetNoun(name))>=0){", replace: "if(true){", mustFail: T2 },
   { label: "a named place elsewhere lends its ground", find: 'f=features[i];if(f.mode!=="observed"||atlasPublicLandscapeNamed(f.label))continue;row=', replace: 'f=features[i];if(f.mode!=="observed")continue;row=', mustFail: T3 },
   { label: "hearsay draws the ground", find: 'f=features[i];if(f.mode!=="observed"||atlasPublicLandscapeNamed(f.label))continue;row=', replace: "f=features[i];if(atlasPublicLandscapeNamed(f.label))continue;row=", mustFail: T3 },
-  { label: "an unknown ground is guessed", find: "  if(!terrain)return null;", replace: '  if(!terrain)terrain="heath";', mustFail: T4 },
+  { label: "an unknown ground is guessed", find: "var kind=atlasSheetKind(place,features),terrain=", replace: "var kind=atlasSheetKind(place,features)||{draws:\"wild\",terrain:\"heath\"},terrain=", mustFail: T4 },
   { label: "features are handed over in id order", find: "return (ta-tb)||(a.id<b.id?-1:a.id>b.id?1:0);", replace: "return (a.id<b.id?-1:a.id>b.id?1:0);", mustFail: T5 },
   { label: "every thing is the plain mark", find: 'kind:row?row.kind:"custom",', replace: 'kind:"custom",', mustFail: T5 },
   { label: "the sheet is drawn from the campaign's own seed", find: 'params:{seed:place.id+"/sheet",', replace: "params:{seed:place.id,", mustFail: T5 },
   { label: "a name is typed by its last word", find: 'row=f.mode==="observed"&&!atlasPublicLandscapeNamed(f.label)?', replace: 'row=f.mode==="observed"?', mustFail: T6 },
   { label: "a report is drawn as the thing", find: 'row=f.mode==="observed"&&!atlasPublicLandscapeNamed(f.label)?', replace: "row=!atlasPublicLandscapeNamed(f.label)?", mustFail: T6 },
-  { label: "a long label is handed over whole", find: "name:atlasSheetCut(f.label,ATLAS_SHEET_NAME_MAX),bearing:", replace: "name:f.label,bearing:", mustFail: T6 },
+  { label: "a long label is handed over whole", find: "kind:row?row.kind:\"custom\",name:atlasSheetCut(f.label,ATLAS_SHEET_NAME_MAX),", replace: "kind:row?row.kind:\"custom\",name:f.label,", mustFail: T6 },
   { label: "the ground itself is pinned", find: "    if(atlasSheetIsGround(terrain,f.label))continue;", replace: "", mustFail: T7 },
   { label: "another ground's noun is taken for this one's", find: "if(ATLAS_SHEET_GROUNDS[i].terrain===terrain)return ATLAS_SHEET_GROUNDS[i].nouns.indexOf(p)>=0;", replace: "if(ATLAS_SHEET_GROUNDS[i].nouns.indexOf(p)>=0)return true;", mustFail: T7 },
-  { label: "a named fen is taken for the ground", find: 'if(!p||p.indexOf(" ")>=0||atlasPublicLandscapeNamed(label))return false;', replace: 'if(!p||p.indexOf(" ")>=0)return false;', mustFail: T7 },
+  { label: "a named fen is taken for the ground", find: "if(!p||p.indexOf(\" \")>=0||atlasPublicLandscapeNamed(label))return false;\n  for(i=0;i<ATLAS_SHEET_GROUNDS.length;i++)", replace: "if(!p||p.indexOf(\" \")>=0)return false;\n  for(i=0;i<ATLAS_SHEET_GROUNDS.length;i++)", mustFail: T7 },
   { label: "the place an exit leads to is pinned too", find: "    if(isWay[f.id])continue;/* the exit says it */", replace: "", mustFail: T7 },
   { label: "an exit a feature names keeps a second id", find: "return {id:named?named.id:x.id,key:x.key,", replace: "return {id:x.id,key:x.key,", mustFail: T9 },
-  { label: "a thing with no direction is dropped", find: 'if(listed.length<ATLAS_SHEET_LIST_CAP)listed.push({id:f.id,', replace: 'if(false)listed.push({id:f.id,', mustFail: T7 },
-  { label: "a place inside is not listed", find: "  for(i=0;i<inside.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push(", replace: "  for(i=0;i<0;i++)listed.push(", mustFail: T7 },
+  { label: "a thing with no direction is dropped", find: "if(f.bearing===\"unknown\"){if(listed.length<ATLAS_SHEET_LIST_CAP)listed.push(", replace: "if(f.bearing===\"unknown\"){if(false)listed.push(", mustFail: T7 },
+  { label: "a place inside is not listed", find: "listed.push({id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:\"observed\"});\n  return {draws:\"wild\",", replace: "void 0;\n  return {draws:\"wild\",", mustFail: T7 },
   { label: "an unstated way is drawn as stated", find: "sure:!!w.bearing,bearing:w.bearing};", replace: "sure:true,bearing:w.bearing};", mustFail: T8 },
   { label: "both ends of an unstated way lie south", find: 'lean:l.a===k?"S":"N",', replace: 'lean:"S",', mustFail: T8 },
   { label: "an unstated way ignores its lean", find: "    if(!e.bearing&&w.lean&&!used[w.lean])e.bearing=w.lean;", replace: "", mustFail: T8 },
@@ -57,13 +57,13 @@ var sheet = [
   { label: "the way out opens nothing", find: 'bearing:b,lean:"S",to:sheetOf(parent)});', replace: 'bearing:b,lean:"S",to:null});', mustFail: T10 },
   { label: "a place a feature names is listed as well", find: "    if(!named)out.push({id:\"in-\"+(out.length+1),", replace: "    out.push({id:\"in-\"+(out.length+1),", mustFail: T10 },
   { label: "a place two levels down is listed here", find: "if(atlasSheetParent(r.container)!==place.container)continue;", replace: 'if(r.container.indexOf(place.container+"|")!==0)continue;', mustFail: T10 },
-  { label: "the document carries its timing", find: "if(doc.stats)delete doc.stats.ms;", replace: "", mustFail: T11 },
+  { label: "the document carries its timing", find: "ATLAS_SHEET_DRAWS[recipe.draws].timings.forEach(function(k){delete doc.stats[k];});", replace: "void 0;", mustFail: T11 },
   { label: "a refusal is said at every draw", find: "  if(_atlasSheetSaid===key)return;_atlasSheetSaid=key;", replace: "", mustFail: T14 },
   { label: "a refusal is swallowed", find: '  atlasProblem(where+" (the pin sheet is shown instead)",e);', replace: "", mustFail: T14 }
 ];
 var pub = [
   { label: "a den two steps down opens from the place around its parent", find: "if(atlasSheetParent(r.container)===place.container&&atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.id;", replace: 'if(r.container.indexOf(place.container+"|")===0&&atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.id;', mustFail: T10 },
-  { label: "the party stands at the pin sheet's middle on a drawn sheet", find: "{x:drawn?ATLAS_SHEET_CENTRE[0]:400,y:drawn?ATLAS_SHEET_CENTRE[1]:275,", replace: "{x:400,y:275,", mustFail: T12 },
+  { label: "the party stands at the pin sheet's middle on a drawn sheet", find: "{x:at[0],y:at[1],exact:false,", replace: "{x:400,y:275,exact:false,", mustFail: T12 },
   { label: "the campaign switch is ignored", find: "  sheet=A.drawn===false?null:atlasSheetOf(A,place,p.features);", replace: "  sheet=atlasSheetOf(A,place,p.features);", mustFail: T15 },
   { label: "the place is never drawn", find: "  doc=atlasSheetDoc(place,sheet)||TnDMaps.schematic(spec);", replace: "  doc=TnDMaps.schematic(spec);", mustFail: T8 },
   { label: "a new exit does not redraw the sheet", find: "p,landscape,sheet?sheet.params:null]);", replace: "p,landscape]);", mustFail: T11 },
@@ -73,7 +73,7 @@ var pub = [
   { label: "an exit's card opens nothing", find: 'so the way is drawn dotted.",opens:w.to,', replace: 'so the way is drawn dotted.",opens:null,', mustFail: T10 },
   { label: "the exit's card gives the bare letter", find: '"The party travelled this way. It leads "+ATLAS_KNOWLEDGE_DIRECTIONS[w.bearing]+"."', replace: '"The party travelled this way. It leads "+w.bearing+"."', mustFail: T10 },
   { label: "a place inside has no card", find: "  if(sheet)for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===target.id){", replace: "  if(false)for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===target.id){", mustFail: T10 },
-  { label: "a listed thing's card crashes for want of a point", find: "return {id:f.id,x:t?t.x:ATLAS_SHEET_CENTRE[0],y:t?t.y:ATLAS_SHEET_CENTRE[1],title:f.label,", replace: "return {id:f.id,x:t.x,y:t.y,title:f.label,", mustFail: T12 }
+  { label: "a listed thing's card crashes for want of a point", find: "return {id:f.id,x:t?t.x:stand[0],y:t?t.y:stand[1],title:f.label,", replace: "return {id:f.id,x:t.x,y:t.y,title:f.label,", mustFail: T12 }
 ];
 var failed = sabotage.prove({ file: "atlas-public-sheet.js", command: CMD, only: P, cases: sheet });
 if (!failed) failed = sabotage.prove({ file: "atlas-public.js", command: CMD, only: P, cases: pub });

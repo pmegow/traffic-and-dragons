@@ -204,8 +204,8 @@ rc |= sabotage.prove({ file: "identity.js", command: ENGINE, only: "FAIL #684 ",
     replace: ",false):null;",
     mustFail: "FAIL #684 #702 review: a building and its room invented in ONE reply" },
   { label: "a leave keeps the carried building",
-    find: "else{ev.kind=\"leave\";sub=null;carried=null;subFresh=false;}",
-    replace: "else{ev.kind=\"leave\";sub=null;subFresh=false;}",
+    find: "the world place as always */carried=null;subFresh=false;}",
+    replace: "the world place as always */subFresh=false;}",
     mustFail: "FAIL #684 #702 review: the mutants the suite let live" }
 ] });
 

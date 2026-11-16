@@ -256,7 +256,7 @@ function atlasPaneSay(text){
    the stage either way */
 var ATLAS_SHEET_LABEL_PX=14;/* the smallest a drawn sheet's feature label opens at, in CSS px */
 function atlasPaneLabelSize(){var s=TnDMaps.style.get("ink").text;return Math.min(s.storyFeature.size,s.storyHeard.size);}/* the smaller of the two faces a drawn sheet labels its things in: seen, and only heard of */
-function atlasPaneDrawn(doc){return !!doc&&!!doc.generator&&doc.generator.name==="wild";}
+function atlasPaneDrawn(doc){return atlasSheetDrawn(doc);}/* #771 P2: open ground, or a site in its own rock */
 function atlasPaneFrame(how){
   var P=_atlasPane,T,c,st,s,d;
   if(!P||!how)return false;
@@ -264,7 +264,7 @@ function atlasPaneFrame(how){
   P.view.fit();
   if(how.party&&!atlasKnowledgeActive()){T=P.view.transform();P.view.center(how.party.x,how.party.y,T.k*ATLAS_HOME_ZOOM);}
   /* #771 P1: a DRAWN public sheet (a place on its own ground) opens on the party — the middle of a sheet it is not on — no smaller than the zoom at which its labels can be read; a phone's whole-sheet fit put them at 3 px */
-  else if(atlasKnowledgeActive()&&atlasPaneDrawn(P.view.doc())){T=P.view.transform();d=P.view.doc();P.view.center(how.party?how.party.x:d.frame.width/2,how.party?how.party.y:d.frame.height/2,Math.max(T.k,ATLAS_SHEET_LABEL_PX/atlasPaneLabelSize()));}
+  else if(atlasKnowledgeActive()&&atlasPaneDrawn(P.view.doc())){T=P.view.transform();d=P.view.doc();P.view.center(how.party?how.party.x:atlasSheetStand(d)[0],how.party?how.party.y:atlasSheetStand(d)[1],Math.max(T.k,ATLAS_SHEET_LABEL_PX/atlasPaneLabelSize()));}
   return true;
 }
 /* show one entered zone's sheet: the document, the party marker, the fog, the select (full); framed on the party when

@@ -350,7 +350,7 @@ function placeTimeline(text,startWorld,startSub){
     else if(m[1]==="SUBLOCATION"){var raw=m[2].trim(),nmS=raw,rp=(world&&typeof resolvePlaceName==="function")?resolvePlaceName(raw,world,{sub:sub!=null?sub:carried,fresh:sub!=null&&subFresh}):null;/* #693: the sub-location in force HERE in the reply — a room is read where the reply has taken the party; fresh: that sub was set by THIS reply (the map files a name under a building the reply just invented) */
       ev.kind="sub";ev.raw=raw;ev.world=world;if(rp&&world&&rp.key.indexOf(world+"|")===0){ev.rp=rp;nmS=placeKeyLeaf(rp.key);}
       ev.name=nmS;sub=nmS;subSeen=true;subFresh=true;carried=null;}
-    else{ev.kind="leave";sub=null;carried=null;subFresh=false;}
+    else{ev.kind="leave";sub=(sub!=null&&typeof atlasPlaceLeave==="function")?atlasPlaceLeave(sub):null;/* #771 P2: on a public map a place inside another steps out ONE (the lair to the ridge); everywhere else, the world place as always */carried=null;subFresh=false;}
     events.push(ev);states.push({off:m.index,world:world,sub:sub,key:key(world,sub),carried:(sub==null&&carried!=null)?carried:null});/* #693: the building a same-world footer left in force, for the operands written after it */
   }
   return {states:states,events:events};

@@ -1,11 +1,11 @@
-/* TnD Maps 0.24.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.25.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.24.0";
+  NS.VERSION = "0.25.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -2923,7 +2923,8 @@
   };
   function lower(name) { return String(name || "").replace(/^The /, "the "); }   /* "The Deeps of the Red Hollow" */
   /* the words of a site that has none of its own: how it is captioned and introduced, what its passages are called */
-  function captionOf(S) { var SITE = SITES[S.kind]; return SITE.caption ? SITE.caption(S) : (S.town.name || "the town") + " · level −" + S.depth; }
+  function captionOf(S) { var SITE = SITES[S.kind]; if (S.story) return S.where || "";   /* v0.25.0: the story said where it lies, or nothing is said — never a level */
+    return SITE.caption ? SITE.caption(S) : (S.town.name || "the town") + " · level −" + S.depth; }
   function introOf(S) { var SITE = SITES[S.kind]; return SITE.intro ? SITE.intro(S) : S.above.generator === "dungeon" ? "lie below " + S.above.name : S.town.name ? "lie beneath " + S.town.name + (SITE.follows === "streets" ? ", following its streets" : "") : "lie beneath the town"; }
   /* the EXTRA kinds on every site's shelf at count 0 — the rooms an author asks for by hand (an antechamber onto a
      chamber, a guardroom by the stair) — rows of the Chambers list like any other kind; dealt AFTER the site's own
@@ -2948,7 +2949,13 @@
      pts}] to follow, centre, radius, walls (chains to draw faintly above: the town's wall, or the level above's
      tunnels), river ([x, y, w] points), mPerUnit, above {generator: town|dungeon, site?, name} — what the ways up lead
      to —, depth (how many levels below the surface this one lies: the sewers 1, the level beneath them 2, …) */
-  var SITE_KEYS = ["kind", "town", "portals", "streets", "centre", "radius", "walls", "river", "mPerUnit", "above", "depth", "where", "water", "heading", "sea"];
+  var SITE_KEYS = ["kind", "town", "portals", "streets", "centre", "radius", "walls", "river", "mPerUnit", "above", "depth", "where", "water", "heading", "sea", "story", "unplaced"];
+  /* v0.25.0, the story's sheet (a natural site: a cave, a den): the generator digs the rock and names NOTHING — every chamber it deals is a
+     nameless "chamber" —, and the caller's things (site.story: [{id, name, bearing, mode: observed|reported}], in the order
+     the story disclosed them) each take the free chamber that lies nearest their bearing from the middle chamber, within
+     STORY_REACH degrees of it; one that finds none is listed with what has no direction (site.unplaced), never drawn at a
+     guess. An earlier thing never moves for a later one. The sheet states no distance (frame.precision "schematic"). */
+  var MAX_STORY = 64, MAX_STORY_NAME = 40, MAX_UNPLACED = 64, STORY_REACH = 67.5, STORY_MODES = { observed: 1, reported: 1 };
   /* where (a cave: "a cave in the hillside 12 km NE of Ashford, facing S", the caption and the digest's words), water (a cave with a stream), heading (a bearing: the way the wandering spine sets off from the first way in — into the rock) */
   var BEARINGS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   function dirOf(bearing) { var a = BEARINGS.indexOf(bearing) * Math.PI / 4; return [Math.sin(a), -Math.cos(a)]; }
@@ -3106,6 +3113,18 @@
     NS.assert(S.above.generator === "town" || S.above.generator === "dungeon" || S.above.generator === "region" || S.above.generator === "interior", "site.above.generator must be town, dungeon, region or interior", { above: S.above });
     NS.assert(S.above.site === null || NS.own(SITES, S.above.site) || (S.above.generator === "interior" && typeof S.above.site === "string"), "site.above.site must be a dungeon site kind (or, above a building, its kind) or null", { above: S.above });
     validateCounts(P.rooms, S.kind); validateEdits(P.edits, { width: P.width, height: P.height }, S.kind);
+    if (S.story !== undefined) {
+      var seenS = {}; S.portals.forEach(function (p) { seenS[p.id] = true; });
+      NS.assert(SITE.natural, "the story's sheet (site.story) is drawn for a natural site: " + Object.keys(SITES).filter(function (k) { return SITES[k].natural; }).join("|"), { kind: S.kind });
+      NS.assert(Array.isArray(S.story) && S.story.length <= MAX_STORY && S.story.every(function (f) { var ok = f && typeof f === "object" && typeof f.id === "string" && f.id.length > 0 && f.id.length <= 40 && !seenS[f.id] && !GENERATED_ID.test(f.id) && typeof f.name === "string" && f.name.trim().length > 0 && f.name.length <= MAX_STORY_NAME && BEARINGS.indexOf(f.bearing) >= 0 && NS.own(STORY_MODES, f.mode) === 1; if (ok) seenS[f.id] = true; return ok; }), "site story must be a list of at most " + MAX_STORY + " {id, name (1–" + MAX_STORY_NAME + " characters), bearing: " + BEARINGS.join("|") + ", mode: observed|reported}, each id once, none a way in's and none like a generated one (kind-n)", { story: S.story });
+      NS.assert(!Object.keys(P.rooms).length && !P.edits.length, "give the chambers by the story (site.story) or by the author's rooms and edits, not both", { rooms: P.rooms, edits: P.edits.length });
+      S.story = S.story.map(function (f) { return { id: f.id, name: f.name, bearing: f.bearing, mode: f.mode }; });
+    }
+    if (S.unplaced !== undefined) {
+      NS.assert(S.story !== undefined, "site unplaced belongs to the story's sheet (give site.story, an empty list too)", { unplaced: S.unplaced });
+      NS.assert(Array.isArray(S.unplaced) && S.unplaced.length <= MAX_UNPLACED && S.unplaced.every(function (u) { return u && typeof u === "object" && typeof u.id === "string" && u.id.length > 0 && u.id.length <= 40 && typeof u.name === "string" && u.name.trim().length > 0 && u.name.length <= 200 && NS.own(STORY_MODES, u.mode) === 1; }), "site unplaced must be a list of at most " + MAX_UNPLACED + " {id, name, mode: observed|reported}", { unplaced: S.unplaced });
+      S.unplaced = S.unplaced.map(function (u) { return { id: u.id, name: u.name, mode: u.mode }; });
+    }
     P.site = S; P.seed = String(P.seed);
     return P;
   }
@@ -3933,6 +3952,28 @@
         else streamSink = ways[0].id;
       }
     }
+    /* v0.25.0, the story's sheet: the chambers lose every name the generator dealt; the story's things take theirs */
+    var story = null;
+    if (S.story) {
+      var chambers = rooms.filter(function (r) { return !r.portal; }), mid = [0, 0], home = null, taken = {};
+      chambers.forEach(function (r) { r.name = ""; r.word = J.word; mid[0] += r.x / chambers.length; mid[1] += r.y / chambers.length; });
+      chambers.forEach(function (r) { if (!home || G.dist([r.x, r.y], mid) < G.dist([home.x, home.y], mid) - 1e-9) home = r; });   /* the middle chamber: where the party is drawn, and what a bearing is read from */
+      if (!home) home = rooms[0];
+      story = { at: roundPts([[home.x, home.y]])[0], room: home.id, features: [], unplaced: (S.unplaced || []).slice() };
+      taken[home.id] = true;
+      S.story.forEach(function (f) {
+        var want = BEARINGS.indexOf(f.bearing) * 45, best = null, bestOff = Infinity, bestD = Infinity;
+        chambers.forEach(function (r) {
+          if (taken[r.id]) return;
+          var ang = Math.atan2(r.x - home.x, -(r.y - home.y)) * 180 / Math.PI, off = Math.abs(((ang - want) % 360 + 540) % 360 - 180), d = G.dist([r.x, r.y], [home.x, home.y]);
+          if (off > STORY_REACH) return;
+          if (off < bestOff - 1e-9 || (Math.abs(off - bestOff) <= 1e-9 && d < bestD)) { best = r; bestOff = off; bestD = d; }
+        });
+        if (!best) { if (story.unplaced.length < MAX_UNPLACED) story.unplaced.push({ id: f.id, name: f.name, mode: f.mode }); else warnings.push("story " + f.id + ": no free chamber toward " + f.bearing + " and the list is full — not shown"); return; }
+        taken[best.id] = true;
+        story.features.push({ id: f.id, kind: "story", name: f.name, room: best.id, x: best.x, y: best.y, bearing: f.bearing, mode: f.mode, reported: f.mode === "reported" });
+      });
+    }
     var length = 0; passages.forEach(function (p) { if (p.kind !== "door") length += G.dist(p.pts[0], p.pts[1]); });
     /* portals: the ways up (the parent's ids and coordinates, pointing back), then every chamber that is a way down */
     var upTo = { generator: S.above.generator }; if (S.above.site) upTo.site = S.above.site;
@@ -3953,7 +3994,7 @@
     var doc = {
       format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "dungeon", version: NS.VERSION },
       seed: seed, params: P,
-      frame: { width: W, height: H, kmPerUnit: S.mPerUnit / 1000, mPerUnit: S.mPerUnit },
+      frame: story ? { width: W, height: H, kmPerUnit: S.mPerUnit / 1000, mPerUnit: S.mPerUnit, precision: "schematic" } /* v0.25.0: the story stated no distance, so the sheet draws no scale; the units stay for the plan's own geometry */ : { width: W, height: H, kmPerUnit: S.mPerUnit / 1000, mPerUnit: S.mPerUnit },
       title: { name: title, kind: S.kind },
       site: S, kind: S.kind, depth: S.depth, plan: axis ? axis.scheme : undefined, centre: roundPts([centre])[0], extent: ext,
       passages: passages.map(function (p) { var o = { id: p.id, kind: p.kind, pts: roundPts(p.pts), width: p.width }; if (p.kind === "door") { o.room = p.room; o.state = p.state; } return o; }),
@@ -3964,6 +4005,7 @@
       stats: U.extend({ passages: passages.length, rooms: rooms.length, lengthM: Math.round(length * S.mPerUnit) }, stats)
     };
     doc.stats.total = U.round(stats.spine + stats.rooms, 1);
+    if (story) { doc.features = story.features; doc.unplaced = story.unplaced; doc.story = { at: story.at, room: story.room }; }
     return doc;
   }
 
@@ -4123,6 +4165,10 @@
     doc.passages.forEach(function (p, i) { NS.assert(p.id && NS.own(WIDTH, p.kind) && Array.isArray(p.pts) && p.pts.length === 2 && p.width > 0 && (p.kind !== "door" || (typeof p.room === "string" && NS.own(DOOR_STATES, p.state))), "passage " + i + " is malformed", { passage: p }); });
     var ids = {};
     doc.rooms.forEach(function (r, i) { NS.assert(r.id && !ids[r.id] && r.kind && typeof r.word === "string" && typeof r.name === "string" && Array.isArray(r.poly) && r.poly.length >= 3 && isFinite(r.x) && isFinite(r.y) && SHAPES[r.shape] && (r.door === null || DOOR_STATES[r.door]) && (r.note === undefined || typeof r.note === "string"), "room " + i + " is malformed or its id is not unique", { room: r }); ids[r.id] = true; });
+    if (doc.site && doc.site.story) {
+      NS.assert(doc.frame.precision === "schematic" && Array.isArray(doc.features) && Array.isArray(doc.unplaced) && doc.story && ids[doc.story.room] && Array.isArray(doc.story.at), "a story sheet carries its features, its unplaced list and where the party is drawn", { story: doc.story });
+      doc.features.forEach(function (f, i) { NS.assert(f && typeof f.id === "string" && !ids[f.id] && typeof f.name === "string" && f.name.length > 0 && ids[f.room] && isFinite(f.x) && isFinite(f.y) && NS.own(STORY_MODES, f.mode) === 1, "story feature " + i + " is malformed, or stands in no chamber", { feature: f }); });
+    }
     var pids = {};
     doc.portals.forEach(function (p, i) { NS.assert(p.id && !pids[p.id] && PORTAL_KINDS[p.kind] && (p.way === "up" || p.way === "down") && isFinite(p.x) && isFinite(p.y) && p.to && p.to.generator, "portal " + i + " is malformed or its id is not unique", { portal: p }); pids[p.id] = true; });
     return doc;
@@ -7273,7 +7319,7 @@
     compassRose(w - 30, cy, 17, out, style);
     if (doc.frame.precision === "schematic") {
       out.push(plaque(8, h - 38, 176, 30));
-      out.push(plainText(doc.generator && doc.generator.name === "wild" ? "Not to scale" : "Schematic — not to scale", "hudSmall", 96, h - 18, style));
+      out.push(plainText(doc.generator && doc.generator.name !== "schematic" ? "Not to scale" /* a drawn story sheet: the ground is a picture, only the distances are unstated */ : "Schematic — not to scale", "hudSmall", 96, h - 18, style));
       return out;
     }
     /* the scale bar, bottom left: a fifth of the view wide, re-measured at this zoom */
@@ -7694,8 +7740,9 @@
         dist: function (u) { var m = Math.round(u * doc.frame.mPerUnit / 10) * 10; return { value: m, unit: "m", text: m + " m" }; } };
     },
     dungeon: function (doc) {
-      return { points: doc.rooms.map(function (r) { return { name: r.name, x: r.x, y: r.y, at: "in" }; }), closeUnits: 12 / doc.frame.mPerUnit,
-        dist: function (u) { var m = Math.round(u * doc.frame.mPerUnit / 5) * 5; return { value: m, unit: "m", text: m + " m" }; } };
+      return { points: doc.rooms.filter(function (r) { return r.name !== ""; }).map(function (r) { return { name: r.name, x: r.x, y: r.y, at: "in" }; }).concat((doc.features || []).map(function (f) { return { name: f.name, x: f.x, y: f.y, at: "in" }; })) /* v0.25.0: a story cave's chambers have no names; its things do */, closeUnits: 12 / doc.frame.mPerUnit,
+        dist: function (u) { if (doc.frame.precision === "schematic") return { value: null, unit: "", text: "" };   /* a story sheet states no distance */
+          var m = Math.round(u * doc.frame.mPerUnit / 5) * 5; return { value: m, unit: "m", text: m + " m" }; } };
     },
     /* a wild zone: from the nearest point of interest or way on, in metres */
     wild: function (doc) {
@@ -8007,13 +8054,14 @@
     });
     vis.rooms.forEach(function (r) {
       if (r.portal && !downRoom[r.id]) return;   /* a landing is clicked as its way up; a pinned stair down is a room */
-      var bb = G.bbox(r.poly);
-      hits.push({ t: "hit", kind: "room", id: r.id, x: r.x, y: r.y, r: Math.max(7, Math.min(bb[2] - bb[0], bb[3] - bb[1]) * 0.45) });
+      var bb = G.bbox(r.poly), told = null, q;
+      if (doc.story) { for (q = 0; q < doc.features.length; q++) if (doc.features[q].room === r.id) told = doc.features[q]; if (!told) return; }   /* v0.25.0, the story's sheet: a chamber is clicked as the thing the story put in it; a nameless chamber is rock and floor, nothing to open */
+      hits.push({ t: "hit", kind: told ? "feature" : "room", id: told ? told.id : r.id, x: r.x, y: r.y, r: Math.max(7, Math.min(bb[2] - bb[0], bb[3] - bb[1]) * 0.45) });
     });
 
     /* furniture and labels: the ways in and out first, then the rooms by size */
     var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
-    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit }, doc.title.name, NS.dungeon.caption(doc), style, furn, lay, frameL);
+    C.furniture({ x0: X, y0: Y, width: W, height: H, kmPerUnit: doc.frame.kmPerUnit, precision: doc.frame.precision }, doc.title.name, NS.dungeon.caption(doc), style, furn, lay, frameL);
     ups.forEach(function (p) {
       var sz = style.text.labelLandmark.size, off = p.kind === "cave" ? 10 : 8, text = p.name || (p.kind === "outfall" ? "the outfall" : "a way up");
       var cands = [{ x: p.x, y: p.y + off + sz * 0.8 }, { x: p.x, y: p.y - off - sz * 0.4 }, { x: p.x + off, y: p.y + sz * 0.36, anchor: "start" }, { x: p.x - off, y: p.y + sz * 0.36, anchor: "end" }, { x: p.x, y: p.y + off + sz * 2 }, { x: p.x, y: p.y - off - sz * 1.6 }];
@@ -8032,7 +8080,7 @@
     }
     /* a natural site's plain chambers (the cluster's unnamed nodes, kind vault) carry no plaque: the plan stays rock and
        floor, their names are on their cards and in the digest */
-    vis.rooms.filter(function (r) { return (!r.portal || downRoom[r.id]) && !(natural && r.kind === "vault"); }).sort(function (a, b) { return (rank[a.kind] || 0) - (rank[b.kind] || 0) || Math.abs(G.signedArea(b.poly)) - Math.abs(G.signedArea(a.poly)); }).forEach(function (r) {
+    vis.rooms.filter(function (r) { return (!r.portal || downRoom[r.id]) && !(natural && r.kind === "vault") && r.name !== ""; }).sort(function (a, b) { return (rank[a.kind] || 0) - (rank[b.kind] || 0) || Math.abs(G.signedArea(b.poly)) - Math.abs(G.signedArea(a.poly)); }).forEach(function (r) {
       var bb = G.bbox(r.poly), hw = (bb[2] - bb[0]) / 2, hh = (bb[3] - bb[1]) / 2, icon = downRoom[r.id] ? [PORTAL_ICONS[downRoom[r.id]] || "stairs", "arrowDown"] : null;
       if (numbered) {   /* the number on the plan; the plaque in the tips layer, above the room, for the view to draw on a hover or a press */
         var at = numberSpot(r), num = C.plainText(String(r.no), "labelNumber", at[0], at[1] + 1.6, style); num.meta = { kind: "room", id: r.id }; labels.push(num);
@@ -8043,6 +8091,15 @@
       var cmd = lay.place(r.name, "labelRoom", cands, { kind: "room", id: r.id }, icon ? { icon: icon } : null); if (cmd) { labels.push(cmd); C.hitBox(hits, "room", r.id, cmd.box); }
     });
     void featureLabels;
+    /* v0.25.0, the story's sheet: the story's things, each on the chamber it took — the only names on the plan but the way in's */
+    if (doc.story) lay.block(doc.story.at[0] + 72, doc.story.at[1] + 2, 136, 20);   /* where the party's marker and its name are drawn: no thing's name is laid under them */
+    (doc.features || []).forEach(function (f) {
+      var r = null, j; for (j = 0; j < vis.rooms.length; j++) if (vis.rooms[j].id === f.room) r = vis.rooms[j];
+      if (!r) return;
+      var face = f.reported ? "storyHeard" : "storyFeature", fs = style.text[face].size, bb = G.bbox(r.poly), hw = (bb[2] - bb[0]) / 2, hh = (bb[3] - bb[1]) / 2;
+      var cands = [{ x: r.x, y: r.y + fs * 0.36 }, { x: r.x, y: r.y + hh + fs * 0.95 }, { x: r.x, y: r.y - hh - fs * 0.35 }, { x: r.x + hw + 1.5, y: r.y + fs * 0.36, anchor: "start" }, { x: r.x - hw - 1.5, y: r.y + fs * 0.36, anchor: "end" }, { x: r.x, y: r.y + hh + fs * 2.1 }, { x: r.x, y: r.y - hh - fs * 1.5 }];
+      var cmd = lay.place(f.name, face, cands, { kind: "feature", id: f.id }, null); if (cmd) { labels.push(cmd); C.hitBox(hits, "feature", f.id, cmd.box); }
+    });
 
     var hitLayer = layer("hits"); for (i = 0; i < hits.length; i++) hitLayer.push(hits[i]);
     return { width: W, height: H, x0: X, y0: Y, style: style.name, layers: layers, dropped: lay.dropped, unit: 12 };
@@ -9414,7 +9471,7 @@
     function update(doc, styleName) {
       var uiStyle = NS.style.get(styleName).ui; NS.assert(uiStyle && uiStyle.unplaced, "style has no unplaced list palette"); palette = uiStyle.unplaced;
       panel.style.background = palette.background; panel.style.color = palette.color; panel.style.borderColor = palette.border; panel.style.font = palette.size + "px " + palette.font; heading.style.borderColor = palette.divider;
-      var next = (doc.site && doc.site.unplaced ? doc.site.unplaced : doc.features.filter(function (f) { return f.unplaced; })).map(function (f) { return { id: f.id, name: f.name, mode: f.mode }; }), sig = JSON.stringify([styleName, next]), active, focusId, scroll;
+      var next = (doc.unplaced ? doc.unplaced /* v0.25.0: a story cave lists the caller's and what found no chamber */ : doc.site && doc.site.unplaced ? doc.site.unplaced : (doc.features || []).filter(function (f) { return f.unplaced; })).map(function (f) { return { id: f.id, name: f.name, mode: f.mode }; }), sig = JSON.stringify([styleName, next]), active, focusId, scroll;
       if (sig === signature) return;
       active = buttonFrom(document.activeElement); focusId = active && active.getAttribute("data-tnd-unplaced-id"); scroll = body.scrollTop;
       entries = next; signature = sig; ids = Object.create(null); buttons = []; body.textContent = "";
@@ -9462,7 +9519,8 @@
     return { update: update, project: project, layout: layout, select: select, destroy: destroy };
   }
   NS.viewLists.schematic = create;
-  NS.viewLists.wild = create;   /* v0.24.0: a story sheet lists what is known without a direction (site.unplaced) */
+  NS.viewLists.wild = create;
+  NS.viewLists.dungeon = create;   /* v0.25.0: a story cave (doc.unplaced); any other dungeon has nothing to list and shows no panel */   /* v0.24.0: a story sheet lists what is known without a direction (site.unplaced) */
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 99-api.js ───── */
