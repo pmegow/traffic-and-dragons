@@ -147,7 +147,10 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
   TTS.speak('First line. Second line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'c'}},directions:{1:'gruff and unhurried'}});await sleep(40);
   assert.deepEqual(bodies.map(function(b){return b.voiceId;}),['b','c']);
-  assert.deepEqual(bodies.map(function(b){return b.instruction;}),['Speak naturally.','gruff and unhurried']);
+  /* #774 (owner 2026-11-16, "always reasoning"): the model directs every line; a character's own direction is the note it reads, the saved model-level direction never rides */
+  assert.deepEqual(bodies.map(function(b){return b.instruction;}),[undefined,undefined],'the instruction field switches reasoning off - never sent');
+  assert.deepEqual(bodies.map(function(b){return b.synthesisContext&&b.synthesisContext.reasoning;}),['REASONING_ON','REASONING_ON']);
+  assert.deepEqual(bodies.map(function(b){return b.synthesisContext&&b.synthesisContext.reasoningContext;}),[undefined,'How this character speaks: gruff and unhurried']);
  });
  await test('#456 automatic casting fills the Inworld slot from the loaded Inworld catalog, gender matched, without touching the other slots',async function(){
   var d=draft('inworld');d.models.inworld.voices=[{id:'iw_f',label:'F',g:'F'},{id:'iw_m',label:'M',g:'M'}];d.models.inworld.narrator='iw_f';S.save(d);
@@ -167,7 +170,7 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
   var iw=TTS.characterVoiceSlots().filter(function(s){return s.provider==='inworld';})[0];
   iw.test({name:'Daeris',gender:'F',inworldVoiceId:'a',voiceRate:1.3,voiceDirection:'gruff'},'a',function(){});await sleep(40);
-  assert.equal(bodies.length,1,'no Inworld audition request');assert.equal(bodies[0].audioConfig.speakingRate,1.3,'the Inworld Test ignored the character speed');assert.equal(bodies[0].instruction,'gruff');
+  assert.equal(bodies.length,1,'no Inworld audition request');assert.equal(bodies[0].audioConfig.speakingRate,1.3,'the Inworld Test ignored the character speed');assert.equal(bodies[0].instruction,undefined);assert.equal(bodies[0].synthesisContext.reasoningContext,'How this character speaks: gruff','#774: the Test carries the character direction as the reasoning note');
   /* the owner's case: model 1.1, character 1.3 — the character's own rate reads, absolute; the validated model rate is never touched */
   d.models.inworld.rate=1.1;S.save(d);bodies=[];toasts.length=0;
   iw.test({name:'Daeris',gender:'F',inworldVoiceId:'a',voiceRate:1.3},'a',function(){});await sleep(40);
@@ -184,7 +187,7 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   /* without the mood, the three short units would ride ONE group (well under the fast-start cap) — the split is the proof */
   TTS.speak('First line. Second line. Third line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',2:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'b',2:'b'}},moods:{1:'weary'}});await sleep(40);
   assert.deepEqual(bodies.map(function(b){return b.text;}),['First line.','[speak weary] Second line.','Third line.']);/* #462: steering in Inworld's own phrasing */
-  assert.deepEqual(bodies.map(function(b){return b.instruction;}),['Speak naturally.','Speak naturally.','Speak naturally.'],'the mood rides the text, never the instruction');
+  assert.deepEqual(bodies.map(function(b){return JSON.stringify(b.synthesisContext);}),['{"reasoning":"REASONING_ON"}','{"reasoning":"REASONING_ON"}','{"reasoning":"REASONING_ON"}'],'the mood rides the text, never the reasoning note (#774)');
  });
  await test('#462 a real Inworld read splits a mood carrying a non-verbal into [speak …] plus the sound\'s own bracket, in that order, before the text; a sound alone stands alone; the Speechify builder still carries no bracket',async function(){
   var d=draft('inworld');d.models.inworld.direction='Speak naturally.';d.models.inworld.voices=[{id:'a',label:'A',g:'F'},{id:'b',label:'B',g:'M'}];d.models.inworld.narrator='a';S.save(d);
@@ -192,6 +195,21 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   TTS.speak('First line. Second line. Third line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',2:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'b',2:'b'}},moods:{1:'surprised, laugh',2:'laugh'}});await sleep(40);
   assert.deepEqual(bodies.map(function(b){return b.text;}),['First line.','[speak surprised] [laugh] Second line.','[laugh] Third line.']);
   var sp=TTS.settings.models.speechify.request({text:'Second line.',voice:'a',mood:'surprised, laugh'},{rate:1});assert.ok(sp.input.indexOf('[')<0,'speechify body carries a bracket: '+sp.input);
+ });
+ await test('#774 every Inworld request asks the model to direct the line (reasoning): no instruction field, a character\'s own direction rides as the note, a saved model-level direction never rides, the note is cut at 600, and the sheet Test carries the note',async function(){
+  var d=draft('inworld');d.models.inworld.rate=1;d.models.inworld.direction='STALE MODEL DIRECTION';d.models.inworld.voices=[{id:'a',label:'A',g:'F'},{id:'b',label:'B',g:'M'},{id:'c',label:'C',g:'F'}];d.models.inworld.narrator='a';S.save(d);
+  var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
+  TTS.speak('First line. Second line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'c'}},directions:{1:'gruff and unhurried'}});await sleep(40);
+  assert.equal(bodies.length,2,'fixture: two requests, got '+bodies.length);
+  bodies.forEach(function(b,i){assert.ok(!('instruction' in b),'request '+i+' carries the instruction field, which switches reasoning off: '+JSON.stringify(b.instruction));assert.equal(b.synthesisContext&&b.synthesisContext.reasoning,'REASONING_ON','request '+i+' does not ask for reasoning: '+JSON.stringify(b.synthesisContext));});
+  assert.equal(bodies[0].synthesisContext.reasoningContext,undefined,'an undirected line carries no note - a saved model-level direction must never ride: '+bodies[0].synthesisContext.reasoningContext);
+  assert.equal(bodies[1].synthesisContext.reasoningContext,'How this character speaks: gruff and unhurried','the character\'s direction is the note the model reads');
+  var long=TTS.settings.models.inworld.request({text:'Line.',voice:'a'},{rate:1},new Array(701).join('x'));
+  assert.equal(long.synthesisContext.reasoningContext.length,600,'Inworld refuses a note over 600 characters - it is cut, got '+long.synthesisContext.reasoningContext.length);
+  bodies=[];var iw=TTS.characterVoiceSlots().filter(function(s){return s.provider==='inworld';})[0];
+  iw.test({name:'Daeris',gender:'F',inworldVoiceId:'a',voiceDirection:'gruff'},'a',function(){});await sleep(40);
+  assert.equal(bodies.length,1,'no Inworld audition request');assert.equal(bodies[0].synthesisContext.reasoningContext,'How this character speaks: gruff','the sheet Test reads without the character\'s note');
+  assert.ok(!TTS.settings.models.inworld.direction,'the Inworld entry still declares a model-level direction field - Voice Settings would show a control nothing reads');
  });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});

@@ -25579,7 +25579,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var S=TTS.settings;if(!S)return "settings draft API missing";var m=S.models;
     if(!m.inworld||!m.speechify)return "trial providers missing";
     if(m.inworld.languages.indexOf("ko-KR")<0||m.speechify.languages.indexOf("ko-KR")>=0)return "Korean capability misrepresented";
-    if(!m.inworld.direction||m.speechify.direction||m.speechify.emotions)return "performance controls: Inworld directs; Speechify has neither direction nor an Emotion control (#454: Simba 3 ignores the style tag)";
+    if(m.inworld.direction||!m.inworld.unitDirection||m.speechify.direction||m.speechify.emotions)return "performance controls: Inworld has no model-level direction (#774: the model directs every line) and keeps the character's own; Speechify has neither direction nor an Emotion control (#454: Simba 3 ignores the style tag)";
     return true;
   });
 
