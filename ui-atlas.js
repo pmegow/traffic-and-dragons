@@ -314,7 +314,7 @@ function atlasPaneShow(zoneId,toParty,carry){
   if((sel=document.getElementById("atlas-zones"))){
     zones=atlasZones();sel.innerHTML="";
     sel.appendChild(new Option("Mapped places ("+zones.length+")",""));
-    if(atlasKnowledgeActive()){var _ov=atlasPublicOverview(A),_jo=new Option(_ov.title,_ov.id);if(_ov.id===zoneId)_jo.disabled=true;sel.appendChild(_jo);}/* #771 P3: the region (the journey sheet, #757, where place sheets are not drawn), before the places */
+    if(atlasKnowledgeActive()){var _ov=atlasPublicOverview(A),_jo;if(_ov){_jo=new Option(_ov.title,_ov.id);if(_ov.id===zoneId)_jo.disabled=true;sel.appendChild(_jo);}}/* #771 P3: the region, before the places (none where place sheets are not drawn) */
     zones.forEach(function(z){var o=new Option(z.name+" — "+z.kind,z.id);if(z.id===zoneId)o.disabled=true;sel.appendChild(o);});
   }
   P.sig=atlasPaneSig();P.partyZone=A.at;P.place=null;

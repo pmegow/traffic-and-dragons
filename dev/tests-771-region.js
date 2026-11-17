@@ -32,7 +32,7 @@ const RID = () => atlasRegionId(A);
 const eighth = (a, b) => TnDMaps.geom.bearing(a, b).name;
 const plain = o => JSON.parse(JSON.stringify(o));
 
-test('the region is the sheet above the places wherever place sheets are drawn; the journey sheet where they are not', () => {
+test('the region is the sheet above the places wherever place sheets are drawn; there is none where they are not', () => {
   setup();
   assert.deepEqual(atlasPublicOverview(A), { id: RID(), title: ATLAS_REGION_TITLE }); assert.equal(RID(), 'k771r/region');
   assert.equal(atlasZoneKnown(A, RID()), true); assert.equal(atlasPublicTitle(RID()), 'The region');
@@ -41,8 +41,8 @@ test('the region is the sheet above the places wherever place sheets are drawn; 
   assert.ok(!atlasZones().some(z => z.id === RID()), 'the list of places is the places');
   assert.equal(atlasRegionDocIs(atlasDoc(RID())), true, 'its id draws the region');
   A.drawn = false;
-  assert.deepEqual(atlasPublicOverview(A), { id: atlasJourneyId(A), title: ATLAS_JOURNEY_TITLE }, 'the pin-sheet switch keeps the journey sheet');
-  assert.equal(atlasZoneKnown(A, RID()), false, 'and the region is no sheet there'); assert.equal(atlasTrailItems(A.at)[0].text, ATLAS_JOURNEY_TITLE);
+  assert.equal(atlasPublicOverview(A), null, 'the pin-sheet switch: no sheet above the places');
+  assert.equal(atlasZoneKnown(A, RID()), false, 'and the region is no sheet there'); assert.deepEqual(atlasTrailItems(A.at).map(t => t.text), [MIRE], 'the plaque starts at the place');
   assert.throws(() => atlasDoc(RID()), /not available/);
 });
 
@@ -190,7 +190,7 @@ test('the game sets a new place down after the ground ask at both doors; the fil
   assert.ok(atlas.indexOf('function atlasRevealNone(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicRevealNone(zoneId);}') >= 0, 'and it fails closed');
   assert.ok(ui.indexOf('if(!how&&fresh&&atlasKnowledgeActive()&&(atlasPaneDrawn(doc)||atlasRegionDocIs(doc)))how={};') >= 0, 'a region newly shown is framed');
   assert.ok(ui.indexOf('else if(atlasKnowledgeActive()&&atlasRegionDocIs(P.view.doc())){T=P.view.transform();d=atlasRegionStand(atlasLive());P.view.center(d[0],d[1],Math.max(T.k,ATLAS_SHEET_LABEL_PX/atlasPaneRegionLabelSize()));}') >= 0, 'on the party, at the zoom its names read at');
-  assert.ok(ui.indexOf('var _ov=atlasPublicOverview(A),_jo=new Option(_ov.title,_ov.id);') >= 0, 'the full pane\'s list offers it');
+  assert.ok(ui.indexOf('var _ov=atlasPublicOverview(A),_jo;if(_ov){_jo=new Option(_ov.title,_ov.id);') >= 0, 'the full pane\'s list offers it');
   assert.ok(ui.indexOf('function atlasPaneRegionLabelSize(){var s=TnDMaps.style.get("ink").text;return Math.min(s.labelTown.size,s.labelMarker.size);}') >= 0, 'the smaller of its two faces'); assert.equal(typeof TnDMaps.style.get('ink').text.labelTown.size, 'number'); assert.equal(typeof TnDMaps.style.get('ink').text.labelMarker.size, 'number');
 });
 

@@ -18,8 +18,9 @@
               story stated its direction AND the two places lie along it; any other is dotted (order of travel only).
      fog      the ground within ATLAS_REGION_REVEAL of a placed place or along a travelled way is drawn; the rest is
               blank paper (worldState.atlas.fog === false shows the sheet whole, as for the old maps).
-   The region replaces the journey sheet (#757) as the plaque's first tier wherever place sheets are drawn;
-   worldState.atlas.drawn === false (the campaign's pin-sheet switch) keeps the journey sheet. Nothing here reads a
+   The region took the journey sheet's seat (#757; that sheet was removed in P4) as the plaque's first tier wherever
+   place sheets are drawn; under worldState.atlas.drawn === false (the campaign's pin-sheet switch) there is no sheet
+   above the places. Nothing here reads a
    private recipe, a description or a generated name; the GM is told nothing of this sheet. */
 var ATLAS_REGION_TITLE="The region";
 var ATLAS_REGION_SIZE=[1600,1100];/* the library's own region sheet */
@@ -30,7 +31,7 @@ var ATLAS_REGION_GROUNDS={wild:function(kind){return kind.terrain;},cave:functio
 var _atlasRegionBase=null,_atlasRegionMemo=null,_atlasRegionSaid=null;
 function atlasRegionId(A){return A.seed+"/region";}
 function atlasRegionIs(A,id){return !!A&&typeof id==="string"&&id===atlasRegionId(A);}
-/* The region stands in for the journey sheet wherever place sheets are drawn. */
+/* The region is the sheet above the places wherever place sheets are drawn. */
 function atlasRegionOn(A){return !!A&&A.knowledge===1&&A.drawn!==false&&typeof TnDMaps!=="undefined"&&!!TnDMaps.region&&typeof TnDMaps.region.place==="function";}
 function atlasRegionProblem(where,e){
   var key=where+"\n"+((e&&e.message)||e);

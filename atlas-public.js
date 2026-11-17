@@ -5,12 +5,12 @@ var _atlasPublicMemo=null;
 function atlasPublicContext(){return atlasKnowledgeContext()||"Current place";}
 /* Schematic units stay independent of terrain. Private start classifications never set scale. */
 function atlasPublicScale(){return "wild";}
-/* The sheet above the places: THE REGION (#771 P3) wherever place sheets are drawn, else the journey sheet (#757). */
-function atlasPublicOverview(A){return atlasRegionOn(A)?{id:atlasRegionId(A),title:ATLAS_REGION_TITLE}:{id:atlasJourneyId(A),title:ATLAS_JOURNEY_TITLE};}
+/* The sheet above the places: THE REGION (#771 P3) wherever place sheets are drawn; null where they are not (the journey sheet, #757, that stood there was removed in P4). */
+function atlasPublicOverview(A){return atlasRegionOn(A)?{id:atlasRegionId(A),title:ATLAS_REGION_TITLE}:null;}
 function atlasPublicRegionIs(A,zoneId){return atlasRegionOn(A)&&atlasRegionIs(A,zoneId);}
-function atlasPublicTitle(zoneId){var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return ATLAS_REGION_TITLE;/* #771 P3 */if(atlasJourneyIs(A,zoneId))return ATLAS_JOURNEY_TITLE;/* #757 */var place=A?atlasPublicPlace(A,zoneId||A.at||A.seed):null;return place?place.name:"Current place";}
+function atlasPublicTitle(zoneId){var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return ATLAS_REGION_TITLE;/* #771 P3 */var place=A?atlasPublicPlace(A,zoneId||A.at||A.seed):null;return place?place.name:"Current place";}
 function atlasPublicDoc(zoneId){
-  var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionDoc(A);/* #771 P3: the region */if(atlasJourneyIs(A,zoneId))return atlasJourneyDoc(A);/* #757: the journey sheet */
+  var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionDoc(A);/* #771 P3: the region */
   var place=A?atlasPublicPlace(A,zoneId):null,k,p,signature,doc,landscape,sheet;
   if(!place)throw new Error("public atlas: that sheet is not available");
   k=place.container;p=atlasKnowledgeProjection(k);p={features:atlasKnowledgeShown(k,p.features)};/* #756: a place is not a feature of itself */landscape=atlasPublicLandscape(place.name,p.features);
@@ -32,7 +32,7 @@ function atlasPublicFollow(){
     return {changed:changed,at:A.at,spot:null,off:null,entered:[]};
   }catch(e){atlasProblem("following the public map",e);return null;}
 }
-function atlasPublicParty(zoneId){var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionParty(A);/* #771 P3 */if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */var place=A?atlasPublicPlace(A,zoneId):null;var at=place?atlasSheetStand(atlasPublicDoc(zoneId)):null;/* #771 P2: a site's middle chamber, a drawn ground's middle, a pin sheet's */return place&&place.container===atlasPublicContext()?{x:at[0],y:at[1],exact:false,last:false,key:null,label:atlasSheetDrawn(atlasPublicDoc(zoneId))?(atlasSheetLeaf(place.container)||place.name):place.name}:null;}/* #764 (owner 2026-11-15: "the party is at Petrified Mire, might as well call it that"): a public sheet IS the place the party stands in, so its marker bears the place's name */
+function atlasPublicParty(zoneId){var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionParty(A);/* #771 P3 */var place=A?atlasPublicPlace(A,zoneId):null;var at=place?atlasSheetStand(atlasPublicDoc(zoneId)):null;/* #771 P2: a site's middle chamber, a drawn ground's middle, a pin sheet's */return place&&place.container===atlasPublicContext()?{x:at[0],y:at[1],exact:false,last:false,key:null,label:atlasSheetDrawn(atlasPublicDoc(zoneId))?(atlasSheetLeaf(place.container)||place.name):place.name}:null;}/* #764 (owner 2026-11-15: "the party is at Petrified Mire, might as well call it that"): a public sheet IS the place the party stands in, so its marker bears the place's name */
 
 /* #769: the visited sheet a feature of this place IS — a sub-location of it bearing the feature's name (a leading "the",
    case and punctuation folded). The den pinned on the ridge opens the den. null when the party has not been inside. */
@@ -43,7 +43,7 @@ function atlasPublicChildSheet(A,place,label){
   return null;
 }
 function atlasPublicCard(zoneId,target){
-  var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionCard(A,target);/* #771 P3 */if(atlasJourneyIs(A,zoneId))return atlasJourneyCard(A,target);/* #757 */
+  var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionCard(A,target);/* #771 P3 */
   var place=A?atlasPublicPlace(A,zoneId):null,p,i,f,t,doc,sheet,w,at,stand;
   if(!place)return null;p=atlasKnowledgeProjection(place.container);p={features:atlasKnowledgeShown(place.container,p.features)};/* #756 */
   if(!target||target.id==null)return null;
@@ -68,11 +68,11 @@ function atlasPublicCard(zoneId,target){
 /* #771 P3, the fog of a public sheet: the region's (the ground the party has seen); every other public sheet is whole. */
 function atlasPublicReveal(zoneId){var A=atlasLive();return atlasPublicRegionIs(A,zoneId)?atlasRegionReveal(A):null;}
 function atlasPublicRevealNone(zoneId){var A=atlasLive();return atlasPublicRegionIs(A,zoneId)?atlasRegionRevealNone(A):null;}
-/* The plaque's tiers: the region (#771 P3; the journey sheet, #757, where place sheets are not drawn), then the place the party stands in UNDER the places around it — Petrified
+/* The plaque's tiers: the region (#771 P3; no tier above the places where place sheets are not drawn), then the place the party stands in UNDER the places around it — Petrified
    Mire › Shattered Ridge › Wyrm Lair (#771 P2, the owner's hierarchy). A place around it the party never stood in itself
    has no sheet to open and is no tier. Each tier is named by its own step; a tap opens its sheet. */
 function atlasPublicTrail(A,shownZone){
-  var over=atlasPublicOverview(A),out=[{key:over.id,text:over.title,current:over.id===shownZone}],place=atlasPublicPlace(A,A.at),rows,chain=[],key,i,j;
+  var over=atlasPublicOverview(A),out=over?[{key:over.id,text:over.title,current:over.id===shownZone}]:[],place=atlasPublicPlace(A,A.at),rows,chain=[],key,i,j;
   if(!place||place.container!==atlasPublicContext())return out;
   rows=atlasPublicPlacesList(A);
   for(key=place.container;key!==null;key=atlasSheetParent(key))chain.unshift(key);

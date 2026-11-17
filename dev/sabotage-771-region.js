@@ -4,7 +4,7 @@
 //   node dev/sabotage-771-region.js
 var sabotage = require("./sabotage.js");
 var P = "FAIL #771 region ", CMD = ["node", ["dev/tests-771-region.js"]];
-var T1 = P + "the region is the sheet above the places wherever place sheets are drawn; the journey sheet where they are not",
+var T1 = P + "the region is the sheet above the places wherever place sheets are drawn; there is none where they are not",
   T2 = P + "the region names nothing of its own: the first place stands on the ground its name says, and it is the only name",
   T3 = P + "a place is set in the direction the party travelled and its way is a track; with no direction it is set beside and its way is dotted",
   T4 = P + "a place whose ground is still being asked waits; answered, it is set on that ground; left unasked, it is set on any land",
@@ -44,7 +44,7 @@ var region = [
   { label: "a pin-sheet campaign is given spots", find: "A=worldState.atlas;if(!atlasRegionOn(A))return null;", replace: "A=worldState.atlas;", mustFail: T10 }
 ];
 var dispatch = [
-  { label: "the overview is always the journey sheet", find: "return atlasRegionOn(A)?{id:atlasRegionId(A),title:ATLAS_REGION_TITLE}:", replace: "return false?{id:atlasRegionId(A),title:ATLAS_REGION_TITLE}:", mustFail: T1 },
+  { label: "there is never a sheet above the places", find: "return atlasRegionOn(A)?{id:atlasRegionId(A),title:ATLAS_REGION_TITLE}:", replace: "return false?{id:atlasRegionId(A),title:ATLAS_REGION_TITLE}:", mustFail: T1 },
   { label: "the region is a sheet where place sheets are not drawn", find: "function atlasPublicRegionIs(A,zoneId){return atlasRegionOn(A)&&atlasRegionIs(A,zoneId);}", replace: "function atlasPublicRegionIs(A,zoneId){return atlasRegionIs(A,zoneId);}", mustFail: T1 },
   { label: "the region's id draws no sheet", find: "if(atlasPublicRegionIs(A,zoneId))return atlasRegionDoc(A);/* #771 P3: the region */", replace: "", mustFail: T1 },
   { label: "the region has no title of its own", find: "if(atlasPublicRegionIs(A,zoneId))return ATLAS_REGION_TITLE;/* #771 P3 */", replace: "", mustFail: T1 },

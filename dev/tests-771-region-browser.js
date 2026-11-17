@@ -82,11 +82,11 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #771 regio
    assert.ok(inView(r),'party on screen in the drawer: '+JSON.stringify(r.party)+' in '+r.w+'x'+r.h);
    await page.screenshot({path:path.join(shots,'map-771-region-drawer-1280x840.png')});
  });
- await check('with the campaign\'s fog off the region is whole; with pin sheets the journey sheet stands in',async()=>{
+ await check('with the campaign\'s fog off the region is whole; with pin sheets there is no sheet above the places',async()=>{
    const whole=await page.evaluate(()=>{worldState.atlas.fog=false;atlasPaneRefresh();return {reveal:_atlasPane.view.reveal(),fog:_atlasPane.view.scene().layers.some(l=>l.name==='fog')};});
    assert.equal(whole.reveal,null);assert.equal(whole.fog,false);
    const pins=await page.evaluate(()=>{delete worldState.atlas.fog;worldState.atlas.drawn=false;atlasPaneRefresh();return {trail:atlasTrailItems(_atlasPane.zone).map(x=>x.text),zone:_atlasPane.zone,region:atlasRegionId(worldState.atlas)};});
-   assert.equal(pins.trail[0],'The journey so far');assert.notEqual(pins.zone,pins.region,'the pane left a sheet that is no longer one');
+   assert.ok(pins.trail.indexOf('The region')<0&&pins.trail.indexOf('The journey so far')<0,'no tier above the places: '+pins.trail.join(' : '));assert.notEqual(pins.zone,pins.region,'the pane left a sheet that is no longer one');
    await page.evaluate(()=>{delete worldState.atlas.drawn;atlasPaneRefresh();});
  });
  await check('no unexpected browser exceptions or map warnings',async()=>{assert.deepEqual(errors,[]);assert.deepEqual(await page.evaluate(()=>__mapToasts.filter(t=>/fail|could not|overlap/i.test(t))),[]);});

@@ -1357,7 +1357,7 @@ function atlasThingAt(zoneId,x,y){
 /* the markers TnDMaps.markers / view.setMarkers take for a sheet — derived from the store, never stored */
 function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId),m;if(!p)return [];m={id:"party",kind:"party",x:p.x,y:p.y,label:p.label?p.label:(p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)"))};if(p.label==="")m.label="";/* #771 P3: on the region the party stands ON a place that bears its own name — the dagger alone */return [m];}/* #764: a position that names itself (the public sheet's place) is said by that name */
 /* the entered zones, root first then in order of entry */
-function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?(atlasPublicRegionIs(A,id)/* #771 P3: the region */||atlasJourneyIs(A,id)||atlasPublicPlace(A,id))/* #757: the journey sheet is always there */:atlasRow(A.zones,id)));}
+function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?(atlasPublicRegionIs(A,id)/* #771 P3: the region */||atlasPublicPlace(A,id)):atlasRow(A.zones,id)));}
 function atlasZones(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive();return publicAtlas?atlasPublicPlacesList(publicAtlas):[];}
   var A=atlasLive();if(!A)return [];
   return Object.keys(A.zones).map(function(id){var r=A.zones[id];return {id:id,kind:r.kind,name:r.name||id,parent:r.parent,turn:r.turn,redrawn:r.redrawn||null};});

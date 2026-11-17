@@ -1,6 +1,6 @@
 # Story-led maps (#771): plan
 
-Status: **P0 accepted, P1 built (v1.1439 to v1.1441, TnD Maps 0.24.0), P2 built (caves v1.1442, buildings v1.1444, TnD Maps 0.25.0 and 0.26.0), P3 built (v1.1447, TnD Maps 0.28.0)**; P4 not built. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
+Status: **P0 accepted, P1 built (v1.1439 to v1.1441, TnD Maps 0.24.0), P2 built (caves v1.1442, buildings v1.1444, TnD Maps 0.25.0 and 0.26.0), P3 built (v1.1447, TnD Maps 0.28.0), P4 built (v1.1449)**. The landscape adapter stays until towns and vaults are drawn. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
 
 ## What the owner asked for
 
@@ -99,6 +99,16 @@ Owner rulings 2026-11-16 (chips): a blueprint's locations are set on the region 
 - **Existing campaigns:** drawn from their own record at the first read; the spots are kept at the first turn after loading. `atlas.drawn === false` keeps the journey sheet.
 - **Known limits:** distances are invented (one step per way); a direction the story states after a place was set does not move it (its way stays dotted); the generated ground can contradict a later sentence ("you sail west" where the sheet shows land); heath has no mark of its own, so a moor set among trees shows trees; sub-places are not on the region (they are on their place's sheet); the GM is told nothing of the region.
 
+## P4 as built (v1.1449)
+
+Owner rulings 2026-11-16: the old pre-generated campaigns are **left alone**; the landscape adapter is **kept for now**.
+
+- **Removed:** the journey sheet (#757): its layout, its schematic document, its party, its card, its id and its title. Its id is no sheet any more.
+- **Kept:** `atlas-public-journey.js` as the travel record the region and the place sheets share: the visited world places, the travelled ways, and the one rule for a way's direction.
+- **Pin-sheet switch:** under `atlas.drawn === false` there is no sheet above the places; the plaque starts at the place.
+- **Existing campaigns:** nothing to convert. A public-map campaign is drawn from its own record at every read (P1 to P3). A campaign on the old pre-generated maps (legacy mode) keeps them.
+- **Not removed:** the landscape adapter (#744, #765). The pin sheets that remain (a town, a built vault, a place whose ground is unknown) still draw their washes from it, and the place sheets use its test for a named feature. It goes when those places get drawn sheets.
+
 ## Known gaps to close in the map library
 
 - ~~A standalone wild sheet takes one road.~~ Closed in 0.24.0: `site.exits`, up to sixteen.
@@ -111,4 +121,4 @@ Owner rulings 2026-11-16 (chips): a blueprint's locations are set on the region 
 1. ~~**Blueprint locations.**~~ Ruled 2026-11-16: only when visited.
 2. **Towns.** "Ground only" for a town means streets and unnamed houses; named buildings only as the story names them. Is that the wanted town sheet?
 3. **A direction the story later contradicts.** Today a settled direction cannot move. On an illustrated sheet a wrong one is more visible.
-4. **The old campaigns on pre-generated maps** (legacy mode): leave as they are, or convert?
+4. ~~**The old campaigns on pre-generated maps**~~ Ruled 2026-11-16: left as they are.

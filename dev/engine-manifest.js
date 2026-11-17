@@ -44,7 +44,7 @@ var ENGINE_MANIFEST = [
   { file: "atlas-discovery.js", sym: "atlasDiscoveryRequest" },
   { file: "atlas-directions.js", sym: "atlasDirectionsSettle" },
   { file: "atlas-public-places.js", sym: "atlasPublicPlacesRead" },
-  { file: "atlas-public-journey.js", sym: "atlasJourneyRead" },
+  { file: "atlas-public-journey.js", sym: "atlasJourneyLegs" },
   { file: "atlas-public-landscape.js", sym: "atlasPublicLandscape" },
   { file: "atlas-public-sheet.js", sym: "atlasSheetRecipe" },
   { file: "atlas-ground.js", sym: "atlasGroundSettle" },

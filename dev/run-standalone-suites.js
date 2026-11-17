@@ -34,7 +34,7 @@ var SUITES = [
   "dev/tests-762-map-and-import.js",/* #762: the wizard's import skips the chooser; #763: one receipt per disclosure; #764: the marker's name; #765: ground by head noun */
   "dev/tests-760-creature-names.js",/* #760: the GM starts a listed creature under its bestiary name; #761: the wizard's Import character button */
   "dev/tests-759-dice-reveal.js",/* #759: the dice reveal the roll — no number before its die lands; the reply waits on the dice */
-  "dev/tests-757-journey.js",/* #757: the journey sheet — visited places joined by travelled ways, public facts only */
+  "dev/tests-757-journey.js",/* #757: the journey — visited places and travelled ways from public facts; its sheet retired into the region (#771 P4) */
   "dev/tests-756-map-directions.js",/* #756: a place is not a feature of itself; the GM is asked for the directions the map owes */
   "dev/tests-754-damage-only.js",/* #754: the damage-only roll — a breath weapon has no d20 of the hero's */
   "dev/tests-752-field-fixes.js",/* #752: a plural foe name finds its bestiary entry; #753: the fallback suggestion knows a fight is open */

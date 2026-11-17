@@ -12,7 +12,7 @@
                say it (deep timber); else NOTHING is drawn and the place keeps its pin sheet. The engine never guesses.
      exits     a world place: every way the party travelled to or from it (memory.map.edges), toward the place it leads
                to. A place inside another: the way back out to the place around it. The direction is the story's — a
-               public feature of one end bearing the other's name with a stated bearing (the journey sheet's rule) —
+               public feature of one end bearing the other's name with a stated bearing (the journey's rule, atlas-public-journey.js) —
                and a way whose direction nobody stated is laid at the first free edge and drawn DOTTED.
      features  every shown public feature with a bearing, set down toward it on fitting ground; one the story only
                reported is a ring. A feature that IS the place an exit leads to is the exit, not a second pin.
@@ -209,7 +209,7 @@ function atlasSheetRecipe(place,features,ways,inside){
   for(i=0;i<ways.length;i++)if(ways[i].bearing)used[ways[i].bearing]=true;
   for(i=0;i<ways.length;i++){
     w=ways[i];e={id:w.id,name:atlasSheetCut(w.name,ATLAS_SHEET_WAY_MAX),sure:!!w.bearing,bearing:w.bearing};
-    if(!e.bearing&&w.lean&&!used[w.lean])e.bearing=w.lean;/* the journey sheet lays an unstated way DOWN the sheet: onward is south, the way back north, so both ends of one way agree */
+    if(!e.bearing&&w.lean&&!used[w.lean])e.bearing=w.lean;/* an unstated way is laid DOWN the sheet: onward is south, the way back north, so both ends of one way agree */
     if(!e.bearing){for(j=0;j<ATLAS_JOURNEY_UNSURE_ORDER.length&&!e.bearing;j++)if(!used[ATLAS_JOURNEY_UNSURE_ORDER[j]])e.bearing=ATLAS_JOURNEY_UNSURE_ORDER[j];if(!e.bearing)e.bearing=ATLAS_JOURNEY_UNSURE_ORDER[0];}
     used[e.bearing]=true;
     exits.push(e);
