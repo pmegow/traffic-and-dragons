@@ -24,7 +24,7 @@ function arrive(place, turn, sub) {
 }
 function setup() {
   engine.makeTestWorld(); worldState.world.location = null; worldState.world.sublocation = null; memory.map.edges = [];
-  worldState.atlas = A = { v: ATLAS_VER, seed: 'j757', knowledge: 1 }; memory.map.geography = MapKnowledge.create();
+  worldState.atlas = A = { v: ATLAS_VER, seed: 'j757', knowledge: 1, drawn: false };/* #771 P3: the journey sheet is the sheet above the places where place sheets are not drawn; the region stands there otherwise */ memory.map.geography = MapKnowledge.create();
   arrive(CLEARING, 1);
 }
 function reveal(text) { const r = atlasKnowledgeCommitResult(text, null, { commit: 'gm:' + worldState.turn + ':' + Math.random() }); assert.equal(r.refusal, null, r.refusal && r.refusal.reason); }
@@ -115,7 +115,7 @@ test('the sheet is reached from the plaque and the list, a tap opens the place, 
   assert.equal(atlasCard(J(), { id: 'nothing' }), null);
   assert.equal(atlasPublicTitle(J()), ATLAS_JOURNEY_TITLE);
   const ui = fs.readFileSync(path.join(__dirname, '../ui-atlas.js'), 'utf8');
-  assert.ok(ui.indexOf('var _jo=new Option(ATLAS_JOURNEY_TITLE,atlasJourneyId(A));') >= 0, 'the full pane\'s list offers it');
+  assert.ok(ui.indexOf('var _ov=atlasPublicOverview(A),_jo=new Option(_ov.title,_ov.id);') >= 0 && atlasPublicOverview(A).id === J() && atlasPublicOverview(A).title === ATLAS_JOURNEY_TITLE, 'the full pane\'s list offers it');
 });
 
 test('a read writes nothing, and the sheet holds nothing private', () => {

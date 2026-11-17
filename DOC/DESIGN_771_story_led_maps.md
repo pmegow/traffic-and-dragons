@@ -1,6 +1,6 @@
 # Story-led maps (#771): plan
 
-Status: **P0 accepted, P1 built (v1.1439 to v1.1441, TnD Maps 0.24.0), P2 caves built (v1.1442, TnD Maps 0.25.0)**; buildings (the rest of P2), P3 and P4 not built. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
+Status: **P0 accepted, P1 built (v1.1439 to v1.1441, TnD Maps 0.24.0), P2 built (caves v1.1442, buildings v1.1444, TnD Maps 0.25.0 and 0.26.0), P3 built (v1.1447, TnD Maps 0.28.0)**; P4 not built. Owner asked for it on 2026-11-15 after playing Petrified Mire › Shattered Ridge › the wyrm's lair on the pin sheets.
 
 ## What the owner asked for
 
@@ -86,6 +86,19 @@ Each phase ends with something the owner can look at, and nothing later starts u
 - **Stability:** as a cave's. The walls are the seed's and the door's wall; a later thing never moves an earlier one; a second way is listed.
 - **Known limits:** a thing toward the door's own side finds no room and is listed (the door's room is at the front); a plan has few rooms (a house about five, an inn about eight), so a building with many things lists the later ones; the story said nothing of floors, so there is one; a building nobody travelled into keeps its pin sheet; a built vault underground (a crypt, a cellar, a sewer) and a town's streets still answer `other`.
 
+## P3 as built: the region (v1.1447)
+
+Owner rulings 2026-11-16 (chips): a blueprint's locations are set on the region **only when visited**; a place reached with no stated direction is set **beside the last one, its way dotted**.
+
+- **The ground:** TnD Maps 0.28.0's story region, drawn from the campaign's seed (`<seed>/region`): coast, relief, rivers, woods. The generator names nothing: no settlement, cave or road of its own, no name on a range, a wood, a lake, a river or the sea. The title is "The region". No scale.
+- **Places:** every visited WORLD place, first visit first. Each is set down once: from the place it shares a travelled way with, in the stated direction when there is one (the eighth the story said), else beside it; on ground that fits (its name's, else the story's answer; a cave on rising ground; a building anywhere). A place whose ground is still being asked waits a turn. Fitting ground is preferred within reach; where the direction leaves none, the place is set on what is there and a few marks of its ground are drawn around it.
+- **Kept:** `worldState.atlas.spots[<world place>] = {at, turn}`, written once by `atlasRegionSettle` after the ground ask. A kept spot never moves: not for a direction stated later, a ground answered later, or a newer library. Only the point is stored.
+- **Ways:** the travelled ways between placed places. A track only when the story stated the direction and the two places lie along it; dotted otherwise.
+- **Fog:** the ground within 70 sheet units of a placed place or along a travelled way. `atlas.fog === false` shows the sheet whole.
+- **In the pane:** the plaque's first tier and the list's first option (the journey sheet's seat). It opens on the party at the zoom its names read at. The party is the dagger alone on the place it stands in. A tap on a place opens its card; the card opens the place's own sheet.
+- **Existing campaigns:** drawn from their own record at the first read; the spots are kept at the first turn after loading. `atlas.drawn === false` keeps the journey sheet.
+- **Known limits:** distances are invented (one step per way); a direction the story states after a place was set does not move it (its way stays dotted); the generated ground can contradict a later sentence ("you sail west" where the sheet shows land); heath has no mark of its own, so a moor set among trees shows trees; sub-places are not on the region (they are on their place's sheet); the GM is told nothing of the region.
+
 ## Known gaps to close in the map library
 
 - ~~A standalone wild sheet takes one road.~~ Closed in 0.24.0: `site.exits`, up to sixteen.
@@ -95,7 +108,7 @@ Each phase ends with something the owner can look at, and nothing later starts u
 
 ## Open questions (for the owner, when their phase comes)
 
-1. **Blueprint locations.** Should a blueprint's named locations be set onto the region at Begin, hidden under fog, or only when visited?
+1. ~~**Blueprint locations.**~~ Ruled 2026-11-16: only when visited.
 2. **Towns.** "Ground only" for a town means streets and unnamed houses; named buildings only as the story names them. Is that the wanted town sheet?
 3. **A direction the story later contradicts.** Today a settled direction cannot move. On an illustrated sheet a wrong one is more visible.
 4. **The old campaigns on pre-generated maps** (legacy mode): leave as they are, or convert?

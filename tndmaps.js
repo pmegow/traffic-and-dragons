@@ -1,11 +1,11 @@
-/* TnD Maps 0.27.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.28.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.27.0";
+  NS.VERSION = "0.28.0";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -1182,7 +1182,7 @@
     landmass: "continent", land: 0.5, relief: 0.5, moisture: 0.5, lakes: 3,
     settlements: 12, caves: 3, culture: "common", title: null,
     scaleKm: 600, travelKmPerDay: 30,
-    pins: [], fields: true, edits: []
+    pins: [], fields: true, edits: [], story: null
   };
   var LANDMASSES = ["continent", "island", "coast", "archipelago", "inland"];
   var KINDS = ["city", "town", "village"];
@@ -1240,6 +1240,118 @@
     return places;
   }
 
+  /* THE STORY'S REGION (v0.28.0): `story: {places, links}`. The generator draws the ground — coast, relief, rivers, woods —
+     and NAMES NOTHING: no settlement, no cave, no road, no name on a range, a wood, a lake, a river or the sea, no title of
+     its own. Every place on the sheet is the caller's, at the point the caller gives (TnDMaps.region.place finds one on
+     fitting ground), and every way between two places is the caller's: `sure` ways are drawn as a track, the others
+     dotted (the order of travel, never a direction). A place whose `ground` the land under it does not show gets a few
+     marks of that ground around it; nothing else the seed drew moves, and a later place never moves an earlier one. The
+     sheet states no distance (frame.precision "schematic"). */
+  var STORY_KEYS = { places: 1, links: 1 }, STORY_PLACE_KEYS = { id: 1, name: 1, at: 1, ground: 1 }, STORY_LINK_KEYS = { id: 1, from: 1, to: 1, sure: 1 }, STORY_MAX_PLACES = 256, STORY_MAX_LINKS = 512, STORY_MAX_ID = 80, STORY_MAX_NAME = 80;
+  var STORY_GROUNDS = {
+    forest: { biomes: [B.FOREST], glyph: "tree" }, marsh: { biomes: [B.MARSH], glyph: "reed" }, mountain: { biomes: [B.MOUNTAIN], glyph: "mtn" },
+    hills: { biomes: [B.HILLS], glyph: "hill" }, heath: { biomes: [B.PLAIN, B.SCRUB], glyph: null }, desert: { biomes: [B.SCRUB], glyph: "scrub" }
+  };
+  function onlyKeys(o, known, what) { var k; for (k in o) if (Object.prototype.hasOwnProperty.call(o, k)) NS.assert(NS.own(known, k), what + " has no key " + k, { key: k, known: Object.keys(known) }); }
+  function validateStory(P, input) {
+    var S = P.story, ids = {}, lids = {};
+    if (S === null || S === undefined) { delete P.story; return; }   /* no story: the document echoes the parameters it always echoed */
+    NS.assert(S && typeof S === "object" && !Array.isArray(S), "story must be {places, links} or null", { story: S });
+    onlyKeys(S, STORY_KEYS, "story");
+    NS.assert(!P.pins.length && !P.edits.length, "a story region takes no pins and no edits: every place on it is the story's", { pins: P.pins.length, edits: P.edits.length });
+    NS.assert(!(Object.prototype.hasOwnProperty.call(input, "settlements") && input.settlements) && !(Object.prototype.hasOwnProperty.call(input, "caves") && input.caves), "a story region generates no settlement and no cave: leave settlements and caves out, or 0", { settlements: input.settlements, caves: input.caves });
+    NS.assert(Array.isArray(S.places) && S.places.length <= STORY_MAX_PLACES, "story.places must be a list of at most " + STORY_MAX_PLACES + " places", { places: S.places });
+    S.places.forEach(function (p, i) {
+      NS.assert(p && typeof p === "object", "story.places[" + i + "] must be {id, name, at, ground?}", { place: p });
+      onlyKeys(p, STORY_PLACE_KEYS, "story.places[" + i + "]");
+      NS.assert(typeof p.id === "string" && p.id.length > 0 && p.id.length <= STORY_MAX_ID, "story.places[" + i + "] needs a string id of 1–" + STORY_MAX_ID + " characters", { place: p });
+      NS.assert(!ids[p.id], "story.places[" + i + "]: a place with id " + p.id + " is already there", { id: p.id }); ids[p.id] = true;
+      NS.assert(typeof p.name === "string" && p.name.trim().length > 0 && p.name.length <= STORY_MAX_NAME, "story.places[" + i + "] needs a name of 1–" + STORY_MAX_NAME + " characters", { place: p });
+      NS.assert(Array.isArray(p.at) && p.at.length === 2 && U.isNum(p.at[0]) && U.isNum(p.at[1]) && p.at[0] >= 0 && p.at[1] >= 0 && p.at[0] <= P.width && p.at[1] <= P.height, "story.places[" + i + "] needs at: [x, y] inside the map frame", { at: p.at });
+      NS.assert(p.ground === undefined || p.ground === null || NS.own(STORY_GROUNDS, p.ground), "story.places[" + i + "].ground must be one of " + Object.keys(STORY_GROUNDS).join("|") + ", or null", { ground: p.ground });
+    });
+    NS.assert(S.links === undefined || (Array.isArray(S.links) && S.links.length <= STORY_MAX_LINKS), "story.links must be a list of at most " + STORY_MAX_LINKS + " ways", { links: S.links });
+    (S.links || []).forEach(function (l, i) {
+      NS.assert(l && typeof l === "object", "story.links[" + i + "] must be {id, from, to, sure}", { link: l });
+      onlyKeys(l, STORY_LINK_KEYS, "story.links[" + i + "]");
+      NS.assert(typeof l.id === "string" && l.id.length > 0 && l.id.length <= STORY_MAX_ID && !lids[l.id], "story.links[" + i + "] needs an id of its own", { link: l }); lids[l.id] = true;
+      NS.assert(ids[l.from] && ids[l.to] && l.from !== l.to, "story.links[" + i + "] joins two different places of story.places by id", { link: l });
+      NS.assert(typeof l.sure === "boolean", "story.links[" + i + "].sure must be true (its direction is the story's) or false (only the order of travel is)", { link: l });
+    });
+    P.settlements = 0; P.caves = 0;
+  }
+  /* lay the story's places over the finished ground and draw its ways; returns {places, ways, glyphs} */
+  function applyStory(P, W, F, gl) {
+    var g = W.g, places = [], byId = {}, ways = [], wob = NS.Noise(P.seed + "/ways");
+    P.story.places.forEach(function (sp) {
+      var node = g.nearest(sp.at[0], sp.at[1]), site = siteOf(W, node), lk = null, G0 = sp.ground ? STORY_GROUNDS[sp.ground] : null, land = W.water[node] === 0, matched = !G0 || G0.biomes.indexOf(W.biome[node]) >= 0, x = U.round(sp.at[0], 1), y = U.round(sp.at[1], 1), rng, k, a, d, jx, jy, n;
+      if (site.lake) g.neighbors8(node, function (q) { if (lk === null && F.lakeIdAt[q] >= 0) lk = F.features[F.lakeIdAt[q]].id; });
+      site.lakeId = lk; site.riverId = site.river !== null ? "w" + site.river : null; delete site.river; site.roads = [];
+      /* the marker stands clear; ground the land does not show is drawn around it, a few marks of its kind */
+      var clear = (G0 && !matched && land && G0.glyph ? 1.7 : 0.9) * g.dx;
+      gl = gl.filter(function (gy) { return G.dist([gy.x, gy.y], [x, y]) >= clear; });
+      if (G0 && !matched && land && G0.glyph) {
+        rng = NS.Rng(P.seed + "/story/" + sp.id);
+        for (k = 0; k < 7; k++) {
+          a = Math.PI * 2 * (k + rng.float() * 0.6) / 7; d = (0.75 + rng.float() * 0.75) * g.dx; jx = x + Math.cos(a) * d; jy = y + Math.sin(a) * d * 0.8; n = g.nearest(jx, jy);
+          if (jx < g.dx || jy < g.dx || jx > g.w - g.dx || jy > g.h - g.dx || W.water[n] !== 0) continue;
+          gl.push({ k: G0.glyph, x: U.round(jx, 1), y: U.round(jy, 1), s: U.round(0.75 + rng.float() * 0.3, 2) });
+        }
+      }
+      var p = { id: sp.id, name: sp.name, kind: "site", capital: false, x: x, y: y, score: 0, pinned: false, authored: true, story: true, ground: sp.ground || null, matched: matched, site: site };
+      places.push(p); byId[p.id] = p;
+    });
+    (P.story.links || []).forEach(function (l) {
+      var a = byId[l.from], b = byId[l.to], dx = b.x - a.x, dy = b.y - a.y, len = Math.sqrt(dx * dx + dy * dy) || 1, n = Math.max(2, Math.round(len / (g.dx * 1.5))), pts = [], k, t, off;
+      for (k = 0; k <= n; k++) { t = k / n; off = (k === 0 || k === n) ? 0 : wob.noise2((a.x + dx * t) / (3 * g.dx), (a.y + dy * t) / (3 * g.dx)) * g.dx * 0.55 * Math.sin(Math.PI * t); pts.push([a.x + dx * t - dy / len * off, a.y + dy * t + dx / len * off]); }
+      ways.push({ id: l.id, from: l.from, to: l.to, sure: l.sure, pts: roundPts(G.smooth(pts, 1, false).map(function (q, i, all) { return i === 0 ? [a.x, a.y] : i === all.length - 1 ? [b.x, b.y] : q; })) });
+    });
+    return { places: places, ways: ways, glyphs: gl };
+  }
+  /* place(doc, o) → {at: [x, y], ground, matched, along}: where a new place of the story stands on a region document
+     (drawn with its byte fields). o.ground — the ground the story says (a key of STORY_GROUNDS) or null; o.from — the
+     point of the place the party came from, or null for the first place (it stands near the sheet's middle); o.bearing
+     — the direction travelled from there (N … NW), or null when the story stated none (it stands beside); o.taken — the
+     points of the places already there (none is crowded). Fitting ground is preferred within reach; `matched` says
+     whether it was found, `along` whether a stated bearing was kept. Pure: the same document and input, the same point. */
+  var DIRS = { N: [0, -1], NE: [1, -1], E: [1, 0], SE: [1, 1], S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1] }, PLACE_KEYS = { ground: 1, from: 1, bearing: 1, taken: 1 };
+  function place(doc, o) {
+    NS.assert(doc && doc.generator && doc.generator.name === "region" && doc.fields && typeof doc.fields.biome === "string", "place needs a region document drawn with its fields", { generator: doc && doc.generator });
+    o = o || {}; onlyKeys(o, PLACE_KEYS, "place");
+    var G0 = null, from = null, dir = null, taken = o.taken || [], W = doc.frame.width, H = doc.frame.height, cols = doc.frame.cols, rows = doc.frame.rows, dx = W / (cols - 1), dy = H / (rows - 1);
+    if (o.ground !== undefined && o.ground !== null) { G0 = NS.own(STORY_GROUNDS, o.ground); NS.assert(G0, "place: ground must be one of " + Object.keys(STORY_GROUNDS).join("|") + ", or null", { ground: o.ground }); }
+    if (o.from !== undefined && o.from !== null) { NS.assert(Array.isArray(o.from) && o.from.length === 2 && U.isNum(o.from[0]) && U.isNum(o.from[1]), "place: from must be [x, y] or null", { from: o.from }); from = o.from; }
+    if (o.bearing !== undefined && o.bearing !== null) { dir = NS.own(DIRS, o.bearing); NS.assert(dir && from, "place: bearing must be one of " + Object.keys(DIRS).join("|") + ", with a from", { bearing: o.bearing }); }
+    NS.assert(Array.isArray(taken) && taken.every(function (t) { return Array.isArray(t) && U.isNum(t[0]) && U.isNum(t[1]); }), "place: taken must be a list of [x, y]", { taken: taken });
+    var bio = NS.fieldBytes(doc.fields.biome), step = 0.085 * W, gap = 0.75 * step, margin = 0.07 * Math.min(W, H), dl = dir ? Math.sqrt(dir[0] * dir[0] + dir[1] * dir[1]) : 1;
+    var target = from ? [from[0] + (dir ? dir[0] / dl : 0) * step, from[1] + (dir ? dir[1] / dl : 1) * step] : [W / 2, H / 2];
+    function search(useDir) {
+      var best = null, bc = Infinity, c, r, x, y, b, k, ok, d, cost, m, cosv;
+      for (r = 0; r < rows; r++) for (c = 0; c < cols; c++) {
+        x = c * dx; y = r * dy; b = bio[r * cols + c];
+        if (b === B.OCEAN || b === B.LAKE || x < margin || y < margin || x > W - margin || y > H - margin) continue;
+        ok = true; for (k = 0; k < taken.length && ok; k++) if (G.dist(taken[k], [x, y]) < gap) ok = false;
+        if (!ok) continue;
+        m = !G0 || G0.biomes.indexOf(b) >= 0;
+        if (!from) cost = G.dist(target, [x, y]) / step + (m ? 0 : 4);
+        else {
+          d = G.dist(from, [x, y]); if (d < 0.75 * step || d > 5 * step) continue;
+          if (useDir) { cosv = ((x - from[0]) * dir[0] + (y - from[1]) * dir[1]) / (d * dl); if (cosv < 0.9239) continue;   /* within 22.5° of the bearing: the eighth it was stated in */
+            cost = G.dist(target, [x, y]) / step + (m ? 0 : 3); }
+          else cost = 2 * Math.abs(d - step) / step + 0.3 * G.dist(target, [x, y]) / step + (m ? 0 : 3);
+        }
+        if (cost < bc) { bc = cost; best = { at: [U.round(x, 1), U.round(y, 1)], ground: TR.BIOME_NAME[b], matched: m }; }
+      }
+      return best;
+    }
+    var hit = dir ? search(true) : null, along = !!hit;
+    if (!hit) hit = search(false);
+    if (!hit && from) { from = null; target = [W / 2, H / 2]; hit = search(false); }   /* no land within reach of the last place: anywhere free */
+    NS.assert(hit, "place: this region has no free land left for another place", { taken: taken.length });
+    hit.along = dir ? along : null;
+    return hit;
+  }
+
   /* ── parameter validation: every refusal names the field and the rule ── */
   function resolveParams(input) {
     var P = U.extend({}, DEFAULTS, input || {}), k;
@@ -1258,6 +1370,7 @@
     });
     NS.assert(P.title === null || typeof P.title === "string", "title must be a string or null", { title: P.title });
     validateEdits(P.edits, P);
+    validateStory(P, input || {});
     P.seed = String(P.seed); P.cells = Math.round(P.cells); P.settlements = Math.round(P.settlements); P.lakes = Math.round(P.lakes); P.caves = Math.round(P.caves);
     return P;
   }
@@ -1596,8 +1709,8 @@
     var P = resolveParams(input), t0 = TR.now(), stats = {}, seed = P.seed;
     var rows = Math.max(8, Math.round(P.cells * P.height / P.width)), g = G.Grid(P.cells, rows, P.width, P.height);
     var W = TR.build(P, g, seed); stats.terrain = U.round(TR.now() - t0, 1); t0 = TR.now();
-    var namer = NS.names.Namer(NS.Rng(seed + "/names"), P.culture);
-    var title = P.title || namer.feature("realm");
+    var namer = P.story ? { feature: function () { return null; }, settlement: function () { return null; } } /* v0.28.0: the story's region names nothing */ : NS.names.Namer(NS.Rng(seed + "/names"), P.culture);
+    var title = P.title || namer.feature("realm") || "";
     var S = settlements(P, W, NS.Rng(seed + "/settle"), namer);
     var placeAt = new Int32Array(g.n), i; for (i = 0; i < g.n; i++) placeAt[i] = -1;
     S.places.forEach(function (p, idx) { placeAt[p.site.node] = idx; });
@@ -1613,11 +1726,13 @@
     applyEdits(P, W, F, S.places, S.warnings);
     var added = S.places.filter(function (p) { return p.authored; });
     if (added.length) gl = gl.filter(function (gy) { var k; for (k = 0; k < added.length; k++) if (G.dist([gy.x, gy.y], [added[k].x, added[k].y]) < g.dx * 1.5) return false; return true; });
+    var ST = P.story ? applyStory(P, W, F, gl) : null;
+    if (ST) { gl = ST.glyphs; ST.places.forEach(function (p) { S.places.push(p); }); }
     var C = coastlines(W, seed); stats.geometry = U.round(TR.now() - t0, 1);
     var doc = {
       format: NS.DOC_FORMAT, ver: NS.DOC_VER, generator: { name: "region", version: NS.VERSION },
       seed: seed, params: P,
-      frame: { width: P.width, height: P.height, cols: g.cols, rows: g.rows, kmPerUnit: U.round(P.scaleKm / P.width, 5), travelKmPerDay: P.travelKmPerDay },
+      frame: ST ? { width: P.width, height: P.height, cols: g.cols, rows: g.rows, kmPerUnit: U.round(P.scaleKm / P.width, 5), travelKmPerDay: P.travelKmPerDay, precision: "schematic" } /* v0.28.0: the story stated no distance, so the sheet draws no scale; the units stay for the ground's own geometry */ : { width: P.width, height: P.height, cols: g.cols, rows: g.rows, kmPerUnit: U.round(P.scaleKm / P.width, 5), travelKmPerDay: P.travelKmPerDay },
       title: { name: title, kind: "realm" },
       sea: { present: W.seaPresent },
       coast: C.coast, lakes: C.lakes, ripples: C.ripples,
@@ -1627,10 +1742,11 @@
       seaLinks: R.unreachable,
       /* portals: the ways into another zone — every place opens its town (no single point of arrival there), every
          cave mouth the caves behind it (the dungeon's way up carries the same id) */
-      portals: S.places.map(function (p) { return { id: p.id, kind: "place", name: p.name, x: p.x, y: p.y, to: { generator: "town", id: null } }; })
+      portals: S.places.filter(function (p) { return !p.story; }).map(function (p) { return { id: p.id, kind: "place", name: p.name, x: p.x, y: p.y, to: { generator: "town", id: null } }; })
         .concat(CV.caves.map(function (cv) { return { id: cv.id, kind: "cave", name: cv.name, x: cv.x, y: cv.y, to: { generator: "dungeon", site: "cave", id: cv.id } }; })),
       stats: U.extend({ landFraction: U.round(W.landCount / g.n, 3), riverCount: rivers.length, glyphCount: gl.length, terrainStages: W.stats }, stats)
     };
+    if (ST) { doc.ways = ST.ways; doc.story = { places: ST.places.length, ways: ST.ways.length }; }
     doc.stats.total = U.round(stats.terrain + stats.settlementsRoads + stats.geometry, 1);
     return doc;
   }
@@ -1639,13 +1755,17 @@
   function validate(doc) {
     NS.assert(doc.frame.cols >= 8 && doc.frame.rows >= 8, "region frame needs cols and rows", { frame: doc.frame });
     ["coast", "lakes", "ripples", "rivers", "roads", "places", "caves", "features", "glyphs"].forEach(function (k) { NS.assert(Array.isArray(doc[k]), "document." + k + " must be an array", { key: k }); });
-    doc.places.forEach(function (p, i) { NS.assert(p.id && typeof p.name === "string" && KINDS.indexOf(p.kind) >= 0 && isFinite(p.x) && isFinite(p.y) && p.site, "place " + i + " is malformed", { place: p }); });
+    doc.places.forEach(function (p, i) { NS.assert(p.id && typeof p.name === "string" && (KINDS.indexOf(p.kind) >= 0 || (p.kind === "site" && p.story === true && !!doc.story)) && isFinite(p.x) && isFinite(p.y) && p.site, "place " + i + " is malformed", { place: p }); });
+    if (doc.story) {
+      NS.assert(doc.frame.precision === "schematic" && Array.isArray(doc.ways) && doc.places.every(function (p) { return p.story === true; }) && doc.caves.length === 0 && doc.roads.length === 0, "a story region carries only the story's places and ways", { story: doc.story });
+      doc.ways.forEach(function (w, i) { NS.assert(w.id && typeof w.sure === "boolean" && Array.isArray(w.pts) && w.pts.length >= 2 && doc.places.some(function (p) { return p.id === w.from; }) && doc.places.some(function (p) { return p.id === w.to; }), "way " + i + " is malformed", { way: w }); });
+    }
     doc.caves.forEach(function (c, i) { NS.assert(c.id && typeof c.name === "string" && c.kind === "cave" && isFinite(c.x) && isFinite(c.y) && c.site && typeof c.site.facing === "string" && EXTENTS.indexOf(c.site.extent) >= 0, "cave " + i + " is malformed", { cave: c }); });
     NS.validatePortals(doc);
     return doc;
   }
 
-  NS.region = { generate: generate, DEFAULTS: DEFAULTS, LANDMASSES: LANDMASSES, KINDS: KINDS, EXTENTS: EXTENTS, caveWhere: caveWhere, resolveParams: resolveParams, validate: validate };
+  NS.region = { generate: generate, place: place, STORY_GROUNDS: Object.keys(STORY_GROUNDS), DEFAULTS: DEFAULTS, LANDMASSES: LANDMASSES, KINDS: KINDS, EXTENTS: EXTENTS, caveWhere: caveWhere, resolveParams: resolveParams, validate: validate };
 })(typeof self !== "undefined" ? self : typeof global !== "undefined" ? global : this);
 
 /* ───── 42-town.js ───── */
@@ -6193,6 +6313,12 @@
   function caveWhere(c) { return NS.region.caveWhere(c); }
   function buildRegion(doc) {
     var facts = [], lines = [], adj = roadGraph(doc), places = doc.places, i, j, p, q;
+    if (doc.story) {   /* v0.28.0, the story's region: what the caller set on it — never a distance, never a thing the generator named */
+      lines.push((doc.title.name || "The region") + " — the places the story has set on it" + (places.length ? ": " + places.map(function (x) { return x.name; }).join(", ") + "." : ": none yet."));
+      facts.push({ kind: "region", name: doc.title.name, precision: "schematic", coastal: doc.sea.present });
+      places.forEach(function (x) { facts.push({ kind: "place", id: x.id, name: x.name, placeKind: x.kind, biome: x.site.biome }); });
+      return { text: lines.join("\n"), facts: facts };
+    }
     var cities = places.filter(function (x) { return x.kind === "city"; }), capital = places.filter(function (x) { return x.capital; })[0] || null;
     var spanKm = km(doc, doc.frame.width);
     lines.push(doc.title.name + " — a region about " + fmtKm(spanKm) + " across (" + fmtDays(days(doc, spanKm)) + " of travel east to west)." +
@@ -6753,6 +6879,8 @@
         river: { fill: ink },
         road: { stroke: ink, width: 1.0, dash: [4, 3], cap: "round" },
         track: { stroke: ink, width: 0.75, dash: [1.5, 3], cap: "round" },
+        way: { stroke: ink, width: 1.3, dash: [5, 3], cap: "round", join: "round" },   /* v0.28.0: a way of the story on its region */
+        wayUnsure: { stroke: ink, width: 1.1, dash: [0.6, 4.2], cap: "round", join: "round", alpha: 0.75 },
         bridge: { stroke: ink, width: 1.3, cap: "round" },
         glyph: { fill: land, stroke: ink, width: 0.9, join: "round" },
         glyphLine: { stroke: ink, width: 0.65, cap: "round" },
@@ -7132,7 +7260,7 @@
 
   /* ── place markers ── */
   function placeMarker(p, out, hits) {
-    var r = p.kind === "city" ? 5.2 : p.kind === "town" ? 3.6 : 2.3;
+    var r = p.kind === "city" ? 5.2 : (p.kind === "town" || p.kind === "site") ? 3.6 : 2.3;   /* v0.28.0: a place of the story wears the ring */
     if (p.kind === "village") out.push({ t: "circle", x: p.x, y: p.y, r: r, s: "placeDot" });
     else {
       out.push({ t: "circle", x: p.x, y: p.y, r: r, s: "placeRing" });
@@ -7415,6 +7543,8 @@
         roads.push({ t: "path", pts: [[b[0] + tx + nx, b[1] + ty + ny], [b[0] + tx - nx, b[1] + ty - ny]], closed: false, s: "bridge" });
       });
     });
+    /* v0.28.0, the story's ways: a way whose direction the story stated is a track; one known only by the order of travel is dotted */
+    (doc.ways || []).forEach(function (w) { roads.push({ t: "path", pts: w.pts, closed: false, s: w.sure ? "way" : "wayUnsure", meta: { id: w.id } }); });
     var places = layer("places"), radii = {};
     doc.places.forEach(function (pl) { radii[pl.id] = placeMarker(pl, places, hits); lay.block(pl.x, pl.y, radii[pl.id] * 2 + 6, radii[pl.id] * 2 + 6); });
     (doc.caves || []).forEach(function (cv) { var r = caveMarker(cv, places, hits); lay.block(cv.x, cv.y, r * 2 + 6, r * 2 + 6); });
@@ -7422,11 +7552,11 @@
     /* labels: title and furniture first (fixed), then places by importance, then seas, features, lakes, rivers.
        Two layers so a viewer can switch feature names off and keep the place names (or the other way round). */
     var frameL = layer("frame"), furn = layer("furniture"), labels = layer("labels"), featureLabels = layer("featureLabels");
-    furniture(doc.frame, doc.title.name, "a map of the region", style, furn, lay, frameL);
+    furniture(doc.frame, doc.title.name, doc.story ? "" : "a map of the region", style, furn, lay, frameL);
 
-    var order = { city: 0, town: 1, village: 2 };
+    var order = { city: 0, town: 1, site: 1, village: 2 };
     doc.places.slice().sort(function (a, b) { return order[a.kind] - order[b.kind] || b.score - a.score; }).forEach(function (pl) {
-      var r = radii[pl.id] + 3, key = pl.kind === "city" ? "labelCity" : pl.kind === "town" ? "labelTown" : "labelVillage", sz = style.text[key].size;
+      var r = radii[pl.id] + 3, key = pl.kind === "city" ? "labelCity" : (pl.kind === "town" || pl.kind === "site") ? "labelTown" : "labelVillage", sz = style.text[key].size;
       var cands = [
         { x: pl.x + r + 2, y: pl.y + sz * 0.36, anchor: "start" }, { x: pl.x - r - 2, y: pl.y + sz * 0.36, anchor: "end" },
         { x: pl.x, y: pl.y - r - 4 - sz * 0.4, anchor: "middle" }, { x: pl.x, y: pl.y + r + 4 + sz * 0.95, anchor: "middle" },
@@ -7762,7 +7892,7 @@
     if (layout) return layout(scene, markers, styleName);
     var style = NS.style.get(styleName || scene.style), C = NS.scene.common, items = [], hits = [];
     markers.forEach(function (m) {
-      var K = KINDS[m.kind], label = m.label || K.label, meta = { kind: "marker", id: m.id };
+      var K = KINDS[m.kind], label = m.label === "" ? "" /* v0.28.0: an empty label is the caller's word for none — the party on a place that bears its own name */ : (m.label || K.label), meta = { kind: "marker", id: m.id };
       K.draw(m.x, m.y, items);
       if (label) items.push(C.textCommand(label, "labelMarker", m.x + K.lx, m.y + K.ly, "start", 0, style, meta, m.icon || null));
       if (m.note) items.push(C.textCommand(shortNote(m.note), "labelMarkerNote", m.x + K.lx, m.y + K.ly + (label ? 10.5 : 0), "start", 0, style, meta));
@@ -7786,7 +7916,8 @@
     schematic: function (doc) { NS.schematic.validate(doc); return { points: [], closeUnits: 0 }; },
     region: function (doc) {
       return { points: doc.places.map(function (p) { return { name: p.name, x: p.x, y: p.y, at: "at" }; }).concat((doc.caves || []).map(function (c) { return { name: c.name, x: c.x, y: c.y, at: "at the mouth of" }; })), closeUnits: 1 / doc.frame.kmPerUnit,
-        dist: function (u) { var k = u * doc.frame.kmPerUnit; return { value: Math.round(k * 10) / 10, unit: "km", text: fmtKm(k) + (doc.frame.travelKmPerDay ? " (" + NS.digest.fmtDays(k / doc.frame.travelKmPerDay) + " on foot)" : "") }; } };
+        dist: function (u) { if (doc.frame.precision === "schematic") return { value: null, unit: "", text: "" };   /* v0.28.0: a story region states no distance */
+          var k = u * doc.frame.kmPerUnit; return { value: Math.round(k * 10) / 10, unit: "km", text: fmtKm(k) + (doc.frame.travelKmPerDay ? " (" + NS.digest.fmtDays(k / doc.frame.travelKmPerDay) + " on foot)" : "") }; } };
     },
     town: function (doc) {
       return { points: doc.landmarks.map(function (l) { return { name: l.name, x: l.x, y: l.y, at: "at" }; }), closeUnits: 40 / doc.frame.mPerUnit,
@@ -8495,6 +8626,8 @@
      { points: [[x, y] | {x, y}, …],       the AREA fog: the ground within radiusM METRES of any point or of any path,
        paths: [[[x, y], …], …],            in the sheet's own coordinates; the radius goes to map units by the sheet's own
        radiusM: 100 }                      scale (frame.kmPerUnit), so a town's 100 m and a realm's 3 km mean what they say
+     { points, paths, radius: 60 }         the same with the radius in the SHEET'S OWN UNITS (v0.28.0) — for a sheet that states
+                                           no distance (a story region): radius or radiusM, never both
    An area with nothing in it (no points, no paths) is all fog. ids and an area in one spec are refused: two fogs, two
    granularities — whole rooms by id, or ground by distance.
 
@@ -8509,7 +8642,7 @@
 (function (root) {
   "use strict";
   var NS = root.TnDMaps, U = NS.util, G = NS.geom;
-  var SPEC_KEYS = { ids: true, points: true, paths: true, radiusM: true };
+  var SPEC_KEYS = { ids: true, points: true, paths: true, radiusM: true, radius: true };
   var CELLS_PER_RADIUS = 5, MAX_NODES = 360000;
   /* the edge: washes of paper inside the line, each at a level (a share of the radius in from the edge) with its style key */
   var FEATHER = [{ level: 0.32, s: "fogWash2" }, { level: 0.15, s: "fogWash" }];
@@ -8531,12 +8664,14 @@
     NS.assert(typeof reveal === "object", "reveal must be a list of ids, a spec {ids} or {points, paths, radiusM}, or null", { reveal: reveal });
     for (k in reveal) if (Object.prototype.hasOwnProperty.call(reveal, k)) NS.assert(NS.own(SPEC_KEYS, k), "reveal spec has no key " + k, { key: k, known: Object.keys(SPEC_KEYS) });
     if (reveal.ids !== undefined) { NS.assert(isIds(reveal.ids), "reveal.ids must be a list of ids", { ids: reveal.ids }); ids = reveal.ids.slice(); }
-    if (reveal.points !== undefined || reveal.paths !== undefined || reveal.radiusM !== undefined) {
-      NS.assert(U.isNum(reveal.radiusM) && reveal.radiusM > 0, "reveal.radiusM must be a positive number of metres (the area fog's radius)", { radiusM: reveal.radiusM });
+    if (reveal.points !== undefined || reveal.paths !== undefined || reveal.radiusM !== undefined || reveal.radius !== undefined) {
+      NS.assert(reveal.radiusM === undefined || reveal.radius === undefined, "a reveal takes radiusM (metres) or radius (the sheet's own units), not both", { radiusM: reveal.radiusM, radius: reveal.radius });
+      if (reveal.radius !== undefined) NS.assert(U.isNum(reveal.radius) && reveal.radius > 0, "reveal.radius must be a positive number of the sheet's units", { radius: reveal.radius });
+      else NS.assert(U.isNum(reveal.radiusM) && reveal.radiusM > 0, "reveal.radiusM must be a positive number of metres (the area fog's radius)", { radiusM: reveal.radiusM });
       NS.assert(reveal.points === undefined || Array.isArray(reveal.points), "reveal.points must be a list of points", { points: reveal.points });
       NS.assert(reveal.paths === undefined || (Array.isArray(reveal.paths) && reveal.paths.every(function (p) { return Array.isArray(p) && p.length >= 1; })), "reveal.paths must be a list of paths, each a list of at least one point", { paths: reveal.paths });
       area = { points: (reveal.points || []).map(function (p) { return pointOf(p, "a reveal point"); }),
-        paths: (reveal.paths || []).map(function (path) { return path.map(function (p) { return pointOf(p, "a point of a reveal path"); }); }), radiusM: reveal.radiusM };
+        paths: (reveal.paths || []).map(function (path) { return path.map(function (p) { return pointOf(p, "a point of a reveal path"); }); }), radiusM: reveal.radiusM, radius: reveal.radius };
     }
     NS.assert(ids || area, "a reveal spec names nothing: give ids, or points and paths with radiusM", { reveal: reveal });
     NS.assert(!(ids && area), "a reveal takes ids (whole rooms and passages) or an area (points and paths within radiusM), not both", { keys: Object.keys(reveal) });
@@ -8564,9 +8699,9 @@
 
   /* apply(scene, doc, area, style) → the scene with the fog laid over the ground and only the revealed labels and hits */
   function apply(scene, doc, area) {
-    var kpu = doc.frame && doc.frame.kmPerUnit;
-    NS.assert(U.isNum(kpu) && kpu > 0, "the area fog needs the sheet's scale (frame.kmPerUnit)", { frame: doc.frame });
-    var X = scene.x0 || 0, Y = scene.y0 || 0, W = scene.width, H = scene.height, r = area.radiusM / (kpu * 1000);
+    var kpu = doc.frame && doc.frame.kmPerUnit, own = area.radius !== undefined;
+    NS.assert(own || (U.isNum(kpu) && kpu > 0), "the area fog needs the sheet's scale (frame.kmPerUnit)", { frame: doc.frame });
+    var X = scene.x0 || 0, Y = scene.y0 || 0, W = scene.width, H = scene.height, r = own ? area.radius : area.radiusM / (kpu * 1000);
     var F = field(area, X, Y, W, H, r), g = F.g, wob = NS.Noise(String(doc.seed) + "/fog"), dx = g.dx;
     function polish(pts, closed) {
       var p = G.simplify(pts, dx * 0.25); if (closed && p.length < 3) return null; if (!closed && p.length < 2) return null;

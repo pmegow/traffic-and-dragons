@@ -95,7 +95,7 @@ var pane = [
   { label: "the full pane never follows its stage", find: "if(host===\"full\"&&typeof ResizeObserver===\"function\"&&(el=document.getElementById(\"atlas-stage\")))", replace: "if(false&&typeof ResizeObserver===\"function\"&&(el=document.getElementById(\"atlas-stage\")))", mustFail: L1 },
   { label: "a stage that changed size loses the point at its middle", find: "P.view.pan((w-P.size[0])/2,(h-P.size[1])/2);", replace: "P.view.pan(0,0);", mustFail: L1 },
   { label: "the pane frames only open ground as a drawn sheet", find: "function atlasPaneDrawn(doc){return atlasSheetDrawn(doc);}", replace: 'function atlasPaneDrawn(doc){return !!doc&&!!doc.generator&&doc.generator.name==="wild";}', mustFail: T12 },
-  { label: "a drawn sheet the party is not on opens at the whole-sheet fit", find: "  if(!how&&fresh&&atlasKnowledgeActive()&&atlasPaneDrawn(doc))how={};", replace: "", mustFail: T12 },
+  { label: "a drawn sheet the party is not on opens at the whole-sheet fit", find: "  if(!how&&fresh&&atlasKnowledgeActive()&&(atlasPaneDrawn(doc)||atlasRegionDocIs(doc)))how={};", replace: "", mustFail: T12 },
   { label: "a repaint of the shown sheet throws the player's view away", find: "fresh=P.zone!==zoneId;", replace: "fresh=true;", mustFail: T12 },
   { label: "a sheet the party is not on opens at the empty frame's middle", find: "how.party?how.party.x:atlasSheetStand(d)[0]", replace: "how.party?how.party.x:d.frame.width/2", mustFail: T12 }
 ];

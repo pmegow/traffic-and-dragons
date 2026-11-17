@@ -102,7 +102,7 @@ test('the party is drawn in the middle chamber, and every card answers: a thing,
   card = atlasCard(at.lair, { id: doc.unplaced[0].id }); assert.equal(card.title, 'a hidden hoard'); assert.deepEqual([card.x, card.y], doc.story.at, 'a listed thing has no spot: its card stands where the party is drawn');
   const ridge = atlasDoc(at.ridge), pin = ridge.features.filter(f => f.name === LAIR)[0]; assert.ok(pin, 'the lair is a thing on the ridge');
   assert.equal(atlasCard(at.ridge, { id: pin.id }).opens, at.lair, 'the ridge\'s pin for the lair opens the lair');
-  assert.deepEqual(atlasTrailItems(at.lair).map(t => [t.text, t.current]), [[ATLAS_JOURNEY_TITLE, false], [MIRE, false], [RIDGE, false], [LAIR, true]], 'the plaque: the mire, the ridge in it, the lair in the ridge');
+  assert.deepEqual(atlasTrailItems(at.lair).map(t => [t.text, t.current]), [[ATLAS_REGION_TITLE, false], [MIRE, false], [RIDGE, false], [LAIR, true]], 'the plaque: the mire, the ridge in it, the lair in the ridge');
   assert.deepEqual(atlasTrailItems(at.ridge).map(t => [t.key, t.current]).slice(2), [[at.ridge, true], [at.lair, false]], 'a tier opens its own sheet; browsing up leaves the trail as it is');
 });
 
@@ -171,7 +171,7 @@ test('a drawn sheet is a place on its ground or a site in its rock; a pin sheet 
   assert.ok(atlasThings(legacy).length > 3, 'a legacy cave\'s named chambers are still its things');
   worldState.atlas.drawn = false; atlasForget(); assert.equal(atlasDoc(at.lair).generator.name, 'schematic', 'the campaign switch keeps pin sheets for sites too');
   const ui = fs.readFileSync(path.join(__dirname, '..', 'ui-atlas.js'), 'utf8'); assert.match(ui, /function atlasPaneDrawn\(doc\)\{return atlasSheetDrawn\(doc\);\}/, 'the pane frames a site as it frames a drawn place');
-  assert.match(ui, /if\(!how&&fresh&&atlasKnowledgeActive\(\)&&atlasPaneDrawn\(doc\)\)how=\{\};/, 'a drawn sheet the party is not on is framed too, when it is newly shown');
+  assert.match(ui, /if\(!how&&fresh&&atlasKnowledgeActive\(\)&&\(atlasPaneDrawn\(doc\)\|\|atlasRegionDocIs\(doc\)\)\)how=\{\};/, 'a drawn sheet the party is not on is framed too, when it is newly shown');
   assert.match(ui, /fresh=P\.zone!==zoneId;/, 'and only then: a repaint keeps the player\'s view');
   assert.match(ui, /atlasSheetStand\(d\)\[0\]/, 'and opens a sheet the party is not on at the middle chamber, never the empty frame\'s middle');
 });
@@ -233,7 +233,7 @@ test('the party is drawn in the room the door opens into, and every card answers
   let card = atlasCard(id, { id: bar.id }); assert.equal(card.title, 'the long bar'); assert.deepEqual([card.x, card.y], [bar.x, bar.y]);
   card = atlasCard(id, { id: 'way-1' }); assert.equal(card.title, 'The way to ' + TOWN); assert.equal(card.opens, town, 'the door opens the town'); assert.deepEqual([card.x, card.y], [doc.portals[0].x, doc.portals[0].y]);
   card = atlasCard(id, { id: doc.unplaced[0].id }); assert.equal(card.title, 'a loose floorboard'); assert.deepEqual([card.x, card.y], doc.story.at);
-  assert.deepEqual(atlasTrailItems(id).map(t => [t.text, t.current]), [[ATLAS_JOURNEY_TITLE, false], [TOWN, false], [INN, true]]);
+  assert.deepEqual(atlasTrailItems(id).map(t => [t.text, t.current]), [[ATLAS_REGION_TITLE, false], [TOWN, false], [INN, true]]);
 });
 
 test('a building nobody travelled into keeps its pin sheet; the story may answer "building", and an "other" from before buildings is asked once more', async () => {

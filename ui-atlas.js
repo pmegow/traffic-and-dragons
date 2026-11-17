@@ -43,7 +43,7 @@ function atlasDoorPaint(){
   atlasPaneRefresh();/* syncUI runs after every committed turn: an open pane follows the story */
 }
 /* what the open pane last painted from: the party's place and the pointer the atlas followed */
-function atlasPaneSig(){var A=(typeof atlasLive==="function")?atlasLive():null;return A?JSON.stringify([A.at,A.spot,A.off,A.ptr,A.knowledge,memory&&memory.map&&memory.map.geography&&memory.map.geography.revision,A.knowledge&&memory&&memory.map&&memory.map.identity]):"";}
+function atlasPaneSig(){var A=(typeof atlasLive==="function")?atlasLive():null;return A?JSON.stringify([A.at,A.spot,A.off,A.ptr,A.knowledge,memory&&memory.map&&memory.map.geography&&memory.map.geography.revision,A.knowledge&&memory&&memory.map&&memory.map.identity,A.knowledge?[A.spots,A.grounds,A.fog,A.drawn]:null/* #771 P3: what the public sheets are drawn from beside the record — a place set on the region, a ground answered, the two switches */]):"";}
 /* a turn landed (or a Sync edit) while the pane is open: its marker and card were painted for another place. A sheet the
    story left is swapped for the party's, framed on the party; the same sheet keeps the player's view */
 function atlasPaneRefresh(){
@@ -267,6 +267,7 @@ function atlasPaneSay(text){
    the stage either way */
 var ATLAS_SHEET_LABEL_PX=14;/* the smallest a drawn sheet's feature label opens at, in CSS px */
 function atlasPaneLabelSize(){var s=TnDMaps.style.get("ink").text;return Math.min(s.storyFeature.size,s.storyHeard.size);}/* the smaller of the two faces a drawn sheet labels its things in: seen, and only heard of */
+function atlasPaneRegionLabelSize(){var s=TnDMaps.style.get("ink").text;return Math.min(s.labelTown.size,s.labelMarker.size);}/* #771 P3: the smaller of the two faces the region is read in: a place of the story, and the party's marker */
 function atlasPaneDrawn(doc){return atlasSheetDrawn(doc);}/* #771 P2: open ground, or a site in its own rock */
 function atlasPaneFrame(how){
   var P=_atlasPane,T,c,st,s,d;
@@ -276,6 +277,8 @@ function atlasPaneFrame(how){
   if(how.party&&!atlasKnowledgeActive()){T=P.view.transform();P.view.center(how.party.x,how.party.y,T.k*ATLAS_HOME_ZOOM);}
   /* #771 P1: a DRAWN public sheet (a place on its own ground) opens on the party — the middle of a sheet it is not on — no smaller than the zoom at which its labels can be read; a phone's whole-sheet fit put them at 3 px */
   else if(atlasKnowledgeActive()&&atlasPaneDrawn(P.view.doc())){T=P.view.transform();d=P.view.doc();P.view.center(how.party?how.party.x:atlasSheetStand(d)[0],how.party?how.party.y:atlasSheetStand(d)[1],Math.max(T.k,ATLAS_SHEET_LABEL_PX/atlasPaneLabelSize()));}
+  /* #771 P3: THE REGION opens on the party (else the place set down last) at the zoom its place names read at — the whole sheet is mostly fog */
+  else if(atlasKnowledgeActive()&&atlasRegionDocIs(P.view.doc())){T=P.view.transform();d=atlasRegionStand(atlasLive());P.view.center(d[0],d[1],Math.max(T.k,ATLAS_SHEET_LABEL_PX/atlasPaneRegionLabelSize()));}
   return true;
 }
 /* show one entered zone's sheet: the document, the party marker, the fog, the select (full); framed on the party when
@@ -311,14 +314,14 @@ function atlasPaneShow(zoneId,toParty,carry){
   if((sel=document.getElementById("atlas-zones"))){
     zones=atlasZones();sel.innerHTML="";
     sel.appendChild(new Option("Mapped places ("+zones.length+")",""));
-    if(atlasKnowledgeActive()){var _jo=new Option(ATLAS_JOURNEY_TITLE,atlasJourneyId(A));if(atlasJourneyIs(A,zoneId))_jo.disabled=true;sel.appendChild(_jo);}/* #757: the journey sheet, before the places */
+    if(atlasKnowledgeActive()){var _ov=atlasPublicOverview(A),_jo=new Option(_ov.title,_ov.id);if(_ov.id===zoneId)_jo.disabled=true;sel.appendChild(_jo);}/* #771 P3: the region (the journey sheet, #757, where place sheets are not drawn), before the places */
     zones.forEach(function(z){var o=new Option(z.name+" — "+z.kind,z.id);if(z.id===zoneId)o.disabled=true;sel.appendChild(o);});
   }
   P.sig=atlasPaneSig();P.partyZone=A.at;P.place=null;
   atlasPaneCard(null);
   how=carry?{carry:carry}:(toParty?{party:atlasPartyIn(zoneId)}:null);
   if(how&&!how.carry&&!how.party)how=null;/* the party is not on this sheet: the fit the document came with */
-  if(!how&&fresh&&atlasKnowledgeActive()&&atlasPaneDrawn(doc))how={};/* #771 P2: a drawn sheet opened from the plaque or a card, the party elsewhere — its middle, no smaller than its names read at; the whole-sheet fit put them at 3 px on a phone */
+  if(!how&&fresh&&atlasKnowledgeActive()&&(atlasPaneDrawn(doc)||atlasRegionDocIs(doc)))how={};/* #771 P2: a drawn sheet opened from the plaque or a card, the party elsewhere — its middle, no smaller than its names read at; the whole-sheet fit put them at 3 px on a phone */
   if(how){if(P.host==="dock"&&!P.size)P.frame=how;else atlasPaneFrame(how);}
   return true;
 }

@@ -58,7 +58,7 @@ var ATLAS_BUILDERS={
 /* The things of a sheet of rooms: its rooms, and on a story sheet the story's things and what found no room (listed: it stands where the party is drawn). */
 function atlasStoryThings(d){return (d.rooms||[]).concat(d.features||[],(d.unplaced||[]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0],y:d.story.at[1],unplaced:true};}));}
 var ATLAS_THINGS={
-  region:function(d){return [].concat(d.places||[],d.caves||[],d.features||[]);},
+  region:function(d){return d.story?(d.places||[]).slice()/* #771 P3: the story's region names nothing of its own — its things are the story's places */:[].concat(d.places||[],d.caves||[],d.features||[]);},
   town:function(d){return [].concat(d.establishments||[],d.landmarks||[]);},
   dungeon:atlasStoryThings,/* #771 P2: a story cave's chambers are nameless; its things are the story's (features), and what found no chamber is listed */
   interior:atlasStoryThings,/* #771 P2: a story building's rooms are nameless too */
@@ -1355,9 +1355,9 @@ function atlasThingAt(zoneId,x,y){
   return null;
 }
 /* the markers TnDMaps.markers / view.setMarkers take for a sheet — derived from the store, never stored */
-function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId);return p?[{id:"party",kind:"party",x:p.x,y:p.y,label:p.label?p.label:(p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)"))}]:[];}/* #764: a position that names itself (the public sheet's place) is said by that name */
+function atlasMarkers(zoneId){var p=atlasPartyIn(zoneId),m;if(!p)return [];m={id:"party",kind:"party",x:p.x,y:p.y,label:p.label?p.label:(p.last?"Last mapped place":(p.exact?"The party":"The party (somewhere here)"))};if(p.label==="")m.label="";/* #771 P3: on the region the party stands ON a place that bears its own name — the dagger alone */return [m];}/* #764: a position that names itself (the public sheet's place) is said by that name */
 /* the entered zones, root first then in order of entry */
-function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?(atlasJourneyIs(A,id)||atlasPublicPlace(A,id))/* #757: the journey sheet is always there */:atlasRow(A.zones,id)));}
+function atlasZoneKnown(A,id){return !!(A&&(A.knowledge===1?(atlasPublicRegionIs(A,id)/* #771 P3: the region */||atlasJourneyIs(A,id)||atlasPublicPlace(A,id))/* #757: the journey sheet is always there */:atlasRow(A.zones,id)));}
 function atlasZones(){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){var publicAtlas=atlasLive();return publicAtlas?atlasPublicPlacesList(publicAtlas):[];}
   var A=atlasLive();if(!A)return [];
   return Object.keys(A.zones).map(function(id){var r=A.zones[id];return {id:id,kind:r.kind,name:r.name||id,parent:r.parent,turn:r.turn,redrawn:r.redrawn||null};});
@@ -1517,7 +1517,7 @@ function atlasSeenWay(A,drawn,doc,a,b){
 /* READ: what view.setReveal takes for a sheet — {points, paths, radiusM} (the area fog), a list of ids (room by room),
    or null = the whole sheet (no row for its kind, or the campaign's fog is off). Derived at every read from the visit
    record and the party marker; writes nothing. */
-function atlasReveal(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return null;}
+function atlasReveal(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicReveal(zoneId);}/* #771 P3: the region is fogged; a place sheet is whole */
   var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?atlasRow(ATLAS_FOG,rec.kind):null,doc,seen,m,at,legs,i,xy,stands=[],ways=[],a,b,drawn,ks,pre;
   if(!row||A.fog===false)return null;
   doc=atlasDoc(zoneId);drawn=_atlasDrawn[atlasChainKey(A,zoneId)]||null;seen=A.seen?A.seen[zoneId]:null;
@@ -1540,7 +1540,7 @@ function atlasReveal(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasK
 }
 /* READ: the reveal that shows NOTHING of a sheet — what the pane wears when the real one could not be handed over (review,
    finding 5: it used to fail OPEN, the sheet drawn whole). null when the sheet is not fogged at all */
-function atlasRevealNone(zoneId){
+function atlasRevealNone(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicRevealNone(zoneId);}
   var A=atlasLive(),rec=A?A.zones[zoneId]:null,row=rec?atlasRow(ATLAS_FOG,rec.kind):null;
   if(!row||A.fog===false)return null;
   return row.radiusM?{points:[],paths:[],radiusM:row.radiusM}:[];

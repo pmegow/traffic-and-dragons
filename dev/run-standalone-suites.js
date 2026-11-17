@@ -26,6 +26,7 @@ var SUITES = [
   "dev/tests-769-site-sheets.js",/* #769: a site the party goes inside has its own sheet; #770: plain scenery is not a map feature */
   "dev/tests-771-ground.js",/* #771 P1: a place whose name does not say its ground is asked of the story, once, and drawn */
   "dev/tests-771-place-sheet.js",/* #771 P1: a place whose name says its ground is drawn, with its exits and features, from public facts */
+  "dev/tests-771-region.js",/* #771 P3: the region — the ground alone from the seed, every visited world place set on it once, under fog */
   "dev/tests-771-sites.js",/* #771 P2: a cave is drawn as a site — nameless rock, the mouth back out, the story's things on its chambers; nesting and the trail */
   "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again */
   "dev/tests-767-no-narration-before-roll.js",/* #767: a roll the player's own action needs carries no narration; prose beside it waits for the dice */

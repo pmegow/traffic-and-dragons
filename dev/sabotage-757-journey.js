@@ -35,13 +35,13 @@ var dispatch = [
   { label: "the journey's card is asked of a place", find: "if(atlasJourneyIs(A,zoneId))return atlasJourneyCard(A,target);/* #757 */", replace: "", mustFail: T6 },
   { label: "the journey's party is asked of a place", find: "if(atlasJourneyIs(A,zoneId))return atlasJourneyParty(A);/* #757 */", replace: "", mustFail: T3 },
   { label: "the journey has no title", find: "if(atlasJourneyIs(A,zoneId))return ATLAS_JOURNEY_TITLE;/* #757 */", replace: "", mustFail: T6 },
-  { label: "the plaque's trail does not lead to the journey", find: "var out=[{key:atlasJourneyId(A),text:ATLAS_JOURNEY_TITLE,current:atlasJourneyIs(A,shownZone)}],place=", replace: "var out=[],place=", mustFail: T6 }/* #771 P2: the trail is atlasPublicTrail (atlas-public.js) */
+  { label: "the plaque's trail does not lead to the journey", find: "var over=atlasPublicOverview(A),out=[{key:over.id,text:over.title,current:over.id===shownZone}],place=", replace: "var out=[],place=", mustFail: T6 }/* #771 P2: the trail is atlasPublicTrail (atlas-public.js) */
 ];
 var atlas = [
-  { label: "the journey is not a known sheet: the plaque's tier opens nothing", find: "(atlasJourneyIs(A,id)||atlasPublicPlace(A,id))", replace: "(atlasPublicPlace(A,id))", mustFail: T6 }
+  { label: "the journey is not a known sheet: the plaque's tier opens nothing", find: "||atlasJourneyIs(A,id)||atlasPublicPlace(A,id))", replace: "||atlasPublicPlace(A,id))", mustFail: T6 }
 ];
 var pane = [
-  { label: "the full pane's list does not offer the journey", find: "var _jo=new Option(ATLAS_JOURNEY_TITLE,atlasJourneyId(A));", replace: "var _jo=new Option(\"\",\"\");", mustFail: T6 }
+  { label: "the full pane's list does not offer the journey", find: "_jo=new Option(_ov.title,_ov.id);", replace: "_jo=new Option(\"\",\"\");", mustFail: T6 }
 ];
 var failed = sabotage.prove({ file: "atlas-public-journey.js", command: CMD, only: P, cases: journey });
 if (!failed) failed = sabotage.prove({ file: "atlas-public.js", command: CMD, only: P, cases: dispatch });
