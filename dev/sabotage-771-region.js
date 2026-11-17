@@ -60,8 +60,8 @@ var atlas = [
 ];
 var store = [{ label: "the spots are not a registered keyed store", find: '"atlas.grounds","atlas.spots",', replace: '"atlas.grounds",', mustFail: T6 }];
 var game = [
-  { label: "a story turn never sets a place down", find: 'atlasRegionSettle();/* #771 P3: a place visited for the first time', replace: "/* #771 P3: a place visited for the first time", mustFail: T12 },
-  { label: "the opening never sets a place down", find: "atlasRegionSettle();/* #771 P3: the opening place is the region's first */", replace: "", mustFail: T12 }
+  { label: "a story turn never sets a place down", find: 'if(typeof atlasRegionSettle==="function")atlasRegionSettle();/* #771 P3: a place visited for the first time', replace: "/* #771 P3: a place visited for the first time", mustFail: T12 },
+  { label: "the opening never sets a place down", find: "if(typeof atlasRegionSettle===\"function\")atlasRegionSettle();/* #771 P3: the opening place is the region's first */", replace: "", mustFail: T12 }
 ];
 var page = [{ label: "the game does not load the file", find: '<script src="atlas-public-region.js"></script>', replace: "", mustFail: T12 }];
 var shell = [{ label: "the offline shell lacks the file", find: '  "/atlas-public-region.js",', replace: "", mustFail: T12 }];
