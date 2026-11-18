@@ -58,7 +58,7 @@ code{font-family:Consolas,monospace;font-size:.9em;color:#e6c98a}
 <p><b>CI, last 30 runs:</b> median 40 minutes, shortest 13, longest 141. About 14 minutes are fixed (engine suite 2.5, focused battery 2.8, browser suites 9.5). The sabotage sweep takes the rest: between 0 and 127 minutes, and 75% of all CI minutes. CI does not block a push or a deploy.</p>
 <p><b>What a battery proves.</b> A battery proves that a test would catch a specific break. It does not prove the code is right; the green engine suite does that. A missed clause therefore means a weak guard, not a broken game. This matters for plans 1 and 3.</p>
 
-<p><b>Found while measuring.</b> The full local browser run was red twice: <code>tests-771-place-sheet-browser.js</code> exits in 0.5 s with no output when it runs inside the whole 40-suite run. It passes alone, passes under <code>--only 771</code>, and is green in CI. The cause is not diagnosed. While it stands, the pre-push hook blocks a push from this machine.</p>
+<p><b>Found while measuring.</b> The full local browser run was red three times out of three. Twice <code>tests-771-place-sheet-browser.js</code> exited in 0.5 s with no output; the third time <code>tests-733-map-discovery-browser.js</code> failed instead. Each passes alone, the 771 suite passes under <code>--only 771</code>, and CI is green on the same commit. A different suite failing each time points at the run, not at the suites; the cause is not diagnosed. While it stands, the pre-push hook blocks a push from this machine, and each attempt costs 5.4 minutes.</p>
 
 <h2>The five plans</h2>
 
