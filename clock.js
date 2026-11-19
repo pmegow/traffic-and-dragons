@@ -154,7 +154,7 @@ function clockAdvance(min){
 //   d = day (1440m), h = hour (60m), m = minute. A bare integer is minutes.
 function parseDuration(str){
   if(typeof str==="number")return isFinite(str)?Math.round(str):0;
-  var s=String(str==null?"":str).toLowerCase().trim();
+  var s=String(str==null?"":str).toLowerCase().trim().replace(/(\d),(\d)/g,"$1.$2");/* #777 review: a decimal comma ("1,5h") */
   if(!s)return 0;
   // Bare integer (no letters) → minutes.
   if(/^\d+$/.test(s))return parseInt(s,10);
@@ -169,7 +169,7 @@ function parseDuration(str){
   }
   return any?Math.round(total):0;
 }
-var DURATION_PART=/(\d+(?:\.\d+)?)\s*(weeks?|wks?|w|days?|d|hours?|hrs?|h|minutes?|mins?|m)(?![a-z])/g;
+var DURATION_PART=/(\d+(?:\.\d+)?|\.\d+)\s*(weeks?|wks?|w|days?|d|hours?|hrs?|h|minutes?|mins?|m)(?![a-z])/g;
 /* Does the string hold a duration the clock reads at all? A handler asks BEFORE it charges the one-minute floor, so "a few
    hours" or "10 months" is said to the player instead of passing as a minute (T4). */
 function durationReadable(str){
@@ -337,8 +337,8 @@ function scheduleNearDup(a,b){
 }
 function scheduleAdd(label,whenStr){
   scheduleAdd._lastFold=null;/* #235: per-call fold hint for the SCHEDULE handler's honest muts line */
-  var c=clockEnsure();if(!c)return null;
-  scheduleAdd._lastRefusal=null;scheduleAdd._lastCut=false;/* T7: why nothing was scheduled / whether the label was cut */
+  scheduleAdd._lastRefusal=null;scheduleAdd._lastCut=false;
+  var c=clockEnsure();if(!c)return null;/* T7: why nothing was scheduled / whether the label was cut */
   var lbl=String(label==null?"":label).trim();if(!lbl)return null;
   if(lbl.length>SCHEDULE_LABEL_MAX){lbl=lbl.slice(0,SCHEDULE_LABEL_MAX-1).replace(/\s+\S*$/,"")+"…";scheduleAdd._lastCut=true;}
   var mins=parseDuration(whenStr);if(mins<1)mins=1;            // "in <1 min" is meaningless; floor at 1
@@ -366,7 +366,7 @@ function scheduleAdd(label,whenStr){
     }
   }
   /* T7: a refresh or a fold above always lands; only a NEW entry is counted */
-  if(c.schedule.length>=SCHEDULE_MAX){scheduleAdd._lastRefusal="the schedule is full ("+SCHEDULE_MAX+" pending — resolve or cancel one)";if(typeof console!=="undefined")console.warn("[clock] schedule REFUSED — \""+lbl.slice(0,60)+"\": "+SCHEDULE_MAX+" entries are pending (audit T7)");return null;}
+  if(c.schedule.length>=SCHEDULE_MAX){scheduleAdd._lastRefusal="the schedule is full ("+SCHEDULE_MAX+" entries — resolve or cancel one)";if(typeof console!=="undefined")console.warn("[clock] schedule REFUSED — \""+lbl.slice(0,60)+"\": "+SCHEDULE_MAX+" entries are pending (audit T7)");return null;}
   var ev={id:"sch"+(c.schedule.length+1)+"_"+due,label:lbl,dueMin:due,born:c.min};
   c.schedule.push(ev);
   // #150 (drift pass order 6): PROMOTION — the same anticipated fact used to live in BOTH stores

@@ -1523,11 +1523,19 @@ function expireFutureEvents(){
     var pe=(typeof scheduleAdd==="function")?scheduleAdd(promote[i].f.what,promote[i].mins+"m"):null;
     if(pe){memArchive().futureEvents.push({when:promote[i].f.when,who:promote[i].f.who,what:promote[i].f.what,setTurn:promote[i].f.setTurn,promoted:pe.id,clockAware:true});
       if(typeof console!=="undefined")console.info("[memory] duration-bound pending thread promoted to schedule: \""+String(promote[i].f.what).slice(0,60)+"\"");}
-    else kept.push(promote[i].f);
+    else{promote[i].f.when=futureWhenOffClock(promote[i].f.when);if(typeof promote[i].f.setTurn!=="number")promote[i].f.setTurn=now;kept.push(promote[i].f);}/* #777 review: refused by the schedule (full, or past its horizon) — it stays pending, ages like any other, and is not offered again */
   }
 }
+/* #777 review of 934e4d2b, finding 4: a pending event whose `when` still reads as a duration is promoted to the schedule by
+   the next sweep with the duration counted from THAT moment — "3 days", refused on day 0 and promoted on day 5, fell due on
+   day 8 — and an entry past the horizon was offered and refused on every sweep, never ageing out. The stated words are
+   kept for the GM; the note makes the string one no duration reader accepts. */
+function futureWhenOffClock(when){var w=String(when==null?"":when);if(/not on the clock\)$/.test(w))return w;return w+" (as first stated"+((typeof worldState!=="undefined"&&worldState)?" at turn "+(worldState.turn||0):"")+"; not on the clock)";}
 function fileFutureEvent(when,who,what,setTurn){
-  if(what==null)return;what=String(what);if(!what)return;/* coerce a non-string what so feTokens/indexOf don't throw later (audit E44) */
+  fileFutureEvent._lastRefusal=null;
+  if(what==null)return;what=String(what);if(!what)return;
+  /* #777 review: the schedule cuts its label; the pending store took any length, and it rides the memory block every turn */
+  if(typeof SCHEDULE_LABEL_MAX==="number"&&what.length>SCHEDULE_LABEL_MAX)what=what.slice(0,SCHEDULE_LABEL_MAX-1).replace(/\s+\S*$/,"")+"…";/* coerce a non-string what so feTokens/indexOf don't throw later (audit E44) */
   var strict=(typeof parseStrictFutureDuration==="function")?parseStrictFutureDuration(when):0;
   if(strict>0&&typeof scheduleAdd==="function"){
     var scheduled=scheduleAdd(what,strict+"m");
@@ -1535,6 +1543,7 @@ function fileFutureEvent(when,who,what,setTurn){
     /* audit 2026-11-19, T7: the schedule can now refuse (full, or past its horizon). A refused event used to be returned as
        null and filed NOWHERE; it falls through to the pending store below, and the refusal is said. */
     if(typeof console!=="undefined")console.warn("[memory] the clock schedule refused \""+what.slice(0,60)+"\" ("+(scheduleAdd._lastRefusal||"no reason given")+") — kept as a pending event with no clock time");
+    fileFutureEvent._lastRefusal=scheduleAdd._lastRefusal||"the schedule refused it";when=futureWhenOffClock(when);
   }
   var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what)return;}// dedupe
   // Near-duplicate dedupe (#29): the extractor re-mints pending goals in fresh words every cycle —

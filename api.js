@@ -3244,7 +3244,7 @@ function diceRevealCardHtml(diceTag,stage){
   if(stage==="d20"&&p.length>3)return diceTxt("[DICE:"+p.slice(0,3).join("|")+"]").replace(/<\/div>$/," &middot; <em class=\"roll-to-come\">damage dice to come</em></div>");
   return '<div class="dice-block dice-cast"><span style="font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--t2);margin-right:8px;">'+escHtml(p[0])+'</span><em class="roll-to-come">the dice are cast</em></div>';
 }
-function diceTxt(t){var out="",di;
+function diceTxt(t){var out="",di;if(typeof tagDropUnclosed==="function")t=tagDropUnclosed(String(t||""),true);/* #777 review: this reader takes the raw reply — an unclosed [CHECK:] or [DICE:] drew a card out of the prose after it */
   /* #329: a pending [CHECK:] renders as the die itself — clickable only while it is THE armed check (a lapsed or
      already-rolled one shows inert), so a reload never offers a roll the record no longer expects. */
   var cs=String(t||"").match(/\[CHECK:([^\]]+)\]/g)||[];for(di=0;di<cs.length;di++){var cm=cs[di].match(/\[CHECK:([^\]]+)\]/),ck=cm&&typeof parseCheckTag==="function"?parseCheckTag(cm[1]):null;if(!ck)continue;
@@ -3480,11 +3480,16 @@ function applyMuts(text,opts){
   if(opts&&opts.allow&&opts.allow.length){
     var _rvAllow={},_rvi;for(_rvi=0;_rvi<opts.allow.length;_rvi++)_rvAllow[opts.allow[_rvi]]=1;
     _rvStripped=[];
-    text=String(text||"").replace(/\[([A-Z][A-Z_]{1,})(?::[^\]]*)?\]/g,function(_rvM,_rvNm){
+    /* #777 review of 934e4d2b, finding 3: ONE pass rebuilt a forbidden tag — "[LOCA[HP:-1]TION:Magnimar]" lost its [HP:] and
+       became [LOCATION:Magnimar], which the table then applied. The strip runs until it changes nothing, and the unclosed
+       rule is asked again over what is left. */
+    var _rvPrev,_rvGuard=0;text=String(text||"");
+    do{_rvPrev=text;text=text.replace(/\[([A-Z][A-Z_]{1,})(?::[^\]]*)?\]/g,function(_rvM,_rvNm){
       if(_rvAllow[_rvNm])return _rvM;
       if(_rvStripped.indexOf(_rvNm)<0)_rvStripped.push(_rvNm);
       return "";
-    });
+    });}while(text!==_rvPrev&&++_rvGuard<20);
+    text=tagDropUnclosed(text);_unclosed=_unclosed.concat(tagDropUnclosed._last);
     if(_rvStripped.length&&typeof console!=="undefined")console.warn("[tags] #264 review-call whitelist stripped "+_rvStripped.length+" out-of-scope tag name(s): "+_rvStripped.join(", ")+" (allowed: "+opts.allow.join(", ")+")");
   }
   /* #503: the pronouns THIS reply states for the names it tags, for the one resolver — set before W2 preparation and

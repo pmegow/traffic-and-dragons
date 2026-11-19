@@ -41,9 +41,9 @@ var P5 = ONLY + "P5: a tag handler that throws is said to the player, reported a
 
 prove("tag_table.js", [
   { label: "T1: a hero who is not down is resolved dead anyway",
-    find: "if(!worldState.downed){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", replace: "if(false){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", mustFail: T1_DEAD },
+    find: "if(!_wasDown){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", replace: "if(false){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", mustFail: T1_DEAD },
   { label: "T1: a rescue of a hero who is not down files a Defining Moment",
-    find: "if(!worldState.downed){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", replace: "if(!worldState.downed&&_out===\"dead\"){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", mustFail: T1_RESC },
+    find: "if(!_wasDown){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", replace: "if(!_wasDown&&_out===\"dead\"){if(typeof console!==\"undefined\")console.warn(\"[downed] [DOWNED_RESOLVED:\"", mustFail: T1_RESC },
   { label: "T2: LOCATION_SIZE's first field runs past its bracket again",
     find: "var lsize=text.match(/\\[LOCATION_SIZE:([^|\\]]+)\\|", replace: "var lsize=text.match(/\\[LOCATION_SIZE:([^|]+)\\|", mustFail: T2_SHORT },
   { label: "T2: SAVE_MOD's first field runs past its bracket again (the source scan)",
@@ -58,7 +58,7 @@ prove("tag_table.js", [
   { label: "T4: an unreadable [TIME_ADVANCE:] is charged a minute in silence",
     find: "if(!durationReadable(m[1])){R.muts.push(\"⚠ [TIME_ADVANCE:\"", replace: "if(false){R.muts.push(\"⚠ [TIME_ADVANCE:\"", mustFail: T4_ADV },
   { label: "T4: a [SCHEDULE:] the clock cannot read is scheduled a minute out",
-    find: "if(!durationReadable(m[2])){if(typeof fileFutureEvent===\"function\")", replace: "if(false){if(typeof fileFutureEvent===\"function\")", mustFail: T4_SCH },
+    find: "if(!durationReadable(m[2])){var _sfe=", replace: "if(false){var _sfe=", mustFail: T4_SCH },
   { label: "T5: the FIRST [TIME:] of a reply is read",
     find: "timeTag=_timeAll.length?_timeAll[_timeAll.length-1].match(", replace: "timeTag=_timeAll.length?_timeAll[0].match(", mustFail: T5 },
   { label: "T6: a bare [REST] or [COMBAT_END] is not looked at",
@@ -94,7 +94,7 @@ prove("tag_table.js", [
   { label: "T10: a heal takes a foe above its maximum",
     find: "&&foe.hp>foe.maxHp)foe.hp=foe.maxHp;", replace: "&&false)foe.hp=foe.maxHp;", mustFail: T10 },
   { label: "T10: a foe is started at 0 HP",
-    find: "if(parseInt(cs2[2])<1){R.muts.push(", replace: "if(false){R.muts.push(", mustFail: T10 },
+    find: "if(!(parseInt(cs2[2])>=1)||", replace: "if(", mustFail: T10 },
   { label: "P3: REST is matched without regard to case",
     find: "\\b[^\\]]*\\]/.test(text)&&typeof restSpells===\"function\"){", replace: "\\b[^\\]]*\\]/i.test(text)&&typeof restSpells===\"function\"){", mustFail: P3 },
   { label: "P3: ALIGNMENT is matched without regard to case",
@@ -104,13 +104,13 @@ prove("tag_table.js", [
     find: "([+-]\\d+)\\]/g)||[];var cAli;for(cAli=0;cAli<cAlTags.length;cAli++){var cAlp=cAlTags[cAli].match(/\\[COMPANION_ALIGNMENT:([^|\\]]+)\\|([Ll][Aa][Ww]|[Gg][Oo][Oo][Dd])([+-]\\d+)\\]/);",
     replace: "([+-]\\d+)\\]/gi)||[];var cAli;for(cAli=0;cAli<cAlTags.length;cAli++){var cAlp=cAlTags[cAli].match(/\\[COMPANION_ALIGNMENT:([^|\\]]+)\\|([Ll][Aa][Ww]|[Gg][Oo][Oo][Dd])([+-]\\d+)\\]/i);", mustFail: P3 },
   { label: "P4: the unclosed rule drops a CLOSED tag that a bracket follows",
-    find: "var TAG_UNCLOSED_RE=/\\[([A-Z][A-Z_]{1,}):(?=[^\\]\\[]*\\[)/g;", replace: "var TAG_UNCLOSED_RE=/\\[([A-Z][A-Z_]{1,}):(?=[^\\[]*\\[)/g;", mustFail: P4_CLOSED },
+    find: "var TAG_UNCLOSED_RE=/\\[([A-Z][A-Z_]{1,}):(?=[^\\]\\[]*\\[([A-Z]", replace: "var TAG_UNCLOSED_RE=/\\[([A-Z][A-Z_]{1,}):(?=[^\\[]*\\[([A-Z]", mustFail: P4_CLOSED },
   { label: "P4: the unclosed rule records no names",
     find: "  tagDropUnclosed._last=names;\n", replace: "", mustFail: P4 }
 ]);
 prove("clock.js", [
   { label: "T4: a decimal duration loses its whole part (1.5h is 5 hours)",
-    find: "var DURATION_PART=/(\\d+(?:\\.\\d+)?)\\s*", replace: "var DURATION_PART=/(\\d+)\\s*", mustFail: T4_DUR },
+    find: "var DURATION_PART=/(\\d+(?:\\.\\d+)?|\\.\\d+)\\s*", replace: "var DURATION_PART=/(\\d+)\\s*", mustFail: T4_DUR },
   { label: "T4: any word that begins with a unit letter is that unit (10 months is ten minutes)",
     find: "|minutes?|mins?|m)(?![a-z])/g;", replace: "|minutes?|mins?|m)/g;", mustFail: T4_DUR },
   { label: "T4: weeks are not read",
@@ -151,6 +151,68 @@ prove("game.js", [
     find: ".replace(/[\\[\\]]/g,\"\")+\"]\";/* strip stray brackets", replace: ".replace(/\\]/g,\"\")+\"]\";/* strip stray brackets", mustFail: P2 },
   { label: "P2: the model-written definitions run through the whole parser",
     find: "applyMuts(tags.join(\"\"),{allow:[\"SPELL_DEF\"]});", replace: "applyMuts(tags.join(\"\"));", mustFail: P2 }
+]);
+
+// The independent review of this batch (commit 934e4d2b).
+var RT1 = ONLY + "review T1: a heal in the same reply does not void the resolution";
+var RP4 = ONLY + "review P4: a closed tag whose body holds a prose bracket still applies";
+var RP1 = ONLY + "review P1: the unclosed rule and the whitelist run to a fixed point";
+var RT7 = ONLY + "review T7: a future event the schedule refuses is said";
+var RT4 = ONLY + "review T4: a when the clock reads in words is scheduled and said as scheduled";
+var RT3 = ONLY + "review T3: a spell level on a sheet is read inside the bible's range";
+var RT10 = ONLY + "review T10: the attribute tags of a foe that was refused bind to nobody";
+var RDICE = ONLY + "review P4: the dice card reads no check from an unclosed tag";
+prove("tag_table.js", [
+  { label: "review T1: a hero who was down when the reply began is refused after a heal",
+    find: "||!!R.wasDowned", replace: "", mustFail: RT1 },
+  { label: "review T1: a hero dropped and healed in one reply is refused",
+    find: "||!!R.downedThisReply", replace: "", mustFail: RT1 },
+  { label: "review T1: a hero at 0 HP with no flag is refused",
+    find: "||!(_dc.hp>0);if(!_wasDown)", replace: ";if(!_wasDown)", mustFail: RT1 },
+  { label: "review P4: a bracketed aside in a body is not written as a parenthesis",
+    find: "var names=[],out=tagProseAsides(text),prev", replace: "var names=[],out=text,prev", mustFail: RP4 },
+  { label: "review P4: any bare upper-case marker in a body makes the tag unclosed",
+    find: "if(sep!==\":\"&&!known[inner])return m;", replace: "if(false)return m;", mustFail: RP4 },
+  { label: "review P4: an upper-case marker in a body is rewritten as an aside",
+    find: "return /^[A-Z][A-Z_]*(?::|$)/.test(inner)?m:pre", replace: "return false?m:pre", mustFail: RP4 },
+  { label: "review P1: the unclosed rule runs once",
+    find: "}while(out!==prev&&++guard<50);", replace: "}while(false);", mustFail: RP1 },
+  { label: "review T4: a when read in words is said as not scheduled",
+    find: "if(_sfe&&typeof _sfe.dueMin===\"number\"){R.muts.push(\"Scheduled: \"", replace: "if(false){R.muts.push(\"Scheduled: \"", mustFail: RT4 },
+  { label: "review T7: a refused future event is not said",
+    find: "if(fileFutureEvent._lastRefusal)R.muts.push(", replace: "if(false)R.muts.push(", mustFail: RT7 },
+  { label: "review T7: the line for an unreadable when carries the whole label",
+    find: "R.muts.push(\"⚠ [SCHEDULE:\"+m[1].trim().slice(0,60)+\"] not put on the clock", replace: "R.muts.push(\"⚠ [SCHEDULE:\"+m[1].trim()+\"] not put on the clock", mustFail: RT7 },
+  { label: "review T10: a refused foe's attribute tags go to another foe",
+    find: "bound to nobody\");return null;}", replace: "bound to nobody\");}", mustFail: RT10 },
+  { label: "review T10: a foe's HP has no upper bound",
+    find: "||!(parseInt(cs2[2])<=COMBAT_HP_TAG_MAX)", replace: "", mustFail: RT10 }
+]);
+prove("clock.js", [
+  { label: "review T4: a decimal comma is not a decimal point",
+    find: ".replace(/(\\d),(\\d)/g,\"$1.$2\");/* #777 review", replace: ";/* #777 review", mustFail: RT4 },
+  { label: "review T4: a leading point loses its point",
+    find: "(\\d+(?:\\.\\d+)?|\\.\\d+)\\s*", replace: "(\\d+(?:\\.\\d+)?)\\s*", mustFail: RT4 }
+]);
+prove("memory.js", [
+  { label: "review T7: a refused event keeps a when the clock can re-anchor",
+    find: "\"the schedule refused it\";when=futureWhenOffClock(when);", replace: "\"the schedule refused it\";", mustFail: RT7 },
+  { label: "review T7: a pending entry the sweep's schedule refuses is offered again every sweep",
+    find: "else{promote[i].f.when=futureWhenOffClock(promote[i].f.when);", replace: "else{", mustFail: RT7 },
+  { label: "review T7: the pending store takes a label of any length",
+    find: "if(typeof SCHEDULE_LABEL_MAX===\"number\"&&what.length>SCHEDULE_LABEL_MAX)what=", replace: "if(false)what=", mustFail: RT7 }
+]);
+prove("helpers.js", [
+  { label: "review T3: a sheet's own spell level is the cost, unbounded",
+    find: "?Math.min(capTierMax(),sp.lvl):0;", replace: "?sp.lvl:0;", mustFail: RT3 }
+]);
+prove("api.js", [
+  { label: "review P1: the whitelist strips once (a split name rebuilds a forbidden tag)",
+    find: "}while(text!==_rvPrev&&++_rvGuard<20);", replace: "}while(false);", mustFail: RP1 },
+  { label: "review P1: the unclosed rule is not asked again after the whitelist",
+    find: "    text=tagDropUnclosed(text);_unclosed=_unclosed.concat(tagDropUnclosed._last);", replace: "    ", mustFail: RP1 },
+  { label: "review P4: the dice card reads the raw reply",
+    find: "if(typeof tagDropUnclosed===\"function\")t=tagDropUnclosed(String(t||\"\"),true);/* #777 review: this reader", replace: "/* #777 review: this reader", mustFail: RDICE }
 ]);
 
 process.exit(failed ? 1 : 0);

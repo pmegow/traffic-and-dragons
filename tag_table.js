@@ -121,11 +121,30 @@ function tagRestoreBareMarkers(text,quiet){
    "[" before any "]" loses its opener token. Nothing is parsed from it; the words after it stay in the story; the tag
    that follows is read on its own. An opener cut off at the END of a reply is #132's business (cleanTxt). 19,958 tags in
    the play corpora and the owner's saves hold no closed tag with a "[" in its body, so no real tag is refused by this. */
-var TAG_UNCLOSED_RE=/\[([A-Z][A-Z_]{1,}):(?=[^\]\[]*\[)/g;
+/* The independent review of 934e4d2b (2026-11-19), findings 2 and 3. (2) The first cut called ANY "[" in a body an
+   opener, so a closed tag with a bracketed aside — [GOLD:-5 gp [for the room]] — lost its opener and was not applied.
+   What makes a tag unclosed is another TAG opening inside it: "[NAME:" for any upper-case name, or a bare "[NAME]"
+   that is a tag of this table. A prose bracket, or a prompt marker such as [COMPLETED], is left to the patterns as
+   before. (3) One pass was not enough: dropping an opener can uncover another ("[QU[XX:EST:…" becomes "[QUEST:…"),
+   so the rule runs until nothing more is dropped. */
+var TAG_UNCLOSED_RE=/\[([A-Z][A-Z_]{1,}):(?=[^\]\[]*\[([A-Z][A-Z_]{1,})([:\]]))/g;
+/* A bracketed ASIDE inside a tag body ("[GOLD:-5 gp [for the room]]", "[NPC_NOTE:Bram|He is [the Third] of the cult]") ends
+   the tag at the aside's "]" for every pattern here, so the rest of the body — a GM-only note among them — printed in the
+   story with a stray bracket. The aside is written as a parenthesis before anything parses or strips; an upper-case
+   marker ([COMPLETED], or another tag) is not an aside and is left alone. */
+var TAG_ASIDE_RE=/(\[[A-Z][A-Z_]{1,}:[^\]\[]*)\[([^\]\[]*)\]/g;
+function tagProseAsides(text){
+  var out=text,prev,guard=0;
+  do{prev=out;out=prev.replace(TAG_ASIDE_RE,function(m,pre,inner){return /^[A-Z][A-Z_]*(?::|$)/.test(inner)?m:pre+"("+inner+")";});}while(out!==prev&&++guard<20);
+  return out;
+}
+var _tagKnownBare=null;
+function tagKnownBare(){if(!_tagKnownBare){var i;_tagKnownBare=keyedDict();for(i=0;i<TAG_STRIP_NAMES.length;i++)_tagKnownBare[TAG_STRIP_NAMES[i]]=1;for(i=0;i<TAG_STRIP_BARE.length;i++)_tagKnownBare[TAG_STRIP_BARE[i]]=1;}return _tagKnownBare;}
 function tagDropUnclosed(text,quiet){
   tagDropUnclosed._last=[];
   if(typeof text!=="string"||text.indexOf("[")<0)return text;
-  var names=[],out=text.replace(TAG_UNCLOSED_RE,function(m,name){names.push(name);return "";});
+  var names=[],out=tagProseAsides(text),prev,guard=0,known=tagKnownBare();
+  do{prev=out;out=prev.replace(TAG_UNCLOSED_RE,function(m,name,inner,sep){if(sep!==":"&&!known[inner])return m;names.push(name);return "";});}while(out!==prev&&++guard<50);
   tagDropUnclosed._last=names;
   if(names.length&&!quiet&&typeof console!=="undefined")console.warn("[tags] "+names.length+" tag opener"+(names.length>1?"s":"")+" never closed — ignored, nothing changed: "+names.join(", ")+" (audit P4)");
   return out;
@@ -381,7 +400,10 @@ function combatAttrFoe(starts,idx){
   if(!worldState.combat||!worldState.combat.foes.length)return null;
   var i,name=null;
   for(i=0;i<starts.length;i++){if(starts[i].idx<idx)name=starts[i].name;else break;}
-  if(name){var f=combatFoeByName(name);if(f)return f;}
+  if(name){var f=combatFoeByName(name);if(f)return f;
+    /* #777 review: the COMBAT_START this tag follows put no foe in the fight (refused, or past the cap). The fallback below
+       is for a tag with NO start before it; here it handed the refused foe's statline to whoever else was up. */
+    if(typeof console!=="undefined")console.warn("[combat] attribute tag for \""+name+"\", who is not in this fight — bound to nobody");return null;}
   var fl=worldState.combat.foes;
   if(COMBAT_ATTR_FALLBACK==="engaged"){
     var living=combatLivingFoes();
@@ -530,7 +552,7 @@ var TAG_TABLE=[
   var hpc=worldState.character;
   if(typeof hpc.maxHp!=="number"||!isFinite(hpc.maxHp)){console.warn("[tags] non-finite maxHp ("+hpc.maxHp+") healed before [HP:] apply (UA8)");hpc.maxHp=(typeof hpc.hp==="number"&&isFinite(hpc.hp)&&hpc.hp>0)?hpc.hp:8;}
   if(typeof hpc.hp!=="number"||!isFinite(hpc.hp)){console.warn("[tags] non-finite hp ("+hpc.hp+") healed before [HP:] apply (UA8)");hpc.hp=hpc.maxHp||8;}
-  var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
+  var hpi;for(hpi=0;hpi<hpTags.length;hpi++){var hpm=hpTags[hpi].match(/\[HP:\s*([+-]?\d+)[^\]]*\]/);if(!hpm)continue;var dv=parseInt(hpm[1]);worldState.character.hp=Math.min(worldState.character.maxHp,Math.max(0,worldState.character.hp+dv));if(worldState.character.hp<=0)R.downedThisReply=true;/* #777 review: dropped and healed again in ONE reply never sets the downed flag below — DOWNED_RESOLVED reads this */R.muts.push(dv>0?"Healed "+dv+" HP":"Took "+Math.abs(dv)+" damage");}
   /* #300: 0 HP is DOWNED, not dead. The engine arms the state here (the one HP write site); the downed
      note takes the wheel, the seam counts unresolved turns, DOWNED_RESOLVED or a heal above 0 ends it. */
   var _hc=worldState.character;
@@ -612,7 +634,7 @@ var TAG_TABLE=[
      the rescued form filed "was left for dead … and lived" on a hero who never fell. A death written in the same reply
      that drops the hero is still a death: the [HP:] handler runs first and arms worldState.downed. In a no-harm kind the
      HP loss is refused, so the hero is never down and this route is closed with it. */
-  if(!worldState.downed){if(typeof console!=="undefined")console.warn("[downed] [DOWNED_RESOLVED:"+_out+"] refused — the hero is not down (audit T1): the tag resolves a hero at 0 HP only");R.muts.push("⚠ [DOWNED_RESOLVED:"+_out+"] refused — the hero is not down (it resolves a hero at 0 HP only; a companion or a foe has its own tags)");return;}
+  /* review of 934e4d2b, finding 1: the taught form heals in the SAME reply ("[HP:+5] [DOWNED_RESOLVED:rescued|why]") — the HP handler runs first and stands the hero up, so "down right now" alone refused it. The hero counts as down when they are down now, were down when the reply began, were dropped by this reply, or stand at 0 HP. */var _wasDown=!!worldState.downed||!!R.wasDowned||!!R.downedThisReply||!(_dc.hp>0);if(!_wasDown){if(typeof console!=="undefined")console.warn("[downed] [DOWNED_RESOLVED:"+_out+"] refused — the hero is not down (audit T1): the tag resolves a hero at 0 HP only");R.muts.push("⚠ [DOWNED_RESOLVED:"+_out+"] refused — the hero is not down (it resolves a hero at 0 HP only; a companion or a foe has its own tags)");return;}
   if(_out==="dead"||_out==="death"||_out==="killed"||_out==="slain"){worldState.deathPending={turn:R.turn,cause:_why||"slain"};R.muts.push("☠ DEATH: "+(_why||"slain"));return;}
   if(["captured","rescued","intervened","spared","saved"].indexOf(_out)<0){if(typeof console!=="undefined")console.warn("[downed] [DOWNED_RESOLVED:"+_out+"] refused — outcomes are captured|rescued|intervened|dead (#300)");return;}
   delete worldState.downed;if(_dc.hp<1){_dc.hp=1;R.muts.push("Stabilised at 1 HP");}
@@ -726,7 +748,7 @@ var TAG_TABLE=[
   if(added>0)R.muts.push("Time +"+added+"m ("+clockFmt()+")"+(capped?" ⚠ clamped to 30d — check the tag":""));}},
 // [SCHEDULE:label|when] stores an ABSOLUTE due-time (now+when); the countdown is COMPUTED every
 // turn by buildClockBlock, never stored — the anti-hallucination heart of #73.
-{t:"SCHEDULE",apply:function(text,R){__tagNearMiss(text,R,"SCHEDULE","^\\[SCHEDULE:[^|\\]]+\\|[^\\]]+\\]$","[SCHEDULE:what|when] — a deadline needs its when half");var ss=text.match(/\[SCHEDULE:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE:([^|\]]+)\|([^\]]+)\]/);if(!m)continue;/* audit 2026-11-19, T4: a when the clock cannot read ("10 months", "after the feast") used to be scheduled ONE MINUTE out and reported to the GM as imminent. It is kept as a pending event with no clock time, and said. */if(!durationReadable(m[2])){if(typeof fileFutureEvent==="function")fileFutureEvent(m[2].trim(),"",m[1].trim(),R.turn);R.muts.push("⚠ [SCHEDULE:"+m[1].trim()+"] not put on the clock — \""+m[2].trim()+"\" is not a duration it reads (minutes, hours, days, weeks); kept as a pending event");if(typeof console!=="undefined")console.warn("[clock] SCHEDULE when-half not read as a duration: "+ss[i]+" (audit T4)");continue;}var ev=scheduleAdd(m[1],m[2]);/* T7 */if(!ev&&scheduleAdd._lastRefusal){R.muts.push("⚠ Not scheduled: "+m[1].trim().slice(0,60)+" — "+scheduleAdd._lastRefusal);continue;}if(ev&&scheduleAdd._lastCut)R.muts.push("⚠ Schedule label cut to "+SCHEDULE_LABEL_MAX+" characters");if(ev){var _sf=scheduleAdd._lastFold;if(_sf&&_sf.from&&String(_sf.from).toLowerCase()!==String(ev.label).toLowerCase())R.muts.push("Schedule folded: \""+_sf.from+"\" is the existing deadline \""+ev.label+"\" ("+fmtGap(ev.dueMin-clockNow())+")");/* #235: the old line paired the KEPT label with the NEW countdown and hid the fold entirely */else R.muts.push("Scheduled: "+ev.label+" ("+fmtGap(ev.dueMin-clockNow())+")");}}}},
+{t:"SCHEDULE",apply:function(text,R){__tagNearMiss(text,R,"SCHEDULE","^\\[SCHEDULE:[^|\\]]+\\|[^\\]]+\\]$","[SCHEDULE:what|when] — a deadline needs its when half");var ss=text.match(/\[SCHEDULE:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE:([^|\]]+)\|([^\]]+)\]/);if(!m)continue;/* audit 2026-11-19, T4: a when the clock cannot read ("10 months", "after the feast") used to be scheduled ONE MINUTE out and reported to the GM as imminent. It is kept as a pending event with no clock time, and said. */if(!durationReadable(m[2])){var _sfe=(typeof fileFutureEvent==="function")?fileFutureEvent(m[2].trim(),"",m[1].trim(),R.turn):null;/* #777 review: a when written in words ("in two days") IS read by the pending store's stricter reader and scheduled there — say what happened, never "not put on the clock" for an entry that is on it */if(_sfe&&typeof _sfe.dueMin==="number"){R.muts.push("Scheduled: "+_sfe.label+" ("+fmtGap(_sfe.dueMin-clockNow())+")");continue;}R.muts.push("⚠ [SCHEDULE:"+m[1].trim().slice(0,60)+"] not put on the clock — \""+m[2].trim().slice(0,60)+"\" is not a duration it reads (minutes, hours, days, weeks); kept as a pending event");if(typeof console!=="undefined")console.warn("[clock] SCHEDULE when-half not read as a duration: "+ss[i]+" (audit T4)");continue;}var ev=scheduleAdd(m[1],m[2]);/* T7 */if(!ev&&scheduleAdd._lastRefusal){R.muts.push("⚠ Not scheduled: "+m[1].trim().slice(0,60)+" — "+scheduleAdd._lastRefusal);continue;}if(ev&&scheduleAdd._lastCut)R.muts.push("⚠ Schedule label cut to "+SCHEDULE_LABEL_MAX+" characters");if(ev){var _sf=scheduleAdd._lastFold;if(_sf&&_sf.from&&String(_sf.from).toLowerCase()!==String(ev.label).toLowerCase())R.muts.push("Schedule folded: \""+_sf.from+"\" is the existing deadline \""+ev.label+"\" ("+fmtGap(ev.dueMin-clockNow())+")");/* #235: the old line paired the KEPT label with the NEW countdown and hid the fold entirely */else R.muts.push("Scheduled: "+ev.label+" ("+fmtGap(ev.dueMin-clockNow())+")");}}}},
 {t:"SCHEDULE_RESOLVED",apply:function(text,R){var ss=text.match(/\[SCHEDULE_RESOLVED:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE_RESOLVED:([^\]]+)\]/);if(!m)continue;var _srN=scheduleRemove(m[1]);if(_srN===1)R.muts.push("Event resolved: "+m[1].trim());else if(_srN>1){var _srL=scheduleRemove._lastRemoved||[];R.muts.push("Event resolved: '"+m[1].trim()+"' matched "+_srN+" deadlines — all retired: "+_srL.join("; "));if(typeof console!=="undefined")console.warn("[clock] SCHEDULE_RESOLVED '"+m[1].trim()+"' retired "+_srN+" deadlines by substring — "+_srL.join("; ")+" (#270/f66: matching is deliberate; the count is now honest)");}}}},
 {t:"SCHEDULE_CANCEL",apply:function(text,R){var ss=text.match(/\[SCHEDULE_CANCEL:([^\]]+)\]/g)||[],i;for(i=0;i<ss.length;i++){var m=ss[i].match(/\[SCHEDULE_CANCEL:([^\]]+)\]/);if(!m)continue;var _scN=scheduleRemove(m[1]);if(_scN===1)R.muts.push("Event cancelled: "+m[1].trim());else if(_scN>1){var _scL=scheduleRemove._lastRemoved||[];R.muts.push("Event cancelled: '"+m[1].trim()+"' matched "+_scN+" deadlines — all retired: "+_scL.join("; "));if(typeof console!=="undefined")console.warn("[clock] SCHEDULE_CANCEL '"+m[1].trim()+"' retired "+_scN+" deadlines by substring — "+_scL.join("; ")+" (#270/f66)");}}}},
 /* #512: a description files on the place where the TAG happened (rPlaceAt, #481 A4) — the GM answers the engine's "describe this
@@ -1216,7 +1238,7 @@ var TAG_TABLE=[
   var csTags=text.match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|\]]+)\|([^\]]+)\]/g)||[];var csi,csOff=tagOffsets(text,/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|\]]+)\|([^\]]+)\]/);
   for(csi=0;csi<csTags.length;csi++){
     var cs2=csTags[csi].match(/\[COMBAT_START:([^|\]]+)\|(\d+)\|(\d+)\|([+-]?\d+)\|([^|\]]+)\|([^\]]+)\]/);if(!cs2)continue;
-    if(parseInt(cs2[2])<1){R.muts.push("⚠ [COMBAT_START:"+cs2[1].trim()+"] refused — a foe needs at least 1 HP");if(typeof console!=="undefined")console.warn("[tags] COMBAT_START refused (hp "+cs2[2]+", audit T10): "+csTags[csi]);continue;}/* audit 2026-11-19, T10: hp 0 opened the fight and closed it in the same breath */
+    if(!(parseInt(cs2[2])>=1)||!(parseInt(cs2[2])<=COMBAT_HP_TAG_MAX)){R.muts.push("⚠ [COMBAT_START:"+cs2[1].trim().slice(0,60)+"] refused — a foe needs between 1 and "+COMBAT_HP_TAG_MAX+" HP");/* #777 review: a figure of 300 digits parsed to Infinity and saved as null */if(typeof console!=="undefined")console.warn("[tags] COMBAT_START refused (hp "+cs2[2]+", audit T10): "+csTags[csi]);continue;}/* audit 2026-11-19, T10: hp 0 opened the fight and closed it in the same breath */
     var foe={name:cs2[1].trim(),hp:parseInt(cs2[2]),maxHp:parseInt(cs2[2]),ac:parseInt(cs2[3]),atk:parseInt(cs2[4]),dmg:cs2[5].trim(),morale:cs2[6].trim()};
     var _fRec=(typeof bestiaryRecord==="function")?bestiaryRecord(foe.name):null;if(_fRec&&String(_fRec.name).toLowerCase()!==foe.name.toLowerCase())foe.form="alternate";/* #743: a foe started under its entry's PUBLIC name is that entry in its alternate form */
     /* #266 (Fable f30): a living PARTY MEMBER entering the ENEMY tracker is the moment ordinary
@@ -1584,7 +1606,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   else if(/\[REST:\s*[Ss][Hh][Oo][Rr][Tt]\b[^\]]*\]/.test(text)&&typeof restShortHeal==="function"){var _sh=restShortHeal();if(_sh)R.muts.push("Short rest: +"+_sh+" HP");var _shAb=abilitiesRestoreParty("short");if(_shAb.length)R.muts.push("Ready again: "+_shAb.join(", "));/* #751 */}}},
 {t:"LORE",apply:function(text,R){var lores=text.match(/\[LORE:([^\]]+)\]/g)||[];for(var li=0;li<lores.length;li++){var lp=lores[li].match(/\[LORE:([^\]]+)\]/);if(lp)fileLore(lp[1]);}}},
 {t:"DECISION",apply:function(text,R){var decs=text.match(/\[DECISION:([^\]]+)\]/g)||[];for(var di=0;di<decs.length;di++){var dp=decs[di].match(/\[DECISION:([^\]]+)\]/);if(dp)fileDecision(R.turn,dp[1]);}}},
-{t:"FUTURE_EVENT",apply:function(text,R){__tagNearMiss(text,R,"FUTURE_EVENT","^\\[FUTURE_EVENT:[^|\\]]+\\|[^\\]]+\\]$","[FUTURE_EVENT:what|when]");var fes=text.match(/\[FUTURE_EVENT:([^|\]]+)\|([^\]]+)\]/g)||[];for(var fi=0;fi<fes.length;fi++){var fp=fes[fi].match(/\[FUTURE_EVENT:([^|\]]+)\|([^\]]+)\]/);if(fp)fileFutureEvent(fp[2],"",fp[1],R.turn);}}},
+{t:"FUTURE_EVENT",apply:function(text,R){__tagNearMiss(text,R,"FUTURE_EVENT","^\\[FUTURE_EVENT:[^|\\]]+\\|[^\\]]+\\]$","[FUTURE_EVENT:what|when]");var fes=text.match(/\[FUTURE_EVENT:([^|\]]+)\|([^\]]+)\]/g)||[];for(var fi=0;fi<fes.length;fi++){var fp=fes[fi].match(/\[FUTURE_EVENT:([^|\]]+)\|([^\]]+)\]/);if(fp){fileFutureEvent(fp[2],"",fp[1],R.turn);if(fileFutureEvent._lastRefusal)R.muts.push("⚠ Not put on the clock: "+fp[1].trim().slice(0,60)+" — "+fileFutureEvent._lastRefusal+"; kept as a pending event with no clock time");/* #777 review: the schedule's refusal reached the console only */}}}},
 {t:"FUTURE_EVENT_RESOLVED",apply:function(text,R){var fres=text.match(/\[FUTURE_EVENT_RESOLVED:([^\]]+)\]/g)||[];var fri;for(fri=0;fri<fres.length;fri++){var frp=fres[fri].match(/\[FUTURE_EVENT_RESOLVED:([^\]]+)\]/);if(frp)resolveFutureEvent(frp[1]);}}},
 {t:"NPC_NOTE",apply:function(text,R){__tagNearMiss(text,R,"NPC_NOTE","^\\[NPC_NOTE:[^|\\]]+\\|[^\\]]+\\]$","[NPC_NOTE:name|note]");var nns=text.match(/\[NPC_NOTE:([^|\]]+)\|([^\]]+)\]/g)||[];for(var nni=0;nni<nns.length;nni++){var nnp=nns[nni].match(/\[NPC_NOTE:([^|\]]+)\|([^\]]+)\]/);if(nnp)fileNpcEvent(nnp[1],nnp[2],R.turn);}}},
 {t:"NPC_FORGET",apply:function(text,R){var forgets=text.match(/\[NPC_FORGET:([^|\]]+)\|([^\]]+)\]/g)||[];var fgi;for(fgi=0;fgi<forgets.length;fgi++){var fgp=forgets[fgi].match(/\[NPC_FORGET:([^|\]]+)\|([^\]]+)\]/);if(!fgp)continue;var fgName=resolveNpcName(fgp[1].trim()),fgWhat=fgp[2].trim().toLowerCase();var fgNpc=memory.npcs[fgName];if(!fgNpc){/* audit A8: the Oubliate spell was spent and the tag vanished in silence */if(typeof console!=="undefined")console.warn("[tags] NPC_FORGET: no memory record for '"+fgName+"' — nothing to forget (#136③)");R.muts.push("⚠ [NPC_FORGET:] "+fgName+" — no memory record (nothing forgotten)");continue;}var fgRem=0;if(fgNpc.knowledge){var fgkb=fgNpc.knowledge.length;fgNpc.knowledge=fgNpc.knowledge.filter(function(k){if(String(k).toLowerCase().indexOf(fgWhat)<0)return true;memArchive().npcForgotten.push({npc:fgName,fact:String(k),turn:worldState.turn,cause:fgp[2].trim()});return false;});fgRem+=fgkb-fgNpc.knowledge.length;}if(fgNpc.events){var fgeb=fgNpc.events.length;fgNpc.events=fgNpc.events.filter(function(e){var _fgN=String(e&&e.note!==undefined?e.note:e);if(_fgN.toLowerCase().indexOf(fgWhat)<0)return true;memArchive().npcForgotten.push({npc:fgName,fact:_fgN,turn:worldState.turn,cause:fgp[2].trim()});return false;});fgRem+=fgeb-fgNpc.events.length;}/* #136④ RULING: Oubliate keeps its BREADTH (everything matching is the spell's contract — narrowing would change a shipped ability); the fix is the tombstone. npcForgotten is never injected anywhere, so the fiction still forgets; the operator can recover. */R.muts.push(fgName+" forgets: "+fgp[2].trim()+(fgRem?" ("+fgRem+")":""));}}},
@@ -2188,6 +2210,7 @@ function applyMutsTable(text,opts){
     if(_shared)R.muts.push("party +"+n+" XP");
   };
   R.errors=[];
+  R.wasDowned=!!(worldState&&worldState.downed);/* #777 review: DOWNED_RESOLVED reads it — a heal earlier in the same reply clears the live flag */
   for(var i=0;i<TAG_TABLE.length;i++){
     try{
       // UA27 (v1.259): a combat-dependent tag arriving with NO active combat silently no-ops —

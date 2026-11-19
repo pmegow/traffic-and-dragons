@@ -273,7 +273,7 @@ kase("T10: an absurd gold figure is refused, a foe's heal stops at its maximum, 
   assert.ok(foe.hp <= 7, "a heal took the goblin to " + foe.hp + " of 7");
   fresh(); r = run("[COMBAT_START:Wisp|0|15|+4|1d6|skittish]");
   assert.ok(!worldState.combat, "a fight was opened with a foe at 0 HP");
-  assert.ok(mutsHave(r, /COMBAT_START:Wisp.*refused.*1 HP/), JSON.stringify(r.muts));
+  assert.ok(mutsHave(r, /COMBAT_START:Wisp.*refused.*between 1 and/), JSON.stringify(r.muts));
 });
 kase("T11: a tag the tripwire calls dropped is not applied by a looser pattern beside it", function () {
   fresh(); npc("Bram");
@@ -359,6 +359,96 @@ kase("P5: a tag handler that throws is said to the player, reported and recorded
   assert.ok(reports.some(function (x) { return /tag-handler/.test(x) && /boom/.test(x); }), "no error report: " + JSON.stringify(reports));
   var ring = worldState.tagLog[worldState.tagLog.length - 1];
   assert.ok(ring.errors && /boom/.test(ring.errors[0]), "the ring has no record: " + JSON.stringify(ring));
+});
+
+// ── The independent review of this batch (commit 934e4d2b) ─────────────────────────────────────────────────────────
+kase("review T1: a heal in the same reply does not void the resolution — the taught [HP:+N] [DOWNED_RESOLVED:rescued] form files", function () {
+  fresh(); run("[HP:-999]"); assert.ok(worldState.downed, "fixture: the hero is not down");
+  var r = run("The cleric lays hands on you. [HP:+5] [DOWNED_RESOLVED:rescued|the militia cleric reached you in time]");
+  assert.ok(mutsHave(r, /Downed resolved: rescued/) && !mutsHave(r, /refused/), "the taught heal-and-resolve form was refused: " + JSON.stringify(r.muts));
+  fresh(); r = run("[HP:-999] You fall. A hand pulls you up. [HP:+4] [DOWNED_RESOLVED:rescued|pulled clear]");
+  assert.ok(mutsHave(r, /Downed resolved: rescued/), "dropped and healed in one reply, then refused: " + JSON.stringify(r.muts));
+  fresh(); worldState.character.hp = 0;
+  r = run("[DOWNED_RESOLVED:rescued|found at dawn]");
+  assert.ok(mutsHave(r, /Downed resolved: rescued/), "a hero at 0 HP was told they are not down: " + JSON.stringify(r.muts));
+});
+kase("review P4: a closed tag whose body holds a prose bracket still applies — only a TAG opener inside it makes it unclosed", function () {
+  fresh(); worldState.character.coin = 10000;
+  var r = run("You pay. [GOLD:-5 gp [for the room]] The innkeeper nods.");
+  assert.strictEqual(worldState.character.coin, 9500, "a closed gold tag with a bracketed aside was not applied");
+  assert.ok(!mutsHave(r, /never closed/), JSON.stringify(r.muts));
+  assert.strictEqual(tagDropUnclosed("[NPC_NOTE:Bram|He is secretly [the Third] of the cult]"), "[NPC_NOTE:Bram|He is secretly (the Third) of the cult]", "an aside in a body is written as a parenthesis, so the tag closes where the GM closed it");
+  assert.strictEqual(cleanTxt("He nods. [NPC_NOTE:Bram|He is secretly [the Third] of the cult] You wait."), cleanTxt("He nods. [NPC_NOTE:Bram|He is secretly the Third of the cult] You wait."), "the rest of a GM-only note printed in the story");
+  assert.strictEqual(tagDropUnclosed("[QUEST:Find the cat [COMPLETED]|completed] ok"), "[QUEST:Find the cat [COMPLETED]|completed] ok", "a prompt marker in a body is no tag");
+  assert.strictEqual(tagDropUnclosed("[QUEST:Find it|active [SUBLOCATION_LEAVE] on"), "Find it|active [SUBLOCATION_LEAVE] on", "a bare tag inside the body is a tag");
+  assert.strictEqual(tagDropUnclosed("[QUEST:a|completed [FOO:x] on"), "a|completed [FOO:x] on");
+  assert.ok(r.clean.indexOf("[") < 0 && r.clean.indexOf("]") < 0 && /You pay\.\s+The innkeeper nods\./.test(r.clean), "the tag was not stripped whole: " + JSON.stringify(r.clean));
+});
+kase("review P1: the unclosed rule and the whitelist run to a fixed point — a nested opener or a split name rebuilds no forbidden tag", function () {
+  fresh(); var loc = worldState.world.location, hp = worldState.character.hp;
+  run("[QU[XX:EST:Find the cat|completed The cat is home. [LOCATION:Magnimar]", { allow: ["QUEST", "QUEST_STEP"] });
+  assert.strictEqual(worldState.world.location, loc, "a nested opener rebuilt an unclosed allowed tag and moved the party to " + worldState.world.location);
+  fresh(); loc = worldState.world.location;
+  run("[LOCA[HP:-1]TION:Magnimar]", { allow: ["QUEST"] });
+  assert.strictEqual(worldState.world.location, loc, "stripping a forbidden tag out of the middle of a name rebuilt [LOCATION:] — the party moved to " + worldState.world.location);
+  assert.strictEqual(worldState.character.hp, hp);
+  fresh();
+  var q = run("[QUE[HP:-1]ST:Find the cat|completed [LOCATION:Magnimar] and on [QUEST_STEP:Find the cat|look]", { allow: ["QUEST", "QUEST_STEP"] });
+  assert.ok(mutsHave(q, /\[QUEST:\] was never closed/), "the strip left an unclosed tag that swallowed the tag after it: " + JSON.stringify(q.muts));
+  fresh(); npc("Bram");
+  var r = run("Prose one. [NP[ZZ:C:Bram|calm You walk on and on. [GOLD:+3] tail");
+  assert.ok(/You walk on and on\./.test(r.clean), "a nested opener swallowed the prose again: " + JSON.stringify(r.clean));
+});
+kase("review T7: a future event the schedule refuses is said, keeps no when the clock can re-anchor, and an overlong label is cut on the pending path", function () {
+  fresh(); var i, r;
+  for (i = 0; i < 64; i++) scheduleAdd("Errand number " + i + " zq" + i + "x", (i + 1) + "d");
+  r = run("[FUTURE_EVENT:The tithe collectors arrive at Ashfen|3 days]");
+  var fe = (memory.futureEvents || []).filter(function (f) { return /tithe collectors/.test(f.what); })[0];
+  assert.ok(fe, "the refused event was filed nowhere");
+  assert.ok(mutsHave(r, /Not put on the clock: The tithe collectors.*full/), "the refusal was not said: " + JSON.stringify(r.muts));
+  assert.strictEqual(parseStrictFutureDuration(fe.when), 0, "its when (" + fe.when + ") still reads as a duration — a later sweep would schedule it three days from THEN");
+  assert.ok(/3 days/.test(fe.when), "the stated when was lost: " + fe.when);
+  // an entry already pending with a strict when (an older save, the extractor) that the schedule refuses at the sweep
+  memory.futureEvents.push({ what: "The comet returns over Ashfen", when: "99999 weeks", who: "", setTurn: 1 });
+  expireFutureEvents();
+  var comet = memory.futureEvents.filter(function (f) { return /comet/.test(f.what); })[0];
+  assert.ok(comet && parseStrictFutureDuration(comet.when) === 0, "a refused pending entry is re-offered to the schedule on every sweep: " + JSON.stringify(comet));
+  fresh();
+  var long = "The caravan " + new Array(2500).join("x ") + "arrives";
+  r = run("[SCHEDULE:" + long + "|after the feast]");
+  assert.ok(memory.futureEvents.length === 1 && memory.futureEvents[0].what.length <= 200, "a " + (memory.futureEvents[0] || { what: "" }).what.length + "-character label rides the memory block");
+  assert.ok(r.muts.every(function (m) { return m.length < 400; }), "the line the player reads is " + Math.max.apply(null, r.muts.map(function (m) { return m.length; })) + " characters");
+});
+kase("review T4: a when the clock reads in words is scheduled and said as scheduled; a decimal comma and a leading point are decimals", function () {
+  fresh(); var t0 = clockNow();
+  var r = run("[SCHEDULE:The tithe|in two days]");
+  assert.strictEqual(worldState.clock.schedule.length, 1, "nothing was scheduled");
+  assert.strictEqual(worldState.clock.schedule[0].dueMin - t0, 2880);
+  assert.ok(mutsHave(r, /Scheduled: The tithe/) && !mutsHave(r, /not put on the clock/), "the player was told it was NOT scheduled: " + JSON.stringify(r.muts));
+  assert.strictEqual(parseDuration("1,5h"), 90, "a decimal comma");
+  assert.strictEqual(parseDuration(".5h"), 30, "a leading point");
+  assert.strictEqual(parseDuration("1.5h"), 90); assert.strictEqual(parseDuration("2h 30m"), 150);
+});
+kase("review T3: a spell level on a sheet is read inside the bible's range, so a refused definition cannot set the pool through it", function () {
+  fresh();
+  assert.strictEqual(manaSpellCost({ nm: "Qworp Ward", lvl: 999999 }), capTierMax());
+  assert.strictEqual(manaSpellCost({ nm: "Qworp Ward", lvl: 2 }), 2);
+});
+kase("review T10: the attribute tags of a foe that was refused bind to nobody, and a foe's HP beyond the bound is refused", function () {
+  var ORC = "[COMBAT_START:Orc|15|13|+5|1d12|10][COMBAT_STATS:STR:16|DEX:12|CON:16|INT:7|WIS:11|CHA:10|CR:1/2]";
+  fresh(); run(ORC); var alone = JSON.stringify(worldState.combat.foes[0]);
+  fresh(); run(ORC + " A shade drifts in. [COMBAT_START:Shade|0|12|+4|1d6|8][COMBAT_STATS:STR:1|DEX:1|CON:1|INT:1|WIS:1|CHA:1|CR:9][COMBAT_IMMUNE:necrotic]");
+  assert.strictEqual(worldState.combat.foes.length, 1);
+  assert.strictEqual(JSON.stringify(worldState.combat.foes[0]), alone, "the refused Shade's statline and immunity landed on the Orc");
+  fresh(); var r = run("[COMBAT_START:Titan|" + new Array(330).join("9") + "|15|+4|1d6|bold]");
+  assert.ok(!worldState.combat, "a foe was started with " + (worldState.combat && worldState.combat.foes[0].hp) + " HP");
+  assert.ok(mutsHave(r, /COMBAT_START:Titan.*refused/), JSON.stringify(r.muts));
+});
+kase("review P4: the dice card reads no check from an unclosed tag", function () {
+  fresh();
+  var card = diceTxt("[CHECK:Longsword attack|+5|DC 14 You swing hard. [HP:-3]");
+  assert.ok(String(card).indexOf("Longsword") < 0, "an unclosed [CHECK:] drew a card: " + String(card).slice(0, 120));
+  assert.ok(String(diceTxt("[CHECK:Longsword attack|+5|DC 14]")).indexOf("Longsword") >= 0, "a closed check draws its card as before");
 });
 
 // ── runner ──────────────────────────────────────────────────────────────────────────────────────────────────────────

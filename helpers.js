@@ -1661,7 +1661,7 @@ function manaSpellCost(sp){
   var e=(typeof capabilityLookup==="function")?capabilityLookup(sp.nm):null;
   /* T3: a definition filed before the range was enforced is write-once and stays on the save; its tier is read inside the range */
   if(e&&typeof e.tier==="number"&&isFinite(e.tier))return Math.max(0,Math.min(capTierMax(),e.tier));
-  return (typeof sp.lvl==="number"&&isFinite(sp.lvl)&&sp.lvl>0)?sp.lvl:0;
+  return (typeof sp.lvl==="number"&&isFinite(sp.lvl)&&sp.lvl>0)?Math.min(capTierMax(),sp.lvl):0;/* #777 review: a refused definition left the sheet's own level as the cost — unbounded, straight into the mana pool */
 }
 /* #361: THE one used-spell gate. Since #110 `used` means "cast since rest" for every spell, but only a
    RACIAL 1/day spell is actually unavailable while used — everything else pays mana and stays castable.
