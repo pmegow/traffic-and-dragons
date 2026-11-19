@@ -22,6 +22,7 @@ var storageAdapter = (function() {
   var _syncing             = false;
   var _pendingSync         = false;  // retry after current sync completes
   var _portraitDirty       = false;
+  var _portraitRefusalSaid = false;   // a portrait upload the server will never accept is said once per page (audit S9)
   var _portraitSyncedOnce  = false;  // upload portrait on first sync of session
   var _popup               = null;
   var _popupCb             = null;
@@ -540,7 +541,14 @@ var storageAdapter = (function() {
       /* audit 2026-11-19, S9: only a thrown fetch counted as a failure, so a 401, a 413 or a 500 read as success — the flag
          stayed clear, nothing was logged, and a sheet-less NPC's portrait (this store is its only transport) never reached
          the other device. A refused upload is a failed one: marked to go again with the next state sync. */
-      if (!r || !r.ok) { _portraitDirty = true; console.warn("[storage] portrait sync refused for " + campId + ": HTTP " + (r ? r.status : "?") + " — it is tried again with the next save"); }
+      if (r && r.ok) return;
+      var _ps = r ? r.status : 0;
+      /* independent review 2026-11-19: a refusal that can never succeed (a 413, a 400) must not re-send every portrait with
+         every save. A server fault or a rate limit is tried again; anything else is said once and waits for the portraits
+         to change (a new portrait marks them dirty again). */
+      if (!_ps || _ps >= 500 || _ps === 408 || _ps === 429) { _portraitDirty = true; console.warn("[storage] portrait sync refused for " + campId + ": HTTP " + (_ps || "?") + " — it is tried again with the next save"); return; }
+      console.warn("[storage] portrait sync refused for " + campId + ": HTTP " + _ps + " — not retried until a portrait changes");
+      if (!_portraitRefusalSaid && typeof showToast === "function") { _portraitRefusalSaid = true; showToast("&#9729; The server refused this campaign's portraits (HTTP " + _ps + ") &mdash; they stay on this device until a portrait changes."); }
     }).catch(function(e) {
       _portraitDirty = true;
       console.warn("[storage] portrait sync failed:", e.message);
@@ -685,6 +693,7 @@ var storageAdapter = (function() {
             if (_left()) { if (r.ok) _flushAcked(turnAt, campId); _leftSay(r.ok ? "page-hide flush saved, turn " + turnAt : "page-hide flush, HTTP " + r.status); return; }   /* S1 */
             if (r.ok) { _syncOk(turnAt); _flushAcked(turnAt, campId); /* JP0-11: an under-cap beacon that DID land clears any standing marker */ }
             else if (r.status === 409) r.json().then(function(d){
+              if (_left()) { _leftSay("page-hide flush, HTTP 409"); return; }   /* S1: the body arrives after the headers */
               var st = d && d.serverTurn;
               if (resolveCas409(st, worldState ? (worldState.turn||0) : 0, false) === "heal") { _syncOk(st); console.warn("[storage] beacon 409 self-healed: server turn " + st + " ≤ local — acked, next regular sync proceeds."); }
               else _onConflict(st);
@@ -705,8 +714,12 @@ var storageAdapter = (function() {
         if (_pendingSync) _syncNow();
         return;
       }
+      /* S1, independent review 2026-11-19: the bodies below are read ASYNCHRONOUSLY — on a slow link the gap between the
+         headers and the body is long enough to switch campaigns in. Each body callback asks _left() again before it acts. */
+      function _leftBody(what) { if (!_left()) return false; _leftSay(what); _fin("the campaign changed while its save was in flight (" + what + ")"); return true; }
       if (r.status === 409) {
         r.json().then(function(d){
+          if (_leftBody("HTTP 409")) return;
           var st = d && d.serverTurn;
           if (resolveCas409(st, worldState ? (worldState.turn||0) : 0, !!healedRetry) === "heal") {
             // Our own (or an older) write — ack the server's turn and retry ONCE with the proof.
@@ -716,10 +729,11 @@ var storageAdapter = (function() {
             var _pass = _doneCb; _doneCb = null;
             _syncNow(false, true, _pass);
           } else { _onConflict(st); _fin("another device is ahead (server turn " + st + ")"); }
-        }).catch(function(){ _onConflict(null); _fin("conflict — the 409 body was unreadable"); });
+        }).catch(function(){ if (_leftBody("HTTP 409, body unreadable")) return; _onConflict(null); _fin("conflict — the 409 body was unreadable"); });
       }
       else if (r.status === 403) {
         r.json().catch(function(){ return null; }).then(function(d){
+          if (_leftBody("HTTP 403")) return;
           if (d && d.reason === "foreign_campaign" && !rehomedRetry && typeof rehomeCampaign === "function") {
             // #423: this device carries a campaign id ANOTHER ACCOUNT owns — an import that adopted the
             // file's id before the re-mint shipped. The server refused the write (nothing overwritten;
@@ -737,7 +751,7 @@ var storageAdapter = (function() {
           }
         });
       }
-      else if (r.status === 413) { r.json().then(function(d){ _onSyncFail(quotaRefusalText(d), 413); }).catch(function(){ _onSyncFail(quotaRefusalText(null), 413); }); _fin("server refused the save — quota"); }
+      else if (r.status === 413) { r.json().then(function(d){ if (_left()) { _leftSay("HTTP 413"); return; } _onSyncFail(quotaRefusalText(d), 413); }).catch(function(){ if (_left()) { _leftSay("HTTP 413"); return; } _onSyncFail(quotaRefusalText(null), 413); }); _fin("server refused the save — quota"); }
       else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); _fin("server returned " + r.status); }
       else {
         _syncOk(turnAt);
@@ -861,7 +875,7 @@ var storageAdapter = (function() {
   }
 
   function load(cb) {
-    var localOk = loadState();
+    var localOk = loadState({ screen: true });   /* S3: the boot shows an unreadable save on its own screen */
     /* #599 (a), review R2: a local save this build could not read (written by a newer build) is the newest copy there is.
        No reconcile, no boot push: the "fresh device" branch would otherwise adopt the account's latest cloud world over it,
        and the refusal screen would be lying. The player reloads into the newer build; that build reconciles. */

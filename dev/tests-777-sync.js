@@ -113,6 +113,52 @@ kase("S1: campaign A's network error landing after the switch is not B's failure
     assert.ok(E.said.infos.some(function (l) { return /campA/.test(l) && /socket hang up/.test(l); }), "the dropped failure was not logged: " + JSON.stringify(E.said.infos));
   });
 });
+/* Independent review 2026-11-19: a 409, 403 or 413 carries a body that is read asynchronously. The first guard ran when the
+   HEADERS arrived; a switch between the headers and the body let the old campaign's answer act on the new one. The body is
+   held back here until after the switch. */
+function lateBody(status, body) {
+  var give, p = new Promise(function (r) { give = r; });
+  return { reply: { ok: false, status: status, json: function () { return p; } }, deliver: function () { give(body); } };
+}
+function switchAfterHeaders(E, status, body) {
+  var net = twoCampaigns(E), late = lateBody(status, body);
+  storageAdapter.resetSyncState();
+  storageAdapter.syncNow();                                             // campaign A's save
+  var post = net.pending.filter(function (p) { return p.call.method === "POST"; })[0];
+  assert.strictEqual(post.call.body.campaignId, "campA");
+  post.answer(late.reply);
+  return tick().then(function () {                                      // the headers have been handled, the body has not
+    assert.strictEqual(switchToCampaign("campB"), true);
+    E.said.toasts.length = 0;
+    late.deliver();
+    return tick();
+  }).then(function () { return net; });
+}
+kase("S1: the BODY of campaign A's 409 arriving after the switch (its headers came before) does not pause B or hand it a base", function (E) {
+  return switchAfterHeaders(E, 409, { serverTurn: 2500 }).then(function () {
+    assert.strictEqual(storageAdapter.syncStatus().conflict, null, "B is paused on A's conflict");
+    assert.strictEqual(storageAdapter.syncStatus().lastAckTurn, -1);
+    assert.ok(!E.said.toasts.some(function (t) { return /Another device is ahead/.test(t); }), JSON.stringify(E.said.toasts));
+  });
+});
+kase("S1: the BODY of campaign A's self-healing 409 arriving after the switch does not ack or re-post for B", function (E) {
+  return switchAfterHeaders(E, 409, { serverTurn: 5 }).then(function (net) {
+    assert.strictEqual(storageAdapter.syncStatus().lastAckTurn, -1, "A's server turn became B's base: " + storageAdapter.syncStatus().lastAckTurn);
+    assert.ok(!net.calls.some(function (c) { return c.method === "POST" && c.body && c.body.campaignId === "campB"; }), "B was posted as A's retry");
+  });
+});
+kase("S1: the BODY of campaign A's 403 foreign_campaign arriving after the switch does not move B to a new id", function (E) {
+  return switchAfterHeaders(E, 403, { reason: "foreign_campaign" }).then(function () {
+    assert.strictEqual(getActiveCampId(), "campB", "campaign B was re-homed: " + getActiveCampId());
+    assert.strictEqual(storageAdapter.syncStatus().failCount, 0);
+  });
+});
+kase("S1: the BODY of campaign A's 413 arriving after the switch is not B's refusal", function (E) {
+  return switchAfterHeaders(E, 413, { error: "storage quota exceeded" }).then(function () {
+    assert.strictEqual(storageAdapter.syncStatus().failCount, 0, "A's quota refusal lit B's failure badge");
+    assert.ok(!E.said.toasts.some(function (t) { return /refused by the server/.test(t); }), JSON.stringify(E.said.toasts));
+  });
+});
 kase("S1: the same campaign still acks its own 200 (the guard is on identity, not on every late answer)", function (E) {
   var net = twoCampaigns(E);
   storageAdapter.resetSyncState();
@@ -225,6 +271,9 @@ kase("S3: with an unreadable local save the boot adopts nothing from the cloud o
     assert.strictEqual(got, false);
     assert.strictEqual(calls.filter(function (u) { return /\/api\/(state|campaigns\/)/.test(u); }).length, 0, "the boot asked the cloud for a campaign to adopt: " + calls.join(", "));
     assert.strictEqual(worldState, null, "a cloud campaign was adopted over the unreadable save");
+    assert.ok(unreadableLoad() && unreadableLoad().rescueKey, "the boot has nothing to show");
+    assert.deepStrictEqual(E.said.toasts, [], "the boot toasted what its refusal screen already says (on a phone the toast covers the screen's buttons)");
+    assert.ok(E.said.errors.some(function (l) { return /could not be read/.test(l); }), "the console line is gone with the toast");
   });
 });
 kase("S3: switching to a campaign whose slot is unreadable rolls back, keeps a copy of the slot, and says the real reason once", function (E) {
@@ -246,6 +295,9 @@ kase("S3: the refusal screen's text escapes the reason and offers the three ways
   assert.ok(/prepared for play/.test(h) && /backup of the unreadable save was kept/.test(h));
   assert.ok(/could NOT be kept/.test(unreadableSaveHtml({ reason: "x", stage: "read", rescueKey: null })));
   var fs = require("fs"), boot = fs.readFileSync(path.join(__dirname, "..", "ui-boot.js"), "utf8");
+  var modals = fs.readFileSync(path.join(__dirname, "..", "ui-modals.js"), "utf8");
+  assert.ok(modals.indexOf("if(c)c.addEventListener(\"click\",function(){close();if(typeof showChar===\"function\")showChar();if(typeof showCampaignPicker===\"function\")showCampaignPicker();});") >= 0,
+    "the Campaign list button must open the list over the bare wizard screen, never through the wizard's home-page handoffs (they start a campaign)");
   var at = boot.indexOf("if(typeof unreadableLoad===\"function\"&&unreadableLoad()){showUnreadableSaveScreen(unreadableLoad(),_wizard);return;}");
   assert.ok(at >= 0, "initState does not show the refusal screen");
   assert.ok(at < boot.indexOf("    _wizard();\n  }".replace(/\n/g, boot.indexOf("\r\n") >= 0 ? "\r\n" : "\n")), "the wizard runs before the refusal is checked");
@@ -412,6 +464,25 @@ kase("S9: a portrait upload the server refuses is logged and sent again with the
     worldState.turn = 5; storageAdapter.syncNow();
     return tick(30);
   }).then(function () { assert.strictEqual(puts.length, 2, "an accepted portrait is uploaded again on every save"); });
+});
+
+kase("S9: a portrait refusal that can never succeed (a 413) is said once and NOT re-sent with every save", function (E) {
+  var puts = 0;
+  var ws = E.L.makeTestWorld({ campId: "campA", turn: 3 }); ws.character.portrait = "data:image/jpeg;base64,AAAA";
+  setActiveCampId("campA"); worldState = ws;
+  global.fetch = function (url) { if (/\/portrait$/.test(url)) { puts++; return Promise.resolve(reply(413, {})); } return Promise.resolve(reply(200, { ok: true })); };
+  storageAdapter.setServer("https://unit.test", "tok"); storageAdapter.resetSyncState();
+  function save(turn) { worldState.turn = turn; storageAdapter.syncNow(); return tick(30); }
+  return save(3).then(function () { return save(4); }).then(function () { return save(5); }).then(function () {
+    assert.strictEqual(puts, 1, "every save re-sent portraits the server will never take: " + puts + " uploads");
+    assert.strictEqual(E.said.toasts.filter(function (t) { return /refused this campaign's portraits/.test(t); }).length, 1, "the refusal was not said exactly once: " + JSON.stringify(E.said.toasts));
+    assert.ok(E.said.warns.some(function (l) { return /not retried until a portrait changes/.test(l); }));
+    storageAdapter.markPortraitDirty();   // the player sets a new portrait: it is offered again, and the refusal is not said twice
+    return save(6);
+  }).then(function () {
+    assert.strictEqual(puts, 2, "a changed portrait was not offered to the server again");
+    assert.strictEqual(E.said.toasts.filter(function (t) { return /refused this campaign's portraits/.test(t); }).length, 1, "the refusal was toasted a second time");
+  });
 });
 
 // ── S10, S11: what follows a campaign to a new id, and what leaves with it ─────────────────────────────────────────

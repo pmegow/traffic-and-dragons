@@ -266,7 +266,7 @@ function _pulledMemory(data,id){
   var a=memoryAdmit(data&&data.memory);
   if(!a.issue)return a.memory;
   console.warn("[camps] the server copy of "+campDisplayName(id)+" carries no usable long-term memory ("+a.issue+") — "+(a.blank?"this campaign downloads with an EMPTY memory":"the missing stores download empty")+" (audit D5, S5)");
-  if(a.blank&&typeof showToast==="function")showToast("⚠ "+escHtml(campDisplayName(id))+"'s cloud copy has no long-term memory — it downloads without NPC/lore recall.");
+  if(a.blank&&typeof showToast==="function")showToast("⚠ "+campDisplayName(id)+"'s cloud copy has no long-term memory — it downloads without NPC/lore recall.");
   return a.memory;
 }
 function campLoad(id){

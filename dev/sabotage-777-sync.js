@@ -13,10 +13,10 @@ var S1_200 = "FAIL #777 S1: campaign A's 200 landing after the switch to B leave
 sync("storage-adapter.js", [
   { label: "S1: the old campaign's 200 raises the new campaign's sync base again",
     find: GUARD, replace: NOGUARD, mustFail: S1_200 },
-  { label: "S1: the old campaign's self-healing 409 acks and re-posts for the new campaign",
-    find: GUARD, replace: NOGUARD, mustFail: "FAIL #777 S1: campaign A's self-healing 409 (server turn below A's)" },
-  { label: "S1: the old campaign's 403 re-homes the new campaign",
-    find: GUARD, replace: NOGUARD, mustFail: "FAIL #777 S1: campaign A's 403 foreign_campaign landing after the switch" },
+  /* a 409 or 403 that lands after the switch is stopped twice over — here when its headers arrive, and again when its body
+     has been read (the review clauses below) — so this guard alone is proven by the answers that have no body step */
+  { label: "S1: the old campaign's 500 counts as the new campaign's failure",
+    find: GUARD, replace: NOGUARD, mustFail: "FAIL #777 S1: campaign A's failure landing after the switch (a 500, a 413, a network error)" },
   { label: "S1: no answer is ever taken as another campaign's (the identity test is gone)",
     find: "return !!campId && !!_now && _now !== campId; }", replace: "return false; }",
     mustFail: "FAIL #777 S1: campaign A's 409 landing after the switch does not pause B's sync" },
@@ -34,6 +34,33 @@ sync("storage-adapter.js", [
   { label: "S1: a dropped answer is dropped without a word",
     find: "function _leftSay(what) { console.info(", replace: "function _leftSay(what) { return; console.info(",
     mustFail: "FAIL #777 S1: campaign A's failure landing after the switch (a 500, a 413, a network error)" }
+]);
+
+// independent review 2026-11-19: the bodies of a 409, a 403 and a 413 arrive after the headers
+sync("storage-adapter.js", [
+  { label: "S1: a 409 body that arrives after the switch pauses the new campaign",
+    find: "          if (_leftBody(\"HTTP 409\")) return;\n", replace: "",
+    mustFail: "FAIL #777 S1: the BODY of campaign A's 409 arriving after the switch" },
+  { label: "S1: a self-healing 409 body that arrives after the switch acks and re-posts for the new campaign",
+    find: "          if (_leftBody(\"HTTP 409\")) return;\n", replace: "",
+    mustFail: "FAIL #777 S1: the BODY of campaign A's self-healing 409 arriving after the switch" },
+  { label: "S1: a 403 body that arrives after the switch re-homes the new campaign",
+    find: "          if (_leftBody(\"HTTP 403\")) return;\n", replace: "",
+    mustFail: "FAIL #777 S1: the BODY of campaign A's 403 foreign_campaign arriving after the switch" },
+  { label: "S1: a 413 body that arrives after the switch is the new campaign's refusal",
+    find: "r.json().then(function(d){ if (_left()) { _leftSay(\"HTTP 413\"); return; } _onSyncFail(", replace: "r.json().then(function(d){ _onSyncFail(",
+    mustFail: "FAIL #777 S1: the BODY of campaign A's 413 arriving after the switch" },
+  { label: "S9: a refusal that can never succeed re-sends the portraits with every save",
+    find: "if (!_ps || _ps >= 500 || _ps === 408 || _ps === 429) {", replace: "if (true) {",
+    mustFail: "FAIL #777 S9: a portrait refusal that can never succeed" },
+  { label: "S9: a permanent portrait refusal is toasted on every save it is met",
+    find: "if (!_portraitRefusalSaid && typeof showToast === \"function\") { _portraitRefusalSaid = true;", replace: "if (typeof showToast === \"function\") {",
+    mustFail: "FAIL #777 S9: a portrait refusal that can never succeed" }
+]);
+sync("ui-modals.js", [
+  { label: "S3: the Campaign list button runs the wizard's home-page handoffs",
+    find: "close();if(typeof showChar===\"function\")showChar();if(typeof showCampaignPicker===\"function\")showCampaignPicker();", replace: "close();if(typeof onNew===\"function\")onNew();if(typeof showCampaignPicker===\"function\")showCampaignPicker();",
+    mustFail: "FAIL #777 S3: the refusal screen's text escapes the reason" }
 ]);
 
 var S2 = "FAIL #777 S2: the cloud is ahead and a turn is in flight";
@@ -58,9 +85,9 @@ var S3_CUT = "FAIL #777 S3: a cut-off save is refused out loud";
 var S3_SCREEN = "FAIL #777 S3: the refusal screen's text escapes the reason";
 sync("state.js", [
   { label: "S3: a save that fails to parse is dropped without a word again",
-    find: "    else refuseUnreadableSave(ws,e,\"read\");", replace: "", mustFail: S3_CUT },
+    find: "    else refuseUnreadableSave(ws,e,\"read\",!!(opts&&opts.screen));", replace: "", mustFail: S3_CUT },
   { label: "S3: a save whose heal throws is dropped without a word again",
-    find: "worldState=null;refuseUnreadableSave(ws,e,\"prepared\");", replace: "worldState=null;",
+    find: "worldState=null;refuseUnreadableSave(ws,e,\"prepared\",!!(opts&&opts.screen));", replace: "worldState=null;",
     mustFail: "FAIL #777 S3: a save whose heal throws" },
   { label: "S3: no second copy of the unreadable save is kept",
     find: "rk=STORE_RESCUE_K+\"core_\"+id,kept=false;", replace: "rk=STORE_RESCUE_K+\"core_\"+id,kept=false;raw=null;", mustFail: S3_CUT },
@@ -74,6 +101,9 @@ sync("state.js", [
 sync("storage-adapter.js", [
   { label: "S3: the boot adopts the account's latest cloud campaign over an unreadable save",
     find: "    if (!localOk && typeof unreadableLoad === \"function\" && unreadableLoad()) {", replace: "    if (false) {",
+    mustFail: "FAIL #777 S3: with an unreadable local save the boot adopts nothing" },
+  { label: "S3: the boot toasts the reason on top of its refusal screen",
+    find: "var localOk = loadState({ screen: true });", replace: "var localOk = loadState();",
     mustFail: "FAIL #777 S3: with an unreadable local save the boot adopts nothing" }
 ]);
 sync("ui-boot.js", [
@@ -151,7 +181,7 @@ sync("dev/class-guards.js", [
 ]);
 sync("storage-adapter.js", [
   { label: "S9: a refused portrait upload reads as a success",
-    find: "if (!r || !r.ok) { _portraitDirty = true;", replace: "if (false) { _portraitDirty = true;",
+    find: "      if (r && r.ok) return;", replace: "      return;",
     mustFail: "FAIL #777 S9: a portrait upload the server refuses is logged and sent again" }
 ]);
 var S10 = "FAIL #777 S10: a re-homed campaign takes its preserved copies with it";

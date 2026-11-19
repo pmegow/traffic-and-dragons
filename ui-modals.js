@@ -1304,10 +1304,12 @@ function showUnreadableSaveScreen(info,onNew){
     try{raw=(info&&info.rescueKey&&store.get(info.rescueKey))||store.get(WSK);}catch(e){raw=null;}
     if(typeof raw!=="string"||!raw.length){showToast("The unreadable save could not be fetched from this device's storage.");return;}
     try{_downloadBlob(new Blob([raw],{type:"text/plain"}),"unreadable-save-"+String((info&&info.campId)||"campaign").replace(/[^A-Za-z0-9_-]/g,"_")+".txt");}
-    catch(e){console.error("[save] the unreadable save could not be downloaded:",e);showToast("The download failed: "+escHtml((e&&e.message)||"unknown error"));}
+    catch(e){console.error("[save] the unreadable save could not be downloaded:",e);showToast("The download failed: "+((e&&e.message)||"unknown error"));}
   });
   var c=document.getElementById("us-campaigns");
-  if(c)c.addEventListener("click",function(){close();if(typeof onNew==="function")onNew();if(typeof showCampaignPicker==="function")showCampaignPicker();});
+  /* independent review 2026-11-19: the list is opened over the bare wizard screen — never through onNew, whose home-page
+     handoffs (a quick start, a picked blueprint) would START a campaign under a button that only asked for the list */
+  if(c)c.addEventListener("click",function(){close();if(typeof showChar==="function")showChar();if(typeof showCampaignPicker==="function")showCampaignPicker();});
   var n=document.getElementById("us-new");
   if(n)n.addEventListener("click",function(){close();if(typeof onNew==="function")onNew();});
   return m;

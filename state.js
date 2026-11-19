@@ -333,13 +333,14 @@ function versionRefusedLoad(){return _versionRefusedLoad;}
    of the wizard (ui-boot initState, as the newer-build refusal does). {reason, stage, campId, rescueKey|null}; null = none. */
 var _unreadableLoad=null;
 function unreadableLoad(){return _unreadableLoad;}
-function refuseUnreadableSave(raw,err,stage){
+function refuseUnreadableSave(raw,err,stage,screen){
   var id=(typeof getActiveCampId==="function"&&getActiveCampId())||"default",rk=STORE_RESCUE_K+"core_"+id,kept=false;
   if(typeof raw==="string"&&raw.length>0){try{store.set(rk,raw);kept=(store.get(rk)===raw);}catch(eKeep){kept=false;}}/* the bytes, verbatim — the JP0-4 rule */
   var why=(err&&err.message)||String(err||"unknown error");
   _unreadableLoad={reason:why,stage:stage,campId:id,rescueKey:kept?rk:null};
   if(typeof console!=="undefined")console.error("[save] the campaign saved on this device could not be "+stage+" — "+why+". Nothing was changed: the stored save is still under "+WSK+(kept?", and a second copy is kept under "+rk:", but a second copy could NOT be kept (storage full?)")+". No new game is started over it.",err);
-  if(typeof showToast==="function")showToast("⚠ The campaign saved on this device could not be read ("+escHtml(why)+"). Nothing was changed"+(kept?"; a backup of the unreadable save was kept.":"."),9000);
+  /* screen: the boot shows the refusal screen itself (ui-boot initState) — a toast beside it only repeats it, and on a phone covers its buttons */
+  if(!screen&&typeof showToast==="function")showToast("⚠ The campaign saved on this device could not be read ("+why+"). Nothing was changed"+(kept?"; a backup of the unreadable save was kept.":"."),9000);
   return _unreadableLoad;
 }
 /* #599 (a): THE PUBLICATION LOCK. When the cloud copy of a campaign was written by a newer build than this one (the reconcile
@@ -937,7 +938,7 @@ function checkpointRestore(snap,opts){
   worldState.respawnNote={turn:liveTurn,camp:where,campTurn:snap.turn,cause:opts.cause||"",respawn:ws.respawns};
   return {ok:true,turn:liveTurn,camp:where,respawn:ws.respawns};
 }
-function loadState(){
+function loadState(opts){/* opts.screen (the boot): an unreadable save is shown on the refusal screen, so it is not also toasted */
   var ws,sl,mm,_mapHealed=false;try{ws=store.get(WSK);sl=store.get(SLK);mm=store.get(MEM_KEY);}catch(e){return false;}
   // Reset the per-campaign sync bookkeeping (audit E32) — loadState runs on init AND on every
   // campaign switch, so the ACK baseline / failure count don't carry across campaigns.
@@ -952,13 +953,13 @@ function loadState(){
     /* #599 (a): the stored save was written by a newer build. Nothing was changed (the gate threw before the first write);
        the reason is kept for the boot, which shows the refusal screen instead of the wizard (ui-boot initState). */
     if(e&&e.incompatible){_versionRefusedLoad=e.message;console.error("[version] local load REFUSED — "+e.message+"; nothing was changed, reload to update");if(typeof showToast==="function")showToast("⚠ "+e.message+VERSION_RELOAD_HINT,9000);}
-    else refuseUnreadableSave(ws,e,"read");/* S3: any other parse failure — cut-off or damaged bytes */
+    else refuseUnreadableSave(ws,e,"read",!!(opts&&opts.screen));/* S3: any other parse failure — cut-off or damaged bytes */
     return false;}
   try{if(mm){memory=JSON.parse(mm);_mapHealed=healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore("mem",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */
   if(memoryOwnerMismatch(worldState,memory)){/* #365: loud, attributable, never silent */var _own=(typeof campDisplayName==="function"&&campDisplayName(memory.campId))||memory.campId;console.error("[load] MEMORY OWNER MISMATCH — the live memory is stamped for "+memory.campId+" but the worldState is "+worldState.campId+" (#365). Play would run this campaign on another campaign's canon.");if(typeof showToast==="function")showToast("\u26a0 This campaign's memory belongs to \""+_own+"\" \u2014 Load a saved copy of "+(worldState.campName||"this campaign")+" before playing on (#365).");if(typeof reportError==="function")reportError("memory-owner","memory "+memory.campId+" under worldState "+worldState.campId,{turn:worldState.turn});}
   /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
      memory first prevents the previously active campaign from re-keying the incoming save. */
-  try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;refuseUnreadableSave(ws,e,"prepared");/* S3: the bytes parsed but a heal threw — the stored save is untouched (saveCore never ran) */return false;}
+  try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;refuseUnreadableSave(ws,e,"prepared",!!(opts&&opts.screen));/* S3: the bytes parsed but a heal threw — the stored save is untouched (saveCore never ran) */return false;}
   /* Persist the pre-image in the world before replacing the stored geography. */
   if(_mapHealed)saveMem();
   if(typeof audioScenePublish==="function")audioScenePublish("load");
