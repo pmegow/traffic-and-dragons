@@ -88,7 +88,10 @@ async function test(name, fn) { try { await fn(); passed++; console.log('PASS #7
       assert.deepEqual(await toasts(), ['Heard in the car'], 'Car Mode covers the button');
       await page.evaluate(() => { [].forEach.call(document.querySelectorAll('.tnd-toast'), t => t.remove()); document.getElementById('game-screen').style.display = 'none'; showToast('Start a game first.'); });
       assert.deepEqual(await toasts(), ['Start a game first.'], 'no game screen, no console door');
-      assert.equal(await page.evaluate(() => consoleNewCount()), 0, 'a popped line is not new');
+      // #777 U11 review: a Car Mode notice fades by itself, usually unread, so it alone counts as new; the other popped line does not
+      assert.equal(await page.evaluate(() => consoleNewCount()), 1, 'only the line that faded in the car is new');
+      assert.deepEqual(await page.evaluate(() => consoleEntries().map(e => e.popped)), [true, true], 'both lines are on record as popped');
+      await page.evaluate(() => consoleRead());
       await page.evaluate(() => { [].forEach.call(document.querySelectorAll('.tnd-toast'), t => t.remove()); showGame(); syncUI(); });
     });
 
