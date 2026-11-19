@@ -573,7 +573,7 @@ function campNew(){
   if(!snapshotActiveCamp())return false;/* B4: storage full — don't wipe the only local copy of the current campaign */
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
   var nid=newCampaignId();setActiveCampId(nid);
-  worldState=null;sessionLog=[];memory=blankMemory();
+  campaignEpochBump();worldState=null;sessionLog=[];memory=blankMemory();
   document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
   showChar();
   return true;

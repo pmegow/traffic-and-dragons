@@ -17,6 +17,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // updateCampMeta/snapshotActiveCamp both no-op on a null id, so it was never listed or
   // snapshotted and "New Game" deleted it with no save. The import/campNew paths already mint one.
   var _aid=getActiveCampId();if(!_aid||campaignIdOccupied(_aid))setActiveCampId(newCampaignId());/* E13b: never inherit an OCCUPIED id — a new campaign is a new campaign */
+  campaignEpochBump();/* audit X: a new game is another state, even when it takes the id that was active */
   worldState={ver:SAVE_VER,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
@@ -828,6 +829,7 @@ async function generateActions(msgEl){
   var prevActs=(worldState.lastActions&&worldState.lastActions.slice)?worldState.lastActions.slice(0,3):null;
   worldState.lastActions=null; // clear now (audit E26) — if this call fails, reload won't re-attach the PREVIOUS turn's buttons to the newest narration
   var turnAt=worldState.turn; // race guard: a fast next action can land while this call is in flight
+  var _actMark=campaignMark();/* audit X4: the turn number alone matched another campaign at the same turn — its buttons were saved there */
   function _cleanup(){for(var _c=0;_c<3;_c++){if(btns[_c].parentNode)btns[_c].parentNode.removeChild(btns[_c]);}if(btnDiv.parentNode)btnDiv.parentNode.removeChild(btnDiv);}
   try{
     // v1.288 un-starve: the full gameplay system prompt (stable byte-identical → cache read;
@@ -844,7 +846,7 @@ async function generateActions(msgEl){
     if(_ib&&_ib.length>=3){resp=JSON.stringify({present:"",actions:_ib.slice(0,3)});if(typeof console!=="undefined")console.info("[actions] #328 in-band buttons used — no suggestion call");}
     else{if(typeof suggestInband!=="undefined"&&suggestInband)worldState.suggestMissPing={turn:worldState.turn};/* #344: arm the miss note — the next turn asks beside the model's own output */
     resp=await callGM("RECENT SCENES (oldest first — the LAST one is the current moment):\n"+suggestionHistoryPairs()+"\n\n"+SUGGESTION_ASK,buildSuggestionSys(prevActs),200,null,{noHistory:true,kind:"actions"});/* #283②: SUGGESTION_ASK matches the mode block's object demand — the user channel no longer erases the #141 checking space */}
-    if(worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed; discard quietly
+    if(!campaignStill(_actMark,null)||worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed, or another campaign is open; discard quietly
     var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
     acts=applySuggestionGate(acts);/* #126 affordance gate — an impossible button is never rendered (fail closed, loud log) */
@@ -1962,15 +1964,22 @@ async function generateCompanionSheet(npcName){
   var npc=wsNpcByName(npcName);
   if(!npc||npc.charSheet||_sheetGenInFlight[npcName])return;
   _sheetGenInFlight[npcName]=1;
-  var sheet=null,failReason=null;
+  var sheet=null,failReason=null,_shMark=campaignMark(),_shLeft=false;
   try{
     var p=buildCompanionSheetPrompt(npcName);
     var resp=await callGM(p.msg,p.sys,1000,null,{noHistory:true,kind:"other"});/* 600→1000 (v1.275): per-spell defs (#48③) need the headroom */
-    sheet=parseCompanionSheet(resp,npcName);
-    if(!sheet)failReason="model returned invalid JSON";
-    if(sheet)canonizeCompanionSpellDefs(resp,sheet.cls,npcName);/* #48③: off-catalog picks self-define before first cast */
-  }catch(e){failReason=(e&&e.message)||"request failed";}
+    /* audit X3: the sheet was asked for in the campaign that was open then. Checked BEFORE the spell definitions are
+       filed — they used to land in whichever campaign was open, even one with no such companion — and before the attach
+       below, which went by name alone. */
+    if(!campaignStill(_shMark,"the sheet for "+npcName))_shLeft=true;
+    else{
+      sheet=parseCompanionSheet(resp,npcName);
+      if(!sheet)failReason="model returned invalid JSON";
+      if(sheet)canonizeCompanionSpellDefs(resp,sheet.cls,npcName);/* #48③: off-catalog picks self-define before first cast */
+    }
+  }catch(e){failReason=(e&&e.message)||"request failed";if(!campaignStill(_shMark,"the sheet for "+npcName+" (its request failed)"))_shLeft=true;}
   delete _sheetGenInFlight[npcName];
+  if(_shLeft)return;/* not even the stub: this campaign's own pending-sheet pass draws its companions */
   if(!sheet)sheet=buildCompanionSheetStub(npcName);// a party member must NEVER stay sheet-less
   if(!attachCompanionSheet(npcName,sheet))return;// npc vanished or got a sheet meanwhile
   saveAll();
@@ -4624,9 +4633,12 @@ async function refreshSynopsis(reason,opts){
   opts=opts||{};
   if(_synopsisBusy){if(typeof showToast==="function")showToast("The story so far is already being written.");return false;}
   _synopsisBusy=true;
-  var basis=synopsisBasis(),ok=false,tick=opts.statusEl?elapsedTicker(opts.statusEl,"Writing the story so far…"):null;
+  var basis=synopsisBasis(),ok=false,tick=opts.statusEl?elapsedTicker(opts.statusEl,"Writing the story so far…"):null,_synMark=campaignMark();
   try{
     var resp=await callGM(synopsisPrompt(basis),SYNOPSIS_SYS,700,null,{noHistory:true,kind:"synopsis"});
+    /* audit X2: this call never holds `busy`, so the player can load another campaign while it runs — the recap of the old
+       one was written into the new one's journal and its own recap marked not due */
+    if(!campaignStill(_synMark,"the story so far")){if(tick)tick.stop();_synopsisBusy=false;return false;}
     worldState.synopsis=applySynopsisResp(resp,basis,reason);
     if(typeof saveCore==="function")saveCore();
     ok=true;if(tick)tick.stop();
@@ -4706,7 +4718,7 @@ function newGame(){
     if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
-    worldState=null;sessionLog=[];memory=blankMemory();
+    campaignEpochBump();worldState=null;sessionLog=[];memory=blankMemory();
     pendingCompanions=[];
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
     showChar();

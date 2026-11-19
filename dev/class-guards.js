@@ -36,6 +36,20 @@ var EXEMPT = {
     "index.html": "the game itself — its :root defines the game palette; website/themes.css supplies satellite defaults",
     "piper-host.html": "the invisible synthesis iframe (B9) — no UI to colour"
   },
+  doors: [
+    { file: "api.js", fn: "applyMuts", why: "the canon-claim transaction: it stages on a detached clone and installs the clone on success, or puts the original back — the SAME campaign state mid-turn; a bump here would drop every side call a turn outlives" }
+  ],
+  awaits: [
+    /* each holds `busy` from before the model call to after its writes, and every campaign door refuses (or, for the cloud adopt, pauses) while busy */
+    { file: "game.js", fn: "sendAction", why: "the turn itself: busy from before the call to after the commit" },
+    { file: "game.js", fn: "rerollLast", why: "a re-roll is a turn: busy throughout" },
+    { file: "game.js", fn: "generateSkeleton", why: "runs inside startGame, which sets busy before it and holds it until the opening has landed" },
+    { file: "game.js", fn: "defineItemFromStory", why: "sets busy before the call and clears it after the save" },
+    { file: "game.js", fn: "suggestQuestCompletion", why: "sets busy before the call and clears it after the save" },
+    { file: "game.js", fn: "syncCharSheet", why: "sets busy before the call and clears it after the save" },
+    { file: "memory.js", fn: "summarize", why: "awaited by sendAction inside the turn, under the turn's busy" },
+    { file: "ui-sheets.js", fn: "generateNpcSheet", why: "sets busy before the call and clears it in its finally, after the save" }
+  ],
   networkFirst: {
     /* none — index.html and piper-host.html are APP_SHELL; every other tracked page must be network-first */
   }
@@ -263,6 +277,60 @@ function networkFirstScriptProblems(root, opts) {
   });
   return out;
 }
+/* Audit 2026-11-19, section X — a model call that outlives its campaign writes nothing. Two derived rules (state.js
+   campaignMark / campaignStill / campaignEpochBump hold the mechanism):
+   campaignDoorProblems   — every assignment to the live `worldState` sits in a top-level function that bumps the state
+                            epoch, so a side call started in the old state is refused in the new one. A new door that
+                            forgets the bump fails here. EXEMPT.doors names the one site that is not a door.
+   awaitThenWriteProblems — every top-level function that calls the model (callGM) and afterwards writes campaign state
+                            (a field of worldState or memory, or a save) checks after the call that its campaign is still
+                            the one open, or carries a reasoned EXEMPT.awaits entry (in practice: it holds `busy` from
+                            before the call to after the write, and every campaign door refuses while busy).
+   opts.sources: [{file, text}] for fixtures; opts.exempt: a registry. */
+var CAMPAIGN_CHECK = /campaignStill\s*\(|atlasDiscoveryCurrent\s*\(|worldState\s*!==\s*ws\b|_renderJobLive\s*\(/;
+var CAMPAIGN_WRITE = /\b(?:worldState|memory)\b(?:\.[\w$]+|\[[^\]]+\])+\s*(?:=[^=]|\+=|-=|\.push\(|\.splice\(|\.unshift\()|\bsave(?:Core|Mem|All)\s*\(/;
+function rootScripts(root) { return trackedRootFiles(root, /\.js$/).filter(function (f) { return f !== "sw.js" && f !== "tndmaps.js"; }).map(function (f) { return { file: f, text: fs.readFileSync(path.join(root, f), "utf8") }; }); }
+function topFunctions(text) {
+  var code = codeOnly(text);
+  return functionsOf(code).filter(function (fn) { return fn.topLevel; }).map(function (fn) { return { name: fn.name, body: code.slice(fn.open, fn.close + 1), line: text.slice(0, fn.open).split("\n").length, open: fn.open, close: fn.close }; });
+}
+function campaignDoorProblems(root, opts) {
+  var sources = (opts && opts.sources) || rootScripts(root), exempt = (opts && opts.exempt) || EXEMPT.doors, out = [];
+  sources.forEach(function (s) {
+    var code = codeOnly(s.text), fns = topFunctions(s.text), re = /(^|[^.\w$])worldState\s*=(?![=])/g, m;
+    while ((m = re.exec(code))) {
+      var at = m.index + m[1].length, fn = null, i;
+      if (/\bvar\s+$/.test(code.slice(Math.max(0, at - 6), at))) continue;   /* the declaration */
+      for (i = 0; i < fns.length; i++) if (at >= fns[i].open && at <= fns[i].close) { fn = fns[i]; break; }
+      if (!fn) continue;                                                      /* top-level initialisation, not a door */
+      if (/campaignEpochBump\s*\(/.test(fn.body)) continue;
+      if (exempt.some(function (e) { return e.file === s.file && e.fn === fn.name; })) continue;
+      out.push(s.file + ":" + s.text.slice(0, at).split("\n").length + " assigns the live worldState in " + fn.name + ", which never calls campaignEpochBump() — a side call started before this door would write into the state it installs (audit 2026-11-19 X); bump the epoch, or add a reasoned EXEMPT.doors entry");
+    }
+  });
+  return out;
+}
+function awaitThenWriteProblems(root, opts) {
+  var sources = (opts && opts.sources) || rootScripts(root), exempt = (opts && opts.exempt) || EXEMPT.awaits, out = [];
+  sources.forEach(function (s) {
+    topFunctions(s.text).forEach(function (fn) {
+      var i = fn.body.search(/\bcallGM\s*\(/);
+      if (i < 0) return;
+      var after = fn.body.slice(i);
+      if (!CAMPAIGN_WRITE.test(after) || CAMPAIGN_CHECK.test(after)) return;
+      if (exempt.some(function (e) { return e.file === s.file && e.fn === fn.name; })) return;
+      out.push(s.file + ":" + fn.line + " " + fn.name + " calls the model and then writes campaign state with no check that its campaign is still the one open — take campaignMark() before the call and test campaignStill() after it (audit 2026-11-19 X), or add a reasoned EXEMPT.awaits entry");
+    });
+  });
+  return out;
+}
+function staleCampaignExemptions(root, opts) {
+  var sources = (opts && opts.sources) || rootScripts(root), reg = (opts && opts.registry) || EXEMPT, out = [];
+  var doors = campaignDoorProblems(root, { sources: sources, exempt: [] }), awaits = awaitThenWriteProblems(root, { sources: sources, exempt: [] });
+  reg.doors.forEach(function (e) { if (!doors.some(function (p) { return p.indexOf(e.file + ":") === 0 && p.indexOf(" in " + e.fn + ",") > 0; })) out.push("EXEMPT.doors names " + e.fn + " in " + e.file + ", which no longer assigns worldState without a bump — drop the exemption"); });
+  reg.awaits.forEach(function (e) { if (!awaits.some(function (p) { return p.indexOf(e.file + ":") === 0 && p.indexOf(" " + e.fn + " calls the model") > 0; })) out.push("EXEMPT.awaits names " + e.fn + " in " + e.file + ", which no longer calls the model and writes unchecked — drop the exemption"); });
+  return out;
+}
 // An exemption the source no longer needs is a problem too: the registry must stay the truth.
 function staleExemptions(root, opts) {
   var pages = (opts && opts.pages) || trackedPages(root), reg = (opts && opts.registry) || EXEMPT, out = [];
@@ -281,11 +349,11 @@ function staleExemptions(root, opts) {
 function allProblems(root) {
   return frozenWaitPaints(root).map(function (p) { return p.file + ":" + p.line + " paints \"" + p.literal + "\" in " + p.fn + ", which waits on a model or an image — ride elapsedTicker (#356), or add a reasoned EXEMPT.paints entry"; })
     .concat(thinkingMarkerWrites(root).map(function (p) { return p.file + ":" + p.line + " writes the thinking marker " + p.name + " directly in " + p.fn + " — the next tick repaints it; use setThinking(" + p.name + ", text) (#481 G5 follow-up)"; }))
-    .concat(paletteProblems(root)).concat(networkFirstProblems(root)).concat(networkFirstScriptProblems(root)).concat(staleExemptions(root));
+    .concat(paletteProblems(root)).concat(networkFirstProblems(root)).concat(networkFirstScriptProblems(root)).concat(campaignDoorProblems(root)).concat(awaitThenWriteProblems(root)).concat(staleCampaignExemptions(root)).concat(staleExemptions(root));
 }
 
 module.exports = { WAIT_PRIMITIVES: WAIT_PRIMITIVES, EXEMPT: EXEMPT, scriptText: scriptText, functionsOf: functionsOf, codeOnly: codeOnly, loadSources: loadSources, sourcesOf: sourcesOf,
-  waitingNames: waitingNames, frozenWaitPaints: frozenWaitPaints, thinkingMarkerWrites: thinkingMarkerWrites, paletteProblems: paletteProblems, networkFirstProblems: networkFirstProblems, networkFirstScriptProblems: networkFirstScriptProblems, staleExemptions: staleExemptions, allProblems: allProblems };
+  waitingNames: waitingNames, frozenWaitPaints: frozenWaitPaints, thinkingMarkerWrites: thinkingMarkerWrites, paletteProblems: paletteProblems, networkFirstProblems: networkFirstProblems, networkFirstScriptProblems: networkFirstScriptProblems, campaignDoorProblems: campaignDoorProblems, awaitThenWriteProblems: awaitThenWriteProblems, staleCampaignExemptions: staleCampaignExemptions, CAMPAIGN_CHECK: CAMPAIGN_CHECK, CAMPAIGN_WRITE: CAMPAIGN_WRITE, staleExemptions: staleExemptions, allProblems: allProblems };
 
 if (require.main === module) {
   var probs = allProblems(path.join(__dirname, ".."));

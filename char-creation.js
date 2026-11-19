@@ -314,6 +314,10 @@ function _rvSyncBlueprintLocation(){
   }
 }
 function confirmChar(){
+  /* audit 2026-11-19, X8: Begin while the review page's portrait is still being drawn. The render holds `busy` and clears
+     it when it ends — in the middle of the skeleton generation Begin had started (so a second request could run beside it),
+     and the portrait, landing on a character already built, was lost. Begin waits for the render. */
+  if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("Something is still being generated — wait for it to finish, then begin.");return;}
   var nameEl=document.getElementById("char-name"),enteredName=nameEl?nameEl.value.trim():"";
   // Imported character path: skip normal build, just apply review-step fields and start game
   if(pendingImportChar){
@@ -325,7 +329,7 @@ function confirmChar(){
     if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
-    worldState=null;sessionLog=[];memory=blankMemory();
+    campaignEpochBump();worldState=null;sessionLog=[];memory=blankMemory();
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
     startGame(ic,getToneNm(),getToneVc(),cs.author||"");
     return;

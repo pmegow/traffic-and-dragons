@@ -2617,14 +2617,23 @@ async function compileEraIfDue(){
   var mergeDue=!due&&erasOverBudget();
   if(!due&&!mergeDue)return;
   _eraBusy=true;
+  /* Audit 2026-11-19, X1 — THE ERA BELONGS TO THE CAMPAIGN IT WAS COMPILED FROM. This call is fired un-awaited from
+     summarize and does not hold `busy`; the player can load another campaign while it runs. Its answer used to be applied
+     to whatever was open: campaign A's era for turns 1–200 landed in campaign B (turn 7), was saved, rode every prompt as
+     the always-injected spine, and stopped B's own chapters up to turn 200 from ever compiling (eraCoveredEnd). The merge
+     branch had the same hole. The mark is taken before the call and checked before the first write; an answer for a
+     state that is no longer open writes nothing, and the era compiles in its own campaign at its next summarize. */
+  var _eraMark=campaignMark();
   try{
     if(due){
       var resp=await callGM(eraCompilePrompt(due.sources),"You are a compression system. Output ONLY valid JSON. No prose, no markdown, no backticks.",600,null,{kind:"era",noHistory:true});
+      if(!campaignStill(_eraMark,"the era compile")){_eraBusy=false;return;}
       eraApplyCompileResp(resp,due);
       saveMem();
     }else{
       var e2=memEras();
       var resp2=await callGM(eraMergePrompt(e2[0],e2[1]),"You are a compression system. Output ONLY valid JSON. No prose, no markdown, no backticks.",600,null,{kind:"era",noHistory:true});
+      if(!campaignStill(_eraMark,"the era merge")){_eraBusy=false;return;}
       eraApplyMergeResp(resp2);
       saveMem();
     }

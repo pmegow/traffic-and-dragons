@@ -1068,6 +1068,7 @@ var storageAdapter = (function() {
       // Never swap worldState out from under an in-flight turn (audit E4): that case returned above (S2), paused.
       if (serverTurn > localTurn) {
         var wasFresh = !localOk;
+        if (typeof campaignEpochBump === "function") campaignEpochBump();   /* audit X: the adopted cloud copy is another state of this campaign — a side call started in the old one writes nothing into it */
         worldState = data.worldState;
         // Restore the authoritative campaign ID from the server before saveAll()
         // fires — without this, getActiveCampId() returns null and syncToServer()

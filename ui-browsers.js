@@ -53,7 +53,7 @@ function consumeHomeQuickStart(){
   tone=tone||TONES.filter(function(t){return t.id==="swords";})[0]||TONES[0];
   store.del(WSK);store.del(SLK);store.del(MEM_KEY);
   var nid=newCampaignId();setActiveCampId(nid);
-  worldState=null;sessionLog=[];memory=blankMemory();
+  campaignEpochBump();worldState=null;sessionLog=[];memory=blankMemory();
   var sn=document.getElementById("story-narrative"),st=document.getElementById("story-tabletalk");if(sn)sn.innerHTML="";if(st)st.innerHTML="";
   pendingBlueprint=bp;/* startGame applies it — skeleton, seeded NPCs and places, rules */
   char._campName=bp.name||char.name;char._startLoc=bp.startingLocation||"The Crossroads of Ashenveil";
@@ -636,7 +636,7 @@ function _startImportedCampaign(char){
     if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);
-    worldState=null;sessionLog=[];memory=blankMemory();
+    campaignEpochBump();worldState=null;sessionLog=[];memory=blankMemory();
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
     char._campName=cn;char._startLoc=loc;
     startGame(char,tone.nm,tone.vc); // 3-arg on purpose: import flow has no author picker — campaign inherits the device default voice

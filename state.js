@@ -73,6 +73,32 @@ var memory=blankMemory();
    memoryAdmit(m) → {memory, issue, blank}: a value that is no memory at all, or an empty shell, becomes blankMemory()
    (blank:true); a memory missing SOME stores keeps what it has and gets the missing ones empty. The caller says the
    issue out loud; a door that must not degrade (checkpointRestore) refuses on memoryShapeIssue instead. */
+/* Audit 2026-11-19, section X — A MODEL CALL THAT OUTLIVES ITS CAMPAIGN WRITES NOTHING. Side calls that are not awaited by
+   the turn (the era compile, the story-so-far recap, a companion's sheet, the suggestion buttons) come back seconds later
+   and used to write into whichever campaign was open by then: campaign A's era landed in campaign B's always-injected
+   spine. `busy` does not protect them — they do not hold it.
+     var mark = campaignMark();            // before the await
+     ... await callGM(...) ...
+     if (!campaignStill(mark, "the era compile")) return;   // after it, before the first write
+   A mark is the campaign id plus the STATE EPOCH. The epoch is bumped at every door that replaces the live world with
+   another state — a load, a switch, an import, a new game, the cloud adopt, a camp restore — because the same campaign id
+   can come back as a different copy (a pull, an adopt, a respawn), and a result computed from the old copy does not belong
+   in the new one. It is NOT object identity: a committed canon-claim transaction installs a clone as the live world in the
+   middle of an ordinary turn (api.js applyMuts), and that is the same state. dev/class-guards.js derives both halves:
+   every assignment to `worldState` sits in a function that bumps the epoch (bar the transaction swap), and every function
+   that calls the model and then writes campaign state checks its mark or carries a reasoned exemption. */
+var _campEpoch=0;
+function campaignEpochBump(){
+  _campEpoch++;
+  if(typeof lastAction!=="undefined"){lastAction=null;if(typeof lastActionOpts!=="undefined")lastActionOpts=null;}/* X5: the last action belongs to the state it was taken in — Retry (and Car Mode's tap) must never send it into another */
+  return _campEpoch;
+}
+function campaignMark(){return {id:(worldState&&worldState.campId)||null,epoch:_campEpoch,live:!!worldState};}
+function campaignStill(mark,what){
+  var ok=!!mark&&mark.live&&!!worldState&&mark.epoch===_campEpoch&&((worldState.campId||null)===mark.id);
+  if(!ok&&what&&typeof console!=="undefined")console.warn("[campaign] "+what+" was started in "+((mark&&mark.id)||"no campaign")+", which is no longer the state that is open — nothing was written");
+  return ok;
+}
 var MEMORY_CORE_STORES=[["npcs","object"],["locations","object"],["quests","object"],["lore","array"],["keyDecisions","array"],["chapters","array"]];
 function _memoryStoreOk(v,kind){return kind==="array"?Array.isArray(v):!!v&&typeof v==="object"&&!Array.isArray(v);}
 function memoryShapeIssue(m){
@@ -915,6 +941,7 @@ function checkpointRestore(snap,opts){
   if(live.mpFallen)ws.mpFallen=live.mpFallen;
   var prevWs=worldState,prevSl=sessionLog,prevMem=memory;
   keyedStores(ws,"world");keyedStores(mem,"memory");
+  campaignEpochBump();/* audit X: the camp is an older copy of this campaign — a side call started before the death does not belong in it */
   worldState=ws;sessionLog=sl;memory=mem;
   if(typeof healMemory==="function"){try{healMemory();}catch(e){
     worldState=prevWs;sessionLog=prevSl;memory=prevMem;
@@ -948,6 +975,7 @@ function loadState(opts){/* opts.screen (the boot): an unreadable save is shown 
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
   try{sessionLog=sl?JSON.parse(sl):[];}catch(e){rescueCorruptStore("sess",sl,e);sessionLog=[];}/* JP0-4: preserve + shout before degrading */
+  campaignEpochBump();/* audit X: whatever loads (or fails to) from here on is another state than the one a side call started in */
   _versionRefusedLoad=null;_unreadableLoad=null;
   try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE any migrate-save — preserve the rescued transcript. */if(typeof _sumFails!=="undefined")_sumFails=worldState.summaryFailure&&typeof worldState.summaryFailure.count==="number"?worldState.summaryFailure.count:0;}}catch(e){worldState=null;
     /* #599 (a): the stored save was written by a newer build. Nothing was changed (the gate threw before the first write);
@@ -1227,7 +1255,7 @@ function importSaveData(data){
   try{plan=_importInstall(data,ws);}
   catch(eImp){
     worldState=_prevWs;sessionLog=_prevSl;memory=_prevMem;
-    setActiveCampId(_prevId);_checkpointMem=_prevCamp;
+    setActiveCampId(_prevId);_checkpointMem=_prevCamp;campaignEpochBump();
     if(typeof console!=="undefined")console.error("[import] the file could not be prepared — "+((eImp&&eImp.message)||eImp)+". The import is undone: the campaign that was open is still open, and nothing was saved.",eImp);
     throw eImp;
   }
@@ -1241,6 +1269,7 @@ function importSaveData(data){
 /* The installing half of importSaveData (S4): repoints the globals and the active id at the file and prepares it. It writes
    nothing to storage; importSaveData undoes it when it throws. */
 function _importInstall(data,ws){
+  campaignEpochBump();/* audit X: an import that reuses the open campaign's id is still another state */
   worldState=ws;
   // Resolve the campaign slot (#423): the file's own id only when this device owns it; a foreign id is re-minted.
   var plan=resolveImportedCampaignId(ws.campId);
@@ -1540,6 +1569,7 @@ function removeActiveCampaignLocally(id){
   forgetCampaignSyncMarkers(id);
   setActiveCampId(null);
   worldState=null;sessionLog=[];memory=blankMemory();
+  campaignEpochBump();/* audit X: no campaign is another state too */
   return true;
 }
 function deleteCampaign(id){

@@ -198,9 +198,15 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.78";
+var BP_DESIGNER_VERSION="v0.79";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
+/* audit 2026-11-19, X6/X7: bpDoc counts the DOCUMENTS this page has held — it goes up when the working copy is replaced by
+   another blueprint (a load, New, a generated draft, the restored draft at boot), and NOT when a failed fix rolls the same
+   blueprint back to its snapshot (which replaces the object, so object identity cannot tell the two apart; Apply-all runs
+   fixes side by side and one rollback must not make its siblings refuse). A model call notes it before it waits and
+   writes nothing if it has moved. */
+var bpDoc=0;
 // The raw authoring state includes review selections, full prose originals, portraits and edition identity.
 var designerDrafts=null,designerDraftStore=null,designerDraftReady=false;
 function saveDraft(){if(designerDraftReady&&designerDrafts)designerDrafts.schedule();}
@@ -799,7 +805,7 @@ function openBreakout(btn){
 
 // ── Load / New / Save ──────────────────────────────────────────────────────────
 function loadBlueprintObject(obj){
-  bp=normalizeBlueprint(obj,{preserveProse:true});editionBaseline=BlueprintEdition.baseline(bp);
+  bp=normalizeBlueprint(obj,{preserveProse:true});bpDoc++;editionBaseline=BlueprintEdition.baseline(bp);
   // Legacy review shape (pre-v0.19): findings carried a single `fix` string — lift into fixes[].
   if(bp.review&&bp.review.findings){bp.review.findings.forEach(function(f){if(!f.fixes||!f.fixes.length)f.fixes=f.fix!=null?[String(f.fix)]:[""];delete f.fix;});}
   var err=validateBlueprint(bp);
@@ -809,7 +815,7 @@ function loadBlueprintObject(obj){
 }
 document.getElementById("btn-new").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
-  bp=blankBp();editionBaseline=null;dirty=false;render();setStatus("New blueprint","");
+  bp=blankBp();bpDoc++;editionBaseline=null;dirty=false;render();setStatus("New blueprint","");
 });
 document.getElementById("btn-load").addEventListener("click",function(){
   if(dirty&&!confirm("Discard unsaved changes?"))return;
@@ -1218,6 +1224,7 @@ function openGenerate(){
     if(dirty&&!confirm("Generating replaces the editor contents. Discard unsaved changes?"))return;
     /* #481 G5: the modal covers the statusline, so its button is the one status — and it counts */
     var btn=this;btn.disabled=true;var _gt=elapsedTicker(btn,"Generating… (can take a minute)",{text:true});
+    var _genDoc=bpDoc;/* audit 2026-11-19, X6: the working copy this draft was asked to replace */
     try{
       var toneId=document.getElementById("gen-tone").value,toneName="",j;
       for(j=0;j<TONES.length;j++)if(TONES[j].id===toneId)toneName=TONES[j].nm;
@@ -1227,6 +1234,10 @@ function openGenerate(){
         concept:document.getElementById("gen-concept").value.trim(),
         toneId:toneId,toneName:toneName,toneList:_toneIdList(),dna:dna
       },designerModel());
+      /* audit 2026-11-19, X6: the draft takes about a minute. An author who closed this window and went back to work (or
+         opened another blueprint) had the working copy — and its saved draft — replaced under their hands when the answer
+         came. The window still open over the same working copy is the author's standing yes; anything else is not. */
+      if(bpDoc!==_genDoc||!document.body.contains(wrap))throw new Error("its window was closed, or another blueprint was opened, while the draft was being written — nothing was replaced. Generate again to use a draft.");
       /* #459 ①: the same deterministic register gate the game runs at Begin — every hit lands in the draft's Review as a HIGH
          finding (⚡ Apply rewrites it) before the author reads a word of it; nothing is refused here, the author decides. */
       var _regF=(typeof skeletonRegisterFindings==="function")?skeletonRegisterFindings(draft):[],_rfi;
@@ -1235,7 +1246,7 @@ function openGenerate(){
       draft.format="tnd-blueprint-v1";draft.author="";draft.proseAuthor=voiceId||"";draft.narratorVoice=bp.narratorVoice||""; // #9: a generated draft must not silently drop an already-chosen narrator
       if(toneId)draft.tone=toneId; // the author's pick is authoritative over the model's echo
       draft.version="0.01";draft.releaseStatus="draft";
-      bp=normalizeBlueprint(draft,{preserveProse:true});editionBaseline=null;
+      bp=normalizeBlueprint(draft,{preserveProse:true});bpDoc++;editionBaseline=null;
       var err=validateBlueprint(bp);
       secOpen={}; // fresh content the author must actually read — start open, like New (loads collapse)
       markDirty();render();
@@ -1326,6 +1337,7 @@ document.getElementById("btn-review").addEventListener("click",async function(){
   if(!llmReady())return;
   if(bp.review&&bp.review.findings&&bp.review.findings.some(function(f){return !f.status;})&&!confirm("A review with open findings exists — replace it with a fresh review?"))return;
   var btn=this;btn.disabled=true;var _rt=null;
+  var _revDoc=bpDoc;/* audit 2026-11-19, X7: the blueprint these findings are about */
   try{
     var payload=DesignerCreatures.textBlueprint(bp);delete payload.review;
     var payloadJson=JSON.stringify(payload,null,1);
@@ -1352,6 +1364,8 @@ document.getElementById("btn-review").addEventListener("click",async function(){
     for(i=0;i<all.length;i++){if(all[i].fixes.length===1)all[i]._sel=0;}
     // Store the section counts, not a frozen verdict string — reviewVerdict() recomputes the count
     // LIVE from the current findings so header and verdict never drift as findings are dismissed.
+    /* X7: a review of one blueprint was attached to whichever was open when the model answered */
+    if(bpDoc!==_revDoc)throw new Error("another blueprint was opened while this one was being reviewed — its findings were not attached. Review the open blueprint to get its own.");
     bp.review={findings:all,sections:REVIEW_CHUNKS.length-failed,failedSections:failed};
     markDirty();render();
     var sect=document.querySelector("[data-key='review']");if(sect)sect.scrollIntoView({behavior:"smooth"});
@@ -1457,7 +1471,7 @@ async function applyFinding(idx){
   f.status="applying";render();
   /* #481 G5: a lone apply counts its seconds; inside Apply-all the batch owns the statusline (one ticker, never two fighting) */
   var _at=_applyingAll?null:statusTicker("Applying fix: "+f.issue.slice(0,60)+"…");
-  var snapshot=null;
+  var snapshot=null,_fixDoc=bpDoc;/* audit 2026-11-19, X7: the blueprint this fix was written for */
   try{
     var payload=DesignerCreatures.textBlueprint(bp);delete payload.review;
     var msg="Here is a TTRPG campaign blueprint:\n"+JSON.stringify(payload,null,1)
@@ -1482,6 +1496,9 @@ async function applyFinding(idx){
     // ever balloon that big is diagnosed via the raw-response console dump in the catch below.
     var resp=await callGM(msg,"You edit TTRPG campaign blueprints surgically, ONE item at a time. Output ONLY valid JSON. Change nothing beyond what the finding requires.",16000,designerModel(),{noHistory:true,kind:"other"});
     if(_at)_at.stop();
+    /* X7: the patches were merged into whichever blueprint was open when the model answered, and a failure stamped its
+       error on that blueprint's finding at the same index. Nothing is written to a blueprint the fix was not written for. */
+    if(bpDoc!==_fixDoc||!bp.review||!bp.review.findings[idx]){f.status="";setStatus("Another blueprint was opened while the fix was being written — nothing was applied.","err");return;}
     var patch=JSON.parse(repairModelJson(resp));
     if(!patch||!patch.patches||!patch.patches.length)throw new Error("model returned no patches");
     snapshot=JSON.parse(JSON.stringify(bp));
@@ -1755,7 +1772,9 @@ window.__bpdTest={
   fieldSet:function(s,i,j,k,v){bpFieldSet(s,i,j,k,v);},
   blankCustomClass:blankCustomClass,
   availRename:availRename,
-  rerender:function(){render();}
+  rerender:function(){render();},
+  doc:function(){return bpDoc;},/* audit X6/X7: which document the page holds */
+  applyFinding:function(i){return applyFinding(i);}
 };
 }
 
@@ -1787,10 +1806,10 @@ function restoreDesignerDraft(_draft,ignoreIncoming){
     else if(_dec.action==="keep")_keptMsg="Kept your unsaved draft \""+_dec.draftName+"\" — "+_dec.incomingName+" stays on the Home shelf; open it again when you are ready.";
   }
   if(_draft&&_draft.bp&&_draft.bp.format){
-    bp=normalizeBlueprint(_draft.bp,{preserveProse:true});editionBaseline=Object.prototype.hasOwnProperty.call(_draft,"editionBaseline")?_draft.editionBaseline:BlueprintEdition.baseline(bp);dirty=!!_draft.dirty;render();
+    bp=normalizeBlueprint(_draft.bp,{preserveProse:true});bpDoc++;editionBaseline=Object.prototype.hasOwnProperty.call(_draft,"editionBaseline")?_draft.editionBaseline:BlueprintEdition.baseline(bp);dirty=!!_draft.dirty;render();
     setStatus(_keptMsg||((bp.name||"Untitled blueprint")+(_fromHome?" — opened from the Home shelf":" — restored from draft"+(dirty?" (unsaved changes)":""))),_keptMsg?"warn":"");
   }else{
-    bp=blankBp();editionBaseline=null;dirty=false;render();setStatus("New blueprint — or Load an existing .blueprint file.","");
+    bp=blankBp();bpDoc++;editionBaseline=null;dirty=false;render();setStatus("New blueprint — or Load an existing .blueprint file.","");
   }
   if(_incomingProblem)setStatus(_incomingProblem,"err");
 }
