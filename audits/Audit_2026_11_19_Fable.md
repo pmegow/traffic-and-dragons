@@ -40,6 +40,65 @@
 
 ---
 
+## Build plan and rulings (owner 2026-11-19)
+
+The owner asked for a plan to build as much of this audit as possible, with the rulings taken up front. This section is
+the plan of record; a session that picks the build up reads it first. Each row's Status says where that row stands.
+
+**Rulings taken.**
+
+| Row | Ruling |
+|---|---|
+| Review | One independent reviewer agent reads every batch that holds a ⛨ row, before that batch is pushed. Its findings are fixed first. |
+| G10 | Accepted, not built. CI tests the committed bytes after the push. |
+| U6 | A notice raised while a modal is open pops up, and is also kept in the Console. |
+| U11 | In Car Mode a notice fades by itself after 8 seconds and is kept in the Console. |
+| A1 | Make notes on ways and inside places work: keyed by sheet, shown on the card. |
+| S12 | A campaign deleted in the cloud is removed from this device automatically, and the device says so. |
+| T9 | `[COMPANION_XP:]` gets the hero's clamp: ten times the companion's level per award. |
+| H3 | Fix the injection and also scope a blueprint's rules to its own campaign, in this build. |
+
+**Decisions I made without asking (say so if any is wrong).**
+
+- **One writer.** This build runs in one Fable-tier session at a time, batch after batch. No parallel lanes and no lighter model, the Any-tier rows included.
+- **Sync fixes are in the game only.** S1 and S2 are fixed in `storage-adapter.js`. The server is not changed and not deployed.
+- **Schedule bounds (T7).** A label is cut at 200 characters; a 65th pending entry is refused; an entry due more than 100 years out is refused. Each refusal is said.
+- **Car Mode grammar (V8).** A short line that opens with "I" is an action, never a command. The car-talk project's copies are re-synced when `car-commands.js` or `car-session.js` change.
+- **One frozen hash is re-baselined (P4).** The strip regex changes on purpose, in batch 3, with the reason in the commit.
+- **Unguarded clauses get tests.** If re-proving the eight exposed batteries (G1) shows a clause that nothing guards, the missing test is written in batch 0.
+- **A local copy with unsent turns (S12).** It is removed like any other, as ruled. This is the one case where play could be lost; say so if it should be kept instead.
+- **Not in this build.** The three suspected items in section Z (they become rows if the build confirms them) and the unread legacy map code.
+
+**How each row is built.** A failing test first. Then the fix. Then a sabotage clause that proves the test guards it.
+The row's Status here changes in the same commit. One concern per commit; a game-code commit bumps `APP_VERSION`,
+`CACHE` and `release-next.json`; a designer-only commit bumps `BP_DESIGNER_VERSION`. Two class guards are added in
+`dev/class-guards.js`: a write to the campaign after an awaited model call with no same-campaign check (section X), and
+an unescaped field in an HTML-building function (section H).
+
+**The batches, in order.** A batch is pushed when its gates are green and, for a ⛨ batch, when the reviewer's findings are fixed.
+
+| Batch | Rows | Count | Why here | Reviewer |
+|---|---|:---:|---|:---:|
+| 0. The test gates | G1–G4 first, then G2's target list, then G5–G9, G11, G12 | 11 | Every later proof rests on the sabotage harness telling the truth. Ends with the eight exposed batteries re-proven. | no |
+| 1. Cloud sync and saves | S1, S2 first; then S3–S13 | 13 | The two rows that lose play from another device. | yes |
+| 2. Wrong-campaign writes | X1–X5, X8, the class helper and guard; then X6, X7 (designer) | 8 | One class; X1 corrupts the always-injected era. | yes |
+| 3. Tags, clock and the tag boundary | T1–T11, P1–P5 | 16 | One parser; T1–T3 are high. | yes |
+| 4. Prompt, privacy and campaign start | P6–P12, K1, K2, C1, C2, C13–C15, the H3 rule scope | 14 | Canon injection and what the player is told. | yes |
+| 5. Memory | M1–M7 | 7 | M1 folds facts away silently. | yes |
+| 6. Unescaped HTML | H1–H13, U4 | 14 | One admission row, the sinks, the inline handlers, the class guard. | no |
+| 7. The turn loop | U1–U3, U5–U13, C3, C4, C10, V1 | 16 | U1, the #772 and #776 defects, the duplicated Car Mode turn. | yes |
+| 8. Voice and Car Mode | V2–V13 | 12 | Tested against fake platform objects; a device check is owed after. | no |
+| 9. The atlas | A1–A8 | 8 | Public map mode only. | no |
+| 10. The smalls | C5–C9, C11, C12, C16, D1–D5 | 13 | Low rows and the satellites. | no |
+
+132 rows are built; G10 is closed by ruling.
+
+**What the owner owes when the build is done.** A phone and car check of batches 7 and 8 (V2–V7, V13, U5, U6, U11),
+a look at the Blueprint Designer's Generate guard (X6), and ordinary live play as the read of everything else.
+TODO row #777 closes when every high and medium row here is ✅ or carries a ruling.
+
+---
+
 ## G. The test gates
 
 | # | Task | Effort | Tier | Status |
@@ -53,7 +112,7 @@
 | G7 | **`TODO_Atlas.md` is outside every tracker gate in CI.** *Low · reproduced.* The per-commit lint runs with `--file`, which never loads the atlas file, so a `TODO.md` row that reuses an atlas row's number passes CI; only the local hook's id pass reads it, and no shape, column, size or move check reads it anywhere. `todo-viewer.html` does not read it either. This gap came with the 2026-11-18 split. **Remedy:** pass the atlas file to the lint in CI and run the other passes over it. | S | Any | ○ |
 | G8 | **`ci-status.js` says GREEN when the newest runs timed out or failed to start** *Low · reproduced.*, because it keeps only `success` and `failure`; and the engine job sets no `timeout-minutes`. This is the blind gate #646 was written to end. | S | Any | ○ |
 | G9 | **`run-sabotage-diff.js` exits green when it cannot read its range** *Low · lane-read only.* ("nothing to run"); its sibling tools refuse the same condition. | S | Any | ○ |
-| G10 | **The pre-commit hook tests the working tree, not the staged commit.** *Low · lane-read only.* With sessions sharing one tree and `git commit --only`, the bytes tested can differ from the bytes committed; CI catches it after the push. | M | Any | ○ |
+| G10 | **The pre-commit hook tests the working tree, not the staged commit.** *Low · lane-read only.* With sessions sharing one tree and `git commit --only`, the bytes tested can differ from the bytes committed; CI catches it after the push. | M | Any | ✅ **Accepted, not built (owner 2026-11-19).** CI tests the committed bytes after the push; the hook stays as it is. |
 | G11 | **`dev/bible-server.js` answers reads from any website** *Low · lane-read only.* (CORS `*`; `/health` carries the repo path), dies on a malformed URL, and stages every upload at one fixed temp path. Writes are guarded. | S | Any | ○ |
 | G12 | **The storage-key census misses ten keys that exist only in satellite pages** *Low · reproduced.*, while CLAUDE.md calls its output "the full list". | S | Any | ○ |
 
@@ -74,7 +133,7 @@
 | S9 | **A failed portrait upload (HTTP 4xx or 5xx) is treated as success and never retried.** *Low · lane-read only.* `syncPortrait` (storage-adapter.js:532) has no `r.ok` check. | S | Any | ○ |
 | S10 | **A re-homed campaign loses its preserved transcript backup.** *Low · lane-read only.* `rehomeCampaign` does not move `tnd_transcript_rescue_v1_<id>` (or the store and clock rescue keys); the promised auto-recovery then looks under the new id. | S | Fable | ○ |
 | S11 | **A deleted or re-homed campaign's camp checkpoint stays in IndexedDB forever.** *Low · lane-read only.* Nothing deletes a key in the `checkpoints` store; each holds a full world. | S | Any | ○ |
-| S12 | **A campaign deleted on another device leaves its local slot behind with no way to remove it.** *Low · lane-read only.* `mergeCampaignLists` prunes the row; every removal path is row-driven. Hundreds of KB per mature save on a quota-limited phone. | S | Any | ○ |
+| S12 | **A campaign deleted on another device leaves its local slot behind with no way to remove it.** *Low · lane-read only.* `mergeCampaignLists` prunes the row; every removal path is row-driven. Hundreds of KB per mature save on a quota-limited phone. | S | Any | ○ Ruled (owner 2026-11-19): this device removes its local copy automatically when the cloud says the campaign was deleted, and says so. |
 | S13 | **`campCloudPushSilent` gives no reason when the stored world cannot be parsed** *Low · lane-read only.*, and the rename path that calls it with no callback is fully silent. | S | Any | ○ |
 
 ---
@@ -113,7 +172,7 @@ every post-await writer; and a class guard in `dev/class-guards.js` that finds a
 | T6 | ⛨ **Common malformed tags are stripped from the prose, change nothing, and are reported nowhere.** *Medium · reproduced.* `[COMBAT_END]` with a fight open, `[REST]`, `[REST:full]`, `[QUEST:Title]`, `[NPC:Name]` or four fields, `[XP:-50]`, `[SUBLOCATION_LEAVE:x]`, and `[GOLD:a few coppers]` (its "carries no amount" refusal at line 604 can never run). The near-miss tripwire covers eleven rarer tags and none of these. **Remedy:** call `__tagNearMiss` at the head of NPC, QUEST, GOLD, XP, REST and COMBAT_END. | M | Fable | ○ |
 | T7 | ⛨ **The schedule has no bound on count, label length or horizon, and every pending entry rides the prompt every turn.** *Medium · reproduced.* A 5,000-character label due in 274 years is accepted; 301 entries make a 23 KB clock block (clock.js:318–360, 696–718). **Remedy:** clamp the label and the horizon; cap the count with a loud refusal. | S | Fable | ○ |
 | T8 | ⛨ **Companion conditions and abilities compare names case-sensitively; the hero's do not.** *Low · reproduced.* Duplicates pile up and removal fails (tag_table.js:1910, 1916, 1924 against 1596, 1607). | S | Fable | ○ |
-| T9 | ⛨ **`[COMPANION_XP:]` is uncapped while `[XP:]` is clamped to ten times the level.** *Low · reproduced.* Whether that is deliberate is not known. | S | Fable | ○ |
+| T9 | ⛨ **`[COMPANION_XP:]` is uncapped while `[XP:]` is clamped to ten times the level.** *Low · reproduced.* Whether that is deliberate is not known. | S | Fable | ○ Ruled (owner 2026-11-19): the same clamp as the hero's — ten times the companion's level per award, cut and said. |
 | T10 | ⛨ **Extreme operands:** *Low · reproduced.* a GOLD figure of about 307 digits sets the purse to Infinity, which saves as null; an `ENEMY_HP` heal exceeds the maximum; `COMBAT_START` with hp 0 opens and closes the fight at once. | S | Fable | ○ |
 | T11 | ⛨ **The near-miss tripwire says "malformed — dropped" for tags the looser regex then applies** *Low · reproduced.* (the T2 cases). | S | Fable | ○ |
 
@@ -167,7 +226,7 @@ localStorage. The first five rows are reachable from a file another person made.
 |---|---|:---:|:---:|---|
 | H1 | **A `.tnd` save runs script at the next reload: the hero's name and the location are written raw into the boot and campaign-load lines.** *High · reproduced.* `addMsg` assigns `innerHTML` (ui-shell.js:323); callers at ui-boot.js:451–452 and ui-campaigns.js:245–246. The location is also model-written through `[LOCATION:]`. | S | Any | ○ |
 | H2 | **A `.char` file runs script when previewed.** *High · reproduced.* Stats, level, HP, XP, class and subrace go raw into the preview modal (ui-browsers.js:502, 516, 521) and the wizard's review card (char-creation.js:191–193); also ui-browsers.js 614, 739, 922, 442, 991. | S | Any | ○ |
-| H3 | **A `.blueprint`'s rules become stored HTML that runs every time Narrative Rules is opened, on every campaign, on that device.** *High · reproduced.* `showRulesModal` paints `customRules[i]` raw (ui-modals.js:119); the import pushes blueprint rules into the device-wide store (game.js:3624–3629). | S | Any | ○ |
+| H3 | **A `.blueprint`'s rules become stored HTML that runs every time Narrative Rules is opened, on every campaign, on that device.** *High · reproduced.* `showRulesModal` paints `customRules[i]` raw (ui-modals.js:119); the import pushes blueprint rules into the device-wide store (game.js:3624–3629). | S | Any | ○ Ruled (owner 2026-11-19): fix the injection AND scope a blueprint's rules to its own campaign in this build (batch 4); rules already copied to the device stay where they are. |
 | H4 | **`character_editor.html` lets a loaded `.char` break out of its attributes.** *High · reproduced.* Its own `esc()` does not escape `'`, every input is single-quoted, and skill values go in raw (lines 112, 208–212, 250, 256). A harmless "O'Brien" is also cut to "O". **Remedy:** use `escHtml`, as the designer does. | S | Fable | ○ |
 | H5 | **The read-only preview of a library or other-campaign character paints age, deity, alignment and stats raw, before the player accepts the import.** *High · reproduced.* `showReadOnlyCharSheet` (ui-sheets.js:738, 744) and `csSheetSections` (110); the live sheet escapes the same fields at line 292. | S | Any | ○ |
 | H6 | **A model-written companion sheet's alignment and spell level are painted raw** *High · reproduced.* on the NPC sheet (ui-sheets.js:513), the sheet sections (157), the spell panel (ui-panels.js:453, 459) and the hero sheet (309). `generateNpcSheet` passes them through verbatim; story text can steer the model. | S | Any | ○ |
@@ -190,12 +249,12 @@ localStorage. The first five rows are reachable from a file another person made.
 | U3 | ⛨ **Re-rolling a refused turn installs real narration whose tags are never applied.** *Medium · read and re-checked.* `rerollLast` applies no tags by design (the original's landed); for a refusal nothing ever landed, yet `sessionLog` keeps the tagged reply as if it had (game.js:3138–3168). **Remedy:** commit a refusal's replacement through the commit path, or say its changes did not land. | M | Fable | ○ |
 | U4 | **In the read-only character preview, the item ×, the ✎ and the epithet × act on the live hero.** *Medium · reproduced.* The preview passes `invOwner=null`; the code tests `!== undefined` (ui-sheets.js:751, 166, 195). Clicking × marked the hero's Longsword; the epithet × removed the hero's alias. The test passes `undefined`, so it misses this. **Remedy:** pass `undefined`, or test `== null`. | S | Any | ○ |
 | U5 | **Four modals are not dialogs to the focus contract, so Enter can send a turn behind them.** *Medium · lane-read only.* Respawn, Onward, Campaign ended and Health build their own `div` with no `aria-modal` (ui-modals.js:1104, 1115, 1142, 1153); `focusStoryBox` therefore focuses the hidden input. **Remedy:** move them onto `modalShell`. | S | Any | ○ |
-| U6 | **Since #772, a notice raised while a modal is open is only collected, so a modal's own refusals are invisible.** *Medium · read and re-checked.* `consoleDoorOpen` is true under a modal's backdrop (ui-shell.js:64–68). Affected: the roll modal's "the turn is still landing" (which `render.md` says the modal says), the dice test's failure reason, the health report failure, "Wait for the turn to finish", and the sync badge's explanation. I named this cost when #772 shipped; it is a contract drift and should be closed. **Remedy:** treat the door as closed while `modalTopOpen()` is true. | S | Any | ○ |
+| U6 | **Since #772, a notice raised while a modal is open is only collected, so a modal's own refusals are invisible.** *Medium · read and re-checked.* `consoleDoorOpen` is true under a modal's backdrop (ui-shell.js:64–68). Affected: the roll modal's "the turn is still landing" (which `render.md` says the modal says), the dice test's failure reason, the health report failure, "Wait for the turn to finish", and the sync badge's explanation. I named this cost when #772 shipped; it is a contract drift and should be closed. **Remedy:** treat the door as closed while `modalTopOpen()` is true. | S | Any | ○ Ruled (owner 2026-11-19): a notice raised while a modal is open pops up, and is also kept in the Console. |
 | U7 | **A roll whose send fails is lost on reload.** *Low · lane-read only.* The check is deleted and saved before the silent send; silent sends are never kept as a pending action (game.js:3082–3094, 3059). A limited ability it spent is gone too. | S | Fable | ○ |
 | U8 | **Sending with a check pending lapses the check even when no turn is sent** *Low · lane-read only.* (an empty Send, a Table Talk question, an owed level-up); `checkLapseToAction` runs before `txt` is read (game.js:2884). Reachable mainly in Car Mode. | S | Fable | ○ |
 | U9 | **A throw in the tag pass after the player's line is written offers a Retry that logs the line and bumps the turn again** *Low · lane-read only.* (game.js:2676–2708). No throwing input was found. | S | Fable | ○ |
 | U10 | **The sheet's ✎ Define and ⟳ Sync do nothing while a turn is in flight, and say nothing** *Low · lane-read only.*; the item card's Define says "Wait for the turn to finish" for the same action. | S | Any | ○ |
-| U11 | **In Car Mode every notice pops and stays until tapped** *Low · lane-read only.*, stacking over the car screen for the length of a drive (ui-shell.js:92–104). | S | Any | ○ |
+| U11 | **In Car Mode every notice pops and stays until tapped** *Low · lane-read only.*, stacking over the car screen for the length of a drive (ui-shell.js:92–104). | S | Any | ○ Ruled (owner 2026-11-19): in Car Mode a notice fades by itself after 8 seconds and is kept in the Console. |
 | U12 | **The campaign-folder banner can be added twice with the same ids; the second copy's buttons are dead** *Low · lane-read only.* (game.js:3853–3864). | S | Any | ○ |
 | U13 | **The World State panel throws on a null faction entry** *Low · reproduced.* (`worldStateNpcRows`, helpers.js:3916). Whether real state can hold one is not known. | S | Fable | ○ |
 
@@ -236,7 +295,7 @@ Browser audio cannot be driven headless. R rows here were reproduced against fak
 
 | # | Task | Effort | Tier | Status |
 |---|---|:---:|:---:|---|
-| A1 | **A note on a way out, or on a place inside, is saved, never shown again, and shared by every sheet.** *Medium · reproduced.* Public note keys carry no zone (atlas.js:1376) and way ids are positional (`way-1` on every sheet; atlas-public-sheet.js:181); the way card always returns `note:null`. **Remedy:** hide "Add note" on those cards, or key public notes by sheet and return them. | S | Fable | ○ |
+| A1 | **A note on a way out, or on a place inside, is saved, never shown again, and shared by every sheet.** *Medium · reproduced.* Public note keys carry no zone (atlas.js:1376) and way ids are positional (`way-1` on every sheet; atlas-public-sheet.js:181); the way card always returns `note:null`. **Remedy:** hide "Add note" on those cards, or key public notes by sheet and return them. | S | Fable | ○ Ruled (owner 2026-11-19): make them work — key each public note by its sheet and show it on the card; a way note saved before the fix cannot be told apart by sheet and is dropped with a line in the Console. |
 | A2 | **After a place merge leaves two features with one name, that place's map accepts nothing more, every turn, for good.** *Medium · reproduced.* `atlasKnowledgeCollision` (atlas-knowledge.js:107–117) scans all features of the scope, not the ones this turn touches. The toast tells the GM to use a handle, which cannot help. **Remedy:** report a collision only for a feature this turn created or changed. | S | Fable | ○ |
 | A3 | **An exit with no stated direction jumps to the opposite edge when a later way is stated in its direction** *Medium · reproduced.*, against "an exit added later moves nothing drawn" (atlas-public-sheet.js:209–214). The stability test adds an unstated way, so it cannot catch this. | S | Fable | ○ |
 | A4 | **The public geography store grows about 465 bytes per disclosure, uncompressed, and every projection re-validates all of it.** *Medium · reproduced.* 931 KB at 2,000 disclosures in the memory key; at the 8,192-receipt cap every later disclosure is refused for the rest of the campaign, with a toast each turn. **Remedy:** bound the provenance bytes; validate once per revision. | M | Fable | ○ |
