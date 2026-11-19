@@ -101,6 +101,10 @@ rc |= sabotage.prove({
 
     { label: "the E26 clear is dropped — a failed suggestion call re-attaches last turn's buttons on reload (#280b)",
       mustFail: "the E26 clear was lost",
+      /* 2026-11-19: this clause runs the #280b suite itself. Under the whole run-tests the mutation was caught first by the
+         retained-proof probe (the clause's own anchor reads as stale in the mutated file), so the run ended before #280b spoke
+         and the harness said MISATTRIBUTED — on origin/master too, found while landing #772/#776. */
+      command: ["node", ["dev/tests-280b-actions-sync.js"]],
       find: "  worldState.lastActions=null; // clear now (audit E26) — if this call fails, reload won't re-attach the PREVIOUS turn's buttons to the newest narration",
       replace: "  ; // E26 clear neutered" }
   ]
