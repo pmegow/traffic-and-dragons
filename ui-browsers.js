@@ -439,9 +439,9 @@ function showCharacterBrowser(initialMode){
         var inner=avatarHtml(ch.name,ch.portrait)
           +"<div class='cbr-txt' style='flex:1;min-width:0;'>"
           +"<div class='cbr-name'>"+escHtml(entry.name)+"</div>"
-          +"<div class='cbr-sub'>Lv"+entry.level+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
+          +"<div class='cbr-sub'>Lv"+escHtml(String(entry.level))+" "+escHtml(entry.ancestry)+" "+escHtml(entry.cls)+"</div>"
           +"</div>"
-          +"<button onclick='event.stopPropagation();_cbDelLib(\""+escHtml(entry.slug)+"\",\""+escHtml(entry.name).replace(/"/g,"&quot;")+"\")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;' title='Remove from the character library'>&#215;</button>";
+          +"<button onclick='event.stopPropagation();_cbDelLib("+jsArg(entry.slug)+","+jsArg(entry.name)+")' style='padding:6px 8px;font-size:12px;background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;' title='Remove from the character library'>&#215;</button>";
         rows+=rowHtml("onclick='_cbPickLib(\""+escHtml(entry.slug)+"\")'",inner);
       }
       body.innerHTML=rows;
@@ -499,7 +499,7 @@ function showCharImportPreview(char, onAccept, onCancel){
   var portrait=char.portrait?"<img src='"+safeImgSrc(char.portrait)+"' alt='"+escHtml(char.name)+"' style='width:100%;height:100%;object-fit:cover;display:block;border-radius:50%;'>":initials;
   var stats=char.stats||{};
   var statRow=["STR","DEX","CON","INT","WIS","CHA"].map(function(s){
-    return "<div style='text-align:center;'><div style='font-size:10px;color:var(--t2);'>"+s+"</div><div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+(stats[s]||"—")+"</div></div>";
+    return "<div style='text-align:center;'><div style='font-size:10px;color:var(--t2);'>"+s+"</div><div style='font-size:14px;color:var(--t0);font-weight:bold;'>"+escHtml(String(stats[s]||"—"))+"</div></div>";/* audit 2026-11-19, H2 */
   }).join("");
   var abilities=(char.abilities||[]).slice(0,4).map(function(a){return "<div style='font-size:11px;color:var(--t1);margin-bottom:3px;'><span style='color:var(--acc);'>"+escHtml(a.nm)+"</span> — "+escHtml(a.ds)+"</div>";}).join("");
   var spells=(char.spells||[]).filter(function(s){return!spellUnavailable(s);}).slice(0,6).map(function(s){return escHtml(s.nm);}).join(", ");/* #361: only a used RACIAL 1/day spell is unavailable (slot-era filter hid every cast spell) */
@@ -513,12 +513,12 @@ function showCharImportPreview(char, onAccept, onCancel){
     +"<div style='display:flex;gap:16px;align-items:center;margin-bottom:18px;'>"
     +"<div style='width:64px;height:64px;border-radius:50%;background:var(--bg3);border:2px solid var(--acc);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--acc);font-weight:bold;flex-shrink:0;overflow:hidden;'>"+portrait+"</div>"
     +"<div><div style='font-size:18px;color:var(--acc);font-weight:bold;'>"+escHtml(char.name)+"</div>"
-    +"<div style='font-size:12px;color:var(--t1);margin-top:2px;'>Lv"+(char.level||1)+" · "+escHtml(char.subraceNm||char.ancestry||"")+" "+escHtml(char.cls||"")+(char.archetypeNm?" ("+escHtml(char.archetypeNm)+")":"")+"</div>"
+    +"<div style='font-size:12px;color:var(--t1);margin-top:2px;'>Lv"+escHtml(String(char.level||1))+" · "+escHtml(char.subraceNm||char.ancestry||"")+" "+escHtml(char.cls||"")+(char.archetypeNm?" ("+escHtml(char.archetypeNm)+")":"")+"</div>"
     +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(char.gender||"")+" · "+escHtml(char.age||"")+(char.deity?" · "+escHtml(char.deity):"")+"</div>"
     +"</div></div>"
     +"<div style='display:grid;grid-template-columns:repeat(6,1fr);gap:6px;background:var(--bg2);border-radius:8px;padding:10px;margin-bottom:14px;'>"+statRow+"</div>"
     +"<div style='display:flex;gap:16px;margin-bottom:14px;font-size:12px;'>"
-    +"<span style='color:var(--hp);'>HP "+char.hp+"/"+char.maxHp+"</span>"
+    +"<span style='color:var(--hp);'>HP "+escHtml(String(char.hp))+"/"+escHtml(String(char.maxHp))+"</span>"
     +"<span style='color:var(--gold);'>"+fmtCoin(char.coin||(char.gold||0)*100)+"</span>"
     +"<span style='color:var(--t1);'>"+escHtml(alignLabel(char.alignLaw||0,char.alignGood||0))+"</span>"
     +"</div>"
@@ -611,7 +611,7 @@ function _startImportedCampaign(char){
   /* #14: wireClose:false — forced-choice setup; Cancel button is the only way out */
   var modal=modalShell("import-setup",
     "<div style='font-size:15px;color:var(--t0);font-weight:bold;margin-bottom:4px;'>New campaign for "+escHtml(char.name)+"</div>"
-    +"<div style='font-size:11px;color:var(--t2);margin-bottom:18px;'>Lv"+(char.level||1)+" "+escHtml(((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim())+" — imported as-is</div>"
+    +"<div style='font-size:11px;color:var(--t2);margin-bottom:18px;'>Lv"+escHtml(String(char.level||1))+" "+escHtml(((char.subraceNm||char.ancestry||"")+" "+(char.cls||"")).trim())+" — imported as-is</div>"
     +"<label style='"+lblCss+"'>Campaign name</label>"
     +"<input id='is-camp-name' type='text' value='"+escHtml(char.name)+"' style='"+inpCss+"margin-bottom:12px;'/>"
     +"<label style='"+lblCss+"'>World tone</label>"

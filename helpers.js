@@ -416,7 +416,7 @@ function registerStatsLine(){var s=registerStats();if(!s.slips)return "";var par
 function elapsedTicker(el,base,opts){
   var t0=Date.now(),cur=String(base||""),text=!!(opts&&opts.text),style=(opts&&opts.style)||"color:var(--t2);font-style:italic;",id=null;
   function secs(){return Math.round((Date.now()-t0)/1000);}
-  function paint(){if(!el)return;var s=(cur?cur+" ":"")+secs()+"s";if(text)el.textContent=s;else el.innerHTML="<span style='"+style+"'>"+s+"</span>";}
+  function paint(){if(!el)return;var s=(cur?cur+" ":"")+secs()+"s";if(text)el.textContent=s;else el.innerHTML="<span style='"+style+"'>"+escHtml(s)+"</span>";/* audit 2026-11-19, H13: the base text is text */}
   function stop(){if(id!==null){clearInterval(id);id=null;}}
   paint();
   if(typeof setInterval==="function"){id=setInterval(function(){if(el&&el.isConnected===false){stop();return;}paint();},1000);if(id&&typeof id.unref==="function")id.unref();}
@@ -612,9 +612,9 @@ function agendaBirthMaybe(kind,who,text){
 function agendaSheetHtml(cs){
   if(!cs||(!cs.agenda&&!(cs.agendaQueue&&cs.agendaQueue.length)&&!(cs.agendaHistory&&cs.agendaHistory.length)))return "";
   var h="<div class='cs-list'>",i;
-  if(cs.agenda)h+="<div class='cs-list-row'><b>"+escHtml(cs.agenda.want)+"</b> <span style='color:var(--t2);font-size:11px;'>"+escHtml(cs.agenda.kind)+" · since t"+cs.agenda.since+"</span></div>";
+  if(cs.agenda)h+="<div class='cs-list-row'><b>"+escHtml(cs.agenda.want)+"</b> <span style='color:var(--t2);font-size:11px;'>"+escHtml(cs.agenda.kind)+" · since t"+escHtml(String(cs.agenda.since))+"</span></div>";/* audit 2026-11-19, H8 */
   for(i=0;i<(cs.agendaQueue||[]).length;i++)h+="<div class='cs-list-row' style='opacity:.7;'>"+escHtml(cs.agendaQueue[i].want)+" <span style='color:var(--t2);font-size:11px;'>later · "+escHtml(cs.agendaQueue[i].kind)+"</span></div>";
-  for(i=0;i<(cs.agendaHistory||[]).length;i++)h+="<div class='cs-list-row' style='color:var(--t2);text-decoration:line-through;'>"+escHtml(cs.agendaHistory[i].want)+" <span style='font-size:11px;text-decoration:none;'>t"+cs.agendaHistory[i].done+"</span></div>";
+  for(i=0;i<(cs.agendaHistory||[]).length;i++)h+="<div class='cs-list-row' style='color:var(--t2);text-decoration:line-through;'>"+escHtml(cs.agendaHistory[i].want)+" <span style='font-size:11px;text-decoration:none;'>t"+escHtml(String(cs.agendaHistory[i].done))+"</span></div>";
   return h+"</div>";
 }
 // #319 plot armor (owner ruling 2026-09-03: derived with override). The blueprint's per-NPC `armor`
@@ -1657,6 +1657,38 @@ function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((
    manaCur: the stored c.mana clamped into [0, max] — and an ABSENT c.mana reads as
      FULL, which IS the migration ruling ("full pool for everyone"): old saves need no
      migration pass, they simply wake up topped up the first time anything reads. */
+/* audit 2026-11-19, section H — WHAT A FILE, A SAVE OR THE MODEL WROTE IS PAINTED AS TEXT.
+   systemMsgHtml: a system line in the story is text unless its caller says it is HTML (addMsg, ui-shell.js). The hero's
+   name and the place — from a .tnd, the place also from [LOCATION:] — were concatenated into such lines and assigned to
+   innerHTML (H1). One caller hands HTML on purpose (the turn summary, with its links) and passes {html:true}. */
+function systemMsgHtml(html,opts){return (opts&&opts.html)?String(html==null?"":html):escHtml(html);}
+/* jsArg: a value as an argument of an INLINE handler (onclick='f(...)'): a JavaScript string literal, then HTML-escaped.
+   The HTML parser decodes an attribute before the handler is compiled, so escaping alone left `");` live (H7). */
+function jsArg(v){return escHtml(JSON.stringify(String(v==null?"":v)));}
+/* sheetNumbersHeal (H12): the numeric fields of a sheet are numbers. They are concatenated into pages all over the
+   interface, and nothing coerced them at an import door — a string there was markup. A numeric string is read as its
+   number; anything else becomes the field's floor. Loud; returns the count; run at every admission door and at the load
+   before the pack check (state.js inventoryAdmitWorld). One row per field. */
+var SHEET_NUMBER_FIELDS=[["level",1,1],["maxHp",8,1],["hp",null,0],["xp",0,0],["coin",0,0],["alignLaw",0,null],["alignGood",0,null]];/* [key, value when unreadable (hp: maxHp), lowest allowed] */
+function sheetNumbersHeal(sheet){
+  if(!sheet||typeof sheet!=="object")return 0;
+  var n=0,i,k;
+  function fix(obj,key,dflt,min){
+    if(!obj||obj[key]===undefined||obj[key]===null)return;
+    var v=obj[key];if(typeof v==="number"&&isFinite(v)&&(min===null||v>=min))return;
+    var num=(typeof v==="string"&&/^\s*-?\d+(?:\.\d+)?\s*$/.test(v))?Number(v):NaN;
+    if(!isFinite(num)||(min!==null&&num<min))num=dflt;
+    obj[key]=num;n++;
+    if(typeof console!=="undefined")console.warn("[sheet] "+(sheet.name||"a sheet")+": "+key+" was not a usable number ("+String(JSON.stringify(v)).slice(0,40)+") — set to "+num+" (audit H12)");
+  }
+  for(i=0;i<SHEET_NUMBER_FIELDS.length;i++){var f=SHEET_NUMBER_FIELDS[i];fix(sheet,f[0],f[1]===null?((typeof sheet.maxHp==="number"&&isFinite(sheet.maxHp))?sheet.maxHp:1):f[1],f[2]);}
+  if(sheet.stats&&typeof sheet.stats==="object")for(k in sheet.stats)if(Object.prototype.hasOwnProperty.call(sheet.stats,k))fix(sheet.stats,k,10,1);
+  if(sheet.skills&&typeof sheet.skills==="object")for(k in sheet.skills)if(Object.prototype.hasOwnProperty.call(sheet.skills,k))fix(sheet.skills,k,0,0);
+  if(Array.isArray(sheet.spells))for(i=0;i<sheet.spells.length;i++)if(sheet.spells[i]&&typeof sheet.spells[i]==="object")fix(sheet.spells[i],"lvl",1,0);
+  if(sheet.agenda&&typeof sheet.agenda==="object"){fix(sheet.agenda,"since",0,0);fix(sheet.agenda,"born",0,0);}
+  var lists=["agendaQueue","agendaHistory"],li;for(li=0;li<lists.length;li++)if(Array.isArray(sheet[lists[li]]))for(i=0;i<sheet[lists[li]].length;i++){var q=sheet[lists[li]][i];if(q&&typeof q==="object"){fix(q,"born",0,0);fix(q,"since",0,0);fix(q,"done",0,0);}}
+  return n;
+}
 /* audit 2026-11-19, P8: the lists of a sheet whose entries a reader takes apart without asking. One row per list: its key,
    the word for an entry, and what an entry must be. sheetListsHeal removes what is not one — loudly — and returns the
    count; the admission registry runs it at every door, the load included (admission.js "lists"). */
@@ -2566,7 +2598,7 @@ function itemLookup(nm){
    server then refuses). Pure HTML string; showAccountModal wires the button to storageAdapter.linkGoogleToAccount. */
 function accountDoorsHtml(a){
   var p=(a&&Array.isArray(a.providers))?a.providers:["github"],has=function(x){return p.indexOf(x)>=0;};
-  var doors=p.map(function(x){return x==="github"?"GitHub":x==="google"?"Google":String(x);}).join(", ")||"none";
+  var doors=p.map(function(x){return x==="github"?"GitHub":x==="google"?"Google":escHtml(String(x));/* audit 2026-11-19, H13: a provider name the server sent */}).join(", ")||"none";
   var h="<div style='display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:4px 0;'><span style='color:var(--t2)'>Sign-in doors</span><span><b>"+doors+"</b></span></div>";
   if(!has("google"))h+="<button class='btn-p' id='ac-link-google' style='width:100%;margin-top:8px;'>Link a Google sign-in (for the phone)</button><div style='font-size:10px;color:var(--t2);margin-top:4px;line-height:1.4;'>Links Google to THIS account \u2014 your campaigns, your tier. On the phone, sign in with Google and leave GitHub to the desktop.</div>";
   return h;
@@ -2915,7 +2947,7 @@ function bibleCardHTML(name,e){
   if(!e)return '<div style="padding:20px 24px;color:var(--t2,#999);font-size:13px;">No canonical entry yet for <b>'+escHtml(name)+'</b>.</div>';
   var base=String(name||"").replace(/\s*\(.*\)/,"").trim();
   var kindLabel=e.kind==="ability"?"Ability":"Spell";
-  var tierLabel=(e.tier===0||e.tier==null)?(e.kind==="ability"?"":"Cantrip"):("Tier "+e.tier);
+  var tierLabel=(e.tier===0||e.tier==null)?(e.kind==="ability"?"":"Cantrip"):("Tier "+escHtml(String(e.tier)));/* H13 */
   var chip="display:inline-block;font-size:10px;text-transform:uppercase;letter-spacing:.06em;padding:2px 7px;border-radius:10px;margin-right:6px;";
   var badges='<span style="'+chip+'background:var(--bg3,#2a2a2a);color:var(--t1,#ccc);">'+kindLabel+(tierLabel?" &middot; "+tierLabel:"")+'</span>';
   badges+= e.isMagical
@@ -4434,7 +4466,7 @@ function synopsisBlockHtml(syn,groups,nowLines,turn){
        :"<div style='font-size:12px;color:var(--t2);font-style:italic;margin:6px 0 8px;'>No recap yet — one is written when an arc or act completes, or now with Refresh.</div>";
   if(syn&&syn.why)h+=lbl+"Why you fight</div><div style='font-size:13px;color:var(--t1);line-height:1.55;margin:0 0 8px;'>"+escHtml(syn.why)+"</div>";
   var n=0;for(i=0;i<groups.length;i++){n+=groups[i].items.length;for(j=0;j<groups[i].arcs.length;j++)n+=groups[i].arcs[j].items.length;}
-  function items(list,indent){var s="";for(k=0;k<list.length;k++){var it=list[k];s+="<div style='font-size:12px;color:var(--t2);margin:3px 0 3px "+indent+"px;line-height:1.45;'><span style='font-size:10px;opacity:.7;'>"+(it.era?"t"+it.from+"–"+it.turn:"t"+it.turn)+"</span> "+escHtml(it.text)+"</div>";}return s;}
+  function items(list,indent){var s="";for(k=0;k<list.length;k++){var it=list[k];s+="<div style='font-size:12px;color:var(--t2);margin:3px 0 3px "+indent+"px;line-height:1.45;'><span style='font-size:10px;opacity:.7;'>"+escHtml(it.era?"t"+it.from+"–"+it.turn:"t"+it.turn)+"</span> "/* H13 */+escHtml(it.text)+"</div>";}return s;}
   if(n){h+="<details style='margin:4px 0 8px;'><summary style='cursor:pointer;font-size:12px;color:var(--t2);'>What has happened · "+n+" chapter"+(n===1?"":"s")+"</summary>";
     for(i=0;i<groups.length;i++){var g=groups[i];
       if(g.label)h+="<div style='font-size:12px;color:var(--t1);margin:8px 0 2px;'>"+escHtml(g.label)+(g.status==="completed"?" <span style='color:var(--grn);'>✓</span>":"")+"</div>";

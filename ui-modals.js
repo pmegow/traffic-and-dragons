@@ -411,7 +411,7 @@ function showUsageModal(){
   function row(label,b,bold){
     var avg=b.calls?Math.round(b.in/b.calls):0;
     var st="padding:5px 8px;font-size:12px;font-family:var(--font-mono);text-align:right;white-space:nowrap;color:"+(bold?"var(--t0)":"var(--t1)")+";"+(bold?"border-top:1px solid var(--brd2);font-weight:bold;":"");
-    return "<tr><td style='"+st+"text-align:left;font-family:var(--font);'>"+label+"</td>"
+    return "<tr><td style='"+st+"text-align:left;font-family:var(--font);'>"+escHtml(label)+"</td>"/* audit 2026-11-19, H10: a usage kind comes from the save */
       +"<td style='"+st+"'>"+n(b.calls)+"</td><td style='"+st+"'>"+n(b.in)+"</td><td style='"+st+"'>"+n(avg)+"</td>"
       +"<td style='"+st+"'>"+n(b.cacheRead)+"</td><td style='"+st+"'>"+n(b.cacheWrite)+"</td><td style='"+st+"'>"+n(b.out)+"</td>"
       +"<td style='"+st+"'>$"+(b.costUSD||0).toFixed(4)+"</td></tr>";

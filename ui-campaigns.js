@@ -217,8 +217,8 @@ function _renderCampList(){
     var cloudOnly=cm.onServer&&!hasLocal&&!isActive;
     var cloudBtns=storageAdapter.isServerMode()
       ?"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
-        +"<button id='camp-push-"+cm.id+"' onclick='campCloudPush(\""+cm.id+"\")' title='Push to cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(hasLocal?"color:var(--t1);":"color:var(--t2);opacity:0.25;pointer-events:none;")+"' "+(hasLocal?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">&#9729;&#8593;</button>"
-        +"<button onclick='campCloudPull(\""+cm.id+"\")' title='Pull from cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(cm.onServer?"color:var(--t1);":"color:var(--t2);opacity:0.35;pointer-events:none;")+"' "+(cm.onServer?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">&#9729;&#8595;</button>"
+        +"<button id='camp-push-"+escHtml(cm.id)+"' onclick='campCloudPush("+jsArg(cm.id)+")' title='Push to cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(hasLocal?"color:var(--t1);":"color:var(--t2);opacity:0.25;pointer-events:none;")+"' "+(hasLocal?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">&#9729;&#8593;</button>"
+        +"<button onclick='campCloudPull("+jsArg(cm.id)+")' title='Pull from cloud' style='background:none;border:none;cursor:pointer;font-size:14px;line-height:1;padding:2px;"+(cm.onServer?"color:var(--t1);":"color:var(--t2);opacity:0.35;pointer-events:none;")+"' "+(cm.onServer?"onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t1)\"'":"")+">&#9729;&#8595;</button>"
         +"</div>"
       :"";
     var savedLine=isActive?"<span style='color:var(--acc);'>&#9679; Playing now</span>"
@@ -228,19 +228,19 @@ function _renderCampList(){
       +cloudBtns
       +"<div style='flex:1;min-width:0;'>"
       +"<div style='display:flex;align-items:center;gap:6px;'>"
-      +"<span id='camp-name-"+cm.id+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(dispName)+"</span>"
-      +(!cloudOnly?"<button onclick='campStartRename(\""+escHtml(cm.id)+"\")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>":"")
+      +"<span id='camp-name-"+escHtml(cm.id)+"' style='font-size:14px;color:"+(isActive?"var(--acc)":"var(--t0)")+";font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>"+escHtml(dispName)+"</span>"
+      +(!cloudOnly?"<button onclick='campStartRename("+jsArg(cm.id)+")' title='Rename' style='background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0;' onmouseover='this.style.color=\"var(--acc)\"' onmouseout='this.style.color=\"var(--t2)\"'>&#129718;</button>":"")
       +"</div>"
       +"<div style='font-size:11px;color:var(--t2);margin-top:2px;'>"+escHtml(cm.charName)+" &mdash; Lv"+cm.level+" "+escHtml(cm.charAncestry)+" "+escHtml(cm.charClass)+"&ensp;&mdash;&ensp;"+escHtml(cm.location)+"</div>"
       +"<div style='font-size:10px;color:var(--t2);margin-top:2px;'>"+savedLine+"</div>"
       +"</div>"
       +(isActive?"<span style='font-size:10px;color:var(--acc);flex-shrink:0;'>ACTIVE</span>"
         :"<div style='display:flex;flex-direction:column;gap:4px;flex-shrink:0;'>"
-        +"<button onclick='campLoad(\""+cm.id+"\")' style='padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;'>Load</button>"
+        +"<button onclick='campLoad("+jsArg(cm.id)+")' style='padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;'>Load</button>"
         /* B4: per-campaign local-copy eviction — the campaign stays in the picker as cloud-only */
-        +(hasLocal?"<button onclick='campRemoveLocal(\""+cm.id+"\")' title='Remove the local copy from this device (kept in your cloud library)' style='padding:3px 6px;font-size:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Remove local</button>":"")
+        +(hasLocal?"<button onclick='campRemoveLocal("+jsArg(cm.id)+")' title='Remove the local copy from this device (kept in your cloud library)' style='padding:3px 6px;font-size:10px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;'>Remove local</button>":"")
         +"</div>"
-        +"<button onclick='campDelete(\""+cm.id+"\")' style='padding:6px 10px;font-size:14px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;margin-left:6px;'>&#215;</button>")
+        +"<button onclick='campDelete("+jsArg(cm.id)+")' style='padding:6px 10px;font-size:14px;font-family:var(--font);background:none;border:1px solid var(--brd2);color:var(--t2);border-radius:var(--r);cursor:pointer;flex-shrink:0;margin-left:6px;'>&#215;</button>")
       +"</div>";}}
   listEl.innerHTML=rows;
 }

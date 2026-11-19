@@ -2010,7 +2010,7 @@ function mutsCollapseRepeats(lines){
 function mutsSummaryEmit(R){
   var lines=mutsCollapseRepeats((R&&R.muts)?R.muts:[]),here=(typeof hereItemsLine==="function")?hereItemsLine():"";
   if(here)lines.push(here);
-  if(lines.length&&typeof addMsg==="function")addMsg("system",(typeof summaryLineHTML==="function")?summaryLineHTML(lines):escHtml(lines.join(" | ")));/* #452: Present names link to their sheets (helpers.js) */
+  if(lines.length&&typeof addMsg==="function")addMsg("system",(typeof summaryLineHTML==="function")?summaryLineHTML(lines):escHtml(lines.join(" | ")),{html:true});/* H1: this caller hands HTML (the links) and says so *//* #452: Present names link to their sheets (helpers.js) */
 }
 /* #597: applyMuts has ONE source — the GM's reply. The player's own hand (the counter, the chest, the undo) writes the sheet
    directly through ledgerApply / undoLastItemMove (game.js), so the #481 D6 source-policy table (gm / ledger / undo) is gone

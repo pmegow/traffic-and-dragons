@@ -680,6 +680,6 @@ function importSave(event){
        migrate/heal, the checkpoint holder (D1) and saveAll. This shell keeps the file read and the DOM refresh only, so
        the import path is engine-testable (dev/tests-423-import-ownership.js runs the honest two-account case). */
     importSaveData(data);
-    document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+escHtml(worldState.character.name)+" Turn "+worldState.turn);/* imported-file name (#22/UA18) */if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
+    document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";showGame();syncUI();initAbilities();initSpells();addMsg("system","Loaded: "+worldState.character.name+" Turn "+worldState.turn);/* H1: addMsg escapes a system line *//* imported-file name (#22/UA18) */if(typeof initReplaySession==="function")initReplaySession();/* replay the story pane like init()/campLoad do — importSave left it empty (audit E65) */if(worldState.combat){document.getElementById("cpanel").classList.add("active");updateCombat();}}catch(err){showToast("Import failed: "+err.message);}};
   reader.readAsText(file);event.target.value="";
 }

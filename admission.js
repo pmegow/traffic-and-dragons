@@ -57,6 +57,8 @@ var SHEET_ADMISSION=[
    run:function(sheet){ensureV10Arrays(sheet);}},/* #428: the v10 field guarantee (game.js; a host without game.js has no v10 doors) */
   {name:"lists",phase:"prepare",applies:function(){return true;},
    run:function(sheet,ctx){var _ld=sheetListsHeal(sheet);if(!_ld)return;ctx.healed=true;if(ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+_ld+" unreadable entr"+(_ld===1?"y was":"ies were")+" removed from "+(sheet.name||"the character")+"'s conditions");}},/* audit 2026-11-19, P8: a null in a sheet's conditions made every turn fail and no door repaired it (helpers.js SHEET_LIST_RULES) */
+  {name:"numbers",phase:"prepare",applies:function(){return true;},
+   run:function(sheet,ctx){if(sheetNumbersHeal(sheet))ctx.healed=true;}},/* audit 2026-11-19, H12: numeric fields are numbers before any page concatenates them (helpers.js SHEET_NUMBER_FIELDS) */
   {name:"relationships",phase:"prepare",applies:function(){return true;},
    run:function(sheet,ctx){relationshipMigrateSheet(sheet,ctx.rel===undefined?sheet.name:ctx.rel,ctx.portable?{portable:true}:undefined);}},/* #168 W7: the axis adapter */
   {name:"scene",phase:"prepare",applies:function(ctx){return ctx.mode!=="same";},

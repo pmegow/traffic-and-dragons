@@ -613,6 +613,7 @@ function inventoryAdmitWorld(ws,door){
      whose packs were refused kept its null condition, on which every turn fails (the admission "lists" entry then finds
      nothing left here; it serves the other doors). */
   for(i=0;i<sheets.length;i++)_entries+=sheetListsHeal(sheets[i].sheet);
+  for(i=0;i<sheets.length;i++)if(sheetNumbersHeal(sheets[i].sheet))changed=true;/* audit 2026-11-19, H12: with the lists, before the pack check */
   if(_entries){changed=true;if(typeof showToast==="function")showToast("⚠ "+_entries+" unreadable condition entr"+(_entries===1?"y was":"ies were")+" removed from this campaign's sheets on load",9000);}
   for(i=0;i<sheets.length&&!why;i++)why=invSheetIssue(sheets[i].sheet);
   if(why){if(typeof console!=="undefined")console.error("[inventory] "+(door||"load")+": the packs were NOT converted — "+why+"; the save stays at v"+(ws&&ws.ver!==undefined?ws.ver:"?")+" with every pack as it was");

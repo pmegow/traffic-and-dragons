@@ -320,6 +320,7 @@ if(type==="narrator"&&opts&&opts.turn!=null){
   var _stamp=(opts.ck!=null&&typeof clockStamp==="function")?" | "+clockStamp(opts.ck):"";
   html="<div class='msg-turn'>Turn "+opts.turn+_stamp+"</div>"+html;// #23: subtle turn marker above narrative frames — helps backtracking
   div.setAttribute("data-turn",opts.turn);}/* #30: machine-readable twin of the marker above — restoreSavedRenders finds a turn's frame by attribute instead of parsing "Turn N" out of display text */
+if(type==="system")html=systemMsgHtml(html,opts);/* audit 2026-11-19, H1: a system line is text unless its caller passes {html:true} (helpers.js) */
 div.innerHTML=html;
 if(type==="thinking"&&typeof elapsedTicker==="function")div._tick=elapsedTicker(div,div.textContent,{text:true});/* #481 G5 follow-up (owner ruling 2026-09-30): every story wait counts seconds like the renders (#356) — "The world turns... 7s". The count stops itself when the marker is removed; its words change only through setThinking */
 if(opts&&opts.sp)div._sp=opts.sp;/* #9: speaker map for this passage; also assignable later, once the post-pass resolves */

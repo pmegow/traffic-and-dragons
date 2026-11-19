@@ -31,6 +31,7 @@ var SUITES = [
   "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again */
   "dev/tests-777-campaign.js",/* audit 2026-11-19 (#777) section X: a model call that outlives its campaign writes nothing */
   "dev/tests-777-sync.js",/* audit 2026-11-19 (#777) section S: a sync answer belongs to the campaign posted; the cloud ahead mid-turn is a pause */
+  "dev/tests-777-harden.js",/* audit 2026-11-19 (#777) section H and U4: what a file, a save or the model wrote is painted as text */
   "dev/tests-777-memory.js",/* audit 2026-11-19 (#777) section M: the name is not the fact, an applied extraction is not filed again, the needle, deferred scene facts, the era compile, map edges, queued wants */
   "dev/tests-777-prompt.js",/* audit 2026-11-19 (#777) batch 4: what the prompt carries (P6-P12, K1, K2, H3) and what a campaign is built from (C1, C2, C13-C15) */
   "dev/tests-777-tags.js",/* audit 2026-11-19 (#777) sections T and P: the tag parser, durations, schedule bounds and the applyMuts boundary */

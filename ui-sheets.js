@@ -107,7 +107,7 @@ function csWireVoice(char){CharacterVoice.wire(char,{prefix:"cs-",onChange:funct
 function csSheetSections(c,invOwner,portable){
   var i;
   var statHtml="<div class='cs-stat-grid'>";
-  for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+v+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
+  for(i=0;i<STATS.length;i++){var s=STATS[i],v=(c.stats&&c.stats[s])||"—";statHtml+="<div class='cs-stat'><div class='cs-sn'>"+s+"</div><div class='cs-sv'>"+escHtml(String(v))+"</div><div class='cs-sm'>"+(c.stats&&c.stats[s]?smod(c.stats[s]):"")+"</div></div>";}
   statHtml+="</div>";
   var earnedSkills=[],si2;
   if(c.skills){for(si2=0;si2<SKILLS.length;si2++){var skl=SKILLS[si2],succ=(typeof c.skills[skl.id]==="number")?c.skills[skl.id]:0;if(succ>0){var sklv=skillLevel(succ);earnedSkills.push('<div class="cs-skill-row" style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:6px 0;border-bottom:1px solid var(--brd);"><span>'+escHtml(skl.label)+'</span><span style="color:var(--t1);">'+escHtml(SKILL_LEVELS[sklv])+(typeof skillLevelBonus==="function"?' · +'+skillLevelBonus(sklv):'')+'</span></div>');}}  }
@@ -154,7 +154,7 @@ function csSheetSections(c,invOwner,portable){
   var spellHtml="";
   /* #110: the strikethrough now marks only the RACIAL 1/day hard gate; pooled spells stay plain
      (their availability is the mana line above the list, not a per-spell state). */
-  if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":String(sp2.lvl);var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+escHtml(nm2);var _spInner=(sp2.racial&&sp2.used&&sp2.lvl>0)?'<span style="color:var(--t2);text-decoration:line-through" title="1/day — expended until dawn">'+spTxt+'</span>':spTxt;var _spCanon=(typeof capabilityLookup==="function")&&capabilityLookup(sp2.nm);spParts.push(_spCanon?'<span class="cs-cap" data-cap="'+escHtml(sp2.nm)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+_spInner+'</span>':_spInner);}
+  if(c.spells&&c.spells.length){var spParts=[];for(i=0;i<c.spells.length;i++){var sp2=c.spells[i],stag=sp2.lvl===0?"C":escHtml(String(sp2.lvl));/* audit 2026-11-19, H6: a model-written spell level */var nm2=sp2.nm.indexOf("(")>=0?sp2.nm.slice(0,sp2.nm.indexOf("(")).trim():sp2.nm;var spTxt="["+stag+"] "+escHtml(nm2);var _spInner=(sp2.racial&&sp2.used&&sp2.lvl>0)?'<span style="color:var(--t2);text-decoration:line-through" title="1/day — expended until dawn">'+spTxt+'</span>':spTxt;var _spCanon=(typeof capabilityLookup==="function")&&capabilityLookup(sp2.nm);spParts.push(_spCanon?'<span class="cs-cap" data-cap="'+escHtml(sp2.nm)+'" onclick="showCapabilityCard(this.dataset.cap)" style="cursor:pointer;border-bottom:1px dotted var(--acc);">'+_spInner+'</span>':_spInner);}
     var _shMx=(typeof manaMax==="function")?manaMax(c):0;
     spellHtml=(_shMx>0?'<div class="cs-v" style="color:var(--mana);margin-bottom:2px;">Mana '+manaCur(c)+' / '+_shMx+' <span style="color:var(--t2);font-size:.85em;">(a cast costs its tier; refills on rest)</span></div>':"")+'<div class="cs-v" style="line-height:1.9">'+spParts.join(", ")+"</div>";}
   var invHtml;
@@ -163,7 +163,7 @@ function csSheetSections(c,invOwner,portable){
      panel — Sol §5). Each row carries its ORIGINAL array index, so a visually regrouped Drop
      still removes the right stored row; the stored array itself is never reordered. No nested
      collapse here — the sheet already has a parent collapse (Sol §6.3). */
-    var invRows="",_canDrop=(invOwner!==undefined),_gi,_ri,_grps=groupInventory(c.inventory,c);/* #599 (d2) */
+    var invRows="",_canDrop=(invOwner!=null),/* audit 2026-11-19, U4: the read-only preview passes null — `!== undefined` gave it the live hero's × and ✎ */_gi,_ri,_grps=groupInventory(c.inventory,c);/* #599 (d2) */
     /* #429: which rows read as marked is decided by the RESOLVED plan (index first, then name) — the same
        call the button commits — so the render and the commit cannot disagree after a GM turn shifted the array. */
     var _mkPlan=_canDrop?invDropPlan(c.inventory,_invDropMarksFor(invOwner)):{drop:[],count:0},_mkAt={},_mi;for(_mi=0;_mi<_mkPlan.drop.length;_mi++)_mkAt[_mkPlan.drop[_mi].idx]=true;
@@ -192,7 +192,7 @@ function csSheetSections(c,invOwner,portable){
   // #47: earned epithets/titles ride the character schema (c.aliases) so they survive PC↔NPC
   // swaps — "Player today is NPC tomorrow is Player again; the sheets stay sympatico" (user).
   var akaHtml="";
-  if(c.aliases&&c.aliases.length){var _akaParts=[],aki,_canRej=(invOwner!==undefined);
+  if(c.aliases&&c.aliases.length){var _akaParts=[],aki,_canRej=(invOwner!=null);/* U4 */
     for(aki=0;aki<c.aliases.length;aki++){
       var _rejBtn=_canRej?'<button class="epi-x" data-own="'+escHtml(invOwner)+'" data-idx="'+aki+'" onclick="rejectEpithet(this.dataset.own,this.dataset.idx,event)" title="Reject this epithet" style="background:none;border:none;color:var(--t2);cursor:pointer;font-size:11px;padding:0 2px;line-height:1;" onmouseover="this.style.color=\'var(--dng)\'" onmouseout="this.style.color=\'var(--t2)\'">&#10005;</button>':"";
       _akaParts.push('<span style="white-space:nowrap">'+escHtml(c.aliases[aki])+_rejBtn+'</span>');}
@@ -306,7 +306,7 @@ function showCharSheet(){
     +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",c.hp,c.maxHp,"HP")/* #352c: the sheet paints vitals with the HUD's readout */
     +(manaMax(c)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(c),manaMax(c),"MP"):"")
     +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+fmtCoin(c.coin)+"</span>"
-    +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
+    +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+escHtml(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"/* H6: the hero's sheet */
     +"</div>"
     +"<div class='cs-xp-wrap'>"
     +"<div class='cs-xp-lbl'><span>"+hdr.xpm.lbl+"</span><span>"+hdr.xpm.tail+"</span></div>"
@@ -510,7 +510,7 @@ function showNpcSheet(name){
       +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",sheet.hp||0,sheet.maxHp||0,"HP")/* #352c */
       +(manaMax(sheet)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(sheet),manaMax(sheet),"MP"):"")
       +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+fmtCoin(sheet.coin||0)+"</span>"
-      +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(sheet.actualAlignment||sheet.statedAlignment||"Neutral")+"</span></div>"
+      +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+escHtml(sheet.actualAlignment||sheet.statedAlignment||"Neutral")+"</span></div>"
       +"<div class='cs-xp-wrap'><div class='cs-xp-lbl'><span>"+xpm.lbl+"</span>"
       +"<span>"+xpm.tail+"</span></div>"
       +"<div class='cs-xp-bar'><div class='cs-xp-fill' style='width:"+xpm.pct+"%;'></div></div></div>";
@@ -537,8 +537,8 @@ function showNpcSheet(name){
   if(sheet&&sheet.aliases){for(_ak=0;_ak<sheet.aliases.length;_ak++){if(_aka.indexOf(sheet.aliases[_ak])<0)_aka.push(sheet.aliases[_ak]);}}
   if(_aka.length)statusBlock+=csKv("Also known as",_aka.map(escHtml).join(", "));
   var pcRel=worldState&&worldState.character?relationshipFind(worldState.character,name,null):null;
-  if(pcRel&&pcRel.bond)statusBlock+=csKv("Bond from "+worldState.character.name,escHtml(pcRel.bond));
-  if(pcRel&&pcRel.dynamic)statusBlock+=csKv("Current dynamic from "+worldState.character.name,escHtml(pcRel.dynamic));
+  if(pcRel&&pcRel.bond)statusBlock+=csKv("Bond from "+escHtml(worldState.character.name),escHtml(pcRel.bond));/* H9 */
+  if(pcRel&&pcRel.dynamic)statusBlock+=csKv("Current dynamic from "+escHtml(worldState.character.name),escHtml(pcRel.dynamic));
   if(wsNpc&&wsNpc.rel&&wsNpc.rel!=="unknown")statusBlock+=csKv("NPC stance toward player",escHtml(wsNpc.rel));
   var nfEntries=memory&&memory.npcGraph&&memory.npcGraph.npcFactions?memory.npcGraph.npcFactions[name]||[]:[];
   if(nfEntries.length)statusBlock+=csKv("Factions",escHtml(nfEntries.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", ")));
@@ -735,13 +735,13 @@ function showReadOnlyCharSheet(c,opts){
     +"<div class='cs-hero-info'>"
     +"<div class='cs-hero-name'>"+escHtml(c.name||"—")+"</div>"
     +"<div class='cs-hero-cls'>"+hdr.clsLine+"</div>"
-    +"<div class='cs-hero-sub'>"+hdr.genderLbl+(c.age?" · "+c.age:"")+(c.deity?" · "+c.deity:"")+"</div>"
+    +"<div class='cs-hero-sub'>"+hdr.genderLbl+(c.age?" · "+escHtml(c.age):"")+(c.deity?" · "+escHtml(c.deity):"")+"</div>"/* H5: the live sheet escaped these, the preview did not */
     +"<div style='margin-top:8px;font-size:13px;'>"
     +"<span style='color:var(--acc)'>Lv "+hdr.lvl+"</span>"
     +" &nbsp;·&nbsp; "+vitalSpanHtml("hp",c.hp,c.maxHp,"HP")/* #352c: a dash for an unknown value, the readout's hue otherwise */
     +(manaMax(c)>0?" &nbsp;·&nbsp; "+vitalSpanHtml("mp",manaCur(c),manaMax(c),"MP"):"")
     +" &nbsp;·&nbsp; <span style='color:var(--gold)'>"+fmtCoin(c.coin||0)+"</span>"
-    +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"
+    +" &nbsp;·&nbsp; <span style='color:var(--t2)'>"+escHtml(c.actualAlignment||c.statedAlignment||"Neutral")+"</span>"/* H5: the read-only sheet */
     +"</div>"
     +"<div class='cs-xp-wrap'>"
     +"<div class='cs-xp-lbl'><span>"+hdr.xpm.lbl+"</span><span>"+hdr.xpm.tail+"</span></div>"

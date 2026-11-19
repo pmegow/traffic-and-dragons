@@ -345,7 +345,7 @@
     var nSubs=G.descCount[n.key]||0;
     var label=esc(n.key)+(nSubs?" ("+nSubs+" sublocation"+(nSubs===1?"":"s")+")":"");
     var fs=isSel?18:12;
-    var ttl=esc(n.key)+(n.visits?" — "+n.visits+" visit"+(n.visits===1?"":"s"):"")+(nSubs?" — click to browse "+nSubs+" sublocation"+(nSubs===1?"":"s"):"")+(n.ghost?" (GHOST: referenced but never filed)":"");
+    var ttl=esc(n.key)+(n.visits?" — "+esc(n.visits)+" visit"+(n.visits===1?"":"s"):"")+(nSubs?" — click to browse "+nSubs+" sublocation"+(nSubs===1?"":"s"):"")+(n.ghost?" (GHOST: referenced but never filed)":"");
     return '<g class="nodeg'+(n.world?' world':'')+'" data-k="'+esc(n.key)+'">'+shape+
       '<text x="'+n.x+'" y="'+(n.y+r+fs+1)+'" text-anchor="middle" font-size="'+fs+'">'+label+'</text><title>'+ttl+'</title></g>';
   }
@@ -371,7 +371,7 @@
     if(n.key===G.current)marks+='<span class="chip">'+esc(G.playerName)+' is here</span>';
     for(var si=0;si<G.splits.length;si++)if(G.splits[si].key===n.key)marks+='<span class="chip away">'+esc(G.splits[si].name)+' — away from party</span>';
     if(marks)h+='<div class="sec">'+marks+'</div>';
-    h+='<div class="sec"><h3>Record</h3><div>'+(n.visits||0)+' visit'+(n.visits===1?'':'s')+(n.firstVisit!=null?' · first at turn '+esc(n.firstVisit):'')+(n.ghost?' · <span style="color:var(--bad)">ghost — referenced, never filed</span>':'')+'</div></div>';
+    h+='<div class="sec"><h3>Record</h3><div>'+esc(n.visits||0)+' visit'+(n.visits===1?'':'s')+(n.firstVisit!=null?' · first at turn '+esc(n.firstVisit):'')+(n.ghost?' · <span style="color:var(--bad)">ghost — referenced, never filed</span>':'')+'</div></div>';
     if(n.description)h+='<div class="sec"><h3>Canonical description (write-once, GM-injected)</h3><div class="desc">'+esc(n.description)+'</div></div>';
     if(n.stateNotes&&n.stateNotes.length){h+='<div class="sec"><h3>Durable changes (#105)</h3><ul>';for(var i2=0;i2<n.stateNotes.length;i2++)h+='<li>· '+esc(n.stateNotes[i2].n)+' <span style="color:var(--t2)">(t'+esc(n.stateNotes[i2].t)+')</span></li>';h+='</ul></div>';}
     if(n.items&&n.items.length){h+='<div class="sec"><h3>Items here</h3><ul>';for(var i3=0;i3<n.items.length;i3++){var it=n.items[i3];h+='<li'+(it.taken?' class="dead"':'')+'>· '+esc(it.name)+(it.taken?' (taken)':'')+'</li>';}h+='</ul></div>';}
@@ -407,7 +407,7 @@
       var mark='';
       if(kn.key===G.current)mark=' <span class="mk">● party</span>';
       for(var mi=0;mi<G.splits.length;mi++)if(G.splits[mi].key===kn.key)mark+=' <span class="mk away">● '+esc(G.splits[mi].name)+'</span>';
-      var line=esc(kn.label)+(kn.ghost?' <span style="color:var(--bad)">(ghost)</span>':'')+(kn.visits>1?' <span style="color:var(--t2)">×'+kn.visits+'</span>':'')+mark;
+      var line=esc(kn.label)+(kn.ghost?' <span style="color:var(--bad)">(ghost)</span>':'')+(kn.visits>1?' <span style="color:var(--t2)">×'+esc(kn.visits)+'</span>':'')+mark;
       out+='<li><details><summary>'+line+'</summary><div class="crec">'+nodeRecordHTML(kn)+cascadeSection(kn.key,true)+'</div></details></li>';
     }
     return out+"</ul>";

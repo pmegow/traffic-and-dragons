@@ -106,10 +106,10 @@ table.list td.x button:hover{color:var(--dng);}
 <script src="storage-adapter.js"></script>
 <script>
 (function(){
-  var CE_VERSION="v0.2", CE_DRAFT_K="tnd_ce_draft_v1";
+  var CE_VERSION="v0.3", CE_DRAFT_K="tnd_ce_draft_v1";
   var ch=null, dirty=false, _draftT=null;
   function $(id){return document.getElementById(id);}
-  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}/* audit 2026-11-19, H4: every attribute on this page is single-quoted — without the apostrophe a loaded file ended one (and "O'Brien" was cut to "O") */
   function setStatus(msg,cls){var el=$("status");el.textContent=msg||"";el.className=cls||"";}
   /* #476 (owner 2026-09-27, "HTTP 401" on Load from library): signed-in means a server URL AND a token; a 401 is the session
      — expired (30-day fixed, SERVER_ARCHITECTURE R7) or replaced by a newer sign-in in the game while this page held the old
@@ -237,7 +237,7 @@ table.list td.x button:hover{color:var(--dng);}
     dialog.showModal();$("motivation-how").focus();
   }
   function statsHtml(){
-    var h="<div class='stats'>";STAT_IDS.forEach(function(s){var v=ch.stats[s];h+="<div class='stat'><label>"+s.toUpperCase()+"</label><input type='number' data-stat='"+s+"' value='"+v+"' min='1' max='30'/><div class='mod'>"+(typeof smod==="function"?(smod(v)>=0?"+":"")+smod(v):"")+"</div></div>";});
+    var h="<div class='stats'>";STAT_IDS.forEach(function(s){var v=ch.stats[s];h+="<div class='stat'><label>"+s.toUpperCase()+"</label><input type='number' data-stat='"+s+"' value='"+esc(v)+"' min='1' max='30'/><div class='mod'>"+(typeof smod==="function"?(smod(v)>=0?"+":"")+smod(v):"")+"</div></div>";});
     return h+"</div>";
   }
   function listHtml(L){
@@ -253,7 +253,7 @@ table.list td.x button:hover{color:var(--dng);}
     return h;
   }
   function skillsHtml(){
-    var h="<div class='skills'>";SKILLS.forEach(function(s){var n=ch.skills[s.id]||0,lv=typeof skillLevel==="function"?skillLevel(n):0;h+="<div class='skill'><span>"+esc(s.label)+"</span><input type='number' min='0' data-skill='"+esc(s.id)+"' value='"+n+"'/><span class='lvl'>"+esc(SKILL_LEVELS[lv]||"")+"</span></div>";});
+    var h="<div class='skills'>";SKILLS.forEach(function(s){var n=ch.skills[s.id]||0,lv=typeof skillLevel==="function"?skillLevel(n):0;h+="<div class='skill'><span>"+esc(s.label)+"</span><input type='number' min='0' data-skill='"+esc(s.id)+"' value='"+esc(n)+"'/><span class='lvl'>"+esc(SKILL_LEVELS[lv]||"")+"</span></div>";});
     return h+"</div><div class='hint'>Numbers are cumulative successes; the level derives from SKILL_THRESHOLDS.</div>";
   }
   function derived(){

@@ -450,7 +450,7 @@ function updateSpPanel(){
   var h="",i,sp,tag,nm,ds;
   for(i=0;i<spells.length;i++){
     sp=spells[i];
-    tag=sp.lvl===0?"C":String(sp.lvl);
+    tag=sp.lvl===0?"C":escHtml(String(sp.lvl));
     nm=sp.nm.indexOf("(")>=0?sp.nm.slice(0,sp.nm.indexOf("(")).trim():sp.nm;
     ds=sp.nm.indexOf("(")>=0?sp.nm.slice(sp.nm.indexOf("(")+1).replace(")",""):"";
     var _tip=spellTip(nm);/* #8 bible description; #83 always non-empty (fallback) */
