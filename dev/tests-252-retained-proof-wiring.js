@@ -42,6 +42,45 @@ test("applicability scan rejects a stale target in a disposable fixture", functi
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 
+// Audit 2026-11-19, G1: this scan runs inside run-tests, and run-tests is what 36 batteries prove their clauses with. In a
+// mutated tree the clause being proven no longer finds its anchor, so the scan failed BY CONSTRUCTION and its line carried
+// the clause's label: a clause with no catcher could never be MISSED, a catcher that was part of the label was "found", and
+// the real catcher often never ran. The harness now names the file under mutation; the scan leaves that ONE file out and
+// says so — a stale anchor in any other file still fails, and so does the same file when nothing is being proven.
+test("applicability scan leaves out the ONE file a sabotage proof is mutating, says so, and still fails a stale anchor anywhere else", function () {
+  var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-applicability-proving-"));
+  function scan(provingFile) {
+    var env = {};
+    Object.keys(process.env).forEach(function (k) { if (k !== "TND_SABOTAGE_PROVING_FILE") env[k] = process.env[k]; });
+    if (provingFile != null) env.TND_SABOTAGE_PROVING_FILE = provingFile;
+    var run = cp.spawnSync(process.execPath, ["dev/check-sabotage-applicability.js", "--root", tmp], { cwd: ROOT, env: env, encoding: "utf8" });
+    return { status: run.status, out: output(run) };
+  }
+  try {
+    fs.mkdirSync(path.join(tmp, "dev")); fs.mkdirSync(path.join(tmp, "sub"));
+    fs.writeFileSync(path.join(tmp, "sub", "mutated.js"), "var live = true;\n", "utf8");
+    fs.writeFileSync(path.join(tmp, "other.js"), "var kept = true;\n", "utf8");
+    fs.writeFileSync(path.join(tmp, "dev", "sabotage-fixture.js"),
+      'if(process.env.TND_SABOTAGE_APPLICABILITY_ONLY==="1")module.exports=[' +
+      '{file:"sub/mutated.js",label:"the clause under proof",find:"var gone = true;",replace:""},' +
+      '{file:"other.js",label:"a clause on another file",find:"var kept = true;",replace:""}];\n', "utf8");
+    var plain = scan(null);
+    if (plain.status === 0 || plain.out.indexOf("the clause under proof find target is stale") < 0) return "with no proof running, the stale anchor passed: " + plain.out;
+    var proving = scan("sub/mutated.js");
+    if (proving.status !== 0) return "the scan still failed on the file under mutation: " + proving.out;
+    if (proving.out.indexOf("the clause under proof") >= 0) return "the scan printed the label of the clause under proof (a catcher that is part of the label would be found): " + proving.out;
+    if (!/1 clause\(s\) on sub\/mutated\.js not scanned/.test(proving.out) || proving.out.indexOf("TND_SABOTAGE_PROVING_FILE") < 0) return "the scan did not SAY what it left out and why: " + proving.out;
+    if (!/1\/1 retained sabotage clauses applicable/.test(proving.out)) return "the receipt must count only what was scanned: " + proving.out;
+    var backslash = scan("sub\\mutated.js");
+    if (backslash.status !== 0) return "a backslash path for the same file was not recognised: " + backslash.out;
+    var elsewhere = scan("other.js");
+    if (elsewhere.status === 0 || elsewhere.out.indexOf("the clause under proof find target is stale") < 0) return "a proof on ANOTHER file hid this file's stale anchor: " + elsewhere.out;
+    fs.writeFileSync(path.join(tmp, "other.js"), "var changed = true;\n", "utf8");
+    var both = scan("sub/mutated.js");
+    return both.status !== 0 && both.out.indexOf("a clause on another file find target is stale") >= 0 ? "" : "a stale anchor in a file that is NOT under mutation passed during a proof: " + both.out;
+  } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
 test("applicability scan rejects an ambiguous target (a find that matches twice) in a disposable fixture", function () {
   var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-applicability-ambiguous-"));
   try {

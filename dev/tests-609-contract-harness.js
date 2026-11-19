@@ -44,6 +44,43 @@ test("the working set rides in: a clause on a committed file is caught by a guar
   }
 });
 
+/* Audit 2026-11-19, rows G1, G3 and G4 — the same three holes sabotage.js had, in this harness: a guard that is red before any
+   mutation, a catcher named only on a PASS line, and a guarded command that is not told which file is under mutation. */
+function fixture(guardSrc, cases) {
+  var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-609-g-"));
+  var env = {}; Object.keys(process.env).forEach(function (k) { if (k.indexOf("GIT_") !== 0) env[k] = process.env[k]; });
+  function git(args) { var r = cp.spawnSync("git", ["-c", "user.email=fixture@test", "-c", "user.name=fixture", "-c", "commit.gpgsign=false"].concat(args), { cwd: tmp, env: env, encoding: "utf8" }); if (r.status !== 0) throw new Error("git " + args.join(" ") + ": " + String(r.stderr || r.stdout)); }
+  var lines = [], ol = console.log, oe = console.error, rc;
+  try {
+    fs.mkdirSync(path.join(tmp, "dev"));
+    fs.writeFileSync(path.join(tmp, "a.js"), "module.exports = function () { return 1; };\n");
+    fs.writeFileSync(path.join(tmp, "dev", "guard.js"), guardSrc);
+    git(["init", "-q"]); git(["add", "-A"]); git(["commit", "-q", "-m", "base"]);
+    console.log = function (m) { lines.push(String(m)); }; console.error = function (m) { lines.push(String(m)); };
+    rc = harness.prove("PROBE G", cases, { root: tmp, command: ["dev/guard.js"] });
+  } finally {
+    console.log = ol; console.error = oe;
+    try { fs.rmSync(tmp, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch (e) {}
+  }
+  return { rc: rc, text: lines.join("\n") };
+}
+var ONE = [{ file: "a.js", label: "a loses its one", find: "return 1;", replace: "return 9;", mustFail: "the named guard" }];
+test("G4: a guard that is red on the unmutated clone proves nothing — the clause is UNOBSERVED, never caught", function () {
+  var r = fixture("console.log('FAIL the named guard');\nprocess.exit(1);\n", ONE);
+  if (r.rc === 0 || /PASS caught/.test(r.text)) return "a clause was caught by a guard that was red before the mutation: " + r.text;
+  return /FAIL UNOBSERVED a loses its one/.test(r.text) && /red on the unmutated/.test(r.text) ? true : "the clause was not reported UNOBSERVED with the reason: " + r.text;
+});
+test("G3: a catcher named only on a PASS line is MISATTRIBUTED; on a failure line it is caught", function () {
+  var wrong = fixture("var a = require('../a.js');\nconsole.log('PASS the named guard');\nif (a() !== 1) { console.log('FAIL some other guard'); process.exit(1); }\n", ONE);
+  if (wrong.rc === 0 || !/FAIL MISATTRIBUTED a loses its one/.test(wrong.text)) return "a catcher on a PASS line was not MISATTRIBUTED: " + wrong.text;
+  var right = fixture("var a = require('../a.js');\nif (a() !== 1) { console.log('FAIL the named guard'); process.exit(1); }\nconsole.log('PASS the named guard');\n", ONE);
+  return right.rc === 0 && /PASS caught a loses its one/.test(right.text) ? true : "a catcher on a failure line was not caught: " + right.text;
+});
+test("G1: the guarded command is told which file is under mutation", function () {
+  var r = fixture("var a = require('../a.js');\nif (process.env.TND_SABOTAGE_PROVING_FILE !== 'a.js') { console.log('NOT TOLD: ' + process.env.TND_SABOTAGE_PROVING_FILE); process.exit(1); }\nif (a() !== 1) { console.log('FAIL the named guard'); process.exit(1); }\n", ONE);
+  return r.rc === 0 && /PASS caught a loses its one/.test(r.text) ? true : "the guard was not handed TND_SABOTAGE_PROVING_FILE=a.js on the clean run and the mutated run: " + r.text;
+});
+
 test("the sweep's verdict line names the harness when a battery's output carries its header", function () {
   var src = fs.readFileSync(path.join(ROOT, "dev", "run-sabotage-diff.js"), "utf8");
   if (src.indexOf('indexOf("scratch-contract-sabotage:")>=0?" [contract harness]":""') < 0) return "run-sabotage-diff does not tag the verdict line";

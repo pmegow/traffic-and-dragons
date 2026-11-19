@@ -11,16 +11,16 @@ failed += sabotage.prove({ file: "dev/capture-run.js", also: also, command: comm
     mustFail: "a catcher after the first MiB was lost" },
   { label: "a cut-off run is no longer named",
     find: "  if (r.error) r.unobserved = r.error.code === \"ENOBUFS\"", replace: "  if (false) r.unobserved = r.error.code === \"ENOBUFS\"",
-    mustFail: "was not reported UNOBSERVED" }
+    mustFail: "runCaptured did not name a cut-off run" }   /* since G4 a command that cannot start is refused at the clean run on its exit status alone; the cut-off case is the one only this line names */
 ] });
 failed += sabotage.prove({ file: "dev/sabotage.js", also: also, command: command, cases: [
   { label: "the core harness captures with spawnSync's default again",
-    find: "      var run = capture.runCaptured(cmd[0], cmd[1], { cwd: opts.cwd || ROOT });",
-    replace: "      var run = cp.spawnSync(cmd[0], cmd[1], { cwd: opts.cwd || ROOT, encoding: \"utf8\" });",
+    find: "      var run = capture.runCaptured(cmd[0], cmd[1], { cwd: cwd, env: env });",
+    replace: "      var run = cp.spawnSync(cmd[0], cmd[1], { cwd: cwd, env: env, encoding: \"utf8\" });",
     mustFail: "a catcher after the first MiB was lost" },
   { label: "the core harness judges a run it never observed",
     find: "      if (run.unobserved) {   /* #473", replace: "      if (false) {   /* #473",
-    mustFail: "an unrunnable command was not reported UNOBSERVED" }
+    mustFail: "a mutated run nobody observed was judged anyway" }   /* since G4 (audit 2026-11-19) a command that can never run is refused at the clean run; this clause guards the mutated run's own answer */
 ] });
 // The class behind this battery's own first red: a label that borrows a verdict word reads as a failure to both runners.
 failed += sabotage.prove({ file: "dev/sabotage-395-cloud-backup.js", command: ["node", ["dev/tests-252-retained-proof-wiring.js"]], also: ["dev/battery-verdict.js"], cases: [

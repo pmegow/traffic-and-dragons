@@ -94,10 +94,18 @@ function collect(root) {
   return { batteries: batteries, clauses: clauses };
 }
 
-function problems(root) {
-  var inventory = collect(root), failures = [];
+/* Audit 2026-11-19, G1. This scan runs inside run-tests, and run-tests is the command 36 batteries prove their clauses with.
+   In a mutated tree the clause under proof no longer finds its anchor, so the scan failed by construction — and that failure,
+   whose line carries the clause's own label, was what "caught" the mutation. sabotage.js now names the file it is mutating
+   (TND_SABOTAGE_PROVING_FILE, repo-relative); every clause on THAT file is left out and the count is said. Any other file
+   is scanned as always. */
+var PROVING_FILE_ENV = "TND_SABOTAGE_PROVING_FILE";
+function slashed(p) { return String(p || "").split("\\").join("/").replace(/^\.\//, ""); }
+function problems(root, provingFile) {
+  var inventory = collect(root), failures = [], leftOut = 0, proving = slashed(provingFile);
   for (var i = 0; i < inventory.clauses.length; i++) {
     var clause = inventory.clauses[i];
+    if (proving && clause.file && slashed(clause.file) === proving) { leftOut++; continue; }
     if (!clause.file) {
       failures.push(clause.battery + " :: " + clause.spec.label + " has no target file");
       continue;
@@ -126,16 +134,17 @@ function problems(root) {
       if (n > 1) failures.push(clause.battery + " :: " + clause.spec.label + " find target is ambiguous (" + n + " matches) in " + clause.file + " — the harness mutates the first; anchor on a unique span");
     }
   }
-  return { batteries: inventory.batteries.length, clauses: inventory.clauses.length, failures: failures };
+  return { batteries: inventory.batteries.length, clauses: inventory.clauses.length - leftOut, found: inventory.clauses.length, leftOut: leftOut, proving: proving, failures: failures };
 }
 
 if (require.main === module) {
   var result, rootArg = ROOT, rootAt = process.argv.indexOf("--root");
   if (rootAt >= 0 && process.argv[rootAt + 1]) rootArg = path.resolve(process.argv[rootAt + 1]);
-  try { result = problems(rootArg); }
+  try { result = problems(rootArg, process.env[PROVING_FILE_ENV]); }
   catch (e) { console.error("SABOTAGE APPLICABILITY FAILED — " + (e && e.stack || e)); process.exit(1); }
   for (var i = 0; i < result.failures.length; i++) console.error("FAIL " + result.failures[i]);
-  if (!result.batteries || !result.clauses) {
+  if (result.leftOut) console.log("sabotage applicability: " + result.leftOut + " clause(s) on " + result.proving + " not scanned — that file is under a sabotage mutation (" + PROVING_FILE_ENV + "); its anchors are scanned when no proof is running");
+  if (!result.batteries || !result.found) {
     console.error("SABOTAGE APPLICABILITY FAILED — no retained sabotage clauses were discovered");
     process.exit(1);
   }

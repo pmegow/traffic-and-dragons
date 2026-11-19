@@ -37,7 +37,7 @@ rc |= sabotage.prove({
     {
       label: "an empty battery inventory reports green",
       mustFail: "applicability scan refuses an empty battery inventory",
-      find: "if (!result.batteries || !result.clauses) {",
+      find: "if (!result.batteries || !result.found) {",
       replace: "if (false) {"
     }
   ]

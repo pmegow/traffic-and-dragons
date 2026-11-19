@@ -190,6 +190,47 @@ function clauseCommand(opts, c) {
     return [cmd[0], (cmd[1] || []).concat(["--only", c.mustFail.slice(opts.only.length)])];
   return cmd;
 }
+/* ── Audit 2026-11-19, rows G1, G3 and G4: three ways a clause read "caught" with nothing guarding it ──────────────────────
+   G1  A guard that scans every battery's anchors (dev/check-sabotage-applicability.js, run by dev/tests-252-retained-proof-
+       wiring.js inside run-tests) fails BY CONSTRUCTION in a mutated tree: the clause being proven no longer finds its
+       anchor. Its line carries the clause's own LABEL, so a mustFail that is part of the label was attributed by it; a
+       clause with no mustFail could never be MISSED; and once the standalone runner stopped starting suites after a
+       failure, the real catcher often never ran (CI, 2026-11-19: MISATTRIBUTED on guards that work). The guarded command
+       is now TOLD which file is under mutation (PROVING_FILE_ENV); the scan leaves that one file out and says so.
+   G3  The catcher's name was searched for in the WHOLE output, so it matched the line reporting that test PASSING.
+       attributedOn() counts only a line that is not a pass line.
+   G4  The command was never run on the unmutated file, so a command red anyway proved every clause without a catcher.
+       baselineOf() runs it clean first — once per (clone, target, command) in a battery — and a red clean run makes
+       every clause on it UNOBSERVED. */
+var PROVING_FILE_ENV = "TND_SABOTAGE_PROVING_FILE";
+function provingEnv(file, cwd) {
+  var env = {}, rel = path.relative(cwd || ROOT, file).replace(/\\/g, "/");
+  Object.keys(process.env).forEach(function (k) { env[k] = process.env[k]; });
+  env[PROVING_FILE_ENV] = rel;
+  return env;
+}
+var PASS_LINE = /^\s*(?:PASS\b|SKIP\b|ok\b|✓|✔|√|✅)/;
+function attributedOn(out, mustFail) {
+  if (!mustFail) return true;
+  mustFail = String(mustFail);
+  out = String(out || "");
+  if (/[\r\n]/.test(mustFail)) return out.indexOf(mustFail) >= 0;   /* a catcher that spans lines cannot be judged line by line */
+  var lines = out.split(/\r?\n/);
+  for (var i = 0; i < lines.length; i++) if (lines[i].indexOf(mustFail) >= 0 && !PASS_LINE.test(lines[i])) return true;
+  return false;
+}
+var _baselines = {};
+function baselineOf(cmd, file, cwd, env) {
+  var key = [cwd, file, JSON.stringify(cmd)].join("\u0000");   /* a moved HEAD gets a new clone folder, so cwd carries the commit */
+  if (_baselines[key]) return _baselines[key];
+  var run = capture.runCaptured(cmd[0], cmd[1], { cwd: cwd, env: env }), why = "";
+  if (run.unobserved) why = "the guarded command " + run.unobserved;
+  else if (run.status !== 0) {
+    var tail = (String(run.stdout || "") + String(run.stderr || "")).split(/\r?\n/).filter(function (l) { return l.trim(); }).slice(-6).join("\n          ");
+    why = "the guarded command is red on the unmutated file (exit " + run.status + "), so no red after a mutation can be attributed to it. Its last lines:\n          " + tail;
+  }
+  return (_baselines[key] = { red: why });
+}
 function prove(opts) {
   if (opts.skip) return 0; /* #170: --focused runs section-scoped groups only */
   if (!opts.inPlace && !path.isAbsolute(opts.file)) return proveScratch(opts);
@@ -246,8 +287,15 @@ function prove(opts) {
         continue;
       }
 
+      var cwd = opts.cwd || ROOT, env = provingEnv(file, cwd);
+      var clean = baselineOf(cmd, file, cwd, env);   /* G4: the file is unmutated here — every earlier clause restored it */
+      if (clean.red) {
+        results.push({ label: c.label, verdict: "UNOBSERVED", detail: clean.red + "\n        — this clause is UNTESTED" });
+        continue;
+      }
+
       writeRetry(file, after);
-      var run = capture.runCaptured(cmd[0], cmd[1], { cwd: opts.cwd || ROOT });   /* #473: the whole output, not Node's 1 MiB default */
+      var run = capture.runCaptured(cmd[0], cmd[1], { cwd: cwd, env: env });   /* #473: the whole output, not Node's 1 MiB default */
       writeRetry(file, original);
       if (run.unobserved) {   /* #473: a run the harness could not fully observe gets no verdict drawn from a fragment */
         results.push({ label: c.label, verdict: "UNOBSERVED", detail: "the guarded command " + run.unobserved + " — this clause is UNTESTED" });
@@ -271,11 +319,11 @@ function prove(opts) {
          clause claims. */
       var failed = run.status !== 0;
       var out = String(run.stdout || "") + String(run.stderr || "");
-      var attributed = !c.mustFail || out.indexOf(c.mustFail) >= 0;
+      var attributed = attributedOn(out, c.mustFail);   /* G3: a line that reports the named test PASSING is no attribution */
       results.push({
         label: c.label,
         verdict: failed ? (attributed ? "caught" : "MISATTRIBUTED") : "MISSED",
-        detail: failed ? (attributed ? "" : "the run failed but NOT on \"" + c.mustFail + "\" — an unrelated red caught this mutation") : "the sabotaged file still passed — nothing is guarding this"
+        detail: failed ? (attributed ? "" : "the run failed but NOT on \"" + c.mustFail + "\" — an unrelated red caught this mutation" + (out.indexOf(c.mustFail) >= 0 ? " (those words appear only on a line that reports a PASS)" : "")) : "the sabotaged file still passed — nothing is guarding this"
       });
     }
   } finally {
@@ -299,4 +347,4 @@ function prove(opts) {
   return (bad.length || !intact) ? 1 : 0;
 }
 
-module.exports = { prove: prove, mirrorWorkingSet: mirrorWorkingSet };/* #609: the ONE mirror — scratch-contract-sabotage.js rides on it too */
+module.exports = { prove: prove, mirrorWorkingSet: mirrorWorkingSet, attributedOn: attributedOn, provingEnv: provingEnv, PROVING_FILE_ENV: PROVING_FILE_ENV };/* #609: the ONE mirror — scratch-contract-sabotage.js rides on it too */

@@ -25,6 +25,12 @@ function test(name, fn) {
 }
 function reset() { fs.writeFileSync(target, "ORIGINAL\n", "utf8"); }
 function intact() { return fs.readFileSync(target, "utf8") === "ORIGINAL\n"; }
+/* G4 (audit 2026-11-19): the harness runs the guarded command on the UNMUTATED file first, so a fixture command must be
+   green on the original bytes and red only on the mutation — an always-red command is now UNOBSERVED, by design. */
+function redWhenBroken(lines) {
+  return 'var fs=require("fs");if(fs.readFileSync(' + JSON.stringify(target) + ',"utf8").indexOf("BROKEN")>=0){' +
+    lines.map(function (l) { return "console.error(" + JSON.stringify(l) + ");"; }).join("") + "process.exit(1);}";
+}
 function prelude() {
   return 'var fs=require("fs");var sabotage=require(' + JSON.stringify(SABOTAGE) + ');var target=' + JSON.stringify(target) + ';';
 }
@@ -53,17 +59,19 @@ try {
     var seen = path.join(tmp, "only-seen.txt"), suite = path.join(tmp, "only-suite.js");
     // the guarded suite records the argv it was handed, then reds by the name it was asked for (or by the whole file)
     fs.writeFileSync(suite, 'var fs=require("fs");fs.appendFileSync(' + JSON.stringify(seen) + ',JSON.stringify(process.argv.slice(2))+"\\n");' +
+      'if(fs.readFileSync(' + JSON.stringify(target) + ',"utf8").indexOf("BROKEN")<0)process.exit(0);' +
       'var i=process.argv.indexOf("--only");if(i>0){console.error("FAIL X "+process.argv[i+1]);process.exit(1);}console.error("WHOLE SUITE RED");process.exit(1);', "utf8");
     var result = runChild("only", prelude() +
       'process.exit(sabotage.prove({file:target,command:[process.execPath,[' + JSON.stringify(suite) + ']],only:"FAIL X ",cases:[' +
       '{label:"derived",find:"ORIGINAL",replace:"BROKEN",mustFail:"FAIL X the named test"},' +
       '{label:"no prefix",find:"ORIGINAL",replace:"BROKEN",mustFail:"WHOLE SUITE RED"},' +
-      '{label:"own command",find:"ORIGINAL",replace:"BROKEN",mustFail:"OWN",command:[process.execPath,["-e","console.error(\\"OWN\\");process.exit(1)"]]}]}));');
+      '{label:"own command",find:"ORIGINAL",replace:"BROKEN",mustFail:"OWN",command:[process.execPath,["-e",' + JSON.stringify(redWhenBroken(["OWN"])) + ']]}]}));');
     var o = out(result), rows = fs.existsSync(seen) ? fs.readFileSync(seen, "utf8").trim().split(/\r?\n/).map(JSON.parse) : [];
     if (result.status !== 0 || (o.match(/caught/g) || []).length !== 3) return "the three clauses were not all caught: " + o.slice(0, 600);
-    if (rows.length !== 2) return "the suite should have run twice (the third clause has its own command); it ran " + rows.length + " time(s)";
-    if (rows[0].join(" ") !== "--only the named test") return "the derived clause did not hand the suite --only with the mustFail's tail: " + JSON.stringify(rows[0]);
-    if (rows[1].length !== 0) return "a clause whose mustFail lacks the prefix must run the group's plain command: " + JSON.stringify(rows[1]);
+    /* each distinct command runs once on the unmutated file first (G4), then once per clause */
+    if (rows.length !== 4) return "the suite should have run four times (a clean run and a mutated run for each of its two commands; the third clause has its own command); it ran " + rows.length + " time(s)";
+    if (rows[0].join(" ") !== "--only the named test" || rows[1].join(" ") !== "--only the named test") return "the derived clause did not hand the suite --only with the mustFail's tail, clean run and mutated run alike: " + JSON.stringify(rows.slice(0, 2));
+    if (rows[2].length !== 0 || rows[3].length !== 0) return "a clause whose mustFail lacks the prefix must run the group's plain command: " + JSON.stringify(rows.slice(2));
     return intact() ? "" : "target bytes changed";
   });
   /* the name must not carry the guard phrase itself: a battery whose command is THIS suite reads every line of its output, and
@@ -97,7 +105,7 @@ try {
     // The probe command greens only if the mutated file contains a bare-LF line; mustFail pins it,
     // so a caught verdict proves the multi-line REPLACEMENT was written CRLF, then restored.
     var probeSrc = "var fs=require(" + JSON.stringify("fs") + ");var s=fs.readFileSync(" + JSON.stringify(target) + "," + JSON.stringify("utf8") + ");" +
-      "if(!/PATCHED/.test(s)){console.error(" + JSON.stringify("MUTATION ABSENT") + ");process.exit(1)}" +
+      "if(!/PATCHED/.test(s)){process.exit(0)}" +   /* the unmutated file is green (G4); a mutation that never landed then reads MISSED */
       "if(/[^\\r]\\n|^\\n/.test(s)){console.error(" + JSON.stringify("LF ISLAND") + ");process.exit(1)}" +
       "console.error(" + JSON.stringify("CLEAN CRLF MUTATION") + ");process.exit(1);";
     var result = runChild("crlf-replace", prelude() +
@@ -111,8 +119,52 @@ try {
   test("MISATTRIBUTED rejects an unrelated red and restores bytes", function () {
     reset();
     var result = runChild("misattributed", prelude() +
-      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e","console.error(\\"WRONG RED\\");process.exit(1)"]],cases:[{label:"wrong-red fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"RIGHT RED"}]}));');
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(redWhenBroken(["WRONG RED"])) + ']],cases:[{label:"wrong-red fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"RIGHT RED"}]}));');
     if (result.status === 0 || out(result).indexOf("MISATTRIBUTED") < 0 || out(result).indexOf("RIGHT RED") < 0) return "verdict/status wrong: " + out(result);
+    return intact() ? "" : "target bytes changed";
+  });
+  // Audit 2026-11-19, G4: the harness never ran the guarded command on the unmutated file, so a command that was red anyway
+  // (a test red at HEAD, an input the scratch clone lacks) "proved" every clause that named no catcher.
+  test("G4: a guarded command that is red on the UNMUTATED file proves nothing — its clauses are UNOBSERVED, never caught", function () {
+    reset();
+    var result = runChild("red-baseline", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e","console.error(\\"ALWAYS RED\\");process.exit(1)"]],cases:[' +
+      '{label:"no catcher named",find:"ORIGINAL",replace:"BROKEN"},{label:"a catcher the red run prints",find:"ORIGINAL",replace:"BROKEN",mustFail:"ALWAYS RED"}]}));');
+    var o = out(result);
+    if (result.status === 0) return "a battery whose guarded command is red before any mutation passed: " + o;
+    if (/✓ caught/.test(o)) return "a clause was scored caught on a command that was red before the mutation: " + o;
+    if ((o.match(/UNOBSERVED/g) || []).length !== 2 || o.indexOf("red on the unmutated file") < 0) return "the two clauses were not reported UNOBSERVED with the reason: " + o;
+    return intact() ? "" : "target bytes changed";
+  });
+  // G3: the catcher's name was searched for in the WHOLE output, so it matched the line that reports that test PASSING —
+  // any unrelated red then read "caught" (155 of 215 suites print PASS <name>).
+  test("G3: a mustFail found only on a PASS, ok, SKIP or ✓ line is MISATTRIBUTED; the same words on a failure line are caught", function () {
+    var marks = ["PASS guarded rejects zero", "ok guarded rejects zero", "  ✓ guarded rejects zero", "SKIP guarded rejects zero"];
+    for (var i = 0; i < marks.length; i++) {
+      reset();
+      var wrong = runChild("pass-line-" + i, prelude() +
+        'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(redWhenBroken([marks[i], "FAIL some other test — boom"])) + ']],cases:[{label:"pass-line fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"guarded rejects zero"}]}));');
+      if (wrong.status === 0 || out(wrong).indexOf("MISATTRIBUTED") < 0) return "a catcher named only on the line " + JSON.stringify(marks[i]) + " was not MISATTRIBUTED: " + out(wrong);
+      if (!intact()) return "target bytes changed";
+    }
+    reset();
+    var right = runChild("fail-line", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(redWhenBroken(["PASS an earlier test", "FAIL guarded rejects zero — got 0"])) + ']],cases:[{label:"fail-line fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"guarded rejects zero"}]}));');
+    if (right.status !== 0 || out(right).indexOf("caught") < 0) return "a catcher named on a failure line was not caught: " + out(right);
+    return intact() ? "" : "target bytes changed";
+  });
+  // G1: a guard that scans every battery's anchors fails BY CONSTRUCTION while one of them is mutated. The harness tells the
+  // guarded command which file is under mutation, so such a scan can leave that one file out and say so.
+  test("G1: the guarded command is told which file is under mutation (TND_SABOTAGE_PROVING_FILE), on the clean run and the mutated run alike", function () {
+    reset();
+    var seen = path.join(tmp, "proving-env.txt");
+    var cmdJs = 'var fs=require("fs");fs.appendFileSync(' + JSON.stringify(seen) + ',String(process.env.TND_SABOTAGE_PROVING_FILE)+"\\n");' + redWhenBroken(["NAMED CATCH"]);
+    var result = runChild("proving-env", prelude() +
+      'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(cmdJs) + ']],cases:[{label:"env fixture",find:"ORIGINAL",replace:"BROKEN",mustFail:"NAMED CATCH"}]}));');
+    if (result.status !== 0) return "the fixture clause was not caught: " + out(result);
+    var rows = fs.existsSync(seen) ? fs.readFileSync(seen, "utf8").trim().split(/\r?\n/) : [];
+    if (rows.length !== 2) return "expected a clean run and a mutated run, saw " + rows.length;
+    for (var i = 0; i < rows.length; i++) if (!/(^|\/)target\.txt$/.test(rows[i]) || rows[i].indexOf("\\") >= 0) return "run " + (i + 1) + " was not told the mutated file with forward slashes: " + JSON.stringify(rows[i]);
     return intact() ? "" : "target bytes changed";
   });
   // #473: Node's spawnSync kills a child that prints past its 1 MiB default and keeps only the head. A mutation in a core
@@ -120,7 +172,7 @@ try {
   // 1,156,401 bytes with its catcher at byte 1,136,515 and read MISATTRIBUTED every week while its guard caught it.
   test("a guarded run that prints past Node's 1 MiB default is judged on its WHOLE output", function () {
     reset();
-    var loud = 'process.stdout.write("x".repeat(1300000)+"\\n");console.log("RIGHT RED");process.exitCode=1;';
+    var loud = 'if(require("fs").readFileSync(' + JSON.stringify(target) + ',"utf8").indexOf("BROKEN")<0)process.exit(0);process.stdout.write("x".repeat(1300000)+"\\n");console.log("RIGHT RED");process.exitCode=1;';
     var result = runChild("overflow", prelude() +
       'process.exit(sabotage.prove({file:target,command:[process.execPath,["-e",' + JSON.stringify(loud) + ']],cases:[{label:"late catcher",find:"ORIGINAL",replace:"BROKEN",mustFail:"RIGHT RED"}]}));');
     if (result.status !== 0 || out(result).indexOf("caught") < 0) return "a catcher after the first MiB was lost — the verdict read a fragment: " + out(result).slice(0, 400);
@@ -135,6 +187,17 @@ try {
     if (o.indexOf("MISATTRIBUTED") >= 0) return "a run nobody observed was judged anyway: " + o;
     var cut = require(path.join(path.dirname(SABOTAGE), "capture-run.js")).runCaptured(process.execPath, ["-e", 'process.stdout.write("x".repeat(5000))'], { maxBuffer: 1024 });
     if (!cut.unobserved || !/cut off/.test(cut.unobserved)) return "runCaptured did not name a cut-off run: " + JSON.stringify(cut.unobserved);
+    return intact() ? "" : "target bytes changed";
+  });
+  // With G4's clean run in front, a command that can NEVER run is refused there. The mutated run still needs its own
+  // answer: here the command runs on the clean file and cannot be started once the file is mutated.
+  test("a MUTATED run that cannot be observed is UNOBSERVED even though the clean run was observed", function () {
+    reset();
+    var result = runChild("unobserved-after", prelude() +
+      'var cmd=[];Object.defineProperty(cmd,"0",{enumerable:true,get:function(){return fs.readFileSync(target,"utf8").indexOf("BROKEN")<0?process.execPath:"tnd-no-such-command-473";}});cmd[1]=["-e","process.exit(0)"];' +
+      'process.exit(sabotage.prove({file:target,command:cmd,cases:[{label:"unrunnable after the mutation",find:"ORIGINAL",replace:"BROKEN",mustFail:"RIGHT RED"}]}));');
+    var o = out(result);
+    if (result.status === 0 || o.indexOf("UNOBSERVED") < 0 || /MISATTRIBUTED|MISSED/.test(o)) return "a mutated run nobody observed was judged anyway: " + o;
     return intact() ? "" : "target bytes changed";
   });
   // #475: proveScratch clones HEAD, and the clone must then BE the working tree but for the mutation — a curated copy list
@@ -209,11 +272,14 @@ try {
       var result = cp.spawnSync(process.execPath, [battery], { cwd: tmp, env: env, encoding: "utf8" }), o = out(result);
       if (result.status !== 0 || (o.match(/caught/g) || []).length !== 3) return "the three groups were not all caught: " + o.slice(0, 600);
       var rows = fs.readFileSync(log, "utf8").trim().split(/\r?\n/).map(function (l) { return l.split("|"); });
-      if (rows.length !== 3) return "expected three group runs, got " + rows.length;
-      if (rows[0][0] !== rows[1][0]) return "the second group cloned again instead of reusing the battery's clone: " + rows[0][0] + " vs " + rows[1][0];
-      if (rows[1][1] !== "-" || rows[1][2] !== "HEAD") return "a reused clone was not reset to HEAD before the next group (stray file / changed tracked file survived): " + rows[1].join("|");
-      if (rows[1][3] !== "late") return "a reused clone was not re-mirrored at the group's start (an untracked file written between groups is missing)";
-      if (rows[2][2] !== "COMMITTED LATER") return "a moved HEAD did not give the next group a clone of the new commit: " + rows[2].join("|");
+      /* G4: the command runs once on the unmutated file per clone commit, so the runs are: clean + group 1, group 2 (the
+         clean verdict is remembered while HEAD stands), clean + group 3 (HEAD moved) */
+      if (rows.length !== 5) return "expected five runs (a clean run and group 1, group 2, a clean run and group 3), got " + rows.length;
+      if (rows[0][1] !== "-" || rows[0][2] !== "HEAD") return "the clean run did not start in a fresh clone: " + rows[0].join("|");
+      if (rows[1][0] !== rows[2][0]) return "the second group cloned again instead of reusing the battery's clone: " + rows[1][0] + " vs " + rows[2][0];
+      if (rows[2][1] !== "-" || rows[2][2] !== "HEAD") return "a reused clone was not reset to HEAD before the next group (stray file / changed tracked file survived): " + rows[2].join("|");
+      if (rows[2][3] !== "late") return "a reused clone was not re-mirrored at the group's start (an untracked file written between groups is missing)";
+      if (rows[3][2] !== "COMMITTED LATER") return "a moved HEAD did not give the next group a clone of the new commit, with its own clean run first: " + rows[3].join("|");
       var leftover = rows.map(function (r) { return r[0]; }).filter(function (d) { return fs.existsSync(d); });
       return leftover.length ? "a scratch clone was left on disk after the battery exited: " + leftover.join(", ") : "";
     } finally {
@@ -230,7 +296,10 @@ try {
     var before = fs.readFileSync(real);
     var result = runChild("scratch-isolation", prelude() +
       'process.exit(sabotage.prove({file:"dev/tests-sabotage-meta.js",command:[process.execPath,["-e",' +
-      JSON.stringify('var fs=require("fs");var s=fs.readFileSync("dev/tests-sabotage-meta.js","utf8");if(s.indexOf("SYNTHETIC CLONE MUTATION")>=0){console.error("SCRATCH MUTATION CAUGHT");process.exit(1)}process.exit(0)') +
+      /* the probe reads the FIRST line, which the mutation rewrites. It used to look for the replacement text anywhere, and
+         this file itself contains that text (two lines down) — red before any mutation, so the case proved nothing until
+         G4's clean run said so */
+      JSON.stringify('var fs=require("fs");var s=fs.readFileSync("dev/tests-sabotage-meta.js","utf8");if(s.split("\\n")[0].indexOf("synthetic files only")<0){console.error("SCRATCH MUTATION CAUGHT");process.exit(1)}process.exit(0)') +
       ']],cases:[{label:"scratch isolation",find:"synthetic files only",replace:"SYNTHETIC CLONE MUTATION",mustFail:"SCRATCH MUTATION CAUGHT"}]}));');
     var after = fs.readFileSync(real);
     if (result.status !== 0 || out(result).indexOf("caught") < 0) return "scratch proof failed: " + out(result);
@@ -240,7 +309,7 @@ try {
     reset();
     var marker = path.join(tmp, "crash-marker.txt");
     var result = runChild("crash", prelude() + 'var marker=' + JSON.stringify(marker) + ';' +
-      'var cmd=[];Object.defineProperty(cmd,"0",{get:function(){fs.writeFileSync(marker,fs.readFileSync(target));throw new Error("synthetic crash");}});cmd[1]=[];' +
+      'var cmd=[];Object.defineProperty(cmd,"0",{get:function(){if(fs.readFileSync(target,"utf8").indexOf("BROKEN")<0)return process.execPath;fs.writeFileSync(marker,fs.readFileSync(target));throw new Error("synthetic crash");}});cmd[1]=["-e","process.exit(0)"];' +
       'sabotage.prove({file:target,command:cmd,cases:[{label:"crash fixture",find:"ORIGINAL",replace:"BROKEN"}]});');
     if (result.status === 0 || !fs.existsSync(marker) || fs.readFileSync(marker, "utf8").indexOf("BROKEN") < 0) return "crash did not occur after mutation: " + out(result);
     return intact() ? "" : "crash left target sabotaged";
@@ -249,7 +318,7 @@ try {
     reset();
     var marker = path.join(tmp, "interrupt-marker.txt");
     var result = runChild("interrupt", prelude() + 'var marker=' + JSON.stringify(marker) + ';' +
-      'var cmd=[];Object.defineProperty(cmd,"0",{get:function(){fs.writeFileSync(marker,fs.readFileSync(target));process.emit("SIGINT");return process.execPath;}});cmd[1]=[];' +
+      'var cmd=[];Object.defineProperty(cmd,"0",{get:function(){if(fs.readFileSync(target,"utf8").indexOf("BROKEN")<0)return process.execPath;fs.writeFileSync(marker,fs.readFileSync(target));process.emit("SIGINT");return process.execPath;}});cmd[1]=["-e","process.exit(0)"];' +
       'sabotage.prove({file:target,command:cmd,cases:[{label:"interrupt fixture",find:"ORIGINAL",replace:"BROKEN"}]});');
     var output = out(result);
     if (result.status !== 130 || output.indexOf("after interrupt") < 0) return "interrupt verdict/status wrong: status=" + result.status + " " + output;

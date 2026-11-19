@@ -27,6 +27,10 @@ function prove(name, cases, opts) {
     require("./sabotage.js").mirrorWorkingSet(scratch, root);   /* the working set, whole — tracked changes, deletions, untracked files */
     console.log("scratch-contract-sabotage: " + name + " — the working set mirrored into the clone (#609)");
 
+    /* Audit 2026-11-19, G1/G3/G4 — the three rules sabotage.js follows, through its own functions: the guarded command is
+       told which file is under mutation, it runs once on the unmutated clone first (a red clean run proves nothing), and a
+       catcher named only on a line that reports a PASS is no attribution. */
+    const sab = require("./sabotage.js"), cleanRed = {};
     for (const c of cases) {
       const target = path.join(scratch, c.file);
       const original = fs.readFileSync(target, "utf8");
@@ -36,13 +40,22 @@ function prove(name, cases, opts) {
         console.error("FAIL NOT-APPLIED " + c.label);
         continue;
       }
+      const env = sab.provingEnv(target, scratch);
+      if (!(c.file in cleanRed)) {
+        const clean = capture.runCaptured(process.execPath, command, { cwd: scratch, env: env });
+        cleanRed[c.file] = clean.unobserved ? "the guarded command " + clean.unobserved
+          : clean.status !== 0 ? "the guarded command is red on the unmutated clone (exit " + clean.status + "); its last lines: " +
+            output(clean).split(/\r?\n/).filter(function (l) { return l.trim(); }).slice(-4).join(" / ")
+          : "";
+      }
+      if (cleanRed[c.file]) { failed++; console.error("FAIL UNOBSERVED " + c.label + " — " + cleanRed[c.file]); continue; }
       fs.writeFileSync(target, changed, "utf8");
-      const run = capture.runCaptured(process.execPath, command, { cwd: scratch });   /* #473: the whole output */
+      const run = capture.runCaptured(process.execPath, command, { cwd: scratch, env: env });   /* #473: the whole output */
       fs.writeFileSync(target, original, "utf8");
       const intact = fs.readFileSync(target, "utf8") === original;
       if (run.unobserved) { failed++; console.error("FAIL UNOBSERVED " + c.label + " — the guarded command " + run.unobserved + "; restored=" + intact); continue; }
       const out = output(run);
-      if (run.status === 0 || out.indexOf(c.mustFail) < 0 || !intact) {
+      if (run.status === 0 || !c.mustFail || !sab.attributedOn(out, c.mustFail) || !intact) {
         failed++;
         console.error("FAIL " + (run.status === 0 ? "MISSED" : "MISATTRIBUTED") + " " + c.label +
           " — expected " + JSON.stringify(c.mustFail) + "; restored=" + intact);
