@@ -1595,6 +1595,17 @@ function deleteCampaign(id){
   forgetCampaignSyncMarkers(id);/* D10/D13: the campaign is gone — its sync markers must not keep a capped slot */
   forgetCampaignCheckpoint(id);/* S11: and its camp */
 }
+/* audit 2026-11-19, S12: the player chose to KEEP a copy the server records as deleted. It is listed again as this device's
+   own (no onServer), which is also what tells the next list sync to leave it alone; it uploads again when it is next played,
+   and the server drops its record then. `row` is the list row the question carried, when the list still had one (an earlier
+   sync's prune leaves a copy with no row: it is listed under the name the record gave). */
+function keepDeletedCampaignCopy(id,row,name){
+  if(!id)return false;
+  var meta=getCampMeta(),k,r;
+  for(k=0;k<meta.length;k++)if(meta[k]&&meta[k].id===id){delete meta[k].onServer;setCampMeta(meta);return true;}
+  r=ownAssign({},(row&&typeof row==="object")?row:{});r.id=id;delete r.onServer;if(!r.campName&&!r.name)r.campName=(typeof name==="string"&&name)?name:id;
+  meta.push(r);setCampMeta(meta);return true;
+}
 function migrateToCampaigns(){
   if(getActiveCampId())return;
   if(typeof stashJournalEnsure==="function")stashJournalEnsure(worldState,false);

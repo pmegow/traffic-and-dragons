@@ -1,6 +1,7 @@
 // sabotage-777-sync.js — retained proof for audit 2026-11-19 (TODO #777), section S: cloud sync and saves.
 //   S1  a sync answer belongs to the campaign that was posted (storage-adapter.js _syncNow)
 //   S2  the cloud ahead while a turn is in flight is a pause, never a sync base (_reconcileFromServer)
+//   S12 a local copy is removed only on the server's deletion record (planDeletedElsewhere, applyDeletedElsewhere; state.js the keep)
 // Each clause runs ONE named case of dev/tests-777-sync.js (the suite's own --only).
 var sabotage = require("./sabotage.js");
 var SYNC = ["node", ["dev/tests-777-sync.js"]], ONLY = "FAIL #777 ";
@@ -200,6 +201,52 @@ sync("state.js", [
   { label: "S11: a re-homed campaign's camp stays under the old id",
     find: "return idbPutCheckpoint(nid,snap).then(function(){return idbDelCheckpoint(old);});", replace: "return null;",
     mustFail: "FAIL #777 S11: a re-homed campaign's camp is moved to the new id" }
+]);
+
+// S12 (owner ruling 2026-11-19): a local copy is removed only on the server's deletion record
+sync("storage-adapter.js", [
+  { label: "S12: the deletion records are never asked for",
+    find: "      listDeletedCampaigns(function (e, recs) {\n        if (e) {", replace: "      (function () {})(function (e, recs) {\n        if (e) {", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+  { label: "S12: the copy is not removed",
+    find: "      deleteCampaign(p.id);\n      removed.push(p.name);", replace: "      removed.push(p.name);", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+  { label: "S12: the picker is not told what left",
+    find: "      removed.push(p.name);\n", replace: "", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+  { label: "S12: the removal is not said in words the player can act on",
+    find: " its copy was removed from this device.\", 8000);", replace: " gone.\", 8000);", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+  { label: "S12: an older server's 404 is reported as a failure at every sync",
+    find: "if (/\\b404\\b/.test(String(err))) cb(null, null); else cb(err); return; }", replace: "cb(err); return; }", mustFail: "FAIL #777 S12: with no record" },
+  { label: "S12: a failed read of the records is silent",
+    find: "if (e) { console.warn(\"[storage] the deletion records could not be read (\" + e + \") — no local copy is removed without them\"); return; }", replace: "if (e) { return; }", mustFail: "FAIL #777 S12: with no record" },
+  { label: "S12: a copy with unsent turns is removed unasked",
+    find: "action: dirtyTurn(r.id) != null ? \"ask\" : \"remove\" });", replace: "action: \"remove\" });", mustFail: "FAIL #777 S12: a copy holding turns that never reached the cloud is asked about" },
+  { label: "S12: every question is asked at once",
+    find: "if (!asked) { asked = 1; onCampaignCopyDeletedElsewhere(", replace: "{ asked = 1; onCampaignCopyDeletedElsewhere(", mustFail: "FAIL #777 S12: a copy holding turns that never reached the cloud is asked about" },
+  { label: "S12: a copy left for want of a question is not said",
+    find: "console.warn(\"[storage] \" + p.id + \" was deleted on another device and this copy holds unsent turns", replace: "void (\"[storage] \" + p.id + \" was deleted on another device and this copy holds unsent turns", mustFail: "FAIL #777 S12: a copy holding turns that never reached the cloud is asked about" },
+  { label: "S12: the campaign on screen is removed on its record",
+    find: "      if (r.id === activeId) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: a campaign the server lists again is removed on a stale record",
+    find: "      if (listed) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: a campaign kept on this device is removed",
+    find: "      if (row && !row.onServer) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: an id with no copy here is reported as removed",
+    find: "      if (!hasSlot(r.id)) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: an answer that is no list throws",
+    find: "    if (!Array.isArray(records)) return out;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: a record with no id is acted on",
+    find: "if (!r || typeof r.id !== \"string\" || !r.id || seen[r.id]) continue;", replace: "if (!r || seen[r.id]) continue;", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: a copy with no list row is not named from the record",
+    find: "|| (typeof r.name === \"string\" && r.name) || r.id, row: row,", replace: "|| r.id, row: row,", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" }
+]);
+sync("state.js", [
+  { label: "S12: a kept copy carried by its row stays listed as the server's",
+    find: "r.id=id;delete r.onServer;if(!r.campName", replace: "r.id=id;if(!r.campName", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" },
+  { label: "S12: a kept row still on the list stays listed as the server's",
+    find: "{delete meta[k].onServer;setCampMeta(meta);return true;}", replace: "{setCampMeta(meta);return true;}", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" },
+  { label: "S12: a kept copy with no row is listed under its id",
+    find: "r.campName=(typeof name===\"string\"&&name)?name:id;", replace: "r.campName=id;", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" },
+  { label: "S12: a keep with no id writes a row",
+    find: "  if(!id)return false;\n  var meta=getCampMeta(),k,r;", replace: "  var meta=getCampMeta(),k,r;", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" }
 ]);
 
 process.exit(failed ? 1 : 0);

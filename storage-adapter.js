@@ -833,10 +833,71 @@ var storageAdapter = (function() {
       try { if (typeof setCampMeta === "function") setCampMeta(merged); }
       catch (e) { console.error("[storage] the merged campaign list could not be persisted (storage full?) — the picker shows it this session only:", e); }
       done(merged);
+      /* audit 2026-11-19, S12: after the list — the copies this device still holds of campaigns the server RECORDS as deleted.
+         Never part of the list sync's own answer: a failure here costs nothing but the space. */
+      listDeletedCampaigns(function (e, recs) {
+        if (e) { console.warn("[storage] the deletion records could not be read (" + e + ") — no local copy is removed without them"); return; }
+        if (!recs) return;   /* a server older than 1.16.0 keeps none, or the answer was not a list: nothing is removed */
+        var res = applyDeletedElsewhere(recs, local, serverList);
+        if (res.removed.length && typeof onCampaignCopiesRemoved === "function") onCampaignCopiesRemoved(res.removed);
+      });
     }).catch(function(e) {
       console.warn("[storage] campaign list sync failed:", (e && e.name === "AbortError") ? "timed out" : e.message);
       done(null);
     });
+  }
+
+  // ── audit 2026-11-19, S12 (owner ruling): a campaign deleted on another device ────────────────────────────────────────
+  // mergeCampaignLists prunes the picker row of a campaign the server no longer lists and leaves its local copy where it is —
+  // on purpose (UA20): "absent from the list" is also what this device sees after a server data loss or a restore from an
+  // older backup, and removing copies on that signal would delete every survivor. Since server 1.16.0 a deletion leaves a
+  // RECORD (GET /api/campaigns/deleted), and only that record removes a copy. Left alone whatever the record says: the
+  // campaign on screen (its own question, #481 F9), one the server lists again, one this device lists as its own (no
+  // onServer: created here, or kept by the player), and an id with no copy here. A copy holding turns that never reached
+  // the cloud (the JP0-11 marker) is asked about, one question a sync.
+  // PURE: [{id, name, row, action:"remove"|"ask"}].
+  function planDeletedElsewhere(records, localRows, serverList, activeId, hasSlot, dirtyTurn) {
+    var out = [], seen = Object.create(null), i, j, r, row, listed;
+    if (!Array.isArray(records)) return out;
+    for (i = 0; i < records.length; i++) {
+      r = records[i];
+      if (!r || typeof r.id !== "string" || !r.id || seen[r.id]) continue;
+      seen[r.id] = true;
+      if (r.id === activeId) continue;
+      listed = false; for (j = 0; j < (serverList || []).length; j++) if (serverList[j] && serverList[j].id === r.id) { listed = true; break; }
+      if (listed) continue;
+      row = null; for (j = 0; j < (localRows || []).length; j++) if (localRows[j] && localRows[j].id === r.id) { row = localRows[j]; break; }
+      if (row && !row.onServer) continue;
+      if (!hasSlot(r.id)) continue;
+      out.push({ id: r.id, name: (row && (row.campName || row.name)) || (typeof r.name === "string" && r.name) || r.id, row: row, action: dirtyTurn(r.id) != null ? "ask" : "remove" });
+    }
+    return out;
+  }
+  // cb(err) on a failure; cb(null, null) when the server keeps no records (404: older than 1.16.0) or answers no list.
+  function listDeletedCampaigns(cb) {
+    _apiJson("/api/campaigns/deleted", "GET", null, function (err, data) {
+      if (err) { if (/\b404\b/.test(String(err))) cb(null, null); else cb(err); return; }
+      cb(null, data || null);   /* what is not a list plans nothing (planDeletedElsewhere) */
+    });
+  }
+  // Acts on the plan, reading the campaign on screen NOW (the answer may land after a switch). → {removed:[names], asked}
+  function applyDeletedElsewhere(records, localRows, serverList) {
+    var act = (typeof getActiveCampId === "function") ? getActiveCampId() : null, removed = [], asked = 0, i, p;
+    var plan = planDeletedElsewhere(records, localRows, serverList, act,
+      function (id) { return !!store.get(campSlotKey(id, "ws")); }, flushDirtyTurn);
+    for (i = 0; i < plan.length; i++) {
+      p = plan[i];
+      if (p.action === "ask") {
+        if (typeof onCampaignCopyDeletedElsewhere !== "function") { console.warn("[storage] " + p.id + " was deleted on another device and this copy holds unsent turns — nobody to ask, so it stays on this device"); continue; }
+        if (!asked) { asked = 1; onCampaignCopyDeletedElsewhere(p.id, p.name, p.row); }
+        continue;
+      }
+      deleteCampaign(p.id);
+      removed.push(p.name);
+      console.warn("[storage] " + p.id + " (" + p.name + ") was deleted on another device — the server holds the record, so this device's copy was removed (audit S12)");
+      if (typeof showToast === "function") showToast("\u2601 " + p.name + " was deleted on another device \u2014 its copy was removed from this device.", 8000);
+    }
+    return { removed: removed, asked: asked };
   }
 
   // ── Load ────────────────────────────────────────────────────────────────
@@ -1423,6 +1484,8 @@ var storageAdapter = (function() {
     getCheckpoint:         getCheckpoint,
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
+    planDeletedElsewhere:  planDeletedElsewhere, // audit S12: the pure plan (exposed for the engine tests)
+    listDeletedCampaigns:  listDeletedCampaigns, // audit S12: the server's deletion records
     resolveCas409:         resolveCas409,      // exposed for the engine tests (CAS self-heal)
     adoptServerTurn:       adoptServerTurn,    // #424: a confirmed cloud rewind LOWERS the ack base to the adopted turn
     quotaRefusalText:      quotaRefusalText,   // exposed for the engine tests (#313 quota refusal copy)

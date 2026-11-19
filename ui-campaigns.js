@@ -507,6 +507,29 @@ function onCampaignDeletedElsewhere(id,name){
     showCampaignPicker();showToast("Removed "+escHtml(nm)+" from this device.");
   };
 }
+/* audit 2026-11-19, S12 (owner ruling): a campaign NOT on screen was deleted on another device — the server holds the
+   record — and this device's copy has turns that never reached the cloud. Removal is the ruled default; it is asked first. */
+function onCampaignCopyDeletedElsewhere(id,name,row){
+  var nm=name||id;
+  if(typeof modalShell!=="function"){showToast("\u2601 "+nm+" was deleted on another device \u2014 this device still holds its unsent turns.",8000);return;}
+  var m=modalShell("deleted-copy-modal",
+    "<div style='font-size:16px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>"+escHtml(nm)+" was deleted on another device</div>"
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>This device still has a copy, with turns that never reached the cloud. Remove it from this device too? Removing it cannot be undone.</div>"
+    +"<div style='display:flex;gap:10px;margin-top:18px;'><button id='dc-remove' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Remove from this device</button>"
+    +"<button id='dc-keep' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Keep on this device</button></div>",
+    {maxWidth:460,wireClose:false});
+  document.getElementById("dc-remove").onclick=function(){
+    m.remove();
+    if(getActiveCampId()===id){showToast("That campaign is open now \u2014 nothing was removed.");return;}/* opened while the question stood */
+    deleteCampaign(id);showToast("Removed "+nm+" from this device.");onCampaignCopiesRemoved([nm]);
+  };
+  document.getElementById("dc-keep").onclick=function(){
+    m.remove();keepDeletedCampaignCopy(id,row,nm);
+    showToast("\u2601 Kept \u2014 "+nm+" stays on this device and uploads again when you next play it.");onCampaignCopiesRemoved([]);
+  };
+}
+/* the picker, if it is open, shows the list as it now stands */
+function onCampaignCopiesRemoved(names){if(typeof document!=="undefined"&&document.getElementById("camp-modal")&&typeof _renderCampList==="function")_renderCampList();}
 function campDeleteRemoteOutcome(err){
   if(!err)return "deleted";
   if(/\b404\b|not found/i.test(String(err)))return "absent";/* nothing to delete on the server — a local-only campaign */
