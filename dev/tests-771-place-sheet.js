@@ -86,7 +86,11 @@ test('a way whose direction nobody stated is dotted, and its two ends agree: onw
   assert.deepEqual(there.map(p => [p.kind, p.name, p.bearing, p.sure]), [['exit', CROSS, 'N', false]], 'the next place has its exit back to the previous one');
   assert.equal(atlasDoc(mire).paths.filter(p => p.sure === false).length, 1, 'drawn dotted');
   const r = atlasSheetRecipe(place(MIRE), [], [{ id: 'way-1', name: 'B', bearing: null, lean: 'S' }, { id: 'way-2', name: 'A', bearing: 'S', lean: 'N' }, { id: 'way-3', name: 'C', bearing: null, lean: 'S' }], []);
-  assert.deepEqual(r.params.site.exits.map(e => [e.bearing, e.sure]), [['SE', false], ['S', true], ['SW', false]], 'a stated direction keeps its edge whatever the order; the unstated take the next free ones');
+  /* audit 2026-11-19, A3 (owner ruling: nothing drawn moves, both share the edge): the first way was drawn dotted on the south
+     edge before the second existed, so it stays there; the way stated south later shares the edge; the third takes the next free one */
+  assert.deepEqual(r.params.site.exits.map(e => [e.bearing, e.sure]), [['S', false], ['S', true], ['SE', false]], 'a way drawn earlier keeps its edge when a later way is stated in its direction; a later unstated way takes the next free edge');
+  const r2 = atlasSheetRecipe(place(MIRE), [], [{ id: 'way-1', name: 'A', bearing: 'S', lean: 'N' }, { id: 'way-2', name: 'B', bearing: null, lean: 'S' }], []);
+  assert.deepEqual(r2.params.site.exits.map(e => [e.bearing, e.sure]), [['S', true], ['SE', false]], 'an unstated way never takes the edge a way before it already holds');
 });
 
 test('the story states a way\'s direction: the exit lies along it, solid, and the far end is its opposite', () => {
@@ -130,6 +134,18 @@ test('an exit or a feature added later moves nothing that was drawn, and two dra
   assert.equal(JSON.stringify(after.relief), JSON.stringify(before.relief), 'the ground');
   assert.equal(drawn({ relief: after.relief, features: after.features.slice(0, 2) }), b0, 'the two things that stood');
   const pool = after.features[0], cairn = after.features[1]; assert(pool.x < 350 && cairn.x > 350, 'each toward its bearing'); assert.equal(after.frame.width, 700); assert.equal(after.frame.height, 700); assert.equal(after.frame.mPerUnit, undefined, 'no distance is stated'); assert.equal(pool.kind, 'pond'); assert(after.water.pools.some(p => p.id === pool.pool), 'a pool is water on the sheet');
+});
+
+test('A3: a way stated later in the direction a dotted way already holds is drawn beside it, and the dotted way does not move', () => {
+  const HOLLOW = 'Gallows Hollow', FORD = 'Greywater Ford';
+  setup(MIRE); const mire = worldState.atlas.at; go(HOLLOW); go(MIRE);
+  const spot = d => d.portals.map(p => [p.name, p.x, p.y, p.sure]);
+  const before = atlasDoc(mire), first = spot(before); assert.equal(first.length, 1); assert.equal(first[0][3], false, 'fixture: the way to the hollow is unstated'); assert.equal(first[0][2], 700, 'fixture: it lies on the south edge');
+  turn('[MAP_REVEAL:new|' + FORD + '|S|reported]'); go(FORD); go(MIRE);
+  const after = atlasDoc(mire), now = spot(after); assert.equal(now.length, 2, 'the second way is drawn');
+  assert.deepEqual(now[0], first[0], 'the dotted way moved when a later way was stated in its direction');
+  assert.equal(now[1][3], true); assert.equal(now[1][2], 700, 'the stated way is not on the edge the story named'); assert.notEqual(now[1][1], now[0][1], 'the two ways are drawn on top of each other');
+  assert.equal(JSON.stringify(after.relief), JSON.stringify(before.relief), 'the ground');
 });
 
 test('the card of a drawn thing: where and when it was disclosed; of a listed one, that its position is not established', () => {

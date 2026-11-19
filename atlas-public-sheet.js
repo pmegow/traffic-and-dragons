@@ -206,7 +206,12 @@ function atlasSheetRecipe(place,features,ways,inside){
     params=draw.params(place,sorted,ways,inside,isWay,kind);
     return params?{draws:kind.draws,generator:draw.generator,terrain:null,ways:ways,inside:inside,params:params}:null;
   }
-  for(i=0;i<ways.length;i++)if(ways[i].bearing)used[ways[i].bearing]=true;
+  /* audit 2026-11-19, A3 (owner ruling: nothing drawn moves; both share the edge). The ways come in the order they were
+     first travelled, and each takes its edge knowing only the ways BEFORE it. Every stated bearing used to be reserved up
+     front, so a way stated later in the direction a dotted way already held pushed the dotted way to another edge of a
+     sheet the player had already seen. Now the dotted way stays and the stated one is drawn beside it (the library lays
+     two exits of one bearing apart, the earlier where it stood). Known limit: when an EARLIER way's direction is learned
+     later, a dotted way that came after it may take the edge it frees — nothing is stored to say where it was drawn. */
   for(i=0;i<ways.length;i++){
     w=ways[i];e={id:w.id,name:atlasSheetCut(w.name,ATLAS_SHEET_WAY_MAX),sure:!!w.bearing,bearing:w.bearing};
     if(!e.bearing&&w.lean&&!used[w.lean])e.bearing=w.lean;/* an unstated way is laid DOWN the sheet: onward is south, the way back north, so both ends of one way agree */
