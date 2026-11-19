@@ -573,7 +573,9 @@ var TAG_TABLE=[
   var placed=agendaFile(cs,m[2].trim(),m[3],"gm",R.turn);if(placed==="active")R.muts.push(nm+" wants: "+m[2].trim());else if(placed==="silent")R.muts.push(nm+" (later, silent): "+m[2].trim());else if(placed==="known")R.muts.push(nm+": that want is already on file — nothing added");else if(placed==="full")R.muts.push("⚠ "+nm+": "+AGENDA_QUEUE_MAX+" wants are already waiting — \""+m[2].trim().slice(0,60)+"\" was not added");/* audit 2026-11-19, M7 */
   /* #347 (owner 2026-09-05): a want landing is a visible event, like a level-up — the sheet's Wants section fills in
      silently otherwise, and three manufactured wants went unnoticed for days. One toast per filing. */
-  if(placed&&typeof showToast==="function")showToast((placed==="active"?"\u2605 "+nm+" wants: ":"\u2605 "+nm+" (later): ")+m[2].trim());
+  /* review of d15eac92: "known" and "full" are truthy — a want that was NOT queued was toasted as queued */
+  if((placed==="active"||placed==="silent")&&typeof showToast==="function")showToast((placed==="active"?"\u2605 "+nm+" wants: ":"\u2605 "+nm+" (later): ")+m[2].trim());
+  else if(placed==="full"&&typeof showToast==="function")showToast("\u26a0 "+nm+": "+AGENDA_QUEUE_MAX+" wants are already waiting — not added");
   if(worldState.agendaBirth&&worldState.agendaBirth.name===nm)delete worldState.agendaBirth;}}},
 /* #370 growth: a flaw outgrown ON SCREEN — the sheet's flaw is rewritten, the old one kept in growth[], a defining
    moment filed, one toast (#347's every-filing-toasts rule). Refused when the companion is not named in the prose of the
@@ -1883,7 +1885,7 @@ var spBase=sp.nm.replace(/\s*\(.*\)/,"").toLowerCase().trim();if(spBase===spNm||
   R._freshSplits[psName]=1;
   if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
   if(!memory.map.nodes[psArg])memory.map.nodes[psArg]=newMapNode(R.turn,null);/* audit C3: the one factory */
-  if(psPrev&&psPrev!==psArg){var psEx=false,psEi;for(psEi=0;psEi<memory.map.edges.length;psEi++){var psE=memory.map.edges[psEi];if((psE.from===psPrev&&psE.to===psArg)||(psE.from===psArg&&psE.to===psPrev)){psEx=true;break;}}if(!psEx)memory.map.edges.push({from:psPrev,to:psArg,turn:R.turn});}
+  if(psPrev&&psPrev!==psArg)mapEdgeAdd(psPrev,psArg,R.turn);/* #777 review: the one edge writer (memory.js) — this copy compared raw strings */
   if(memory.map.nodes[psArg].npcs.indexOf(psName)<0)memory.map.nodes[psArg].npcs.push(psName);
   if(memory.npcs[psName]){memory.npcs[psName].lastSeenAt=(psSub?psArg+"|"+psSub:psArg);memory.npcs[psName].lastSeenTurn=R.turn;memory.npcs[psName].lastSeenSrc="arrive";/* #175bR; #194 sourced */}
   /* #173: the split member's own arrival is recorded evidence — this handler is the ONE writer

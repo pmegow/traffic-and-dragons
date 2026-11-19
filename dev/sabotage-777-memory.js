@@ -35,9 +35,13 @@ prove("memory.js", [
   { label: "M1: the first word of a sentence is read as a name",
     find: "    if(first&&!/^\\s+[A-Z]/.test(after))continue;\n", replace: "", mustFail: ONLY + T.M1L },
   { label: "M1: the skip list is ignored by the fingerprint",
-    find: "  if(skip){at=at.filter(function(t){return !skip[t];});bt=bt.filter(function(t){return !skip[t];});}\n", replace: "", mustFail: ONLY + T.M1L },
+    find: "    at=at.filter(function(t){return !skip[t];});bt=bt.filter(function(t){return !skip[t];});\n", replace: "", mustFail: ONLY + T.M1L },
+  { label: "review M1: a plain restatement is kept as a twin",
+    find: "if(_in)return true;}", replace: "}", mustFail: ONLY + T.M1L },
+  { label: "review M1: only the first word of the whole text is a sentence's first",
+    find: "var first=/(?:^|[.!?][\"”’)\\]]*\\s+|\\n\\s*)[\"“‘(\\[]*$/.test(", replace: "var first=/^[\"“‘(\\[]*$/.test(", mustFail: ONLY + T.M1L },
   { label: "M2: the applied extraction leaves no marker",
-    find: "    memory.summaryApplied={upTo:sessionLog.length,kept:sessKeptStart(),sig:summarySig(sessionLog[sessionLog.length-1]),turn:worldState.turn};/* M2 */\n", replace: "", mustFail: ONLY + T.M2A },
+    find: "    memory.summaryApplied={upTo:sessionLog.length,kept:sessKeptStart(),sig:summarySig(sessionLog[sessionLog.length-1],sessionLog[sessionLog.length-2]),turn:worldState.turn};/* M2 */\n", replace: "", mustFail: ONLY + T.M2A },
   { label: "M2: a marked window is extracted again",
     find: "  if(memory.summaryApplied){\n    try{if(_sumCommit(", replace: "  if(false){\n    try{if(_sumCommit(", mustFail: ONLY + T.M2A },
   { label: "M2: the commit trims as if the whole log had been read",
@@ -45,7 +49,9 @@ prove("memory.js", [
   { label: "M2: the marker outlives its commit",
     find: "delete memory.summaryApplied;/* M2 */", replace: "/* M2 */", mustFail: ONLY + T.M2A },
   { label: "M2: the marker's removal is not saved",
-    find: "summaryFailureClear();saveCore();if(_ap)saveMem();", replace: "summaryFailureClear();saveCore();", mustFail: ONLY + T.M2A },
+    find: "if(saveCore()!==false&&_ap)saveMem();", replace: "saveCore();", mustFail: ONLY + T.M2A },
+  { label: "review M2: the marker's removal is saved although the trim was not",
+    find: "if(saveCore()!==false&&_ap)saveMem();", replace: "saveCore();if(_ap)saveMem();", mustFail: ONLY + T.M2A },
   { label: "M2: the trim marks unread exchanges as filed",
     find: "worldState.sessKept=filed-i;", replace: "worldState.sessKept=keep.length;", mustFail: ONLY + T.M2A },
   { label: "M2: exchanges the extraction never read are trimmed away",
@@ -55,7 +61,9 @@ prove("memory.js", [
   { label: "M2: a marker for another session log is honoured",
     find: "  if(memory.summaryApplied&&!summaryAppliedValid()){", replace: "  if(false){", mustFail: ONLY + T.M2S },
   { label: "M2: the marker is not checked against the last message read",
-    find: "&&summarySig(sessionLog[m.upTo-1])===m.sig;", replace: ";", mustFail: ONLY + T.M2S },
+    find: "&&summarySig(sessionLog[m.upTo-1],sessionLog[m.upTo-2])===m.sig;", replace: ";", mustFail: ONLY + T.M2S },
+  { label: "review M2: the signature reads the reply alone",
+    find: "+\"|\"+p.length+\":\"+p.slice(0,24);}", replace: ";}", mustFail: ONLY + T.M2S },
   { label: "M2: the marker is not checked against where the window began",
     find: "  return m.kept===sessKeptStart()&&", replace: "  return ", mustFail: ONLY + T.M2S },
   { label: "M3: the needle is not trimmed",
@@ -72,6 +80,8 @@ prove("memory.js", [
     find: "scene:(typeof v===\"object\"&&!!v&&String(v.kind||\"\").toLowerCase()===\"scene\"),set:", replace: "set:", mustFail: ONLY + T.M4 },
   { label: "M4: a deferred scene fact comes back as standing knowledge",
     find: "knowledgeGained:dq.scene?{fact:t,kind:\"scene\"}:t});/* M4 */", replace: "knowledgeGained:t});/* M4 */", mustFail: ONLY + T.M4 },
+  { label: "review M4: a deferred knowledge line with no character comes back as lore",
+    find: "if(dq.kind===\"knowledge\"){if(!dq.name)return;", replace: "if(dq.kind===\"knowledge\"&&dq.name){", mustFail: ONLY + T.M4 },
   { label: "M4: a line deferred twice loses its scene mark",
     find: "text:dq.text,scene:!!dq.scene,deferredFrom:dq.turn,", replace: "text:dq.text,deferredFrom:dq.turn,", mustFail: ONLY + T.M4 },
   { label: "M5: a failing compile is billed at every summarize",
@@ -84,10 +94,16 @@ prove("memory.js", [
     find: "    if(worldState.eraFailure){delete worldState.eraFailure;saveCore();}/* M5: a compile or a merge landed */\n", replace: "", mustFail: ONLY + T.M5 },
   { label: "M5: a failure is recorded against whatever campaign is open",
     find: "    if(campaignStill(_eraMark,null)){var _efp=", replace: "    if(true){var _efp=", mustFail: ONLY + T.M5C },
-  { label: "M6: the place left is compared under its alias",
-    find: "if(prev)prev=_lr(prev);", replace: "", mustFail: ONLY + T.M6 },
+  { label: "M6: the ends of a new edge are compared under their aliases",
+    find: "  from=_lr(from);to=_lr(to);if(from===to)return false;", replace: "  if(from===to)return false;", mustFail: ONLY + T.M6 },
   { label: "M6: an edge stored under an alias is not recognised",
-    find: "_ef2=_lr(e.from),_et2=_lr(e.to);", replace: "_ef2=e.from,_et2=e.to;", mustFail: ONLY + T.M6 }
+    find: "a=_lr(e.from),b=_lr(e.to);", replace: "a=e.from,b=e.to;", mustFail: ONLY + T.M6 },
+  { label: "M6: a place is joined to itself under its alias",
+    find: "  from=_lr(from);to=_lr(to);if(from===to)return false;", replace: "  from=_lr(from);to=_lr(to);", mustFail: ONLY + T.M6 }
+]);
+prove("state.js", [
+  { label: "review M2: a .tnd import drops the marker",
+    find: "  if(mm.summaryApplied&&typeof mm.summaryApplied===\"object\")memory.summaryApplied=mm.summaryApplied;\n", replace: "", mustFail: ONLY + T.M2A }
 ]);
 prove("helpers.js", [
   { label: "M5: the failing compile is not on the health readout",
@@ -101,13 +117,21 @@ prove("helpers.js", [
   { label: "M7: a blank want is filed",
     find: "  if(!rec.want)return null;\n", replace: "", mustFail: ONLY + T.M7A },
   { label: "M7: a completed want's duplicate is promoted",
-    find: "  if(cs.agendaQueue)cs.agendaQueue=cs.agendaQueue.filter(function(q){return String((q&&q.want)||\"\").trim().toLowerCase()!==String(a.want||\"\").trim().toLowerCase();});\n", replace: "", mustFail: ONLY + T.M7B }
+    find: "  if(cs.agendaQueue)cs.agendaQueue=cs.agendaQueue.filter(function(q){return String((q&&q.want)||\"\").trim().toLowerCase()!==String(a.want||\"\").trim().toLowerCase();});\n", replace: "", mustFail: ONLY + T.M7B },
+  { label: "review M7: a duplicate of a want resolved early still waits",
+    find: "cs.agendaQueue=cs.agendaQueue.filter(function(x){return String((x&&x.want)||\"\").trim().toLowerCase()!==String(q.want||\"\").trim().toLowerCase();});/* #777 review", replace: "/* #777 review", mustFail: ONLY + T.M7B }
 ]);
 prove("tag_table.js", [
   { label: "M7: a repeated want is not said",
     find: "else if(placed===\"known\")R.muts.push(", replace: "else if(false)R.muts.push(", mustFail: ONLY + T.M7A },
   { label: "M7: a want refused at the bound is not said",
-    find: "else if(placed===\"full\")R.muts.push(", replace: "else if(false)R.muts.push(", mustFail: ONLY + T.M7A }
+    find: "else if(placed===\"full\")R.muts.push(", replace: "else if(false)R.muts.push(", mustFail: ONLY + T.M7A },
+  { label: "review M7: a want that was not queued is toasted as queued",
+    find: "if((placed===\"active\"||placed===\"silent\")&&typeof showToast===\"function\")", replace: "if(placed&&typeof showToast===\"function\")", mustFail: ONLY + T.M7A },
+  { label: "review M7: a want refused at the bound has no toast",
+    find: "else if(placed===\"full\"&&typeof showToast===\"function\")showToast(", replace: "else if(false)showToast(", mustFail: ONLY + T.M7A },
+  { label: "review M6: a companion's split writes its edge by a raw comparison",
+    find: "mapEdgeAdd(psPrev,psArg,R.turn);/* #777 review", replace: "memory.map.edges.push({from:psPrev,to:psArg,turn:R.turn});/* #777 review", mustFail: ONLY + T.M6 }
 ]);
 
 process.exit(failed ? 1 : 0);

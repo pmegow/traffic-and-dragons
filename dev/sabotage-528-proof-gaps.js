@@ -28,7 +28,7 @@ prove("tag_table.js", [
   { label: "91e50ea B4: the keeper is stored under the raw operand, not the roster name",
     find: "var prev=node.keeper;node.keeper=npc.name;", replace: "var prev=node.keeper;node.keeper=raw;", mustFail: P },
   { label: "5e9a116 #437: a want landing no longer toasts",
-    find: "if(placed&&typeof showToast===\"function\")showToast((placed===\"active\"?", replace: "if(false)showToast((placed===\"active\"?", mustFail: P },
+    find: "if((placed===\"active\"||placed===\"silent\")&&typeof showToast===\"function\")showToast((placed===\"active\"?", replace: "if(false)showToast((placed===\"active\"?", mustFail: P },/* #777 M7 review: the line as it reads now — only a want that landed toasts */
   { label: "5e9a116 #437: a settled purpose no longer toasts",
     find: "if(typeof showToast===\"function\")showToast(\"★ \"+gname+\" — purpose settled: \"+ms.how);continue;}", replace: "continue;}", mustFail: P },
   { label: "a2ddcec #490: the re-route receipt is gone (the ability lands on the companion in silence)",

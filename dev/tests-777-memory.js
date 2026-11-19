@@ -43,6 +43,12 @@ kase("M1: three distinct lore lines about a place with a two-word name are all k
   assert.ok(memory.lore.some(function (l) { return /fishers say/.test(l); }), "the richer rewording did not win");
   fileLore("Smoke rises from the Glass Spire."); fileLore("Smoke rises daily from the Glass Spire.");
   assert.strictEqual(memory.lore.length, 4, "the first word of a sentence was read as a name, so a rewording was kept as a twin: " + JSON.stringify(memory.lore));
+  var nt = Object.keys(feNameTokens("The spire hums. Smoke rises from the tower. At dawn, Mara left! However, Voss stayed.\nSecond line here"));
+  assert.deepStrictEqual(nt.sort(), ["mara", "vos"], "the first word of a later sentence is read as a name: " + JSON.stringify(nt));
+  fresh();
+  fileLore("The Baron taxes the Guild."); fileLore("The Baron taxes the Guild heavily.");
+  fileLore("Old Tom's Tavern serves Black Ale."); fileLore("Black Ale is served at Old Tom's Tavern.");
+  assert.strictEqual(memory.lore.length, 2, "a plain restatement is kept as a twin: " + JSON.stringify(memory.lore));
 });
 kase("M1: two distinct facts about a person with a two-word name are both kept; a rewording of one still folds", function () {
   fresh(); npc("Mara Voss");
@@ -85,6 +91,18 @@ kase("M2: when the save fails after an extraction was applied, the retry files n
     assert.strictEqual(sessionLog[sessionLog.length - 1].content, "You rest by the water.", "the exchange played after the failed save was lost");
     assert.strictEqual(sessKeptStart(), sessionLog.length - 2, "the exchange played after the failed save is marked as already filed (" + sessKeptStart() + " of " + sessionLog.length + ")");
     assert.ok(!memory.summaryApplied, "the marker outlived its commit");
+    var w2 = LE.makeTestWorld({ campId: "imp777", campName: "Imported" }), m2 = blankMemory(); m2.summaryApplied = { upTo: 4, kept: 0, sig: "s", turn: 2 };
+    snapshotActiveCamp = function () { return true; };
+    importSaveData(JSON.parse(JSON.stringify({ worldState: w2, memory: m2, sessionLog: [] })));
+    assert.deepStrictEqual(memory.summaryApplied, { upTo: 4, kept: 0, sig: "s", turn: 2 }, "a .tnd import drops the marker — the window it describes is extracted again");
+    fresh(); longSession(12); calls = 0; memSaves = 0;
+    saveLocal = function () { return false; };
+    return summarize();
+  }).then(function () {
+    saveLocal = function () { return true; }; saveCore = function () { return false; }; saveMem = function () { memSaves++; return true; };   // the trim cannot be written
+    return summarize();
+  }).then(function () {
+    assert.strictEqual(memSaves, 0, "the marker's removal was saved although the trim was not — a reload extracts the untrimmed log again");
   });
 });
 kase("M2: a throw after the extraction was applied and saved does not file the window again", function () {
@@ -137,10 +155,15 @@ kase("M2: a marker that does not describe the session log on hand is ignored —
     assert.strictEqual(calls, 1, "a stale marker stopped a window from being extracted — its events would never reach memory");
     assert.strictEqual(memory.chapters.length, 1);
     fresh(); longSession(12); calls = 0; worldState.sessKept = 4;
-    memory.summaryApplied = { upTo: 24, kept: 0, sig: summarySig(sessionLog[23]), turn: 3 };   // right last message, another window start
+    memory.summaryApplied = { upTo: 24, kept: 0, sig: summarySig(sessionLog[23], sessionLog[22]), turn: 3 };   // right last exchange, another window start
     return summarize();
   }).then(function () {
     assert.strictEqual(calls, 1, "a marker for a window that began elsewhere was honoured");
+    fresh(); longSession(12); calls = 0;
+    memory.summaryApplied = { upTo: 24, kept: 0, sig: summarySig(sessionLog[23], { content: "another question" }), turn: 3 };   // the same reply after another action
+    return summarize();
+  }).then(function () {
+    assert.strictEqual(calls, 1, "a marker was honoured on the reply alone — two windows ending in the same words would skip the second");
   });
 });
 
@@ -178,6 +201,11 @@ kase("M4: a scene-only fact deferred past the re-ask cap comes back as a scene f
     assert.ok(kg && typeof kg === "object" && String(kg.kind).toLowerCase() === "scene", "the deferred scene fact came back as standing knowledge: " + JSON.stringify(kg));
     applySummaryExtract({ chapterSummary: "c", npcUpdates: next.npcUpdates }, null, null);
     assert.deepStrictEqual(memory.npcs.Bram.knowledge, [], "a fact true only in its scene was filed as permanent knowledge: " + JSON.stringify(memory.npcs.Bram.knowledge));
+    // a deferred knowledge line with no character is not lore
+    fresh(); worldState.recordDeferred = [{ kind: "knowledge", name: null, text: "A plain line about nobody", turn: 5 }];
+    var orphan = { npcUpdates: [], loreDiscovered: [] };
+    return recordRegisterGuard(orphan, 6, call).then(function () { assert.deepStrictEqual(orphan.loreDiscovered, [], "a knowledge line with no character came back as lore"); assert.deepStrictEqual(orphan.npcUpdates, []); });
+  }).then(function () {
     // deferred TWICE: more lines wait than one window re-asks
     fresh(); npc("Bram"); var many = [], j;
     for (j = 0; j < RECORD_REGISTER_REASK_MAX * 2 + 2; j++) many.push({ name: "Bram", knowledgeGained: { fact: "Bram keeps a ledger of slights, number " + j, kind: "scene" } });
@@ -237,6 +265,9 @@ kase("M6: a pointer that holds an alias of a place records no second edge for th
   assert.strictEqual(memory.map.edges.length, 2, "an edge stored under the alias was not recognised: " + JSON.stringify(memory.map.edges));
   fileLocation("Riddleport", null, 5, "Sandpoint, Varisia");
   assert.deepStrictEqual([memory.map.edges[2].from, memory.map.edges[2].to], ["Sandpoint", "Riddleport"], "a new edge was stored under the alias");
+  assert.strictEqual(mapEdgeAdd("Sandpoint, Varisia", "Magnimar", 9), false); assert.strictEqual(mapEdgeAdd("Sandpoint, Varisia", "Sandpoint", 9), false); assert.strictEqual(memory.map.edges.length, 3);
+  var tagSrc = fs.readFileSync(path.join(__dirname, "..", "tag_table.js"), "utf8");
+  assert.ok(/if\(psPrev&&psPrev!==psArg\)mapEdgeAdd\(psPrev,psArg,R\.turn\);/.test(tagSrc) && tagSrc.indexOf("psE.from===psPrev") < 0, "a companion's split still writes its edge by its own raw comparison");
 });
 
 // ── M7: a companion's queued wants ─────────────────────────────────────────────────────────────────────────────────
@@ -258,12 +289,19 @@ kase("M7: a want that is already active or waiting is not queued again, the queu
   for (i = 0; i < AGENDA_QUEUE_MAX; i++) applyMuts("[COMPANION_AGENDA:Bram|Errand " + i + "]");
   r = applyMuts("[COMPANION_AGENDA:Bram|One errand too many]");
   assert.ok((r.muts || []).some(function (m) { return /already waiting/.test(m) && /One errand too many/.test(m); }), "a want refused at the bound was not said: " + JSON.stringify(r.muts));
+  assert.ok(!said.toasts.some(function (t) { return /\(later\): One errand too many/.test(t); }), "a want that was refused was toasted as queued: " + JSON.stringify(said.toasts));
+  assert.ok(said.toasts.some(function (t) { return /already waiting/.test(t); }), "the refusal has no toast");
+  said.toasts.length = 0; applyMuts("[COMPANION_AGENDA:Bram|Find his sister]");
+  assert.deepStrictEqual(said.toasts.filter(function (t) { return /Find his sister/.test(t); }), [], "a want already on file was toasted as queued again");
 });
 kase("M7: an old save's duplicate of a want that completes is not promoted as the next want", function () {
   fresh(); var cs = { name: "Bram", agenda: { want: "Find his sister", kind: "personal", source: "gm", born: 1, since: 1 }, agendaQueue: [{ want: "Find his sister", kind: "personal", source: "gm", born: 2 }, { want: "Buy a horse", kind: "personal", source: "gm", born: 3 }] };
   var out = agendaComplete(cs, "", 9, "fulfilled");
   assert.strictEqual(out.promoted, "Buy a horse", "the completed want's duplicate was promoted: " + JSON.stringify(out));
   assert.strictEqual(cs.agendaQueue.length, 0);
+  var c2 = { name: "Bram", agenda: { want: "Guard the gate", kind: "personal", source: "gm", born: 1, since: 1 }, agendaQueue: [{ want: "Find his sister", kind: "personal" }, { want: "find his sister ", kind: "personal" }, { want: "Buy a horse", kind: "personal" }] };
+  agendaComplete(c2, "sister", 9, "found");
+  assert.deepStrictEqual(c2.agendaQueue.map(function (q) { return q.want; }), ["Buy a horse"], "a duplicate of a want resolved early still waits to be promoted");
 });
 
 // ── runner ─────────────────────────────────────────────────────────────────────────────────────────────────────────

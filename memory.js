@@ -653,15 +653,22 @@ function fileLocation(loc,note,turn,from){/* #481 A4: `from` = where this move l
   guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
   // Edge + arrival tracking
   var prev=(from!=null)?from:(worldState&&worldState.world?worldState.world.location:null);
-  /* audit 2026-11-19, M6: the place left is resolved like the place reached, and so is every edge it is compared with — a
-     pointer that still held an alias recorded a second edge for a pair already joined, and an edge from a place to itself. */
-  var _lr=(typeof locResolve==="function")?locResolve:function(x){return x;};if(prev)prev=_lr(prev);
+  /* audit 2026-11-19, M6: the place left is resolved like the place reached — a pointer that still held an alias recorded a
+     second edge for a pair already joined, and an edge from a place to itself (mapEdgeAdd). */
   if(prev&&prev!==loc){
     memory.map.lastArrivalFrom=prev;
-    var exi=false,ei;
-    for(ei=0;ei<memory.map.edges.length;ei++){var e=memory.map.edges[ei],_ef2=_lr(e.from),_et2=_lr(e.to);if((_ef2===prev&&_et2===loc)||(_ef2===loc&&_et2===prev)){exi=true;break;}}
-    if(!exi)memory.map.edges.push({from:prev,to:loc,turn:turn});
+    mapEdgeAdd(prev,loc,turn);
   }
+}
+/* The ONE writer of a map edge (audit M6, and the review of d15eac92: PARTY_SPLIT had a second, raw comparison). Both
+   ends are resolved, and so is every stored end they are compared with; a place is never joined to itself. Returns
+   true when an edge was added. */
+function mapEdgeAdd(from,to,turn){
+  var _lr=(typeof locResolve==="function")?locResolve:function(x){return x;},i;
+  if(!from||!to||!memory.map)return false;
+  from=_lr(from);to=_lr(to);if(from===to)return false;
+  for(i=0;i<memory.map.edges.length;i++){var e=memory.map.edges[i],a=_lr(e.from),b=_lr(e.to);if((a===from&&b===to)||(a===to&&b===from))return false;}
+  memory.map.edges.push({from:from,to:to,turn:turn});return true;
 }
 function fileSubLocation(name,turn,inWorld){/* #481 A4: `inWorld` = the world this arrival happened under (a sub named before a world move belongs to the OLD world) */
   if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
@@ -1497,7 +1504,15 @@ function feTokens(s){
    and is unchanged — a goal re-minted in fresh words is recognised BY its name. */
 function feNearDup(a,b,skip){
   var at=feTokens(a),bt=feTokens(b),shared=0,i;
-  if(skip){at=at.filter(function(t){return !skip[t];});bt=bt.filter(function(t){return !skip[t];});}
+  if(skip){
+    /* review of d15eac92 (finding 2, measured on the owner's saves): leaving the names out also stopped folding a plain
+       restatement ("The Baron taxes the Guild." beside "The Baron taxes the Guild heavily."). When the two texts match WITH
+       their names and every other word of the shorter one is in the longer, the shorter says nothing the longer does not. */
+    var _all=0;for(i=0;i<at.length;i++)if(bt.indexOf(at[i])>=0)_all++;
+    var _withNames=_all>=2&&_all*2>=Math.min(at.length,bt.length);
+    at=at.filter(function(t){return !skip[t];});bt=bt.filter(function(t){return !skip[t];});
+    if(_withNames){var _sm=at.length<=bt.length?at:bt,_lg=_sm===at?bt:at,_in=true;for(i=0;i<_sm.length;i++)if(_lg.indexOf(_sm[i])<0){_in=false;break;}if(_in)return true;}
+  }
   for(i=0;i<at.length;i++){if(bt.indexOf(at[i])>=0)shared++;}
   return shared>=2&&shared*2>=Math.min(at.length,bt.length);
 }
@@ -1506,7 +1521,7 @@ function feNearDup(a,b,skip){
 function feNameTokens(s){
   var out=keyedDict(),str=String(s||""),re=/[A-Z][A-Za-z'’\-]*/g,m,i;
   while((m=re.exec(str))){
-    var first=!/[^\s"“‘(\[]\s*$/.test(str.slice(0,m.index).replace(/[.!?]["”’)]*\s*$/,"")),after=str.slice(m.index+m[0].length);
+    var first=/(?:^|[.!?]["”’)\]]*\s+|\n\s*)["“‘(\[]*$/.test(str.slice(0,m.index)),after=str.slice(m.index+m[0].length);/* review: the first cut stripped the full stop and then saw the previous sentence's last letter — only the first word of the whole text was ever "first" */
     if(first&&!/^\s+[A-Z]/.test(after))continue;
     var t=feTokens(m[0]);for(i=0;i<t.length;i++)out[t[i]]=1;
   }
@@ -3078,7 +3093,7 @@ async function recordRegisterGuard(extracted,turn,call){
   /* #481 C7 (c): last window's deferred lines are guarded FIRST — they have waited longest; a clean one files through the extraction */
   var prev=(worldState&&worldState.recordDeferred)?worldState.recordDeferred.splice(0):[];if(worldState&&worldState.recordDeferred&&!worldState.recordDeferred.length)delete worldState.recordDeferred;
   for(i=0;i<prev.length;i++){(function(dq){if(!dq||!dq.text)return;jobs.push({what:(dq.kind==="knowledge"?"knowledge ("+(dq.name||"?")+")":"lore")+" (deferred t"+dq.turn+")",kind:dq.kind,name:dq.name,text:dq.text,scene:!!dq.scene,deferredFrom:dq.turn,
-    set:function(t){if(dq.kind==="knowledge"&&dq.name){if(!Array.isArray(extracted.npcUpdates))extracted.npcUpdates=[];extracted.npcUpdates.push({name:dq.name,knowledgeGained:dq.scene?{fact:t,kind:"scene"}:t});/* M4 */}else{if(!Array.isArray(extracted.loreDiscovered))extracted.loreDiscovered=[];extracted.loreDiscovered.push(t);}},drop:function(){}});})(prev[i]);}
+    set:function(t){if(dq.kind==="knowledge"){if(!dq.name)return;/* review: a knowledge line with no character was never lore */if(!Array.isArray(extracted.npcUpdates))extracted.npcUpdates=[];extracted.npcUpdates.push({name:dq.name,knowledgeGained:dq.scene?{fact:t,kind:"scene"}:t});/* M4 */}else{if(!Array.isArray(extracted.loreDiscovered))extracted.loreDiscovered=[];extracted.loreDiscovered.push(t);}},drop:function(){}});})(prev[i]);}
   var ups=Array.isArray(extracted.npcUpdates)?extracted.npcUpdates:[];
   for(i=0;i<ups.length;i++){(function(nu){if(!nu||nu.knowledgeGained==null)return;var v=nu.knowledgeGained,f=(typeof v==="object"&&v)?v.fact:v;if(typeof f!=="string"||!f)return;
     jobs.push({what:"knowledge ("+(nu.name||"?")+")",kind:"knowledge",name:nu.name||null,text:f,scene:(typeof v==="object"&&!!v&&String(v.kind||"").toLowerCase()==="scene"),set:function(t){if(typeof v==="object"&&v)v.fact=t;else nu.knowledgeGained=t;},drop:function(){delete nu.knowledgeGained;}});})(ups[i]);}
@@ -3211,11 +3226,11 @@ function summarizeShouldDefer(){
    marker ON MEMORY (it travels with what it describes, in the same write): how far it read, where the window began, and
    a signature of the last message read. While the marker describes the session log on hand, the retry asks the model
    nothing and files nothing — it only saves and trims. A marker that does not describe this log is dropped, loudly. */
-function summarySig(m){var c=String((m&&m.content)||"");return c.length+":"+c.slice(0,48);}
+function summarySig(m,before){var c=String((m&&m.content)||""),p=String((before&&before.content)||"");return c.length+":"+c.slice(0,48)+":"+c.slice(-24)+"|"+p.length+":"+p.slice(0,24);}/* review: the last EXCHANGE read — one reply's length and opening could repeat (a verbatim refusal) */
 function summaryAppliedValid(){
   var m=memory&&memory.summaryApplied;
   if(!m||typeof m.upTo!=="number"||typeof m.kept!=="number")return false;
-  return m.kept===sessKeptStart()&&summarySig(sessionLog[m.upTo-1])===m.sig;
+  return m.kept===sessKeptStart()&&summarySig(sessionLog[m.upTo-1],sessionLog[m.upTo-2])===m.sig;
 }
 async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
@@ -3239,7 +3254,7 @@ async function summarize(){
     }
     var _ap=memory.summaryApplied;
     retainSessionTail(_ap&&typeof _ap.upTo==="number"?_ap.upTo:undefined);delete memory.summaryApplied;/* M2 */
-    summaryFailureClear();saveCore();if(_ap)saveMem();/* the marker's removal is persisted with the trim *//* the shrink is persisted by the second saveCore; summaryFailureClear rides with it */
+    summaryFailureClear();if(saveCore()!==false&&_ap)saveMem();/* the marker's removal is persisted once the trim is on disk (review: saved regardless, a failed core write left an untrimmed log with no marker — extracted again after a reload) *//* the shrink is persisted by the second saveCore; summaryFailureClear rides with it */
     addMsg("system",note);
     return true;
   }
@@ -3304,7 +3319,7 @@ async function summarize(){
     _deferSnap=(worldState&&Array.isArray(worldState.recordDeferred))?worldState.recordDeferred.slice():[];
     await recordRegisterGuard(extracted,worldState.turn);/* #459 ③: a knowledge or lore line in the register is re-asked ONCE, else dropped — never filed */
     var _exStats=applySummaryExtract(extracted,_identityTable,_motivationTable);
-    memory.summaryApplied={upTo:sessionLog.length,kept:sessKeptStart(),sig:summarySig(sessionLog[sessionLog.length-1]),turn:worldState.turn};/* M2 */
+    memory.summaryApplied={upTo:sessionLog.length,kept:sessKeptStart(),sig:summarySig(sessionLog[sessionLog.length-1],sessionLog[sessionLog.length-2]),turn:worldState.turn};/* M2 */
     _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_withheld?" ("+_withheld.withheld+" of "+_withheld.total+" exchanges withheld by the provider's content filter — extracted around them; B38)":_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){

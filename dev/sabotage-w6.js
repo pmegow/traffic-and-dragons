@@ -91,8 +91,8 @@ rc|=sabotage.prove({file:"memory.js",command:replay,cases:[
      armed — it now mutates the single committer instead of one of three copies. */
   {label:"safe exhaustion leaves the old failure strike armed",
     mustFail:"W6 REPLAY FAILED: safe exhaustion left a stale strike",
-    find:"    summaryFailureClear();saveCore();if(_ap)saveMem();",/* #777 M2: the committer's line as it reads now */
-    replace:"    saveCore();if(_ap)saveMem();"}
+    find:"    summaryFailureClear();if(saveCore()!==false&&_ap)saveMem();",/* #777 M2: the committer's line as it reads now */
+    replace:"    if(saveCore()!==false&&_ap)saveMem();"}
 ]});
 
 rc|=sabotage.prove({file:"state.js",command:focused,cases:[

@@ -583,7 +583,7 @@ function agendaFile(cs,want,kind,source,turn){
 // or resolve a SILENT want early by fragment (the Spike case): filed to history, nothing promoted.
 function agendaComplete(cs,fragment,turn,how){
   if(!cs)return null;if(!cs.agendaHistory)cs.agendaHistory=[];var f=String(fragment||"").trim().toLowerCase(),i;
-  if(f&&cs.agendaQueue&&cs.agendaQueue.length){for(i=0;i<cs.agendaQueue.length;i++){if(String(cs.agendaQueue[i].want).toLowerCase().indexOf(f)>=0){var q=cs.agendaQueue.splice(i,1)[0];q.done=turn;q.how=how||"resolved before its turn";cs.agendaHistory.push(q);return {done:q.want,promoted:null,early:true};}}}
+  if(f&&cs.agendaQueue&&cs.agendaQueue.length){for(i=0;i<cs.agendaQueue.length;i++){if(String(cs.agendaQueue[i].want).toLowerCase().indexOf(f)>=0){var q=cs.agendaQueue.splice(i,1)[0];q.done=turn;q.how=how||"resolved before its turn";cs.agendaHistory.push(q);cs.agendaQueue=cs.agendaQueue.filter(function(x){return String((x&&x.want)||"").trim().toLowerCase()!==String(q.want||"").trim().toLowerCase();});/* #777 review: an old save's duplicate of the want just resolved */return {done:q.want,promoted:null,early:true};}}}
   if(!cs.agenda)return null;var a=cs.agenda;a.done=turn;a.how=how||"fulfilled";cs.agendaHistory.push(a);cs.agenda=null;var next=null;
   /* M7: an old save may hold the completed want again in its queue — it is done, not next */
   if(cs.agendaQueue)cs.agendaQueue=cs.agendaQueue.filter(function(q){return String((q&&q.want)||"").trim().toLowerCase()!==String(a.want||"").trim().toLowerCase();});

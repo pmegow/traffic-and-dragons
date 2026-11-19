@@ -1311,6 +1311,10 @@ function _importInstall(data,ws){
     else if(_bDef&&typeof _bDef==="object")memory[_bKey]=(_bVal&&typeof _bVal==="object"&&!Array.isArray(_bVal))?_bVal:_bDef;
     else memory[_bKey]=(typeof _bVal===typeof _bDef)?_bVal:undefined;
   }
+  /* #777 M2 (review of d15eac92): the summarize marker is not a blankMemory key (a blank memory has no window applied) — it is
+     carried here by name. The file brings the session log it describes; without it the import extracted an applied window
+     again. */
+  if(mm.summaryApplied&&typeof mm.summaryApplied==="object")memory.summaryApplied=mm.summaryApplied;
   /* The two registry-owned keys keep their explicit builders (both pinned by the #144A ARCHIVE
      CARRY CONTRACT): quests rides WHOLESALE because #235's by/wasOffered provenance lives on the
      records, and the archive rebuilds through the MEMORY_ARCHIVE_KEYS registry, which carries
