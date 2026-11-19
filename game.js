@@ -1582,7 +1582,9 @@ function spellDefTag(sp,cls){
   if(d.dice)parts.push("dice="+d.dice);
   if(d.effect)parts.push("effect="+d.effect);
   var trad=COMPANION_CLS_TRADITION[cls];if(trad)parts.push("category="+trad);
-  return parts.join("|").replace(/\]/g,"")+"]";/* strip stray ] from model values so the tag can't self-terminate early */
+  /* audit 2026-11-19, P2: "[" is stripped with "]". A model-written effect text holding "[LOCATION:Magnimar" used to ride
+     into the full parser below and move the party. */
+  return "[SPELL_DEF:"+parts.join("|").slice("[SPELL_DEF:".length).replace(/[\[\]]/g,"")+"]";/* strip stray brackets from model values so the tag can neither end early nor open another */
 }
 function canonizeCompanionSpellDefs(resp,cls,npcName){
   var raw;try{raw=JSON.parse(repairModelJson(resp));}catch(e){return 0;}
@@ -1592,7 +1594,7 @@ function canonizeCompanionSpellDefs(resp,cls,npcName){
     if(!sp||typeof sp.nm!=="string")continue;
     if(typeof capabilityLookup==="function"&&capabilityLookup(sp.nm))continue;/* on-catalog or already-overlaid — base canon wins. #253: the SPELL_DEF handler now reaches the SAME verdict itself (capIsBaseCatalog for the static half, its own write-once check for the overlay half), so this filter is a redundant-but-harmless second line: it saves building tags that would only be refused. Keep the two predicates in agreement — this one is deliberately the union, capIsBaseCatalog deliberately the static half. */
     var tg=spellDefTag(sp,cls);if(tg)tags.push(tg);}
-  if(tags.length){applyMuts(tags.join(""));console.warn("[companion sheet] "+npcName+": canonized "+tags.length+" off-catalog spell def(s) via SPELL_DEF (#48③)");}
+  if(tags.length){applyMuts(tags.join(""),{allow:["SPELL_DEF"]});/* P2: this text is the model's, so it runs under the #264 whitelist — nothing but the definitions it is here to file */console.warn("[companion sheet] "+npcName+": canonized "+tags.length+" off-catalog spell def(s) via SPELL_DEF (#48③)");}
   return tags.length;
 }
 // Attach a generated/stub sheet to the named party member; makes findCompanionChar resolve them.

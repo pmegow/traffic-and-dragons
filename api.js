@@ -3191,6 +3191,7 @@ var _CT_DASH=/[ \t]*[—–][ \t]*/g;
 var _CT_NL=/\n{3,}/g;
 function cleanTxt(t){
   t=tagRestoreBareMarkers(t,true);/* #491: a canon marker line written without brackets is a marker — the strip below removes it like any other (quiet: applyMuts already said it once) */
+  t=tagDropUnclosed(t,true);/* audit 2026-11-19, P4: an opener that is never closed loses its token here, so the strip below cannot remove the prose after it (quiet: applyMuts said it) */
   // #132: a response cut at the output cap can end mid-tag ("…listening. [SCH" — B21). The strip
   // regexes above need the closing ], so the ragged fragment used to render raw. End-anchored
   // (and ≥3 leading caps, the __tagUnknownScan shape) so complete tags and lowercase bracket
@@ -3467,6 +3468,7 @@ function _w2CopyWorldStateDetached(ws){
 function applyMuts(text,opts){
   var _mapSourceRaw=text;/* #733: preserve the narrated bytes before marker repair, whitelist filtering, and W2 partition. */
   text=tagRestoreBareMarkers(text);/* #491: before EVERYTHING (the #264 whitelist, W2 preparation, the table) — a bare CANON_TXN_BEGIN/END line gets its brackets back, so the envelope is one transaction instead of a refused death with its loot withheld. Text with no bare marker passes through byte-identical. */
+  text=tagDropUnclosed(text);var _unclosed=tagDropUnclosed._last.slice();/* audit 2026-11-19, P4/P1: an opener that is never closed is not a tag — dropped before the whitelist and the table see it */
   /* #264 (owner ruling 2026-08-28, Fable f14+f2): the review-call whitelist. Suggest-completion
      and Define-item reuse the full gameplay prompt — which actively solicits out-of-scope tags —
      and their responses run through this one parser, so a hallucinated [LOCATION:] teleported the
@@ -3497,6 +3499,12 @@ function applyMuts(text,opts){
   var _tqBefore=(typeof npcKeySet==="function")?npcKeySet():null;/* #504: the records this reply CREATES are stamped at the seam below */
   var _w2Plan=(typeof w2PrepareResponse==="function")?w2PrepareResponse(text):{ordinary:text,txns:[]};
   var R=String(_w2Plan.ordinary||"").trim()?applyMutsTable(_w2Plan.ordinary,{deferCommit:true,mapSource:_mapSourceRaw}):{muts:[],turn:worldState.turn,errors:[]},_w2i;/* #481 D6: the source rides into the table */
+  /* audit 2026-11-19, P5: a table handler that THROWS has already written whatever it wrote before the throw. The error was
+     kept in R.errors and read by nobody: no line for the player, no ring entry, no report. Said on every channel. */
+  var _hErr=(R.errors||[]).slice(),_hEi;
+  for(_hEi=0;_hEi<_hErr.length;_hEi++)R.muts.push("⚠ A state change failed part-way and may be half-applied — "+_hErr[_hEi]);
+  if(_hErr.length&&typeof reportError==="function")reportError("tag-handler",_hErr.join("; "),"turn "+R.turn);
+  for(_hEi=0;_hEi<_unclosed.length;_hEi++)R.muts.push("⚠ ["+_unclosed[_hEi]+":] was never closed — ignored (nothing changed)");/* P4 */
   if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&(R.mapReveals||/\[(?:MAP_REVEAL|EXIT)(?::|\])/.test(String(_mapSourceRaw||""))))R.mapReveals=atlasKnowledgeRebase(_mapSourceRaw,_w2Plan.ordinary,R.mapReveals);/* Only unchanged public geographic tokens may regain their original source offsets. */
   if(_rvStripped&&_rvStripped.length)R.muts.push("⚠ review-call whitelist: out-of-scope tags stripped — "+_rvStripped.join(", "));/* #264: loud at the player, not just the console */
   for(_w2i=0;_w2i<_w2Plan.txns.length;_w2i++){
@@ -3566,6 +3574,8 @@ function applyMuts(text,opts){
     var _tlM=(R.muts||[]).slice(0,10);
     if((R.muts||[]).length>10)_tlM.push("+"+((R.muts||[]).length-10)+" more");
     var _tlEntry={t:R.turn,tags:_tlNames,m:_tlM};
+    if(_hErr.length)_tlEntry.errors=_hErr.slice(0,6);/* P5: a handler that threw is on the record */
+    if(_unclosed.length)_tlEntry.unclosed=_unclosed.slice(0,6);/* P4 */
     if(_rvStripped&&_rvStripped.length)_tlEntry.stripped=_rvStripped.slice(0,10);/* #264: whitelist strips ride the ring — emitted-then-stripped stays decidable */
     var _tlRef=(typeof w2RefusedThisResponse==="function")?w2RefusedThisResponse():[];
     if(_tlRef.length){_tlEntry.refused=_tlRef.slice(0,6);if(_tlRef.length>6)_tlEntry.refused.push("+"+(_tlRef.length-6)+" more");}

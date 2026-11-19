@@ -1647,10 +1647,20 @@ function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((
    manaCur: the stored c.mana clamped into [0, max] — and an ABSENT c.mana reads as
      FULL, which IS the migration ruling ("full pool for everyone"): old saves need no
      migration pass, they simply wake up topped up the first time anything reads. */
+/* audit 2026-11-19, T3: the highest tier the capability bible itself uses — the range a model-written spell definition must
+   fall in (tag_table.js SPELL_DEF), and the ceiling a tier already on file is read through. Derived once. */
+var _capTierMax=null;
+function capTierMax(){
+  if(_capTierMax===null){var k,m=0,t;
+    if(typeof CAPABILITY_BIBLE!=="undefined")for(k in CAPABILITY_BIBLE){if(Object.prototype.hasOwnProperty.call(CAPABILITY_BIBLE,k)){t=CAPABILITY_BIBLE[k]&&CAPABILITY_BIBLE[k].tier;if(typeof t==="number"&&isFinite(t)&&t>m)m=t;}}
+    _capTierMax=m||9;}
+  return _capTierMax;
+}
 function manaSpellCost(sp){
   if(!sp||sp.racial||sp.lvl===0)return 0;
   var e=(typeof capabilityLookup==="function")?capabilityLookup(sp.nm):null;
-  if(e&&typeof e.tier==="number"&&isFinite(e.tier))return e.tier;
+  /* T3: a definition filed before the range was enforced is write-once and stays on the save; its tier is read inside the range */
+  if(e&&typeof e.tier==="number"&&isFinite(e.tier))return Math.max(0,Math.min(capTierMax(),e.tier));
   return (typeof sp.lvl==="number"&&isFinite(sp.lvl)&&sp.lvl>0)?sp.lvl:0;
 }
 /* #361: THE one used-spell gate. Since #110 `used` means "cast since rest" for every spell, but only a

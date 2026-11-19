@@ -1,5 +1,5 @@
 {
-  "version": "v1.1455",
+  "version": "v1.1456",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -111,6 +111,7 @@
     "Switching campaigns, or sending a turn before the cloud check returns, can no longer let an older copy overwrite newer play from another device.",
     "A damaged save is no longer dropped silently: the game says why, keeps a backup, and never starts a new game over it unasked.",
     "The unreadable-save screen no longer sits under a repeated notice, and a sync answer that arrives late can no longer touch another campaign.",
-    "A background task (an era, a recap, a companion sheet) that finishes after you switch campaigns no longer writes into the one now open."
+    "A background task (an era, a recap, a companion sheet) that finishes after you switch campaigns no longer writes into the one now open.",
+    "Malformed or unclosed story tags no longer swallow prose or other tags; refusals are said; durations read weeks and decimals."
   ]
 }

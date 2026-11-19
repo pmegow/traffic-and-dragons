@@ -8285,8 +8285,9 @@ function runEngineTests(R){
     // award (Frizwick's 14,600 XP gap). Shared [XP:] reaches EVERY living companion; the
     // individual bonus adds on top of it, never replaces it.
     partyWorld();worldState.character.level=10;
-    applyMuts("Lyra's solo kill. [XP:100][COMPANION_XP:Lyra|250]");
-    if(worldState.npcs[0].charSheet.xp!==350)return "Lyra got "+worldState.npcs[0].charSheet.xp+", want 350 (100 shared + 250 bonus)";
+    /* audit 2026-11-19 T9 (owner ruling): the individual award is clamped to ten times the companion's level — Lyra is level 1, so the bonus here is 10 (it was 250, from before the clamp) */
+    applyMuts("Lyra's solo kill. [XP:100][COMPANION_XP:Lyra|10]");
+    if(worldState.npcs[0].charSheet.xp!==110)return "Lyra got "+worldState.npcs[0].charSheet.xp+", want 110 (100 shared + 10 bonus)";
     return worldState.npcs[1].charSheet.xp===100?true:"Bram mirror lost: "+worldState.npcs[1].charSheet.xp;
   });
   t("mirrored XP levels companions up",function(){
@@ -8306,9 +8307,9 @@ function runEngineTests(R){
     var _origCCLU=checkCompanionLevelUp;
     try{
       checkCompanionLevelUp=function(cs){var l=worldState.npcs[0];if(l.charSheet)l.charSheet=JSON.parse(JSON.stringify(l.charSheet));return _origCCLU(cs);};
-      worldState.character.level=10;applyMuts("Two skirmishes. [XP:60][XP:40][COMPANION_XP:Lyra|50]");
+      worldState.character.level=10;applyMuts("Two skirmishes. [XP:60][XP:40][COMPANION_XP:Lyra|10]");/* T9: inside the level-1 clamp (was 50) */
     }finally{checkCompanionLevelUp=_origCCLU;}
-    if(worldState.npcs[0].charSheet.xp!==150)return "Lyra got "+worldState.npcs[0].charSheet.xp+" (want 150: 60+40 shared + 50 bonus, each landed once)";
+    if(worldState.npcs[0].charSheet.xp!==110)return "Lyra got "+worldState.npcs[0].charSheet.xp+" (want 110: 60+40 shared + 10 bonus, each landed once)";
     return worldState.npcs[1].charSheet.xp===100?true:"Bram shared XP wrong: "+worldState.npcs[1].charSheet.xp;
   });
 
@@ -9934,9 +9935,9 @@ function runEngineTests(R){
       +"[COMPANION_CONDITION:Bram|Poisoned|until dawn][COMPANION_CONDITION_REMOVED:Bram|Poisoned]"
       +"[COMPANION_RELATIONSHIP:Lyra|Borin|Suspicious][COMPANION_RELATIONSHIP_REMOVED:Lyra|Borin]"
       +"[COMPANION_ABILITY:Bram|Shield Wall|Adjacent allies gain +1 AC.][COMPANION_ALIGNMENT:Lyra|good+1]"
-      +"[XP:100][COMPANION_XP:Lyra|50]");
+      +"[XP:100][COMPANION_XP:Lyra|30]");/* T9: Lyra is level 3 — 30 is her clamp (was 50) */
     var lyra=worldState.npcs[0].charSheet,bram=worldState.npcs[1].charSheet;
-    if(lyra.hp!==8||lyra.xp!==550)return "sanity: Lyra hp/xp wrong ("+lyra.hp+"/"+lyra.xp+", want 8/550: 400 + 100 shared + 50 bonus)";
+    if(lyra.hp!==8||lyra.xp!==530)return "sanity: Lyra hp/xp wrong ("+lyra.hp+"/"+lyra.xp+", want 8/530: 400 + 100 shared + 30 bonus)";
     return bram.xp===500?true:"sanity: Bram mirror wrong ("+bram.xp+")";
   });
   t("battery D: skeleton arc + act advancement",function(){
@@ -27638,7 +27639,7 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     var cs=auditComp("Frizwick");R=applyMuts("[COMPANION_XP:Frizwick|30]");
     if(cs.xp)return "companion paid in the village";
     if(!R.muts.some(function(m){return /XP refused/.test(m);}))return "companion refusal must be loud: "+JSON.stringify(R.muts);
-    makeWorld();worldState.turn=12;cs=auditComp("Frizwick");applyMuts("[COMPANION_XP:Frizwick|30]");if(cs.xp!==30)return "the adventure must still pay companions";
+    makeWorld();worldState.turn=12;cs=auditComp("Frizwick");applyMuts("[COMPANION_XP:Frizwick|10]");if(cs.xp!==10)return "the adventure must still pay companions";/* T9: inside the level-1 clamp (was 30) */
     applyMuts("[QUEST:Q|active] [QUEST_STEP:Q|a|done]");var a0=worldState.character.xp||0;applyMuts("[QUEST:Q|completed]");if((worldState.character.xp||0)<=a0)return "the adventure must still pay milestones";
     return true;
   });

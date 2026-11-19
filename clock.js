@@ -158,13 +158,33 @@ function parseDuration(str){
   if(!s)return 0;
   // Bare integer (no letters) → minutes.
   if(/^\d+$/.test(s))return parseInt(s,10);
-  var total=0,any=false,re=/(\d+)\s*([dhm])/g,mm;
-  while((mm=re.exec(s))){
-    any=true;var v=parseInt(mm[1],10);
-    total+= mm[2]==="d"?v*MIN_PER_DAY : mm[2]==="h"?v*MIN_PER_HOUR : v;
+  /* audit 2026-11-19, T4: the old pattern was (\d+)\s*([dhm]) — it read only the digits next to the unit, so "1.5h" was
+     5 hours; it took any word beginning with m for minutes, so "10 months" was ten minutes; and it knew no weeks, so
+     "3 weeks" was nothing (floored to ONE MINUTE by the scheduler) while parseStrictFutureDuration below read the same
+     words as three weeks. Decimals, weeks and whole unit words now; a unit must END (months and years are not read). */
+  var total=0,any=false,mm;DURATION_PART.lastIndex=0;
+  while((mm=DURATION_PART.exec(s))){
+    any=true;var v=parseFloat(mm[1]),u=mm[2].charAt(0);
+    total+= u==="w"?v*7*MIN_PER_DAY : u==="d"?v*MIN_PER_DAY : u==="h"?v*MIN_PER_HOUR : v;
   }
-  return any?total:0;
+  return any?Math.round(total):0;
 }
+var DURATION_PART=/(\d+(?:\.\d+)?)\s*(weeks?|wks?|w|days?|d|hours?|hrs?|h|minutes?|mins?|m)(?![a-z])/g;
+/* Does the string hold a duration the clock reads at all? A handler asks BEFORE it charges the one-minute floor, so "a few
+   hours" or "10 months" is said to the player instead of passing as a minute (T4). */
+function durationReadable(str){
+  if(typeof str==="number")return isFinite(str);
+  var s=String(str==null?"":str).toLowerCase().trim();
+  if(!s)return false;
+  if(/^\d+$/.test(s))return true;
+  DURATION_PART.lastIndex=0;
+  return DURATION_PART.test(s);
+}
+/* audit 2026-11-19, T7: the schedule's bounds. Every pending entry rides the prompt every turn, and nothing limited how
+   many there were, how long a label was or how far out it lay (a 5,000-character label due in 274 years was accepted; 301
+   entries made a 23 KB clock block). A label is cut; a new entry past the count, or due past the horizon, is refused, and
+   scheduleAdd says why in _lastRefusal. */
+var SCHEDULE_LABEL_MAX=200, SCHEDULE_MAX=64, SCHEDULE_HORIZON_MIN=100*365*MIN_PER_DAY;
 
 /* #527 (8): the clock a reply implies at a text offset — now plus every [TIME_ADVANCE:] tag that lies before `off` (null = the whole
    reply). The trade gate judges a shop's hours at the coin's own moment: the TIME handlers run after GOLD, so "two hours pass
@@ -318,8 +338,11 @@ function scheduleNearDup(a,b){
 function scheduleAdd(label,whenStr){
   scheduleAdd._lastFold=null;/* #235: per-call fold hint for the SCHEDULE handler's honest muts line */
   var c=clockEnsure();if(!c)return null;
+  scheduleAdd._lastRefusal=null;scheduleAdd._lastCut=false;/* T7: why nothing was scheduled / whether the label was cut */
   var lbl=String(label==null?"":label).trim();if(!lbl)return null;
+  if(lbl.length>SCHEDULE_LABEL_MAX){lbl=lbl.slice(0,SCHEDULE_LABEL_MAX-1).replace(/\s+\S*$/,"")+"…";scheduleAdd._lastCut=true;}
   var mins=parseDuration(whenStr);if(mins<1)mins=1;            // "in <1 min" is meaningless; floor at 1
+  if(mins>SCHEDULE_HORIZON_MIN){scheduleAdd._lastRefusal="it is due more than 100 years out";if(typeof console!=="undefined")console.warn("[clock] schedule REFUSED — \""+lbl.slice(0,60)+"\" is due "+Math.round(mins/(365*MIN_PER_DAY))+" years out (limit 100; audit T7)");return null;}
   var due=c.min+mins;
   var i,key=lbl.toLowerCase();
   for(i=0;i<c.schedule.length;i++){
@@ -342,6 +365,8 @@ function scheduleAdd(label,whenStr){
       }
     }
   }
+  /* T7: a refresh or a fold above always lands; only a NEW entry is counted */
+  if(c.schedule.length>=SCHEDULE_MAX){scheduleAdd._lastRefusal="the schedule is full ("+SCHEDULE_MAX+" pending — resolve or cancel one)";if(typeof console!=="undefined")console.warn("[clock] schedule REFUSED — \""+lbl.slice(0,60)+"\": "+SCHEDULE_MAX+" entries are pending (audit T7)");return null;}
   var ev={id:"sch"+(c.schedule.length+1)+"_"+due,label:lbl,dueMin:due,born:c.min};
   c.schedule.push(ev);
   // #150 (drift pass order 6): PROMOTION — the same anticipated fact used to live in BOTH stores

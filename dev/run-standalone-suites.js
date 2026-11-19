@@ -31,6 +31,7 @@ var SUITES = [
   "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again */
   "dev/tests-777-campaign.js",/* audit 2026-11-19 (#777) section X: a model call that outlives its campaign writes nothing */
   "dev/tests-777-sync.js",/* audit 2026-11-19 (#777) section S: a sync answer belongs to the campaign posted; the cloud ahead mid-turn is a pause */
+  "dev/tests-777-tags.js",/* audit 2026-11-19 (#777) sections T and P: the tag parser, durations, schedule bounds and the applyMuts boundary */
   "dev/tests-777-gates.js",/* audit 2026-11-19 (#777): the dev servers, the tracker gates over TODO_Atlas.md and the storage-key census */
   "dev/tests-776-item-kinds.js",/* #776: the story files a carried item under its obvious inventory section, once, by name */
   "dev/tests-772-console.js",/* #772: the console collects the popups; only an inventory change still pops */

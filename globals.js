@@ -68,6 +68,7 @@ var REL_DOWNGRADE_EXPIRE_TURNS=60; // #181: muted-but-unresolved entries archive
 // for L10. The owner suspects it will run fast — tune these multipliers, never the curve's shape.
 var MILESTONE_XP={quest:50,boss:100,act:200};   // × character level at the moment of the award
 var LEVELS_LAND_AT_REST=true;                     // #349 (owner ruling 2026-09-05): a level LANDS at the next long rest — all owed levels, the whole party, HP and mana filled to the new maximums; XP accrues at once and the sheet says "rest to claim"
+var GOLD_TAG_MAX_CP=1e12;                         // audit 2026-11-19, T10: a single [GOLD:] beyond this many copper is refused (a 307-digit figure became Infinity)
 var GM_XP_CAP_PER_LEVEL=10;                      // the GM's summed [XP:] per response is clamped to this × level (loud in muts)
 var BOSS_HP_RATIO=1.5;                           // a slain foe whose maxHp ≥ this × the player's maxHp is a boss (a rostered NPC foe qualifies at 1.0×)
 // #303 (owner ruling 2026-09-03): WANTS & ECONOMY. Wares are filed on the WORLD node by [WARES:]
@@ -443,7 +444,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1455";
+var APP_VERSION="v1.1456";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

@@ -1531,8 +1531,10 @@ function fileFutureEvent(when,who,what,setTurn){
   var strict=(typeof parseStrictFutureDuration==="function")?parseStrictFutureDuration(when):0;
   if(strict>0&&typeof scheduleAdd==="function"){
     var scheduled=scheduleAdd(what,strict+"m");
-    if(scheduled&&typeof console!=="undefined")console.info("[memory] duration-bound future event filed directly to the clock schedule: \""+what.slice(0,60)+"\"");
-    return scheduled;
+    if(scheduled){if(typeof console!=="undefined")console.info("[memory] duration-bound future event filed directly to the clock schedule: \""+what.slice(0,60)+"\"");return scheduled;}
+    /* audit 2026-11-19, T7: the schedule can now refuse (full, or past its horizon). A refused event used to be returned as
+       null and filed NOWHERE; it falls through to the pending store below, and the refusal is said. */
+    if(typeof console!=="undefined")console.warn("[memory] the clock schedule refused \""+what.slice(0,60)+"\" ("+(scheduleAdd._lastRefusal||"no reason given")+") — kept as a pending event with no clock time");
   }
   var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what)return;}// dedupe
   // Near-duplicate dedupe (#29): the extractor re-mints pending goals in fresh words every cycle —
