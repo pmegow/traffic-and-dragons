@@ -69,6 +69,48 @@ test("all green: exit 0 and one summary line", function () {
   assert.doesNotMatch(r.stdout, /FAIL /);
 });
 
+// SEVERAL AT A TIME (2026-11-18): three Chrome-driven fixture suites that say when they start and end. The first is red.
+function fixtureWide(name) {
+  var root = path.join(tmp, name); fs.mkdirSync(path.join(root, "dev"), { recursive: true });
+  var log = JSON.stringify(path.join(root, "events.txt"));
+  ["a", "b", "c"].forEach(function (k) {
+    fs.writeFileSync(path.join(root, "dev", "tests-" + k + "-browser.js"), "/* " + "require('./cdp-" + "browser.js') */\nvar fs = require('fs');\nfs.appendFileSync(" + log + ", 'start " + k + "\\n');\nsetTimeout(function () { fs.appendFileSync(" + log + ", 'end " + k + "\\n'); process.exit(" + (k === "a" ? 1 : 0) + "); }, 700);\n");
+  });
+  return root;
+}
+function events(root) { try { return fs.readFileSync(path.join(root, "events.txt"), "utf8").split(/\r?\n/).filter(Boolean); } catch (e) { return []; } }
+
+test("several at a time: two suites are running at once at --jobs=2, never at --jobs=1, and a red one stops no other", function () {
+  var root = fixtureWide("wide2");
+  var r = cp.spawnSync(process.execPath, [RUNNER, "--root", root, "--jobs=2"], { cwd: ROOT, encoding: "utf8" });
+  assert.equal(r.status, 1, text(r));
+  var ev = events(root);
+  assert.deepEqual(ev.slice(0, 2).sort(), ["start a", "start b"], "two started before either ended: " + ev.join(" | "));
+  assert.ok(ev.indexOf("start c") > Math.min(ev.indexOf("end a"), ev.indexOf("end b")), "the third waits for a place: " + ev.join(" | "));
+  assert.equal(ev.length, 6, "every suite ran to its end though the first was red: " + ev.join(" | "));
+  assert.match(r.stdout, /BROWSER SUITES RED — 1 of 3 failed in \d+s: tests-a-browser\.js/);
+  assert.match(r.stdout, /^PASS tests-b-browser\.js  [\d.]+s$/m);
+  assert.match(r.stdout, /^PASS tests-c-browser\.js  [\d.]+s$/m);
+  var one = fixtureWide("wide1");
+  var r1 = cp.spawnSync(process.execPath, [RUNNER, "--root", one, "--jobs=1"], { cwd: ROOT, encoding: "utf8" });
+  assert.equal(r1.status, 1, text(r1));
+  assert.deepEqual(events(one), ["start a", "end a", "start b", "end b", "start c", "end c"]);
+});
+
+test("the width: the argument wins over the environment, the default is JOBS_DEFAULT, a bad value runs nothing (exit 2)", function () {
+  assert.equal(runner.jobCount({ jobs: 3 }, { BROWSER_SUITE_JOBS: "6" }), 3);
+  assert.equal(runner.jobCount({ jobs: null }, { BROWSER_SUITE_JOBS: "6" }), 6);
+  assert.equal(runner.jobCount({ jobs: null }, {}), runner.JOBS_DEFAULT);
+  assert.equal(runner.parseArgs(["--jobs=5"]).jobs, 5);
+  assert.throws(function () { runner.jobCount({ jobs: 0 }, {}); }, /at least 1/);
+  var root = fixtureWide("badjobs");
+  var env = Object.assign({}, process.env, { BROWSER_SUITE_JOBS: "many" });
+  var r = cp.spawnSync(process.execPath, [RUNNER, "--root", root], { cwd: ROOT, encoding: "utf8", env: env });
+  assert.equal(r.status, 2, text(r));
+  assert.match(r.stderr, /BROWSER_SUITE_JOBS is not a number: many/);
+  assert.deepEqual(events(root), [], "no suite ran");
+});
+
 test("no Chrome is said on one loud line, nothing runs, and the push is let through (exit 0)", function () {
   var root = fixture("nochrome", true);
   var env = Object.assign({}, process.env, { CHROME_PATH: path.join(tmp, "no-such-chrome.exe") });

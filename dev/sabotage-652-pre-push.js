@@ -19,7 +19,19 @@ rc |= sabotage.prove({ file: "dev/run-browser-suites.js", command: SUITE, cases:
   { label: "no Chrome passes in silence (the loud line removed)",
     find: "    console.error(\"BROWSER SUITES NOT RUN — no Chrome on this machine (\" + chrome.why + \"); the \" + names.length + \" suites were not verified here. CI runs them on every push.\");\n",
     replace: "",
-    mustFail: "no Chrome is said on one loud line" }
+    mustFail: "no Chrome is said on one loud line" },
+  { label: "the width is ignored: one suite at a time whatever was asked",
+    find: "    while (running < jobs && next < names.length) { running++; start(names[next++]); }",
+    replace: "    while (running < 1 && next < names.length) { running++; start(names[next++]); }",
+    mustFail: "several at a time" },
+  { label: "a red suite starts no other (the run stops at the first failure and the rest go unverified)",
+    find: "    while (running < jobs && next < names.length) { running++; start(names[next++]); }",
+    replace: "    while (running < jobs && next < names.length && !failed.length) { running++; start(names[next++]); }",
+    mustFail: "several at a time" },
+  { label: "a width that is not a number is read as the default (the typo passes in silence)",
+    find: "    if (env.BROWSER_SUITE_JOBS && !/^\\d+$/.test(env.BROWSER_SUITE_JOBS)) throw new Error(\"BROWSER_SUITE_JOBS is not a number: \" + env.BROWSER_SUITE_JOBS);\n",
+    replace: "    if (env.BROWSER_SUITE_JOBS && !/^\\d+$/.test(env.BROWSER_SUITE_JOBS)) env = {};\n",
+    mustFail: "the width" }
 ] });
 
 rc |= sabotage.prove({ file: "dev/pre-push", command: SUITE, cases: [

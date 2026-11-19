@@ -172,7 +172,8 @@ var SUITES = [
   "dev/tests-audit-ui.js",
   "dev/tests-audit-voice.js",
   "dev/tests-dedup-b.js",
-  "dev/tests-modal-shell.js"
+  "dev/tests-modal-shell.js",
+  "dev/tests-standalone-runner.js"/* this runner itself: several at a time, output whole and in list order, one failure fails the run */
 ];
 
 // TODO #27 class, second instance (2026-08-15): git exports repo-location env (GIT_DIR,
@@ -187,14 +188,94 @@ var SCRUB = ["GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
 var childEnv = Object.assign({}, process.env);
 SCRUB.forEach(function (k) { delete childEnv[k]; });
 
-for (var i = 0; i < SUITES.length; i++) {
-  var run = cp.spawnSync(process.execPath, [SUITES[i]], { cwd: ROOT, encoding: "utf8", env: childEnv });
-  process.stdout.write(String(run.stdout || ""));
-  process.stderr.write(String(run.stderr || ""));
-  if (run.status !== 0) {
-    console.error("STANDALONE SUITE FAILED: " + SUITES[i] + " (exit " + run.status + ")");
-    process.exit(1);
+// SEVERAL AT A TIME (2026-11-18). Run one after another the 167 suites cost 129 s of every commit's 139 s; each is its
+// own process with its own fixtures, so they run side by side. What stays as it was: every suite runs to its own exit
+// code, a suite's output is printed whole and in LIST order (never interleaved), and one failure fails the run. What
+// changed: after a failure no new suite starts, the ones already running finish, and every failure is named.
+//   --jobs=N or STANDALONE_JOBS=N   how many at once (default: half the cores, at most 8; 1 = one after another)
+//   STANDALONE_TIMES=1              print each suite's seconds, slowest first, after the verdict
+function jobCount(argv, env) {
+  var asked = null;
+  argv.forEach(function (a) { var m = /^--jobs=(\d+)$/.exec(a); if (m) asked = Number(m[1]); else throw new Error("unknown argument: " + a); });
+  if (asked === null && env.STANDALONE_JOBS) {
+    if (!/^\d+$/.test(env.STANDALONE_JOBS)) throw new Error("STANDALONE_JOBS is not a number: " + env.STANDALONE_JOBS);
+    asked = Number(env.STANDALONE_JOBS);
   }
+  if (asked === null) asked = Math.min(8, Math.max(1, Math.floor(require("os").cpus().length / 2)));
+  if (asked < 1) throw new Error("jobs must be at least 1");
+  return asked;
 }
 
-console.log("ALL GREEN — " + SUITES.length + " standalone verifier suites");
+// The suites that take longest START first (the order of the PRINT stays the list's): the run can be no shorter than
+// its longest suite, so that one must not wait behind the others. A name here that is not in the list is refused.
+var START_FIRST = ["dev/tests-684-atlas-engine.js", "dev/tests-754-damage-only.js", "dev/tests-633-companion-talk.js",
+  "dev/tests-sabotage-meta.js", "dev/tests-252-retained-proof-wiring.js", "dev/tests-jp011-flush-dirty.js"];
+function startOrder(suites, first) {
+  var order = first.map(function (n) { var i = suites.indexOf(n); if (i < 0) throw new Error("START_FIRST names a suite that is not in the list: " + n); return i; });
+  suites.forEach(function (n, i) { if (order.indexOf(i) < 0) order.push(i); });
+  return order;
+}
+
+function runAll(suites, jobs, done, first) {
+  var order = startOrder(suites, first || []);
+  var results = new Array(suites.length), next = 0, running = 0, printed = 0, failed = [];
+  // flush — print what has ended, in list order, stopping at a suite still to end. At the END (all) a suite that
+  // never started is stepped over, so one that ran after it is still printed.
+  function flush(all) {
+    for (; printed < suites.length && (results[printed] || all); printed++) {
+      if (!results[printed]) continue;
+      process.stdout.write(results[printed].out);
+      process.stderr.write(results[printed].err);
+      if (results[printed].status !== 0) console.error("STANDALONE SUITE FAILED: " + suites[printed] + " (exit " + results[printed].status + ")");
+    }
+  }
+  function finish(i, r) {
+    results[i] = r;
+    if (r.status !== 0) failed.push(suites[i]);
+    running--;
+    flush();
+    pump();
+  }
+  function start(i) {
+    var t0 = Date.now(), out = [], err = [], over = false;
+    function end(status) { if (over) return; over = true; finish(i, { out: out.join(""), err: err.join(""), status: status, ms: Date.now() - t0 }); }
+    var child = cp.spawn(process.execPath, [suites[i]], { cwd: ROOT, env: childEnv });
+    child.stdout.setEncoding("utf8"); child.stderr.setEncoding("utf8");
+    child.stdout.on("data", function (d) { out.push(d); });
+    child.stderr.on("data", function (d) { err.push(d); });
+    child.on("error", function (e) { err.push("could not start " + suites[i] + ": " + e.message + "\n"); end(-1); });
+    child.on("close", function (code, signal) { end(code === null ? "signal " + signal : code); });
+  }
+  function pump() {
+    while (running < jobs && next < order.length && !failed.length) { running++; start(order[next++]); }
+    if (running) return;
+    flush(true);
+    failed.sort(function (x, y) { return suites.indexOf(x) - suites.indexOf(y); });
+    done(results, failed);
+  }
+  pump();
+}
+
+// main — the command line over a list: exit 0 all green, 1 on any failure (each named), 2 on a bad argument.
+function main(suites, first, argv, env) {
+  var jobs;
+  try { jobs = jobCount(argv, env); }
+  catch (e) { console.error("run-standalone-suites: " + e.message); process.exit(2); }
+  runAll(suites, jobs, function (results, failed) {
+    if (env.STANDALONE_TIMES) {
+      results.map(function (r, i) { return { name: suites[i], ms: r ? r.ms : -1 }; }).filter(function (r) { return r.ms >= 0; })
+        .sort(function (x, y) { return y.ms - x.ms; })
+        .forEach(function (r) { console.log((r.ms / 1000).toFixed(1) + "s  " + r.name); });
+    }
+    if (failed.length) {
+      var notRun = 0;
+      for (var i = 0; i < suites.length; i++) if (!results[i]) notRun++;   /* a loop: filter() steps over a slot never filled */
+      console.error("STANDALONE SUITES RED — " + failed.length + " failed: " + failed.join(", ") + (notRun ? " (" + notRun + " not run)" : ""));
+      process.exit(1);
+    }
+    console.log("ALL GREEN — " + suites.length + " standalone verifier suites");
+  }, first);
+}
+
+if (require.main === module) main(SUITES, START_FIRST, process.argv.slice(2), process.env);
+module.exports = { SUITES: SUITES, START_FIRST: START_FIRST, jobCount: jobCount, runAll: runAll, startOrder: startOrder, main: main };
