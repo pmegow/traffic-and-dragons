@@ -111,6 +111,53 @@ async function test(name, fn) { try { await fn(); passed++; console.log('PASS #7
       assert.ok(!s.review.findings[0].status && !s.review.findings[0]._err, 'the second blueprint\'s finding was stamped: ' + JSON.stringify(s.review.findings[0]));
       assert.match(s.status, /nothing was applied/);
     });
+    // The independent review of the X batch (commit ad48e8d6), findings 1 and 2.
+    const withFindings = n => page.evaluate(a => { const fs_ = []; for (let i = 0; i < a.n; i++) { const c = JSON.parse(JSON.stringify(a.f)); c._sel = 0; fs_.push(c); } __bpdTest.getBp().review = { findings: fs_, sections: 1, failedSections: 0 }; __bpdTest.rerender(); }, { f: FINDING, n: n });
+    await test('X7: a fix request that FAILS after another blueprint was opened stamps no error on that blueprint', async () => {
+      await page.evaluate(b => __bpdTest.load(b), one); await withFindings(1);
+      await page.evaluate(() => { window._applied = __bpdTest.applyFinding(0); });
+      await settle();
+      assert.equal(await page.evaluate(() => window._held.length), 1, 'the fix call was not made');
+      await page.evaluate(b => __bpdTest.load(b), two); await withFindings(1);
+      await page.evaluate(() => { const h = window._held; window._held = []; h.forEach(x => x.rej(new Error('provider down'))); });
+      await page.evaluate(() => window._applied); await settle();
+      const s = await state();
+      assert.ok(!s.review.findings[0]._err && !s.review.findings[0].status, 'the second blueprint\'s finding carries the first one\'s failure: ' + JSON.stringify(s.review.findings[0]));
+      assert.match(s.status, /nothing was applied/);
+    });
+    await test('X7: Apply selected stops when another blueprint is opened — the queued fixes are not run against it', async () => {
+      await page.evaluate(b => __bpdTest.load(b), one); await withFindings(2);
+      await page.evaluate(() => { __bpdTest.getBp().review.findings[1].section = 'consistency'; });   // its own group, started LAST — after the first has come back
+      await page.evaluate(() => { window._all = applyAllFindings(); });
+      await settle();
+      assert.equal(await page.evaluate(() => window._held.length), 1, 'the first fix call was not made');
+      await page.evaluate(b => __bpdTest.load(b), two); await withFindings(2);
+      await page.evaluate(() => window._answer(JSON.stringify({ patches: [{ section: 'premise', value: 'PATCHED BY THE MODEL' }], note: 'thickened' })));
+      await settle(); await settle();
+      assert.equal(await page.evaluate(() => window._held.length), 0, 'the second queued fix was asked for against the blueprint opened mid-run');
+      await page.evaluate(() => window._all); await settle();
+      const s = await state();
+      assert.equal(s.premise, 'The second premise.', 'a queued fix was applied to the wrong blueprint');
+      assert.ok(s.review.findings.every(f => !f.status && !f._err), 'the second blueprint\'s findings were stamped: ' + JSON.stringify(s.review.findings));
+      assert.match(s.status, /Another blueprint was opened while the selected fixes/);
+      await page.evaluate(() => { const h = window._held; window._held = []; h.forEach(x => x.res('{}')); });
+    });
+    await test('X7: Apply selected ends cleanly when the blueprint opened mid-run has no review, and its last group is never started', async () => {
+      await page.evaluate(b => __bpdTest.load(b), one); await withFindings(2);
+      await page.evaluate(() => { __bpdTest.getBp().review.findings[1].section = 'consistency'; });   // its own group, run LAST on the settled blueprint
+      await page.evaluate(() => { window._allErr = null; window._all = applyAllFindings().catch(e => { window._allErr = String(e && e.message || e); }); });
+      await settle();
+      assert.equal(await page.evaluate(() => window._held.length), 1, 'the first fix call was not made');
+      await page.evaluate(b => __bpdTest.load(b), two);            // no review on this one
+      await page.evaluate(() => window._answer(JSON.stringify({ patches: [{ section: 'premise', value: 'PATCHED BY THE MODEL' }], note: 'thickened' })));
+      await settle(); await settle();
+      await page.evaluate(() => window._all); await settle();
+      assert.equal(await page.evaluate(() => window._allErr), null, 'the batch threw on the blueprint opened mid-run');
+      assert.equal(await page.evaluate(() => window._held.length), 0, 'the last group was started against the blueprint opened mid-run');
+      const s = await state();
+      assert.equal(s.premise, 'The second premise.'); assert.equal(s.review, null, 'a review appeared on a blueprint that had none');
+      await page.evaluate(() => { const h = window._held; window._held = []; h.forEach(x => x.res('{}')); });
+    });
     assert.deepEqual(errors, [], 'page errors: ' + errors.join(' | '));
   } finally { await browser.close(); }
   console.log((failed ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' passed, ' + failed + ' failed (#777 designer browser)');

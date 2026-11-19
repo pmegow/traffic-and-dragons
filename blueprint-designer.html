@@ -198,7 +198,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.79";
+var BP_DESIGNER_VERSION="v0.80";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 /* audit 2026-11-19, X6/X7: bpDoc counts the DOCUMENTS this page has held — it goes up when the working copy is replaced by
@@ -1516,6 +1516,8 @@ async function applyFinding(idx){
     snapshot=null;if(!_applyingAll)await fitDesignerText(writtenSince(before));
   }catch(e){
     if(_at)_at.stop();
+    /* #777 review of X7: a request that FAILS after another blueprint was opened used to stamp its error on that blueprint's finding of the same index. (No snapshot can be held here: it is taken after the document check, in the same synchronous stretch.) */
+    if(bpDoc!==_fixDoc){setStatus("Another blueprint was opened while the fix was being written — nothing was applied.","err");return "another blueprint was opened";}
     if(snapshot)bp=snapshot; // undo any partial in-place merge
     var emsg=e.message;
     // JSON died — keep the EVIDENCE (v0.30). Before this, the raw response was discarded on a parse
@@ -1565,7 +1567,7 @@ async function applyAllFindings(){
   for(i=0;i<bp.review.findings.length;i++){var bf=bp.review.findings[i];if(bf&&!bf.status&&typeof bf._sel==="number")sel.push(i);}
   var groups={},order=[],CONS="consistency";
   for(i=0;i<sel.length;i++){var key=findingTargetKey(bp.review.findings[sel[i]]);if(!groups[key]){groups[key]=[];order.push(key);}groups[key].push(sel[i]);}
-  var total=sel.length,doneCt=0,results=[],_bt=null;
+  var total=sel.length,doneCt=0,results=[],_bt=null,_allDoc=bpDoc;/* #777 review of X7: the blueprint this batch was started for — a blueprint opened mid-run gets none of the queued fixes */
   /* #481 G5: ONE ticker for the batch — progress rides set(), each lone apply's own ticker stands down while _applyingAll */
   function tick(){var b="Applying "+total+" selected fix"+(total===1?"":"es")+" — "+doneCt+"/"+total+" done…";if(_bt){setStatus(b,"");_bt.set(b);}else _bt=statusTicker(b);}/* setStatus first: a finished apply left the line green or red */
   if(total)tick();
@@ -1573,7 +1575,9 @@ async function applyAllFindings(){
     var g=groups[key],gi;
     for(gi=0;gi<g.length;gi++){
       var idx=g[gi];
+      if(bpDoc!==_allDoc)return;/* the queued indices belong to a blueprint that is no longer open */
       var err=await applyFinding(idx); // gen (await) + atomic synchronous merge — safe across concurrent groups
+      if(bpDoc!==_allDoc)return;
       var bf=bp.review.findings[idx];
       if(bf&&bf.status==="applied"){delete bf._sel;results.push({idx:idx,ok:true});}
       else results.push({idx:idx,ok:false,err:err||"unknown error"});
@@ -1587,6 +1591,7 @@ async function applyAllFindings(){
     if(groups[CONS])await runGroup(CONS);
   }finally{_applyingAll=false;if(_bt)_bt.stop();}
   render();
+  if(bpDoc!==_allDoc){setStatus("Another blueprint was opened while the selected fixes were being applied — the rest were not applied, and none was applied to this blueprint.","err");return;}
   var fails=results.filter(function(r){return !r.ok;}),ok=results.length-fails.length;
   if(fails.length&&typeof console!=="undefined"&&console.warn){fails.forEach(function(r){console.warn("[apply] "+(bp.review.findings[r.idx].section||"")+": "+r.err);});}
   var sum="Applied "+ok+" selected fix"+(ok===1?"":"es");

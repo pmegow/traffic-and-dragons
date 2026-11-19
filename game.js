@@ -859,7 +859,7 @@ async function generateActions(msgEl){
        exempt from the affordance gate (it names sheet, quest, and market facts, never scene entities). */
     var _fa=(typeof engineFourthAction==="function")?engineFourthAction():null;
     if(_fa&&_fa.text){var _fb=document.createElement("button");_fb.className="qa";var _fat=punctuateAction(_fa.text);_fb.textContent=_mpPfx+_fat;_fb.setAttribute("data-action",_fat);_fb.setAttribute("title","Tap to edit · hold or Ctrl-click to send");_fb.setAttribute("onclick","sendSuggestedAction(this,event)");_fb.style.borderStyle="dashed";btnDiv.appendChild(_fb);worldState.lastActions.push(_fat);}
-  }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");_cleanup();}
+  }catch(e){console.warn("[actions] suggestion call failed — buttons removed (deliberately quiet in the UI; the turn itself succeeded):",e.message);if(e.message!=="stale"&&typeof reportError==="function")reportError("actions",e.message,(e&&e.stack)||"");/* #777 review: "stale" is the expected race (a newer turn, another campaign) — said on the console, never filed as an error report */_cleanup();}
   finally{saveAll();}/* #280b: the turn's ONE cloud sync — EVERY exit (fresh buttons, the empty result, the failure's honest E26 null, the stale race) converges the server to the truth. R4's local-only save here left the E26 null on the wire while the fresh buttons stayed stranded on this device (the JP0-11 cap skips the mature-save flush), so the other device rendered the newest narration buttonless — the 2026-08-29 field report. One POST per turn, unchanged: the commit no longer arms one. */
 }
 // ── #96: dialogue attribution via [SAY:] tags — deterministic, no second model call ──────────
@@ -1964,8 +1964,9 @@ function attachCompanionSheet(npcName,sheet){
 var _sheetGenInFlight=keyedDict();
 async function generateCompanionSheet(npcName){
   var npc=wsNpcByName(npcName);
-  if(!npc||npc.charSheet||_sheetGenInFlight[npcName])return;
-  _sheetGenInFlight[npcName]=1;
+  var _shKey=(worldState.campId||"")+"|"+npcName;/* #777 review: per campaign — a same-named companion in the campaign opened next was locked out until the first call came back */
+  if(!npc||npc.charSheet||_sheetGenInFlight[_shKey])return;
+  _sheetGenInFlight[_shKey]=1;
   var sheet=null,failReason=null,_shMark=campaignMark(),_shLeft=false;
   try{
     var p=buildCompanionSheetPrompt(npcName);
@@ -1980,7 +1981,7 @@ async function generateCompanionSheet(npcName){
       if(sheet)canonizeCompanionSpellDefs(resp,sheet.cls,npcName);/* #48③: off-catalog picks self-define before first cast */
     }
   }catch(e){failReason=(e&&e.message)||"request failed";if(!campaignStill(_shMark,"the sheet for "+npcName+" (its request failed)"))_shLeft=true;}
-  delete _sheetGenInFlight[npcName];
+  delete _sheetGenInFlight[_shKey];
   if(_shLeft)return;/* not even the stub: this campaign's own pending-sheet pass draws its companions */
   if(!sheet)sheet=buildCompanionSheetStub(npcName);// a party member must NEVER stay sheet-less
   if(!attachCompanionSheet(npcName,sheet))return;// npc vanished or got a sheet meanwhile
@@ -4640,7 +4641,7 @@ async function refreshSynopsis(reason,opts){
     var resp=await callGM(synopsisPrompt(basis),SYNOPSIS_SYS,700,null,{noHistory:true,kind:"synopsis"});
     /* audit X2: this call never holds `busy`, so the player can load another campaign while it runs — the recap of the old
        one was written into the new one's journal and its own recap marked not due */
-    if(!campaignStill(_synMark,"the story so far")){if(tick)tick.stop();_synopsisBusy=false;return false;}
+    if(!campaignStill(_synMark,"the story so far")){if(tick)tick.stop();_synopsisBusy=false;if(typeof opts.onDone==="function")opts.onDone(false);/* #777 review: the caller's button is re-enabled on this exit too */return false;}
     worldState.synopsis=applySynopsisResp(resp,basis,reason);
     if(typeof saveCore==="function")saveCore();
     ok=true;if(tick)tick.stop();
@@ -4717,6 +4718,7 @@ function newGame(){
     {z:200,bg:.75,closeId:"ng-cancel",boxCss:"background:var(--modal-bg);border:1px solid var(--dng);border-radius:var(--rl);padding:28px 24px;max-width:340px;width:100%;text-align:center;"});
   document.getElementById("ng-go").addEventListener("click",function(){
     modal.remove();
+    if(busy){if(typeof showToast==="function")showToast("Finish the current turn first.");return;}/* #777 review of X8: asked again at the confirm — the first check was made when the question opened */
     if(!snapshotActiveCamp())return;/* B4: storage full — don't wipe the only local copy of the current campaign */
     store.del(WSK);store.del(SLK);store.del(MEM_KEY);
     var nid=newCampaignId();setActiveCampId(nid);

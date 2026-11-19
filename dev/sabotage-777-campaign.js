@@ -51,9 +51,9 @@ var X2 = "FAIL #777 X2: the recap written for campaign A is not put in campaign 
 var X3 = "FAIL #777 X3: a sheet generated for campaign A's Bram is not attached to campaign B's Bram";
 camp("game.js", [
   { label: "X2: campaign A's recap is written into campaign B",
-    find: "if(!campaignStill(_synMark,\"the story so far\")){if(tick)tick.stop();_synopsisBusy=false;return false;}", replace: "", mustFail: X2 },
+    find: "if(!campaignStill(_synMark,\"the story so far\")){", replace: "if(false){", mustFail: X2 },
   { label: "X2: a dropped recap leaves the recap lock set",
-    find: "{if(tick)tick.stop();_synopsisBusy=false;return false;}", replace: "{if(tick)tick.stop();return false;}", mustFail: X2 },
+    find: "{if(tick)tick.stop();_synopsisBusy=false;if(typeof opts.onDone", replace: "{if(tick)tick.stop();if(typeof opts.onDone", mustFail: X2 },
   { label: "X3: campaign A's sheet and spell definitions land in campaign B",
     find: "if(!campaignStill(_shMark,\"the sheet for \"+npcName))_shLeft=true;", replace: "if(false)_shLeft=true;", mustFail: X3 },
   { label: "X3: a failed request for A gives B's companion the stub sheet",
@@ -101,6 +101,41 @@ designer([
   { label: "X6/X7: loading a blueprint is not counted as another document",
     find: "  bp=normalizeBlueprint(obj,{preserveProse:true});bpDoc++;", replace: "  bp=normalizeBlueprint(obj,{preserveProse:true});",
     mustFail: "FAIL #777 designer browser X7: a review of one blueprint is not attached to the blueprint opened while it ran" }
+]);
+
+// The independent review of this batch (commit ad48e8d6).
+camp("game.js", [
+  { label: "review: New game does not ask busy again at the confirm",
+    find: "if(busy){if(typeof showToast===\"function\")showToast(\"Finish the current turn first.\");return;}/* #777 review of X8", replace: "if(false){if(typeof showToast===\"function\")showToast(\"Finish the current turn first.\");return;}/* #777 review of X8",
+    mustFail: "FAIL #777 X8: New game asks again at the confirm" },
+  { label: "review: a dropped recap never tells its caller it ended",
+    find: "if(typeof opts.onDone===\"function\")opts.onDone(false);/* #777 review", replace: "/* #777 review",
+    mustFail: "FAIL #777 X2: the recap written for campaign A is not put in campaign B's journal" },
+  { label: "review: the expected stale race is filed as an error report",
+    find: "if(e.message!==\"stale\"&&typeof reportError===\"function\")reportError(\"actions\"", replace: "if(typeof reportError===\"function\")reportError(\"actions\"",
+    mustFail: "FAIL #777 X4: buttons suggested for campaign A are not saved into campaign B at the same turn number" },
+  { label: "review: the sheet lock is keyed by name alone",
+    find: "var _shKey=(worldState.campId||\"\")+\"|\"+npcName;", replace: "var _shKey=npcName;",
+    mustFail: "FAIL #777 X3: campaign B's Bram can be given a sheet while campaign A's is still being written" }
+]);
+camp("ui-browsers.js", [
+  { label: "review: the imported-character Begin does not ask busy again at the confirm",
+    find: "if(typeof busy!==\"undefined\"&&busy){showToast(\"Finish the current turn first.\");return;}/* #777 review of X8", replace: "if(false){showToast(\"Finish the current turn first.\");return;}/* #777 review of X8",
+    mustFail: "FAIL #777 X8: New game asks again at the confirm" }
+]);
+designer([
+  { label: "review: a failed fix request stamps its error on the blueprint opened since",
+    find: "if(bpDoc!==_fixDoc){setStatus(\"Another blueprint was opened while the fix was being written — nothing was applied.\",\"err\");return \"another blueprint was opened\";}", replace: "",
+    mustFail: "FAIL #777 designer browser X7: a fix request that FAILS after another blueprint was opened stamps no error on that blueprint" },
+  { label: "review: Apply selected does not say it stopped",
+    find: "if(bpDoc!==_allDoc){setStatus(\"Another blueprint was opened while the selected fixes", replace: "if(false){setStatus(\"Another blueprint was opened while the selected fixes",
+    mustFail: "FAIL #777 designer browser X7: Apply selected stops when another blueprint is opened" },
+  { label: "review: a queued group is started against the blueprint opened mid-run",
+    find: "      if(bpDoc!==_allDoc)return;/* the queued indices belong to a blueprint that is no longer open */\n", replace: "",
+    mustFail: "FAIL #777 designer browser X7: Apply selected stops when another blueprint is opened" },
+  { label: "review: a finished fix is recorded on the blueprint opened mid-run",
+    find: "      if(bpDoc!==_allDoc)return;\n      var bf=bp.review.findings[idx];", replace: "      var bf=bp.review.findings[idx];",
+    mustFail: "FAIL #777 designer browser X7: Apply selected ends cleanly when the blueprint opened mid-run has no review" }
 ]);
 
 if (!chrome.path && !failed) { verdict.reportSkip("sabotage-777-campaign.js", browserClauses, chrome.why); process.exit(verdict.SKIP_EXIT); }

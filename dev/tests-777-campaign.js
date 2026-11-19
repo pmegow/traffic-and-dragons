@@ -128,12 +128,13 @@ kase("X1: with no switch the era is compiled and saved as before", function (E) 
 var RECAP = JSON.stringify({ about: "A's story: the hero of Alpha slew the A-dragon.", now: "In Alpha's tower" });
 kase("X2: the recap written for campaign A is not put in campaign B's journal, and B's own recap can still be written", function (E) {
   campaigns(E);
-  var gm = heldModel(), p = refreshSynopsis("spine");
+  var done = [], gm = heldModel(), p = refreshSynopsis("spine", { onDone: function (ok) { done.push(ok); } });
   assert.strictEqual(gm.calls, 1);
   assert.strictEqual(switchToCampaign("campB"), true);
   gm.release(RECAP);
   return p.then(function (ok) {
     assert.strictEqual(ok, false, "the refresh reported success");
+    assert.deepStrictEqual(done, [false], "the caller was never told the refresh ended (its button stays disabled): " + JSON.stringify(done));
     assert.strictEqual(worldState.synopsis, undefined, "campaign A's recap is in campaign B: " + JSON.stringify(worldState.synopsis));
     assert.ok(String(store.get(WSK)).indexOf("A-dragon") < 0, "campaign A's recap was SAVED into campaign B");
     assert.ok(!E.said.toasts.some(function (t) { return /story so far is up to date/.test(t); }), "the player was told B's recap is up to date");
@@ -168,6 +169,16 @@ kase("X3: a sheet generated for campaign A's Bram is not attached to campaign B'
     assert.strictEqual(again.calls, 1, "the in-flight latch was left set — B's Bram can never get a sheet this session");
   });
 });
+kase("X3: campaign B's Bram can be given a sheet while campaign A's is still being written", function (E) {
+  campaigns(E, bram, bram);
+  var gm = heldModel(); generateCompanionSheet("Bram");
+  assert.strictEqual(gm.calls, 1);
+  assert.strictEqual(switchToCampaign("campB"), true);
+  var mine = heldModel(), p = generateCompanionSheet("Bram");
+  assert.strictEqual(mine.calls, 1, "campaign A's unfinished request locks campaign B's Bram out");
+  mine.release(BRAM);
+  return p.then(function () { assert.ok(bramOf().charSheet && bramOf().charSheet.name === "Bram", "campaign B's own sheet was not attached"); });
+});
 kase("X3: a failed request for campaign A's Bram does not give campaign B's Bram the stub sheet", function (E) {
   campaigns(E, bram, bram);
   var gm = heldModel(), p = generateCompanionSheet("Bram");
@@ -190,6 +201,7 @@ var ACTS = JSON.stringify({ present: "", actions: ["Search the Alpha vault", "Ca
 kase("X4: buttons suggested for campaign A are not saved into campaign B at the same turn number", function (E) {
   campaigns(E, null, function (B) { B.turn = 300; });   // the same turn as A: the old guard compared the turn alone
   sessionLog = [{ role: "user", content: "look" }, { role: "assistant", content: "You look around." }];
+  var reports = []; reportError = function (ctx, msg) { reports.push(ctx + ": " + msg); };
   var gm = heldModel(), p = generateActions(el());
   assert.strictEqual(gm.calls, 1, "no suggestion call was made (in-band buttons?)");
   assert.strictEqual(switchToCampaign("campB"), true);
@@ -198,6 +210,7 @@ kase("X4: buttons suggested for campaign A are not saved into campaign B at the 
   return p.then(function () {
     assert.ok(!worldState.lastActions, "campaign A's buttons are in campaign B: " + JSON.stringify(worldState.lastActions));
     assert.ok(String(store.get(WSK)).indexOf("Alpha vault") < 0, "campaign A's buttons were SAVED into campaign B");
+    assert.deepStrictEqual(reports, [], "the expected race was filed as an error report");
   });
 });
 kase("X4: with no switch the buttons are kept as before", function (E) {
@@ -230,6 +243,27 @@ kase("X8: Begin does nothing while a generation holds busy (the review page's po
   assert.strictEqual(started, 0, "a game was started under a running generation");
   assert.ok(E.said.toasts.some(function (t) { return /still being generated/.test(t); }), "nothing was said: " + JSON.stringify(E.said.toasts));
   assert.strictEqual(busy, true, "Begin cleared a busy flag it does not own");
+});
+
+kase("X8: New game asks again at the confirm — a turn that started while the question was open is not wiped", function (E) {
+  campaigns(E);
+  var handlers = {}, shown = 0;
+  modalShell = function () { return el(); };
+  document.getElementById = function (id) { var e = el(); e.addEventListener = function (ev, fn) { handlers[id] = fn; }; return e; };
+  showChar = function () { shown++; };
+  busy = false; newGame();
+  assert.strictEqual(typeof handlers["ng-go"], "function", "the confirm was not wired");
+  var id = getActiveCampId(), ws = worldState;
+  busy = true; E.said.toasts.length = 0;
+  handlers["ng-go"]();
+  assert.strictEqual(getActiveCampId(), id, "a new campaign was started under a running turn");
+  assert.strictEqual(worldState, ws, "the open campaign was dropped under a running turn");
+  assert.strictEqual(shown, 0);
+  assert.ok(E.said.toasts.some(function (t) { return /Finish the current turn first/.test(t); }), "nothing was said: " + JSON.stringify(E.said.toasts));
+  busy = false; handlers["ng-go"]();
+  assert.notStrictEqual(getActiveCampId(), id, "with no turn running the new campaign was not started");
+  var src = fs.readFileSync(path.join(__dirname, "..", "ui-browsers.js"), "utf8"), at = src.indexOf('document.getElementById("is-go").addEventListener("click"'), body = src.slice(at, src.indexOf("snapshotActiveCamp()", at));
+  assert.ok(at > 0 && /busy\)\{showToast\("Finish the current turn first\."\);return;\}/.test(body), "the imported-character Begin does not ask busy again before it snapshots");
 });
 
 // ── the two derived rules ──────────────────────────────────────────────────────────────────────────────────────────
