@@ -22,7 +22,7 @@ rc+=sabotage.prove({file:'api.js',command:engine,cases:[
  {label:'bestiary omits authored abilities',find:'if(typeof _bc.abilities==="string"&&_bc.abilities.trim())_detail+=',replace:'if(false)_detail+=',mustFail:'#730 creature mechanics follow the whole-entry act gate'}
 ]});
 rc+=sabotage.prove({file:'companion-talk.js',command:unit,cases:[
- {label:'player conversation receives private ability section',find:'memoryNpcDetail(partner.name,{omitAbilities:true})',replace:'memoryNpcDetail(partner.name)',mustFail:'FAIL #730 player-facing enemy card and companion conversation exclude private abilities'}
+ {label:'player conversation receives private ability section',find:'memoryNpcDetail(partner.name,{omitAbilities:true,omitGmOnly:true})',replace:'memoryNpcDetail(partner.name,{omitGmOnly:true})',mustFail:'FAIL #730 player-facing enemy card and companion conversation exclude private abilities'}
 ]});
 rc+=sabotage.prove({file:'designer-creatures.js',command:unit,cases:[
  {label:'generated abilities discarded',find:'["desc","displayName","abilities"].forEach',replace:'["desc","displayName"].forEach',mustFail:'FAIL #730 generated creature abilities are typed and retained'},

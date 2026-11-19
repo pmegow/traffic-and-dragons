@@ -2525,7 +2525,10 @@ function detectLocationFilingCue(clean){
   for(si=0;si<sents.length;si++){
     sent=sents[si];
     if(_LOC_CUE_VETO.test(sent)||!_LOC_CUE_PARTY.test(sent))continue;
-    var g=sent.match(/\b(?:enter(?:s|ed|ing)?|step(?:s|ped|ping)?\s+into|pass(?:es|ed|ing)?\s+into|inside|through)\b[^.!?]{0,45}?\b((?:[A-Z][A-Za-z'’.-]*\s+){0,3}(?:chamber|hall|tunnel|vault|fortress|citadel|keep))\b/i);
+    /* audit 2026-11-19, P12: this pattern carried the /i flag, so its [A-Z] matched any letter and "You step through the doorway
+       into the great hall" offered the place "into the great hall" — which the note then asked the GM to file. No flag: the
+       verbs and the type noun are written in both cases, the NAME is one to three capitalised words. */
+    var g=sent.match(/\b(?:[Ee]nter(?:s|ed|ing)?|[Ss]tep(?:s|ped|ping)?\s+into|[Pp]ass(?:es|ed|ing)?\s+into|[Ii]nside|[Tt]hrough)\b[^.!?]{0,45}?\b((?:[A-Z][A-Za-z'’.-]*\s+){1,3}(?:[Cc]hamber|[Hh]all|[Tt]unnel|[Vv]ault|[Ff]ortress|[Cc]itadel|[Kk]eep))\b/);
     if(g)return g[1].replace(/^the\s+/i,"").trim();
   }
   return null;
@@ -3237,11 +3240,26 @@ function validateBlueprint(bp){
   if(!bp.premise&&(!bp.acts||!bp.acts.length))return"Blueprint has no premise or acts.";
   if(bp.acts){
     var i,j;for(i=0;i<bp.acts.length;i++){
-      var a=bp.acts[i];if(!a.title||!a.goal)return"Act "+(i+1)+" is missing a title or goal.";
+      var a=bp.acts[i];if(!a||typeof a!=="object")return"Act "+(i+1)+" is not an act entry.";/* audit 2026-11-19, C14: a null entry threw here instead of giving a reason */if(!a.title||!a.goal)return"Act "+(i+1)+" is missing a title or goal.";
       if(!a.arcs||!a.arcs.length)return"Act "+(i+1)+" has no arcs.";
-      for(j=0;j<a.arcs.length;j++){if(!a.arcs[j].title||!a.arcs[j].objective)return"Act "+(i+1)+", arc "+(j+1)+" is missing a title or objective.";}
+      for(j=0;j<a.arcs.length;j++){if(!a.arcs[j]||typeof a.arcs[j]!=="object")return"Act "+(i+1)+", arc "+(j+1)+" is not an arc entry.";if(!a.arcs[j].title||!a.arcs[j].objective)return"Act "+(i+1)+", arc "+(j+1)+" is missing a title or objective.";}
     }
   }
+  /* audit 2026-11-19, C13–C15: the cast and the places. A null entry threw inside applyBlueprint, in the middle of starting
+     the game and before any save; a nameless NPC, one whose name the tag grammar cannot address ("Bram|Kitchen" — the pipe
+     separates fields, the brackets close a tag), and a second NPC under one name (its dossier dropped at play time behind a
+     generic toast) all passed. Each is refused here with the reason. A location's name may hold a pipe: it is a path. */
+  var _vbn,_vbSeen=keyedDict(),_vbNpcs=bp.npcs===undefined||bp.npcs===null?[]:bp.npcs,_vbLocs=bp.locations===undefined||bp.locations===null?[]:bp.locations;
+  if(!Array.isArray(_vbNpcs))return"Blueprint NPCs must be a list.";
+  if(!Array.isArray(_vbLocs))return"Blueprint locations must be a list.";
+  for(_vbn=0;_vbn<_vbNpcs.length;_vbn++){var _vbe=_vbNpcs[_vbn];
+    if(!_vbe||typeof _vbe!=="object")return"NPC "+(_vbn+1)+" is not an entry.";
+    if(typeof _vbe.name!=="string"||!_vbe.name.trim())return"NPC "+(_vbn+1)+" has no name.";
+    if(/[|\[\]]/.test(_vbe.name))return"NPC \""+_vbe.name+"\" has a name the story cannot address — remove | [ and ] from it.";
+    var _vbk=_vbe.name.trim().toLowerCase();if(_vbSeen[_vbk])return"Two NPCs share the same name, \""+_vbe.name.trim()+"\" — the second would be dropped when the game starts. Give each its own name.";_vbSeen[_vbk]=1;}
+  for(_vbn=0;_vbn<_vbLocs.length;_vbn++){var _vbl=_vbLocs[_vbn];
+    if(!_vbl||typeof _vbl!=="object")return"Location "+(_vbn+1)+" is not an entry.";
+    if(typeof _vbl.name!=="string"||!_vbl.name.trim())return"Location "+(_vbn+1)+" has no name.";}
   for(var ai=0,abilitySections=["npcs","creatures"];ai<abilitySections.length;ai++){
     var entries=bp[abilitySections[ai]]||[];for(var aj=0;aj<entries.length;aj++){var ae=entries[aj];if(ae&&ae.abilities!==undefined&&typeof ae.abilities!=="string")return abilitySections[ai]+" \""+(ae.name||aj+1)+"\" abilities must be text.";}
   }
@@ -3492,7 +3510,7 @@ function buildBlueprintFromGame(){
     npcs:       npcs,
     locations:  locations,
     creatures:  (worldState.bestiary||[]).slice(),
-    rules:      (customRules||[]).slice(),
+    rules:      rulesInForce(),/* H3: the device's rules and this campaign's own */
     startingRegion:   worldState.world&&worldState.world.region||"",
     startingLocation: worldState.world&&worldState.world.location||""
   };
@@ -3636,9 +3654,11 @@ function applyBlueprint(bp){
   if(bp.rules&&bp.rules.length){
     var ri;for(ri=0;ri<bp.rules.length;ri++){
       var wrapped='Blueprint rule (quoted from the campaign file): "'+bp.rules[ri]+'"';
-      if(customRules.indexOf(wrapped)===-1)customRules.push(wrapped);
+      /* audit 2026-11-19, H3 (owner ruling): a blueprint's rules are ITS campaign's. They were pushed into the device-wide
+         store, so one imported file ruled every campaign on the device from then on. Rules already copied there stay. */
+      if(!Array.isArray(worldState.campaignRules))worldState.campaignRules=[];
+      if(typeof bp.rules[ri]==="string"&&bp.rules[ri].trim()&&worldState.campaignRules.indexOf(wrapped)===-1)worldState.campaignRules.push(wrapped);
     }
-    saveRules();
   }
   // #227 the deep-time age ladder — WRITE-ONCE at campaign start. There is deliberately no tag
   // for this, so the only writers are here and the generated skeleton: it rides the CACHED stable

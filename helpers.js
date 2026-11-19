@@ -1647,6 +1647,33 @@ function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((
    manaCur: the stored c.mana clamped into [0, max] — and an ABSENT c.mana reads as
      FULL, which IS the migration ruling ("full pool for everyone"): old saves need no
      migration pass, they simply wake up topped up the first time anything reads. */
+/* audit 2026-11-19, P8: the lists of a sheet whose entries a reader takes apart without asking. One row per list: its key,
+   the word for an entry, and what an entry must be. sheetListsHeal removes what is not one — loudly — and returns the
+   count; the admission registry runs it at every door, the load included (admission.js "lists"). */
+var SHEET_LIST_RULES=[
+  {key:"conditions",what:"condition",ok:function(x){return !!x&&typeof x==="object"&&typeof x.name==="string"&&!!x.name.trim();}}
+];
+function sheetListsHeal(sheet){
+  if(!sheet||typeof sheet!=="object")return 0;
+  var n=0,i,j;
+  for(i=0;i<SHEET_LIST_RULES.length;i++){var rule=SHEET_LIST_RULES[i],list=sheet[rule.key];if(!Array.isArray(list))continue;
+    var kept=[];for(j=0;j<list.length;j++){if(rule.ok(list[j]))kept.push(list[j]);else{n++;if(typeof console!=="undefined")console.warn("[sheet] an unreadable "+rule.what+" entry was removed from "+(sheet.name||"a sheet")+": "+String(JSON.stringify(list[j])).slice(0,80)+" (audit P8)");}}
+    if(kept.length!==list.length)sheet[rule.key]=kept;}
+  return n;
+}
+/* audit 2026-11-19, H3: the rules in force are the device's own and the open campaign's (a blueprint's rules live on its
+   campaign, worldState.campaignRules). One list, in that order, a rule that is in both stated once. */
+function campaignRulesList(){return (typeof worldState!=="undefined"&&worldState&&Array.isArray(worldState.campaignRules))?worldState.campaignRules:[];}
+function rulesInForce(){var out=(customRules||[]).slice(),c=campaignRulesList(),i;for(i=0;i<c.length;i++)if(typeof c[i]==="string"&&out.indexOf(c[i])<0)out.push(c[i]);return out;}
+/* The Narrative Rules list, pure (the modal is its shell). A rule is TEXT: it was painted raw, so a blueprint's rule ran as
+   markup every time the modal opened (audit H3). */
+function rulesListHtml(){
+  var h="",i,c=campaignRulesList();
+  for(i=0;i<DEFAULT_RULES.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:6px;font-size:12px;display:flex;gap:8px;'><span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-top:1px;'>DEFAULT</span><span style='color:var(--t1);'>"+escHtml(DEFAULT_RULES[i])+"</span></div>";}
+  for(i=0;i<customRules.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--acc);border-radius:var(--r);margin-bottom:6px;font-size:12px;color:var(--t0);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;'><span>"+escHtml(customRules[i])+"</span><button onclick='removeRule("+i+")' aria-label='Remove this rule' style='background:none;border:none;color:var(--dng);cursor:pointer;font-size:16px;flex-shrink:0;line-height:1;'>&#215;</button></div>";}
+  for(i=0;i<c.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--acc);border-radius:var(--r);margin-bottom:6px;font-size:12px;color:var(--t0);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;'><span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-top:1px;'>THIS CAMPAIGN</span><span style='flex:1;'>"+escHtml(c[i])+"</span><button onclick='removeCampaignRule("+i+")' aria-label='Remove this rule from this campaign' style='background:none;border:none;color:var(--dng);cursor:pointer;font-size:16px;flex-shrink:0;line-height:1;'>&#215;</button></div>";}
+  return h;
+}
 /* audit 2026-11-19, T3: the highest tier the capability bible itself uses — the range a model-written spell definition must
    fall in (tag_table.js SPELL_DEF), and the ceiling a tier already on file is read through. Derived once. */
 var _capTierMax=null;

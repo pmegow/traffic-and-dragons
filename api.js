@@ -1,5 +1,19 @@
 var __lastRagBlock="";/* UA36 harness enabler — the RAG block buildSysPrompt last injected ("" when the flag is off); capture-only */
 var __lastChapRagBlock="";/* #148 Phase 1 — the PAST CHAPTERS block buildSysPrompt last injected; same capture-only contract */
+/* THE ROSTER RULE as one function (audit 2026-11-19, P7). It lived as a closure inside buildSysPrompt, so the geography
+   block could not ask it and listed every living NPC ever sighted elsewhere — 300 NPCs added 17,000 characters to the
+   uncached half of every turn while the roster line folded the same people. rosterKeeper(recentTxt, here) returns the
+   judge; the wording and the order of its tests are the 2026-09-18 B2 originals, moved, not rewritten. */
+function rosterRecentText(){return sessionLog.filter(function(m){return m&&!m.bk;}).slice(-6).map(function(m){return String(m.role==="user"?stripEngineNotes(m.content):m.content);}).join(" ").toLowerCase();}
+function rosterKeeper(recentTxt,here){
+  return function(npc){if(!npc||!npc.name)return false;if(npc.partyMember)return true;var m=(memory&&memory.npcs&&memory.npcs[npc.name])||{};
+    var seen=Math.max(typeof m.lastSeenTurn==="number"?m.lastSeenTurn:-1,typeof m.lastMentioned==="number"?m.lastMentioned:-1,(typeof npc.statusTurn==="number"&&npc.statusTurn>0)?npc.statusTurn:-1,(typeof npc.met==="number"&&npc.met>0)?npc.met:-1);
+    if(seen<0)return true;/* no recency evidence at all (a legacy record with no stamps) — never fold on absence of evidence */
+    if(worldState.turn-seen<=ROSTER_RECENT_TURNS)return true;
+    var at=m.lastSeenAt?String(m.lastSeenAt).split("|")[0]:"";if(at&&(typeof locSame==="function"?locSame(at,here):at===here))return true;
+    if(recentTxt.indexOf(String(npc.name).toLowerCase())>=0)return true;var al=npc.aliases||m.aliases||[],k;for(k=0;k<al.length;k++)if(al[k]&&recentTxt.indexOf(String(al[k]).toLowerCase())>=0)return true;
+    return false;};
+}
 function buildGeoBlock(audience){
   if(audience==="player"&&typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive())return atlasKnowledgePlayerBlock();
   if(!memory.map||!worldState||!worldState.world)return"";
@@ -120,7 +134,7 @@ function buildGeoBlock(audience){
      mention-era assertion identically — projection now carries the evidence grade in its voice
      via the PRESENCE_TIERS registry (identity.js). Exclusions unchanged: the dead (B3), present
      party (B21), and the current node (#156B: merged-alias stamps are HERE). */
-  var npcLocs=[],legacyLocs=[],nNames=Object.keys(memory.npcs);
+  var npcLocs=[],legacyLocs=[],nNames=Object.keys(memory.npcs),_gbFold=0,_gbKeep=rosterKeeper(rosterRecentText(),(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
   /* memory voice includes the PLACE: a pipe key ("Sandpoint|Rusty Dragon") is storage, not
      speech — spoken form is "Rusty Dragon in Sandpoint". Keys are two-tier by construction. */
   function locSpoken(k){var r=locResolve(k),p=r.indexOf("|");return p<0?r:r.slice(p+1)+" in "+r.slice(0,p);}
@@ -129,12 +143,14 @@ function buildGeoBlock(audience){
     var _pt=(typeof presenceTier==="function")?presenceTier(nNames[i]):(nm.lastSeenAt?{tier:"legacy",at:nm.lastSeenAt}:null);
     if(!_pt||!_pt.at)continue;/* spokenOf projects only through the node rumor texture below */
     if(locSame(_pt.at,wKey)||(subKey&&locSame(_pt.at,subKey)))continue;
+    if(!_gbKeep((typeof wsNpcByName==="function"&&wsNpcByName(nNames[i]))||{name:nNames[i],aliases:nm.aliases||[]})){_gbFold++;continue;}/* P7 */
     var _rAt=locSpoken(_pt.at);
     if(_pt.tier==="witnessed")npcLocs.push(PRESENCE_TIERS.witnessed.render(nNames[i],_rAt,presenceAgeBand((worldState.turn||0)-_pt.turn)));
     else legacyLocs.push(PRESENCE_TIERS.legacy.render(nNames[i],_rAt));
   }
   if(npcLocs.length)lines.push("Elsewhere, by sighting: "+npcLocs.join(" "));
   if(legacyLocs.length)lines.push("Elsewhere, by old word only (rumor-grade, may be stale): "+legacyLocs.join(" "));
+  if(_gbFold)lines.push("Elsewhere, not listed: "+_gbFold+" more character"+(_gbFold===1?"":"s")+" on record (each is listed again when named, or when the party returns to where they were last seen).");/* P7: counted, never forgotten — the roster line's own promise */
   // #173: per-character visit provenance — who this place remembers. Serves the current world
   // node (and the current sub-location when inside one). Reads as MEMORY, never bookkeeping
   // (amendment ⑤); negatives are RECORD-based (amendment ②): an unrecorded character is UNKNOWN
@@ -228,7 +244,7 @@ function buildChangedLocationsBlock(){
   if(over>0)s+="  (+"+over+" more changed locations — older changes remain on record)\n";
   return s+"\n";
 }
-function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules.map(function(r){return (typeof clampStr==="function")?clampStr(r,IMPORT_CAPS.rule):r;}));/* #315: a custom rule is player-authored text — capped like every other import */
+function getRulesBlock(){var all=DEFAULT_RULES.concat(rulesInForce().map(function(r){return (typeof clampStr==="function")?clampStr(r,IMPORT_CAPS.rule):r;}));/* #315: a custom rule is player-authored text — capped like every other import */
   /* #6 phase B: a kind may SUBSTITUTE a rule in its slot (keyed by the title the rule starts with) — the village DRIVE rule
      replaces DRIVE THE ADVENTURE at the same index, so the slot is never empty and the count never changes; adventure has
      no overrides and stays byte-identical. */
@@ -237,6 +253,7 @@ function getRulesBlock(){var all=DEFAULT_RULES.concat(customRules.map(function(r
 // #46: one condition, one injected phrase — "Unconscious (until awakened; since t155; from
 // Reaper Spider attack)". The age is what lets the GM judge staleness; cause lands in Phase B.
 function condInjectFmt(x){
+  if(!x||typeof x!=="object")return "";/* audit 2026-11-19, P8: a null entry (a hand-edited file, the character editor) made every turn throw here; the load removes it (admission "lists"), this keeps a live one from failing the turn */
   var meta=[];
   if(x.duration)meta.push(x.duration);
   if(x.turn)meta.push("since t"+x.turn);
@@ -1403,7 +1420,7 @@ function buildConditionAudit(){
   if(!worldState||!worldState.character)return"";
   var lines=[],due=false,expired=false;
   function scan(who,list,companion){
-    var i;for(i=0;i<(list||[]).length;i++){var cd=list[i];
+    var i;for(i=0;i<(list||[]).length;i++){var cd=list[i];if(!cd||typeof cd!=="object")continue;/* P8 */
       var age=cd.turn?(worldState.turn-cd.turn):null;
       var exp=(cd.until!=null&&cd.until<=worldState.turn);/* v1.257: a scheduled expiry (parsed from "N turns/rounds") */
       if(exp)expired=true;
@@ -1802,6 +1819,7 @@ function buildIdentityConflictNudge(){
        immersion break, and a silent loss was worse. */
     var _shLost=(typeof w2WithheldSummary==="function")?w2WithheldSummary(c.withheld):"";
     if(_shLost&&typeof rewardClaimQueue==="function"&&rewardClaimQueue(c.subject,c.withheld,c.reason)){
+      _conflictShelved.push({subject:c.subject,key:c.withheld.join(""),attempts:c.attempts,lastFired:c.lastFired});/* P6: read by restoreNoteLatches */
       /* #262 (JP0-9/f22): the ledger's tokens now live in the claim — leaving them on the record
          too meant a re-armed dispute's SECOND shelve queued them again (the superset dup).
          Provenance moves to withheldClaimed; the ledger is spent. */
@@ -2280,6 +2298,7 @@ var NOTE_LATCH_FIELDS=["audioAsk","subLeavePing",/* #393 */"tradeRefusedPing",/*
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
 var NOTE_NESTED_LATCHES=["questLog[].staleNudged","questLog[].escalateNudged","questLog[].objectiveNudged",/* audit B1: the two quest nudges latch per quest now */"charSheet.splitLoc.audited","charSheet.agenda.lastBeat",/* #330; the agendaAsked latch retired with the recruitment ask (#347) */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending"];/* audit B14: sessionLog is read, never latched — removed */
 function snapshotNoteLatches(){
+  _conflictShelved=[];/* P6: a new build starts with no shelve of its own */
   var snap={t:{},split:[],quests:[],conds:[]},i;
   snap.future=(memory.futureEvents||[]).map(function(f){return {what:f.what,setTurn:f.setTurn,asked:f._asked,pending:f._askPending};});
   /* #309: buildConditionAudit deletes cd.until (an expiry APPOINTMENT) when it consumes one — a nested
@@ -2300,6 +2319,21 @@ function snapshotNoteLatches(){
   for(i=0;i<ql.length;i++){if(ql[i])snap.quests.push({title:ql[i].title,staleNudged:ql[i].staleNudged,escalateNudged:ql[i].escalateNudged,objectiveNudged:ql[i].objectiveNudged});}/* audit B1: the two new quest latches ride the same narrow snapshot */
   return snap;
 }
+/* audit 2026-11-19, P6 — A FAILED TURN PAID A WITHHELD REWARD TWICE. buildIdentityConflictNudge shelves a conflict that
+   no delivery could clear, moves its withheld reward into a claim and asks the player — BEFORE the request, by ruling
+   (f31, dev/latch-census.js: "the player-visible shelve decision precedes the request"), so pendingRewardClaims is not
+   restored. But identityConflicts IS restored, which handed the reward back to the conflict while the claim stood; a
+   player who accepted during the wait was paid, and the next turn shelved again, queued again and paid again (the
+   subject+tokens dedupe sees nothing once the first claim is taken). The shelve is the player's business, not the
+   turn's: after the restore it is put back exactly as the build left it. */
+var _conflictShelved=[];
+function conflictShelveKeep(){
+  var q=(worldState&&worldState.identityConflicts)||[],i,j;
+  for(i=0;i<_conflictShelved.length;i++){var s=_conflictShelved[i];
+    for(j=0;j<q.length;j++){var c=q[j];if(!c||c.stale||c.subject!==s.subject||(c.withheld||[]).join("")!==s.key)continue;
+      c.stale=true;c.attempts=s.attempts;c.lastFired=s.lastFired;c.withheldClaimed=(c.withheldClaimed||[]).concat(c.withheld);c.withheld=[];break;}}
+  _conflictShelved=[];
+}
 function restoreNoteLatches(snap){
   if(!snap)return;var i,j;
   for(i=0;i<(snap.future||[]).length;i++){var fr=snap.future[i];for(j=0;j<(memory.futureEvents||[]).length;j++){var f=memory.futureEvents[j];if(f.what===fr.what&&f.setTurn===fr.setTurn&&f._asked===fr.asked){if(fr.pending===undefined)delete f._askPending;else f._askPending=fr.pending;}}}
@@ -2311,6 +2345,7 @@ function restoreNoteLatches(snap){
     if(v==="__ABSENT__"){delete worldState[k];}
     else if(typeof v==="string"){worldState[k]=JSON.parse(v);}
   }
+  conflictShelveKeep();/* P6: after identityConflicts is back */
   var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];
   for(i=0;i<snap.split.length;i++){var rec=snap.split[i];
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
@@ -2532,15 +2567,9 @@ function buildSysPrompt(){
      party's CURRENT world node, or named in the recent messages. Everyone else is COUNTED, never forgotten: the full record
      (bond, mood, aliases, knowledge) stays in worldState.npcs/memory.npcs and returns to the prompt the moment the name is
      mentioned or the party returns to where they were last seen — the sheriff wronged 100 turns ago still holds his grudge. */
-  var _rosterRecentTxt=sessionLog.filter(function(m){return m&&!m.bk;}).slice(-6).map(function(m){return String(m.role==="user"?stripEngineNotes(m.content):m.content);}).join(" ").toLowerCase();
+  var _rosterRecentTxt=rosterRecentText();
   var _rosterHere=(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location;
-  var _rosterKeep=function(npc){if(!npc||!npc.name)return false;if(npc.partyMember)return true;var m=(memory&&memory.npcs&&memory.npcs[npc.name])||{};
-    var seen=Math.max(typeof m.lastSeenTurn==="number"?m.lastSeenTurn:-1,typeof m.lastMentioned==="number"?m.lastMentioned:-1,(typeof npc.statusTurn==="number"&&npc.statusTurn>0)?npc.statusTurn:-1,(typeof npc.met==="number"&&npc.met>0)?npc.met:-1);
-    if(seen<0)return true;/* no recency evidence at all (a legacy record with no stamps) — never fold on absence of evidence */
-    if(worldState.turn-seen<=ROSTER_RECENT_TURNS)return true;
-    var at=m.lastSeenAt?String(m.lastSeenAt).split("|")[0]:"";if(at&&(typeof locSame==="function"?locSame(at,_rosterHere):at===_rosterHere))return true;
-    if(_rosterRecentTxt.indexOf(String(npc.name).toLowerCase())>=0)return true;var al=npc.aliases||m.aliases||[],k;for(k=0;k<al.length;k++)if(al[k]&&_rosterRecentTxt.indexOf(String(al[k]).toLowerCase())>=0)return true;
-    return false;};
+  var _rosterKeep=rosterKeeper(_rosterRecentTxt,_rosterHere);/* P7: the judge is shared with the geography block (rosterKeeper, above buildGeoBlock) */
   var _rosterKeepName=function(name){var w=(typeof wsNpcByName==="function")?wsNpcByName(name):null;return _rosterKeep(w||{name:name,aliases:((memory&&memory.npcs&&memory.npcs[name])||{}).aliases||[]});};
   var _rosterFold=0;
   var i,nstr="none";if(worldState.npcs.length){var ns=[];for(i=0;i<worldState.npcs.length;i++){var npc=worldState.npcs[i];if(npcIsDead(npc)){_decList.push({n:npc.name,t:(typeof npc.dead==="number"?npc.dead:0)});continue;}if(!_rosterKeep(npc)){_rosterFold++;continue;}var npcAka=npc.aliases&&npc.aliases.length?" [aka: "+npc.aliases.join(", ")+"]":"";/* pronoun fallback: explicit wins; party members derive from charSheet.gender; everyone else defaults to they/them so the GM never has to guess */var npcPr=npc.pronouns||(npc.partyMember&&npc.charSheet&&npc.charSheet.gender?pronounsForGender(npc.charSheet.gender):"they/them");var npcRel=npc.partyMember?relByEntity[npc.name.toLowerCase()]:null;
@@ -2636,7 +2665,7 @@ function buildSysPrompt(){
       /* #359: languages (with broken fluency) and deity were sheet-only too — Daeris's authored Abadar and her broken Infernal never reached the GM */
       if(pcs.languages&&pcs.languages.length)line+="\n  Languages: "+pcs.languages.map(function(l){return (l&&l.name?l.name:String(l))+(l&&l.broken?" (broken)":"");}).join(", ");
       if(pcs.deity)line+="\n  Deity: "+pcs.deity;
-      if(pcs.conditions&&pcs.conditions.length)line+="\n  Conditions: "+pcs.conditions.map(condInjectFmt).join(", ");
+      if(pcs.conditions&&pcs.conditions.length)line+="\n  Conditions: "+pcs.conditions.map(condInjectFmt).filter(Boolean).join(", ");
       // #61: companion relationships were WRITTEN by [COMPANION_RELATIONSHIP:] but never injected —
       // the same write-path-with-no-read-path class as the #46 conditions above. The GM never saw
       // a companion's bonds (Morwen's marriages, 222 turns invisible at t755) and reconstructed
@@ -2686,7 +2715,7 @@ function buildSysPrompt(){
   // afflicted sheet gets a cleanup instruction. Root cause of the Daeris incident (t359): a
   // condition the GM can't SEE (or can't see is 200 turns old) is never honored and never
   // removed — visibility + age is what makes stale state self-correcting.
-  var condStr="";if(c.conditions&&c.conditions.length){condStr="Conditions: "+c.conditions.map(condInjectFmt).join(", ")+" — if a condition no longer matches the fiction, emit [CONDITION_REMOVED:name] NOW\n";}
+  var condStr="";if(c.conditions&&c.conditions.length){condStr="Conditions: "+c.conditions.map(condInjectFmt).filter(Boolean).join(", ")+" — if a condition no longer matches the fiction, emit [CONDITION_REMOVED:name] NOW\n";}
   var relStr="",_pcR=relationshipRows(c,null),_pcB=[],_pcD=[],_pcRi;for(_pcRi=0;_pcRi<_pcR.length;_pcRi++){if(_pcR[_pcRi].bond)_pcB.push(_pcR[_pcRi].entity+" ("+_pcR[_pcRi].bond+")");if(_pcR[_pcRi].dynamic&&(typeof sceneTurnLive!=="function"||sceneTurnLive(_pcR[_pcRi].dynamicTurn)))_pcD.push(_pcR[_pcRi].entity+" ("+_pcR[_pcRi].dynamic+")");/* #481 C5 */}if(_pcB.length)relStr+="Bond: "+_pcB.join(", ")+"\n";if(_pcD.length)relStr+="Current dynamic: "+_pcD.join(", ")+"\n";var _pcG=relationshipGuards(null),_pcGi;for(_pcGi=0;_pcGi<_pcG.length;_pcGi++)relStr+="UNRESOLVED protected bond preimage: "+_pcG[_pcGi].entity+" was \""+_pcG[_pcGi].prev+"\" before an unclassified legacy overwrite to \""+_pcG[_pcGi].next+"\"\n";
   var saveStr="";if(c.saveModifiers&&c.saveModifiers.length){saveStr="Save modifiers: "+c.saveModifiers.map(function(x){var v=x.amount>=0?"+"+x.amount:""+x.amount;return v+" vs "+x.type+" ["+x.source+"]";}).join(", ")+"\n";}
   var langStr="";if(c.languages&&c.languages.length){langStr="Languages: "+c.languages.map(function(x){return x.name+(x.broken?" (broken)":"");}).join(", ")+"\n";}
@@ -2730,7 +2759,7 @@ function buildSysPrompt(){
     var _lpers="";if(_lc.trait)_lpers+=" trait — "+_lc.trait+";";if(_lc.flaw)_lpers+=" flaw — "+_lc.flaw+";";if(_lc.motivation)_lpers+=" motivation — "+_lc.motivation+";";
     var _lpb=(typeof personaPromptBits==="function")?personaPromptBits(_lc):[];if(_lpb.length)_lpers+=" "+_lpb.join("; ")+";";/* #552 */
     legacyBlock=(_lc.introduced?"LEGACY CHARACTER RELATIONSHIP RESIDUE — already introduced; preserve these unresolved carried facts until the engine can transfer them:\n":"LEGACY CHARACTER — INTRODUCE THIS SESSION:\n")
-      +"A figure from another story walks this world: "+_lc.name+", "+(_lgw?"("+_lgw+", pronouns "+_lpron+") ":"")+"a "+(_lc.ancestry?_lc.ancestry+" ":"")+_lc.cls+" (Level "+_lc.level+")"+(_lc.age?", "+_lc.age:"")+".\n"
+      +"A figure from another story walks this world: "+_lc.name+", "+(_lgw?"("+_lgw+", pronouns "+_lpron+") ":"")+"a "+(_lc.ancestry?_lc.ancestry+" ":"")+_lc.cls+" (Level "+_lc.level+")"+".\n"/* audit 2026-11-19, P9: the age rode here against the 2026-08-10 ruling — age reaches no gameplay prompt */
       +(_lc.appear?"Appearance: "+_lc.appear+"\n":"")
       +(_lc.mark?"Distinguishing mark: "+_lc.mark+"\n":"")
       +(_lc.backstory?"History: "+_lc.backstory+"\n":"")
@@ -3262,7 +3291,7 @@ function parseActions(clean,raw){
   var btns="",acts=[],i;
   var tag=raw?raw.match(/\[ACTIONS:(.+)\]/i):null; // greedy to the last ] on the line, so an action containing a bracket still parses
   if(tag){
-    var parts=tag[1].split("|");
+    var parts=tag[1].replace(/\]\s*\[[A-Z][A-Z_]{1,}[:\]][\s\S]*$/,"").split("|");/* audit 2026-11-19, P11: the match is greedy to the LAST "]" of the line (an action may hold a bracket), so a tag written after the line rode into the third button */
     for(i=0;i<parts.length;i++){var pt=parts[i].trim().replace(/^[(\[]?[A-C][)\].:]\s*/,"").replace(/\*/g,"").trim();if(pt.length>1&&acts.length<3)acts.push(pt);}
   }
   if(!acts.length){
@@ -3498,7 +3527,21 @@ function applyMuts(text,opts){
   var _mapMovementProblem=(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&/\[(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)(?::|\])/.test(String(text||"")))?atlasKnowledgeMovementProblem(_mapSourceRaw):"";
   if(_mapMovementProblem){
     if(typeof console!=="undefined")console.warn("[map source] GM state changes withheld: "+_mapMovementProblem);
-    return {muts:["⚠ GM state changes withheld — "+_mapMovementProblem],turn:worldState.turn,errors:[_mapMovementProblem],mapReveals:{raw:String(_mapSourceRaw||""),items:[],reason:_mapMovementProblem}};
+    /* audit 2026-11-19, P10: this early return wrote no provenance entry, so the one turn whose tags were ALL dropped was
+       the one turn the ring could not explain. The entry names the tags the reply carried and why none was applied. */
+    var _whMuts=["⚠ GM state changes withheld — "+_mapMovementProblem],_whi;
+    for(_whi=0;_whi<_unclosed.length;_whi++)_whMuts.push("⚠ ["+_unclosed[_whi]+":] was never closed — ignored (nothing changed)");
+    try{
+      var _whNames=[],_whSeen=keyedDict(),_whM=String(text||"").match(/\[([A-Z][A-Z_]{1,})[:\]]/g)||[];
+      for(_whi=0;_whi<_whM.length;_whi++){var _whN=_whM[_whi].slice(1,-1);if(!_whSeen[_whN]){_whSeen[_whN]=1;_whNames.push(_whN);}}
+      var _whEntry={t:worldState.turn,tags:_whNames,m:_whMuts.slice(0,10),withheld:String(_mapMovementProblem).slice(0,200)};
+      if(_unclosed.length)_whEntry.unclosed=_unclosed.slice(0,6);
+      if(_rvStripped&&_rvStripped.length)_whEntry.stripped=_rvStripped.slice(0,10);
+      if(!worldState.tagLog)worldState.tagLog=[];
+      worldState.tagLog.push(_whEntry);
+      if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
+    }catch(_whe){if(typeof console!=="undefined")console.warn("[tags] provenance ring write failed (withheld reply):",_whe&&_whe.message);}
+    return {muts:_whMuts,turn:worldState.turn,errors:[_mapMovementProblem],mapReveals:{raw:String(_mapSourceRaw||""),items:[],reason:_mapMovementProblem}};
   }
   var _npcSaidPrev=(typeof npcBeginResponse==="function")?npcBeginResponse(text):null;
   var _tqBefore=(typeof npcKeySet==="function")?npcKeySet():null;/* #504: the records this reply CREATES are stamped at the seam below */

@@ -114,9 +114,8 @@ function showRulesModal(){
   var modal=modalShell("rules-modal","",{align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:520,boxExtra:"margin-top:40px;",wireClose:false});
   var inner=modal.firstChild;
   function renderRules(){
-    var h="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Narrative Rules</span><button id='rules-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div><div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>Strictly enforced on every GM response.</div>",i;
-    for(i=0;i<DEFAULT_RULES.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);margin-bottom:6px;font-size:12px;display:flex;gap:8px;'><span style='color:var(--t2);font-size:10px;flex-shrink:0;margin-top:1px;'>DEFAULT</span><span style='color:var(--t1);'>"+DEFAULT_RULES[i]+"</span></div>";}
-    for(i=0;i<customRules.length;i++){h+="<div style='padding:8px 10px;background:var(--bg2);border:1px solid var(--acc);border-radius:var(--r);margin-bottom:6px;font-size:12px;color:var(--t0);display:flex;justify-content:space-between;align-items:flex-start;gap:8px;'><span>"+customRules[i]+"</span><button onclick='removeRule("+i+")' style='background:none;border:none;color:var(--dng);cursor:pointer;font-size:16px;flex-shrink:0;line-height:1;'>&#215;</button></div>";}
+    var h="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;'><span style='font-size:16px;color:var(--t0);font-weight:bold;'>Narrative Rules</span><button id='rules-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div><div style='font-size:11px;color:var(--t2);margin-bottom:14px;'>Strictly enforced on every GM response.</div>";
+    h+=rulesListHtml();/* audit 2026-11-19, H3: the list is the pure helpers.js renderer — every rule is escaped */
     h+="<div style='display:flex;gap:6px;margin-top:14px;'><input id='rules-new' type='text' placeholder='Add a custom rule...' class='sc-inp' style='flex:1;'/><button id='rules-add' style='padding:7px 14px;font-size:12px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>Add</button></div>";
     inner.innerHTML=h;
     document.getElementById("rules-x").addEventListener("click",function(){modal.remove();});
@@ -125,6 +124,8 @@ function showRulesModal(){
   renderRules();
 }
 function removeRule(idx){customRules.splice(idx,1);saveRules();showRulesModal();}
+/* audit 2026-11-19, H3: a blueprint's rule lives on its campaign — removing it changes this campaign only */
+function removeCampaignRule(idx){if(!worldState||!Array.isArray(worldState.campaignRules))return;worldState.campaignRules.splice(idx,1);if(!worldState.campaignRules.length)delete worldState.campaignRules;if(typeof saveAll==="function")saveAll();showRulesModal();}
 var FONT_KEY="tnd_font_v1";
 function loadFontSize(){
   var saved=store.get(FONT_KEY);

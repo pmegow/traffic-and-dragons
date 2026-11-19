@@ -222,7 +222,7 @@ function ttStateBlock(){
 // question-keyed RAG pass is in the always-on path rather than an optimization.
 function ttRecallBlock(question){
   var out="";
-  var toc=(typeof memoryTOC==="function")?memoryTOC():"";
+  var toc=(typeof memoryTOC==="function")?memoryTOC({audience:"player"}):"";/* audit 2026-11-19, K2 */
   if(toc)out+=toc+"\n";
   var rag=(typeof ragRetrieve==="function")?ragRetrieve(question):"";
   if(rag)out+="\n"+rag+"\n";

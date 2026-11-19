@@ -61,7 +61,16 @@ function skelDeepTimeRule(){
 // worldState write either way). validate throws; stamp mutates in place and returns the skel.
 function validateSkeletonStructure(skel){
   if(!skel||!skel.premise||!skel.acts||skel.acts.length!==3)throw new Error("Invalid skeleton structure");
-  var i;for(i=0;i<skel.acts.length;i++){if(!skel.acts[i].arcs||!skel.acts[i].arcs.length)throw new Error("Act "+(i+1)+" has no arcs");}
+  /* audit 2026-11-19, C2: only the SHAPE was checked. A null arc passed and threw later, outside the review's catch (the
+     valid first draft was thrown away and the campaign started freeform); an arc with no title or objective passed and
+     became a quest the engine can never show or complete. */
+  var i,j;for(i=0;i<skel.acts.length;i++){var a=skel.acts[i];
+    if(!a||typeof a!=="object")throw new Error("Act "+(i+1)+" is not an act");
+    if(!Array.isArray(a.arcs)||!a.arcs.length)throw new Error("Act "+(i+1)+" has no arcs");
+    for(j=0;j<a.arcs.length;j++){var r=a.arcs[j];
+      if(!r||typeof r!=="object")throw new Error("Act "+(i+1)+", arc "+(j+1)+" is not an arc");
+      if(typeof r.title!=="string"||!r.title.trim())throw new Error("Act "+(i+1)+", arc "+(j+1)+" has no title");
+      if(typeof r.objective!=="string"||!r.objective.trim())throw new Error("Act "+(i+1)+", arc "+(j+1)+" has no objective");}}
   return skel;
 }
 function stampSkeletonStatus(skel){
@@ -165,6 +174,10 @@ async function correctCampaignSkeleton(skel,findings,model,kind){
   var resp=await callGM(msg,SKELETON_ARCHITECT_SYS,8192,model,{noHistory:true,kind:kind||"other"});
   var fixed=JSON.parse(repairModelJson(resp));
   validateSkeletonStructure(fixed); // a correction that breaks structure throws → caller keeps the draft
+  /* audit 2026-11-19, C1: the correction is sent, and returns, {premise, acts} ONLY — every other field of the draft was
+     lost with it. The age ladder (deepTime) is one: the campaign then played with no age ceiling and the console blamed
+     the model. Whatever the draft carried beside premise and acts is carried across. */
+  var k;for(k in skel){if(Object.prototype.hasOwnProperty.call(skel,k)&&k!=="premise"&&k!=="acts"&&fixed[k]===undefined)fixed[k]=skel[k];}
   return fixed;
 }
 

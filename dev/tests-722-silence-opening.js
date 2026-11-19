@@ -12,7 +12,7 @@ function start(){
 function openAct(n){worldState.skeleton.acts.forEach((a,i)=>{a.status=i<n-1?'completed':i===n-1?'active':'pending';});}
 function all(p){return p.stable+'\n'+p.volatile;}
 test('turn zero with all nineteen rules withholds the Raider',()=>{
- const p=start();assert.equal(customRules.length,19);for(const rule of customRules)assert(p.stable.includes(rule));
+ const p=start(),rules=worldState.campaignRules||[];/* audit 2026-11-19 H3 (owner ruling): a blueprint's rules live on its campaign, not in the device-wide customRules */assert.equal(rules.length,19);assert.equal(customRules.length,0,'the blueprint rules were copied to the device');for(const rule of rules)assert(p.stable.includes(rule));
  assert(!all(p).includes('Borrowed-Banner Raider'),'Raider leaked into opening prompt');
  assert(!all(p).includes('Reed-cloaked Raider'),'disguised Raider substituted at opening');
  assert(p.stable.includes('Mire-Gilded Stalker'),'Act I causeway creature disappeared');
