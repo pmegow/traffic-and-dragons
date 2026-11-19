@@ -92,9 +92,12 @@ var ROW_ID_GRANDFATHER = {
   26: { count: 4, why: LEGACY_ID }, 27: { count: 5, why: LEGACY_ID }, 28: { count: 4, why: LEGACY_ID }, 29: { count: 2, why: LEGACY_ID },
   30: { count: 2, why: LEGACY_ID },
 };
-function rowIdErrors(todoText, archiveText) {
+/* 2026-11-18: TODO_Atlas.md (the map rows, split out at the owner's word) is a third tracker file under the same global numbers. */
+var _atlasTodoText = "";
+function rowIdErrors(todoText, archiveText, atlasText) {
   var n = {}, where = {}, max = 0, errs = [];
-  [["TODO.md", todoText || ""], ["DOC/TODO_ARCHIVE.md", archiveText || ""]].forEach(function (f) {
+  if (atlasText === undefined) atlasText = _atlasTodoText;   /* main() loads it; a direct caller with two texts checks two */
+  [["TODO.md", todoText || ""], ["DOC/TODO_ARCHIVE.md", archiveText || ""]].concat([["TODO_Atlas.md", atlasText || ""]]).forEach(function (f) {
     f[1].split("\n").forEach(function (l, i) {
       var m = /^\|\s*(\d+)\s*\|/.exec(l); if (!m) return;
       var id = Number(m[1]); n[id] = (n[id] || 0) + 1; (where[id] = where[id] || []).push(f[0] + ":" + (i + 1)); if (id > max) max = id;
@@ -272,6 +275,10 @@ function main() {
     else if (opts.staged) { try { archiveText = readGit(":DOC/TODO_ARCHIVE.md"); } catch (e2) { archiveText = ""; } }
     else if (opts.file === DEFAULT_FILE && fs.existsSync(ARCHIVE)) archiveText = fs.readFileSync(ARCHIVE, "utf8");
     else archiveText = "";
+    /* TODO_Atlas.md for the id pass: the index's in the hook, the working copy by default; a --file run (CI, fixtures) has none */
+    var ATLAS_TODO = path.join(ROOT, "TODO_Atlas.md");
+    if (opts.staged) { try { _atlasTodoText = readGit(":TODO_Atlas.md"); } catch (e4) { _atlasTodoText = ""; } }
+    else if (opts.file === DEFAULT_FILE && fs.existsSync(ATLAS_TODO)) _atlasTodoText = fs.readFileSync(ATLAS_TODO, "utf8");
     /* #481 G7: the archive BEFORE this change, for the move check — the given file (CI), else HEAD's in the hook and the working
        tree; a bare --file fixture without --head-archive has no move check */
     if (opts.headArchive) headArchiveText = fs.readFileSync(opts.headArchive, "utf8");
@@ -304,7 +311,7 @@ function main() {
   if (idErrs.length) {
     console.error("TODO.md ROW ID CHECK FAILED (" + idErrs.length + " id" + (idErrs.length > 1 ? "s" : "") + " used more than once):");
     for (var d = 0; d < idErrs.length; d++) console.error("  ✗ " + idErrs[d]);
-    console.error("Row numbers are global across TODO.md and DOC/TODO_ARCHIVE.md — fetch origin before claiming one (a parallel session may hold it).");
+    console.error("Row numbers are global across TODO.md, TODO_Atlas.md and DOC/TODO_ARCHIVE.md — fetch origin before claiming one (a parallel session may hold it).");
     process.exit(1);
   }
 
