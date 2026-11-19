@@ -1,5 +1,5 @@
 {
-  "version": "v1.1451",
+  "version": "v1.1452",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -107,6 +107,7 @@
     "Inworld narration now lets the voice model choose how to deliver each line; a character's own direction guides it.",
     "The journey sheet is removed; the region is the only sheet above the places.",
     "A Console button beside Table Talk collects the game's notices; only inventory changes still pop up, and a green dot marks new lines.",
-    "Carried items sort themselves into Armor, Tools and the other sections by name; only a name that does not say stays Unclassified."
+    "Carried items sort themselves into Armor, Tools and the other sections by name; only a name that does not say stays Unclassified.",
+    "Switching campaigns, or sending a turn before the cloud check returns, can no longer let an older copy overwrite newer play from another device."
   ]
 }

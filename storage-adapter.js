@@ -104,10 +104,12 @@ var storageAdapter = (function() {
   }
   // Clear the marker ONLY on a confirmed 2xx push of OUR OWN payload. A 409 self-heal acks the
   // SERVER's turn, which is no proof our turns landed — the retry it fires clears it on its 200.
-  function _flushAcked(turnAt) {
-    var t = flushDirtyTurn();
+  // campId (audit 2026-11-19, S1) names the campaign whose push landed: the answer can arrive after this device has
+  // switched to another campaign, and the marker it clears is the POSTED campaign's, never the one now open.
+  function _flushAcked(turnAt, campId) {
+    var t = flushDirtyTurn(campId);
     if (t == null) return;
-    if (typeof turnAt === "number" && turnAt >= t) clearFlushDirty();
+    if (typeof turnAt === "number" && turnAt >= t) clearFlushDirty(campId);
   }
 
   // ── Auto-connect on page load ───────────────────────────────────────────
@@ -591,6 +593,17 @@ var storageAdapter = (function() {
     if (_conflict) { _fin("sync paused — another device is ahead"); return; } // CAS 409 landed — never POST over a newer device; reload/switch clears via resetSyncState
     if (_syncing && !beacon) { _pendingSync = true; _fin("a sync was already in flight"); return; }
     var campId = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
+    /* Audit 2026-11-19, S1 — THE ANSWER BELONGS TO THE CAMPAIGN THAT WAS POSTED. Every sync bookkeeping value below
+       (_lastAckTurn, _conflict, the failure count, the portrait flags) is module state for the campaign NOW open, and
+       switchToCampaign fires the old campaign's POST and then resets that state for the new one. The old campaign's answer
+       used to be applied to the new campaign: its 200 raised the new campaign's CAS base to the OLD campaign's turn (the
+       server refuses only when its stored turn is above the base, so an older copy then replaced newer play from another
+       device with no 409), its 409 paused the new campaign, its 403 foreign_campaign RE-HOMED the new campaign, and its
+       portrait upload would have carried the new campaign's portraits under the old id. An answer for a campaign this
+       device has left changes nothing but that campaign's own unsynced marker, and is logged. The reconcile has had the
+       same check since #481 F9. */
+    function _left() { var _now = (typeof getActiveCampId === "function") ? getActiveCampId() : null; return !!campId && !!_now && _now !== campId; }
+    function _leftSay(what) { console.info("[storage] the answer for " + campId + " (" + what + ") arrived after this device switched to " + getActiveCampId() + " — it changes nothing for the campaign now open"); }
     var _de = _delElsewhere();   /* #481 F9: never re-upload a campaign another device deleted until the player answers */
     /* #599 (a): the publication lock — the cloud copy of this campaign was written by a newer build than this one (the
        reconcile or a manual pull refused it). This device's older state must never land on top of it; the lock is a stored
@@ -664,7 +677,8 @@ var storageAdapter = (function() {
       try {
         fetch(_serverUrl + "/api/state", { method:"POST", headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+_token }, body:payload, keepalive:true })
           .then(function(r){
-            if (r.ok) { _syncOk(turnAt); _flushAcked(turnAt); /* JP0-11: an under-cap beacon that DID land clears any standing marker */ }
+            if (_left()) { if (r.ok) _flushAcked(turnAt, campId); _leftSay(r.ok ? "page-hide flush saved, turn " + turnAt : "page-hide flush, HTTP " + r.status); return; }   /* S1 */
+            if (r.ok) { _syncOk(turnAt); _flushAcked(turnAt, campId); /* JP0-11: an under-cap beacon that DID land clears any standing marker */ }
             else if (r.status === 409) r.json().then(function(d){
               var st = d && d.serverTurn;
               if (resolveCas409(st, worldState ? (worldState.turn||0) : 0, false) === "heal") { _syncOk(st); console.warn("[storage] beacon 409 self-healed: server turn " + st + " ≤ local — acked, next regular sync proceeds."); }
@@ -680,6 +694,12 @@ var storageAdapter = (function() {
       body:    payload
     }, SYNC_TIMEOUT_MS).then(function(r) {
       _syncing = false;
+      if (_left()) {   /* S1: the campaign that was posted is no longer the one open — see the note where campId is read */
+        if (r.ok) { _flushAcked(turnAt, campId); _leftSay("saved, turn " + turnAt); _fin(null); }
+        else { _leftSay("HTTP " + r.status); _fin("the campaign changed while its save was in flight (HTTP " + r.status + ")"); }
+        if (_pendingSync) _syncNow();
+        return;
+      }
       if (r.status === 409) {
         r.json().then(function(d){
           var st = d && d.serverTurn;
@@ -716,7 +736,7 @@ var storageAdapter = (function() {
       else if (!r.ok) { _onSyncFail("server returned " + r.status, r.status); _fin("server returned " + r.status); }
       else {
         _syncOk(turnAt);
-        _flushAcked(turnAt);   // JP0-11: the ONLY thing that clears an unsynced-flush marker
+        _flushAcked(turnAt, campId);   // JP0-11: the ONLY thing that clears an unsynced-flush marker
         if (_portraitDirty || !_portraitSyncedOnce) {
           _portraitSyncedOnce = true;
           syncPortrait(campId);
@@ -727,7 +747,8 @@ var storageAdapter = (function() {
     }).catch(function(e) {
       _syncing = false;
       var _msg = e && e.name === "AbortError" ? "timed out after " + (SYNC_TIMEOUT_MS / 1000) + "s" : ((e && e.message) || "network error");
-      _onSyncFail(_msg, 0);
+      if (_left()) _leftSay(_msg);   /* S1: another campaign's failed save is not this campaign's sync failure */
+      else _onSyncFail(_msg, 0);
       _fin(_msg);
       if (_pendingSync) _syncNow();
     });
@@ -991,6 +1012,19 @@ var storageAdapter = (function() {
       }
       var serverTurn = data.worldState.turn || 0;
       var localTurn  = (worldState && worldState.turn) || 0;
+      /* Audit 2026-11-19, S2 — THE CLOUD IS AHEAD AND A TURN IS IN FLIGHT. The adopt must wait (audit E4: never swap the
+         world under a running turn), but this function used to seed the sync base with the cloud's turn FIRST and then skip
+         the adopt without a word. The device kept its older copy, believed the server held nothing newer, and its next save
+         (local turn + 1, base = the cloud's turn) was accepted over the newer cloud copy: every turn another device had
+         played was gone, with no 409 and no message. A base is a claim that this device has SEEN that copy; without the
+         adopt it has not. So: no base, no adopt, and the standing conflict pause — the same loud, sticky state a 409 gives
+         (reload adopts the cloud copy; the player can export this one first). Nothing is posted until then. */
+      if (serverTurn > localTurn && (typeof busy !== "undefined" && busy)) {
+        console.warn("[storage] reconcile: the cloud copy of " + _serverCamp + " is ahead (turn " + serverTurn + ", local turn " + localTurn + ") and arrived while a turn was in flight — not adopted, and its turn is not taken as this device's sync base. Sync is paused until a reload adopts it.");
+        _onConflict(serverTurn);
+        syncCampaignList(null);
+        return;
+      }
       // The server provably holds serverTurn — seed the ACK baseline (#24).
       if (serverTurn > _lastAckTurn) _lastAckTurn = serverTurn;
       // CAS re-arm (Known issue #5): this device has now SEEN the server's current state, so a standing 409 pause is stale —
@@ -1007,8 +1041,8 @@ var storageAdapter = (function() {
         syncToServer();
       }
       _updateSyncUI();
-      // Don't swap worldState out from under an in-flight turn (audit E4) — skip the adopt if busy.
-      if (serverTurn > localTurn && !(typeof busy !== "undefined" && busy)) {
+      // Never swap worldState out from under an in-flight turn (audit E4): that case returned above (S2), paused.
+      if (serverTurn > localTurn) {
         var wasFresh = !localOk;
         worldState = data.worldState;
         // Restore the authoritative campaign ID from the server before saveAll()

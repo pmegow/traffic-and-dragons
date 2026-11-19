@@ -57,8 +57,8 @@ rc |= sabotage.prove({
 
     { label: "any ack clears the marker, even one for an OLDER turn — the newest turns become unrecoverable",
       mustFail: "turn-500 marker",
-      find: "    if (typeof turnAt === \"number\" && turnAt >= t) clearFlushDirty();",
-      replace: "    clearFlushDirty();" },
+      find: "    if (typeof turnAt === \"number\" && turnAt >= t) clearFlushDirty(campId);",
+      replace: "    clearFlushDirty(campId);" },
 
     { label: "the boot push never fires — the reconcile adopts over turns the server never saw (the silent-loss path)",
       mustFail: "PUSHES before the reconcile",
