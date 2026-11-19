@@ -7,7 +7,7 @@ var sabotage = require("./sabotage.js");
 process.exit(sabotage.prove({ file: "car-session.js",   /* #631: the loop's file */ command: ["node", ["dev/tests-19b-carmode-transport.js"]], cases: [
   { label: "the transport ignores the hold (a held PLAY replays)",
     find: "  if (state === \"held\") return \"held\";\n", replace: "",
-    mustFail: "the repro" },
+    mustFail: "while held, all four commands are no-ops" },   /* #777 G3 re-proof: the repro (an idle session) passes without this line — nothing replays when nothing was read; the four-command case is its guard */
   { label: "the state reader forgets the hold",
     find: "  if (_carHeld) return \"held\";   /* #481 E8:", replace: "  /* #481 E8:",
     mustFail: "the repro" },

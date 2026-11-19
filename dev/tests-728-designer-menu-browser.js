@@ -40,6 +40,8 @@ const appearance='A lean humanoid fey with a mischievous humanlike face, pointed
   await file('btn-load');assert.equal(await page.evaluate(()=>loadClicked),1);assert(await page.evaluate(()=>!document.getElementById('designer-file').open));
   await file('btn-library');await page.waitForSelector('#lib-modal');await page.locator('#lib-x').click();assert.equal(await page.evaluate(()=>document.activeElement.id),'designer-file-toggle');
   await page.evaluate(()=>{bp.name='Temporary draft';dirty=false;});await file('btn-new');assert.equal(await page.evaluate(()=>bp.name),'');
+  /* #777 G3 re-proof: File closes by other routes too (the picker's click lands outside the menu; a dialog takes the focus), so nothing above proved what the action's own close is FOR — it puts the focus on the visible File button before a dialog opens, so that dialog hands the focus back to something on screen. The library dialog above restores it either way; Image options does not. */
+  await file('btn-render-options');await page.waitForSelector('#designer-render-model');await page.locator('#designer-render-close').click();assert.equal(await page.evaluate(()=>document.activeElement.id),'designer-file-toggle','Image options closed with the focus on nothing visible');
  });
  await test('render choice persists and every new model uses the actual queued portrait body',async()=>{
   await page.setViewportSize({width:1050,height:900});

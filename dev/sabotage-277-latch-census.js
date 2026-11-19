@@ -7,7 +7,7 @@ var ALSO=["dev/sabotage-277-latch-census.js","dev/tests-latch-census.js","dev/ru
 rc|=sabotage.prove({
   file:"dev/latch-census.js",command:CMD,also:ALSO,cases:[
     {label:"regex literals stop confusing the function-body lexer, so helpers.js remains indexed",
-      mustFail:"rewardClaimQueue's helper-routed write is still invisible",
+      mustFail:"shipped NOTE_BUILDERS reachable writes are declared",/* #777 G3 re-proof: the named case passes under this mutation; the shipped-census case is the one that goes red */
       find:'    if(ch==="/"){',replace:'    if(false){'},
     {label:"a helper call cannot disappear from the transitive NOTE_BUILDERS walk",
       mustFail:"helper-routed fakeLatch is visible",

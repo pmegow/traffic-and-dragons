@@ -10,7 +10,7 @@ function prove(file, cases) { if (!code) code = sabotage.prove({ file: file, com
 prove("storage-adapter.js", [
   { label: "a 404 for a campaign the server once held reads as 'first push pending' again",
     find: "        var _gone = _campOnceOnServer(_rcId);", replace: "        var _gone = null;",
-    mustFail: "the repro" },
+    mustFail: "the question and the pause survive a reload" },   /* #777 G3 re-proof: the repro still asks through the push path; this line is what asks again after a reload */
   { label: "the pending question does not pause the push",
     find: "    if (_de && campId && _de.id === campId) {", replace: "    if (false) {",
     mustFail: "the repro" },

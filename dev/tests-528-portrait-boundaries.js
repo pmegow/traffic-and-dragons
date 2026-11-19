@@ -10,6 +10,14 @@ global.showToast=m=>messages.push(String(m));global.modalShell=()=>element();glo
 const bad="x' onerror='window.__portraitInjected=1",good='data:image/png;base64,iVBORw0KGgo=';
 function fresh(){messages.length=0;return loader.makeTestWorld({campId:'portrait-fixture',campName:'Portrait fixture'});}
 function refusal(){assert.ok(messages.some(m=>/portrait.*dropped/i.test(m)),'portrait rejection must be visible');}
+// #777 (G3/G4 re-proof): the world gate on its own. Since #599 (c) the load also runs every sheet through the admission
+// registry, whose portrait entry drops a crafted portrait too — but admission is all or nothing, so when it refuses a world
+// this gate is the only one that ran. Each of its three reads is checked here, apart from any caller.
+{const w=fresh();w.character.portrait=bad;w.npcs=[{name:'Bram',portrait:bad},{name:'Vex',charSheet:{name:'Vex',portrait:bad}}];const n=portraitsSanitizeWorld(w);
+ assert.ok(!w.character.portrait,'the world gate: the hero\'s crafted portrait survived');assert.ok(!w.npcs[0].portrait,'the world gate: an NPC wrapper\'s crafted portrait survived');
+ assert.ok(!w.npcs[1].charSheet.portrait,'the world gate: an NPC sheet\'s crafted portrait survived');assert.equal(n,3,'the world gate: the count of portraits dropped');
+ const k=fresh();k.character.portrait=good;k.npcs=[{name:'Bram',portrait:good,charSheet:{name:'Bram',portrait:good}}];assert.equal(portraitsSanitizeWorld(k),0);assert.equal(k.character.portrait,good);assert.equal(k.npcs[0].charSheet.portrait,good);
+ console.log('PASS #528 the world gate drops a crafted portrait from the hero, an NPC wrapper and an NPC sheet');}
 for(const [label,apply] of [
  ['save import',p=>{const w=fresh();w.character.portrait=p;w.npcs=[{name:'Bram',portrait:p},{name:'Vex',portrait:p,charSheet:{...JSON.parse(JSON.stringify(w.character)),name:'Vex',portrait:p}}];const data=JSON.parse(JSON.stringify({worldState:w,memory,sessionLog:[]}));importSaveData(data);return [worldState.character.portrait,npcPortrait(worldState.npcs[0]),worldState.npcs[1].charSheet.portrait];}],
  ['hero library adoption',p=>{const w=fresh(),copy={...w.character,portrait:p};const result=adoptLibraryHero(copy,123);assert.equal(copy.portrait,p,'library source was mutated');return [result.portrait];}],
