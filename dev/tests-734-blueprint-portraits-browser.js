@@ -76,7 +76,7 @@ async function asset(file,requestPath){const expected=fs.readFileSync(file);if(!
      generateNpcSheet=function(){return window.__oldGenerate738.apply(this,arguments).finally(function(){window.__generationDone738=true;});};
    },refuse);
    try{await page.locator('#npc-gen-sheet').click();await page.waitForFunction(()=>window.__generationDone738);
-     return await page.evaluate(()=>{var n=wsNpcByName('Princess Willow');showNpcSheet(n.name);return {calls:window.__gmCount738,hasSheet:!!n.charSheet,rowHasImage:n.portrait===window.__portrait738,sheetHasImage:!!n.charSheet&&n.charSheet.portrait===window.__portrait738,busy:busy,reasonShown:/newer version|Sheet refused|newer build/i.test(document.body.textContent)};});
+     return await page.evaluate(()=>{var n=wsNpcByName('Princess Willow');showNpcSheet(n.name);return {calls:window.__gmCount738,hasSheet:!!n.charSheet,rowHasImage:n.portrait===window.__portrait738,sheetHasImage:!!n.charSheet&&n.charSheet.portrait===window.__portrait738,busy:busy,reasonShown:/newer version|Sheet refused|newer build/i.test(document.body.textContent+' '+consoleEntries().map(function(e){return e.msg;}).join(' '))};/* #772: the reason is collected in the console, not popped */});
    }finally{await page.evaluate(()=>{callGM=window.__oldCall738;generateNpcSheet=window.__oldGenerate738;});}
  }
  await check738('World State opens the authored NPC image without a character sheet',async()=>{

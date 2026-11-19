@@ -37,6 +37,7 @@ let pass=0,fail=0;
     window.__replaceCampaign=function(identical){worldState=JSON.parse(JSON.stringify(worldState));memory=JSON.parse(JSON.stringify(memory));sessionLog=JSON.parse(JSON.stringify(sessionLog));if(!identical){sessionLog=[];worldState.campId='replacement-campaign';worldState.campName='Replacement';worldState.turn=99;memory.campId=worldState.campId;}window.__replacementBefore=JSON.stringify({worldState,memory,sessionLog});window.__replacementStorage=__storageSnapshot();};
     callGM=async function(msg,sys,max,model,opts){
      /* #766: the map's own directions request is counted apart, so this suite's call counts stay the landmark reader's; it answers "none placed", which leaves every feature as the reader filed it */
+     if(opts&&opts.kind==='item-kind'){(window.__itemKindCalls=window.__itemKindCalls||[]).push(msg);return JSON.stringify({kinds:JSON.parse(msg).items.map(function(){return 'unclear';})});}/* #776: the pack's sections are asked once, apart from this suite's counts */
      if(opts&&opts.kind==='map-directions'){(window.__directionCalls=window.__directionCalls||[]).push({msg:msg,opts:JSON.parse(JSON.stringify(opts))});return '{"directions":[]}';}
      __calls.push({msg,sys,max,model,opts:opts?JSON.parse(JSON.stringify(opts)):null});
      if(opts&&opts.kind==='atlas'&&opts.noHistory){
