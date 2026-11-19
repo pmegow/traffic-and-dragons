@@ -274,12 +274,15 @@ try {
       var rows = fs.readFileSync(log, "utf8").trim().split(/\r?\n/).map(function (l) { return l.split("|"); });
       /* G4: the command runs once on the unmutated file per clone commit, so the runs are: clean + group 1, group 2 (the
          clean verdict is remembered while HEAD stands), clean + group 3 (HEAD moved) */
-      if (rows.length !== 5) return "expected five runs (a clean run and group 1, group 2, a clean run and group 3), got " + rows.length;
+      /* the count is judged LAST: a mutation that changes how often a clone is made changes the count too, and the specific
+         finding below is the one that names what went wrong (the #551 battery attributes by it) */
+      if (rows.length < 4) return "expected five runs (a clean run and group 1, group 2, a clean run and group 3), got " + rows.length;
       if (rows[0][1] !== "-" || rows[0][2] !== "HEAD") return "the clean run did not start in a fresh clone: " + rows[0].join("|");
       if (rows[1][0] !== rows[2][0]) return "the second group cloned again instead of reusing the battery's clone: " + rows[1][0] + " vs " + rows[2][0];
       if (rows[2][1] !== "-" || rows[2][2] !== "HEAD") return "a reused clone was not reset to HEAD before the next group (stray file / changed tracked file survived): " + rows[2].join("|");
       if (rows[2][3] !== "late") return "a reused clone was not re-mirrored at the group's start (an untracked file written between groups is missing)";
       if (rows[3][2] !== "COMMITTED LATER") return "a moved HEAD did not give the next group a clone of the new commit, with its own clean run first: " + rows[3].join("|");
+      if (rows.length !== 5) return "expected five runs (a clean run and group 1, group 2, a clean run and group 3), got " + rows.length;
       var leftover = rows.map(function (r) { return r[0]; }).filter(function (d) { return fs.existsSync(d); });
       return leftover.length ? "a scratch clone was left on disk after the battery exited: " + leftover.join(", ") : "";
     } finally {

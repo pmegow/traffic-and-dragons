@@ -315,7 +315,9 @@ test("battery pool: batteries run at once, each in its own temp dir; a failure b
 
     // ④ a malformed job count is refused out loud, never read as a commit range
     r = run("run-sabotage-diff.js", ["--jobs=many"]);
-    if (r.status === 0 || !/jobs/.test(r.out)) return "a malformed --jobs passed: " + r.out;
+    /* the pool's own refusal, by its words: since audit G9 an unreadable RANGE is refused too, and its message quotes the
+       range — "--jobs=many" taken as a range then satisfied a bare /jobs/ */
+    if (r.status === 0 || !/is not a job count/.test(r.out)) return "a malformed --jobs passed: " + r.out;
 
     // ⑤ slowest first: the battery with the most clauses (find: anchors) starts first, whatever its name. A run ends when
     // its slowest battery does, and alphabetical order had started the 96-clause sabotage-w2.js last (13.5 min, not 8).

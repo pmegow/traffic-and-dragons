@@ -58,7 +58,11 @@ test("TODO.md and its archive skip though dev scripts name them: the hook's own 
   assert.equal(tool.judge([M("TODO.md"), M("DOC/TODO_ARCHIVE.md")], sources).docsOnly, true);
   var hook = fs.readFileSync(path.join(ROOT, "dev", "pre-commit"), "utf8"), ask = hook.indexOf("dev/docs-only.js\"; then");
   assert.ok(ask > 0);
-  ["dev/lint-todo.js\" --git-aware --staged", "dev/check-todo-columns.js\" --staged", "dev/tests-todo-hygiene.js\"", "dev/check-identity.js\"", "dev/check-es5.js\"", "dev/check-shell-markers.js\""].forEach(function (gate) {
+  /* each gate by the WHOLE of its invocation: since audit G7 (2026-11-19) the hook runs the lint and the column check a
+     second time for TODO_Atlas.md, and a prefix match was satisfied by that second line when the first was taken away */
+  ["dev/lint-todo.js\" --git-aware --staged --cap || {", "dev/check-todo-columns.js\" --staged || {",
+    "dev/lint-todo.js\" --git-aware --staged --cap --tracker TODO_Atlas.md || {", "dev/check-todo-columns.js\" --staged --tracker TODO_Atlas.md || {",
+    "dev/tests-todo-hygiene.js\"", "dev/check-identity.js\"", "dev/check-es5.js\"", "dev/check-shell-markers.js\""].forEach(function (gate) {
     var at = hook.indexOf(gate); assert.ok(at > 0 && at < ask, gate + " runs before the question is asked");
   });
 });
