@@ -1,6 +1,6 @@
 // sabotage-777-turn.js — retained proof for audit 2026-11-19 (TODO #777), batch 7: the turn's edges.
 //   game.js       U1 whenTurnSettles (Death's arrival, the denouement; owed on the save, counted in polls, the send
-//                 held) · U2 restFromButton · U8 the check lapse · U12 the folder banner · V1 Car Mode's retry arm
+//                 held) · U2 restFromButton · U3 the refusal's replacement (the mark, the re-send, the commit; state.js the book) · U8 the check lapse · U12 the folder banner · V1 Car Mode's retry arm
 //   helpers.js    C3 checkModField · U13 a null faction · U11 toastLifeMs · ui-shell.js   U6 the console's door, U11
 //   item-kinds.js C4 the item's own key · ui-panels.js   U2 the button
 // Each clause runs ONE named case of dev/tests-777-turn.js (the suite's own --only).
@@ -13,6 +13,12 @@ var T = {
   "U1B": "U1: what a commit schedules is dropped out loud when another campaign is opened first",
   "U2": "U2: the Rest button does nothing while a turn is in flight",
   "U1C": "U1: while a step is owed the player's own send waits",
+  "U3A": "U3: re-rolling a refused turn sends the action again",
+  "U3B": "U3: a turn whose tags DID land, re-rolled into a refusal and then into narration, applies nothing twice",
+  "U3C": "U3: a replacement that is refused again changes nothing and can be re-rolled again",
+  "U3D": "U3: a display failure after the replacement's tags landed spends the mark",
+  "U3E": "U3: the mark belongs to its turn",
+  "U3F": "U3: in the book only this turn's refused entry is ever replaced",
   "U6": "U6, U11: a notice raised under an open modal pops up",
   "U8": "U8, U12, V1: a check lapses only to a story action",
   "U13": "U13: the World State panel survives a null faction entry",
@@ -49,6 +55,42 @@ prove("game.js", [
     find: "        if(++ticks*AFTER_TURN_POLL_MS>AFTER_TURN_MAX_MS){", replace: "        if(false){", mustFail: ONLY + T.U1B },
   { label: "U2: the Rest button works in the middle of a turn",
     find: "  if(typeof busy!==\"undefined\"&&busy){if(typeof showToast===\"function\")showToast(\"Finish the current turn first — then rest.\");return;}\n", replace: "", mustFail: ONLY + T.U2 },
+  { label: "U3: the re-roll of a refused turn is prose only (its tags never land)",
+    find: "    return sendAction(_ur.txt,{replaceRefusal:true,mpBypass:true,silent:!!_ur.silent,rollTag:_ur.rollTag||null});", replace: "    void 0;", mustFail: ONLY + T.U3A },
+  { label: "U3: a real turn re-rolled into a refusal is marked as never applied",
+    find: "if(_rrRefusal)e.rf=1;else if(e.rf)delete e.rf;", replace: "if(_rrRefusal){e.rf=1;worldState.unappliedRefusal={turn:worldState.turn,txt:prevU.content};}else if(e.rf)delete e.rf;", mustFail: ONLY + T.U3B },
+  { label: "U3: the replacement counts the turn again",
+    find: "  if(!o.isOpening&&!o.replacesRefusal){\n    worldState.turn++;", replace: "  if(!o.isOpening){\n    worldState.turn++;", mustFail: ONLY + T.U3A },
+  { label: "U3: the player's line is logged again",
+    find: "  if(o.replacesRefusal)o.logPlayer=false;\n", replace: "", mustFail: ONLY + T.U3A },
+  { label: "U3: a refusal leaves no mark",
+    find: "if(o.resend&&typeof o.resend.txt===\"string\"&&o.resend.txt)worldState.unappliedRefusal={", replace: "if(false)worldState.unappliedRefusal={", mustFail: ONLY + T.U3A },
+  { label: "U3: the mark outlives the tags landing (a later re-roll applies them twice)",
+    find: "delete worldState.unappliedRefusal;/* U3: tags have landed", replace: "/* U3: tags have landed", mustFail: ONLY + T.U3D },
+  { label: "U3: the replacement is appended and the refusal stays in the book",
+    find: "refusal:_refusal,replaceRefusal:!!o.replacesRefusal});", replace: "refusal:_refusal,replaceRefusal:false});", mustFail: ONLY + T.U3A },
+  { label: "U3: the model is shown its own refusal",
+    find: "_rfPair=sessionLog.splice(sessionLog.length-2,2);", replace: "_rfPair=sessionLog.slice(sessionLog.length-2);", mustFail: ONLY + T.U3A },
+  { label: "U3: a failed request loses the turn's exchange",
+    find: "    if(_rfPair&&!_rfLogged){sessionLog.push(_rfPair[0],_rfPair[1]);_rfLogged=true;}", replace: "    ", mustFail: ONLY + T.U3C },
+  { label: "U3: a failed replacement queues the action to be sent as a new turn",
+    find: "&&!_rfPair/* U3: the action is not put back", replace: "/* U3: the action is not put back", mustFail: ONLY + T.U3C },
+  { label: "U3: the player's line is shown a second time",
+    find: "&&!_mpResolve&&!(opts&&opts.replaceRefusal))addMsg(", replace: "&&!_mpResolve)addMsg(", mustFail: ONLY + T.U3A },
+  { label: "U3: the commit is not told it is a replacement",
+    find: "},replacesRefusal:!!_rfPair,onLogged:", replace: "},replacesRefusal:false,onLogged:", mustFail: ONLY + T.U3A },
+  { label: "U3: after a display failure the refusal is put back over the logged exchange",
+    find: "sessionLog.push(_slUser,_slGm);if(o.onLogged)o.onLogged();", replace: "sessionLog.push(_slUser,_slGm);", mustFail: ONLY + T.U3D },
+  { label: "U3: a refused continuation is not marked as one",
+    find: "silent:!!o.resend.silent,rollTag:o.resend.rollTag||null};else", replace: "silent:false,rollTag:o.resend.rollTag||null};else", mustFail: ONLY + T.U3E },
+  { label: "U3: a refused continuation is sent again as the player's words",
+    find: "mpBypass:true,silent:!!_ur.silent,rollTag:", replace: "mpBypass:true,rollTag:", mustFail: ONLY + T.U3E },
+  { label: "U3: a mark from another turn sends that action again",
+    find: "if(_ur&&_ur.turn===worldState.turn&&typeof _ur.txt", replace: "if(_ur&&typeof _ur.txt", mustFail: ONLY + T.U3E },
+  { label: "U3: the mark alone decides — the book is not asked whether the turn is a refusal",
+    find: "&&_urE&&_urE.r===\"gm\"&&_urE.rf&&_urE.t===worldState.turn&&!worldState.deathScene", replace: "&&!worldState.deathScene", mustFail: ONLY + T.U3E },
+  { label: "U3: a death scene's refused turn is sent again",
+    find: "&&!worldState.deathScene&&!(typeof campaignEnded", replace: "&&!(typeof campaignEnded", mustFail: ONLY + T.U3E },
   { label: "U8: a Table Talk question lapses a pending check",
     find: "  if(!isTT&&worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);", replace: "  if(worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);", mustFail: ONLY + T.U8 },
   { label: "V1: a committed turn arms the car's tap-to-retry",
@@ -97,6 +139,20 @@ prove("ui-panels.js", [
 prove("ui-boot.js", [
   { label: "U1 review: the load never re-arms an owed arrival",
     find: "    if(typeof deathArrivalRearm===\"function\")deathArrivalRearm();", replace: "    ", mustFail: ONLY + T.U1A }
+]);
+prove("state.js", [
+  { label: "U3: any last entry is replaced, not only this turn's refusal",
+    find: "if(_rlL&&_rlL.r===\"gm\"&&_rlL.rf&&_rlL.t===worldState.turn)_rlAt=", replace: "if(_rlL)_rlAt=", mustFail: ONLY + T.U3F },
+  { label: "U3: a refusal of another turn is replaced",
+    find: "&&_rlL.rf&&_rlL.t===worldState.turn)_rlAt=", replace: "&&_rlL.rf)_rlAt=", mustFail: ONLY + T.U3F },
+  { label: "U3: narration that is no refusal is replaced",
+    find: "_rlL.r===\"gm\"&&_rlL.rf&&", replace: "_rlL.r===\"gm\"&&", mustFail: ONLY + T.U3F },
+  { label: "U3: an appended replacement is not said",
+    find: "else if(typeof console!==\"undefined\")console.warn(\"[transcript] a refusal's replacement found no refused entry", replace: "else if(false)console.warn(\"[transcript] a refusal's replacement found no refused entry", mustFail: ONLY + T.U3F },
+  { label: "U3: the refused entry's own fields outlive it",
+    find: "for(k in old)if(Object.prototype.hasOwnProperty.call(old,k))delete old[k];for(k in _e)", replace: "for(k in _e)", mustFail: ONLY + T.U3F },
+  { label: "U3: a retcon in the replacement marks the refusal it replaces",
+    find: "_tr.length-1-(_rlAt>=0?1:0)", replace: "_tr.length-1", mustFail: ONLY + T.U3F }
 ]);
 prove("item-kinds.js", [
   { label: "C4: the answer is filed under the key of the cut name",

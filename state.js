@@ -441,7 +441,12 @@ function saveAll(){var ok=saveLocal();if(typeof storageAdapter!=="undefined")sto
 // transcript. When the GM emits the tag, mark the correcting entry AND the immediately preceding
 // GM entry (the likely superseded narration) so ragRetrieve never serves either as episodic
 // truth. `rc` rides at the top level of the entry — additive, invisible to everything but retrieval.
-function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeeping);if(!worldState||(!text&&!_bk))return;if(!worldState.transcript)worldState.transcript=[];var _e={t:worldState.turn,r:role,x:String(text||"").trim()};if(_bk)_e.bk=1;if(meta&&meta.refusal)_e.rf=1;if(meta&&meta.denouement)_e.den=1;/* #301: the campaign's last GM entry — the story compiler prints it as the final chapter *//* #197: an in-band model refusal — non-canon; ragRetrieve never serves rf entries */if(role==="gm"&&!_bk&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);
+function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeeping);if(!worldState||(!text&&!_bk))return;if(!worldState.transcript)worldState.transcript=[];
+  /* audit 2026-11-19, U3: meta.replaceRefusal — this entry takes the PLACE of the refused GM entry of the same turn (the last
+     one in the book), so the record holds what the player read, once. Only that exact entry is ever replaced; anything else
+     is appended as usual, and said. */
+  var _rlAt=-1;if(meta&&meta.replaceRefusal&&role==="gm"){var _rlT=worldState.transcript,_rlL=_rlT[_rlT.length-1];if(_rlL&&_rlL.r==="gm"&&_rlL.rf&&_rlL.t===worldState.turn)_rlAt=_rlT.length-1;else if(typeof console!=="undefined")console.warn("[transcript] a refusal's replacement found no refused entry for turn "+worldState.turn+" to replace — appended instead (audit U3)");}
+  var _e={t:worldState.turn,r:role,x:String(text||"").trim()};if(_bk)_e.bk=1;if(meta&&meta.refusal)_e.rf=1;if(meta&&meta.denouement)_e.den=1;/* #301: the campaign's last GM entry — the story compiler prints it as the final chapter *//* #197: an in-band model refusal — non-canon; ragRetrieve never serves rf entries */if(role==="gm"&&!_bk&&typeof ragEntitiesFromRaw==="function")_e.e=ragEntitiesFromRaw(raw||text);
   if(role==="gm"&&typeof _lastTurnModel!=="undefined"&&_lastTurnModel)_e.m=_lastTurnModel;/* #45: attribute the narration to the model that wrote it (additive, like .e) */
   /* #105b: minutes the campaign clock actually moved on this turn. Stamped even when ZERO — a
      no-[TIME_ADVANCE:] turn is the silent-failure class this field exists to expose, so absence
@@ -482,7 +487,7 @@ function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeepi
       }
       if(!_rpHits&&typeof console!=="undefined")console.warn("[retcon] turn-addressed [RETCON:…|"+_rpTurn+"] names a turn with no GM entry (range 1.."+worldState.turn+") — only the correcting response was de-indexed; NO adjacency fallback");
     }else{
-      for(_bi=_tr.length-1;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){if(typeof mutateTranscriptEntry==="function")mutateTranscriptEntry(_tr,_bi,function(pe){pe.rc=1;});else _tr[_bi].rc=1;break;}}/* #177: routed through the seam — the rc-mark was memo-safe only by ADJACENCY to this call's own append (length changes → miss); the accessor makes it safe by construction */
+      for(_bi=_tr.length-1-(_rlAt>=0?1:0)/* U3: the refused entry being replaced is not the scene a retcon corrects */;_bi>=0;_bi--){if(_tr[_bi].r==="gm"){if(typeof mutateTranscriptEntry==="function")mutateTranscriptEntry(_tr,_bi,function(pe){pe.rc=1;});else _tr[_bi].rc=1;break;}}/* #177: routed through the seam — the rc-mark was memo-safe only by ADJACENCY to this call's own append (length changes → miss); the accessor makes it safe by construction */
     }
     /* #147: the de-index above removes the false scene from retrieval — correct, but it leaves
        the corrected truth riding only the rolling session tail + one unverified extraction.
@@ -490,6 +495,7 @@ function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeepi
        until a summarize files it or the RETCON_PIN_SHELF expires — every exit archives to
        memory.archive.retconPins. Single slot: a newer retcon rotates the prior into the archive. */
     if(_rpWhat){if(worldState.retconPin&&typeof memArchive==="function")memArchive().retconPins.push(worldState.retconPin);worldState.retconPin={what:_rpWhat,turn:worldState.turn};}}
+  if(_rlAt>=0){mutateTranscriptEntry(worldState.transcript,_rlAt,function(old){var k;for(k in old)if(Object.prototype.hasOwnProperty.call(old,k))delete old[k];for(k in _e)if(Object.prototype.hasOwnProperty.call(_e,k))old[k]=_e[k];});return;}
   worldState.transcript.push(_e);}
 /* #177: THE sanctioned mutator for an EXISTING transcript entry. The compression memo keys on
    (array ref, length, last-entry ref, last-entry .x), so an in-place field edit on an OLD entry

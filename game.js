@@ -2691,8 +2691,12 @@ function commitGmTurn(resp,opts){
      in-flight recovery is #14 pending-action's job, never the story record's. Refusal turns
      still log the pair (#197: the player saw it; re-roll needs it). Silent sends and Table Talk
      never pass logPlayer, and the opening has no player half. */
+  /* audit 2026-11-19, U3 (owner ruling: a refusal's replacement goes through the normal commit). o.replacesRefusal: this
+     reply answers a turn whose first reply was a refusal that applied nothing — the refusal's own commit logged the
+     player's line and counted the turn, so neither happens again; everything else is the ordinary commit. */
+  if(o.replacesRefusal)o.logPlayer=false;
   if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript("player",o.playerTxt);
-  if(!o.isOpening){
+  if(!o.isOpening&&!o.replacesRefusal){
     worldState.turn++;
     if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
   }
@@ -2709,13 +2713,16 @@ function commitGmTurn(resp,opts){
        never acted on, so their one-shot latches are un-burned (the #151 principle — same reason
        a dead provider call restores them; the snapshot rides in via sendAction's opts). */
     if(typeof tagLogRefusal==="function")tagLogRefusal(resp);
+    /* U3: THE MARK. This turn's tags were never applied, and what was sent is kept so a re-roll can send it again as the
+       turn it was. Set only here — never by the `rf` flag, which a real turn re-rolled INTO a refusal also carries. */
+    if(o.resend&&typeof o.resend.txt==="string"&&o.resend.txt)worldState.unappliedRefusal={turn:worldState.turn,txt:o.resend.txt,silent:!!o.resend.silent,rollTag:o.resend.rollTag||null};else delete worldState.unappliedRefusal;
     if(o.latchSnap&&typeof restoreNoteLatches==="function")restoreNoteLatches(o.latchSnap);
     if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: a note the GM never acted on is not a note the engine fired */
     console.warn("[refusal] the model declined to narrate (turn "+worldState.turn+") — committed as NON-CANON: embedded tags withheld, retrieval-excluded (#197)");
     if(typeof showToast==="function")showToast("⚠ The model declined this scene — re-roll or rephrase",6000);
     if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
   }else{
-  _audioMuts=applyMuts(resp,{deferSave:true});/* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
+  _audioMuts=applyMuts(resp,{deferSave:true});delete worldState.unappliedRefusal;/* U3: tags have landed for this turn (or a later one) — the mark is spent HERE, so a failure in any step below can never let a re-roll apply them twice *//* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
   if(o.latchSnap&&typeof noteLogCommit==="function")noteLogCommit();else if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: the notes ring files only DELIVERED gameplay notes (latchSnap rides only on those turns) */
   /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
      a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
@@ -2802,11 +2809,11 @@ function commitGmTurn(resp,opts){
   /* #638: the coin the prose names against the coin the tags landed — CLEAN text beside the other prose watchers, the RAW reply
      for its [GOLD:] tags, refusals excluded; a detector must never cost a turn, so a throw is said and skipped. */
   if(!_refusal&&typeof coinNarrationToast==="function"){try{coinNarrationToast(clean,resp);}catch(_ce){console.warn("[coin] #638 the narration check threw \u2014 skipped, the turn goes on: "+(_ce&&_ce.message));}}
-  logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping,refusal:_refusal});
+  logTranscript("gm",clean,resp,(_clkPre===null?undefined:clockNow()-_clkPre),{bookkeeping:_bookkeeping,refusal:_refusal,replaceRefusal:!!o.replacesRefusal});
   worldState.lastTurnAt=Date.now();/* #308: Car Mode's "previously on" keys off how long ago the last turn landed */
   var _slUser={role:"user",content:o.userMsg},_slGm={role:"assistant",content:resp};
   if(_bookkeeping){_slUser.bk=1;_slGm.bk=1;}
-  sessionLog.push(_slUser,_slGm);
+  sessionLog.push(_slUser,_slGm);if(o.onLogged)o.onLogged();/* U3: the caller holding a set-aside exchange learns the new one is in */
   /* #272 D1: the speaker map derives and stamps BEFORE the single commit save, so the turn's
      state, history, AND .sp attribution persist atomically in ONE LZ pass — the old post-save
      stamp invalidated the compression memo and forced a third full-transcript pass (f70).
@@ -2964,7 +2971,7 @@ async function sendAction(override,opts){
   // out-of-character question would be replayed as a real player action — transcript-logged,
   // applyMuts'd, turn advanced. TT keeps its retry payload in the catch closure instead (#76).
   busy=true;inp.value="";document.getElementById("sendbtn").disabled=true;if(!isTT)lastAction=txt;if(!isTT)lastActionOpts=(opts&&opts.silent)?{silent:true,rollTag:opts.rollTag||null}:null;/* #329: Retry must not turn an engine continuation into the player's words (the #76 literal stays intact) */
-  if(!(opts&&opts.silent)&&!_mpResolve)addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* escape player input into the DOM (audit E11); a resolved round already displayed its per-PC lines */
+  if(!(opts&&opts.silent)&&!_mpResolve&&!(opts&&opts.replaceRefusal))addMsg(isTT?"tabletalk":"player",isTT?"[Table Talk] "+escHtml(txt):escHtml(txt));/* U3: a refused turn's line is already on screen *//* escape player input into the DOM (audit E11); a resolved round already displayed its per-PC lines */
   // #28 (v1.670): the player transcript write moved INTO commitGmTurn (logPlayer below) — an
   // action reaches the permanent record only once its answer commits, so failed calls can no
   // longer strand orphan player lines. The same-text retry dedup guard that lived here is dead
@@ -2977,6 +2984,12 @@ async function sendAction(override,opts){
   // reached the transport at all. _tSent stays 0 until the request actually departs, which is
   // itself the signal that the throw came from summarize/prompt-build rather than from the wire.
   var _tSent=0,_hid0=0,_restored=false;
+  /* audit 2026-11-19, U3: re-rolling a refused turn (rerollLast) arrives here as the SAME action sent again. The refused
+     exchange is set aside so the model is not shown its own refusal; it goes back if the request dies before the new one
+     is logged. Notes are built fresh below (the refusal un-burned their latches), the map request runs, the commit is the
+     ordinary one with replacesRefusal. */
+  var _rfPair=null,_rfLogged=false;
+  if(opts&&opts.replaceRefusal&&!isTT&&sessionLog.length>=2&&sessionLog[sessionLog.length-1].role==="assistant"&&sessionLog[sessionLog.length-2].role==="user")_rfPair=sessionLog.splice(sessionLog.length-2,2);
   try{
     if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
     // #76: Table Talk is a HELP AGENT with its own prompt builder (table-talk.js) — app help
@@ -3059,9 +3072,10 @@ async function sendAction(override,opts){
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
       if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
       var _mapDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
+      if(_rfPair)lastNarratorRemove();/* U3: the refusal leaves the page as its replacement arrives */
       if(opts&&opts.silent&&opts.rollTag&&typeof diceRevealWait==="function")await diceRevealWait();/* #759: the reply to a roll is shown only once its dice have come to rest — requested at the click, held here, bounded by DICE_REVEAL_MAX_MS */
       if(opts&&opts.deathArrival&&worldState.deathScene)delete worldState.deathScene.arrivalOwed;/* the arrival is in the book with this commit */
-      commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
+      commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */},replacesRefusal:!!_rfPair,onLogged:function(){_rfLogged=true;},resend:{txt:txt,silent:!!(opts&&opts.silent),rollTag:(opts&&opts.rollTag)||null}/* U3: what a re-roll of a refusal sends again, and whether this commit IS such a replacement */});
       if(typeof atlasDirectionsSettle==="function")await atlasDirectionsSettle(resp,txt);/* #766: the map asks for the directions it is still owed — after the commit, inside the turn; never throws */
       if(typeof atlasGroundSettle==="function")await atlasGroundSettle(resp,txt);/* #771: and for the ground of a place whose name does not say it — once per place; never throws */
       if(typeof atlasRegionSettle==="function")atlasRegionSettle();/* #771 P3: a place visited for the first time is set down on the region, once its ground is known; never throws */
@@ -3069,6 +3083,7 @@ async function sendAction(override,opts){
     }
     syncUI();if(!isTT)maybeRefreshSynopsis();/* #671: the story so far — due after an arc or act completed in this commit; fire-and-forget, the turn never waits on it */
   }catch(e){th.remove();
+    if(_rfPair&&!_rfLogged){sessionLog.push(_rfPair[0],_rfPair[1]);_rfLogged=true;}/* U3: the refused exchange goes back — the turn keeps its place in the history */
     if(typeof atlasDiscoveryDiscard==="function"&&atlasDiscoveryDiscard(e,_committed?null:_mapTurnContext)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
     if(!_committed&&typeof _latchSnap!=="undefined"&&_latchSnap&&typeof restoreNoteLatches==="function"){restoreNoteLatches(_latchSnap);if(typeof noteLogDiscard==="function")noteLogDiscard();}/* #309 *//* #151: the request never committed — un-burn every audit/nudge latch the builders stamped composing it, so the same audit fires again next turn instead of silently skipping its cooldown window */
     var _hid1=(typeof document!=="undefined"&&document.hidden)?1:0;
@@ -3080,8 +3095,8 @@ async function sendAction(override,opts){
       +"\n(turn: "+(isTT?"tabletalk":"story")+((opts&&opts.silent)?", silent engine send":"")+(_tSent?", "+(Date.now()-_tSent)+"ms in flight":", failed before send")+")"
       +(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
     if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("say","The turn was applied, but it could not be shown.");}/* audit 2026-11-19, V1: "error" arms tap-to-retry in the car — the tap sent the same action again, over state that had already landed; "say" (owner 2026-11-19) speaks it and arms nothing *//* no Retry — the mutation already landed (E82) */
-    else{if(!_mpResolve&&!(opts&&opts.silent)){_restored=restoreFailedInput(inp,txt);if(!isTT)savePendingAction(txt);/* #14: survive a page kill too — story turns only (a TT question restored into the story box would cross channels) */}
-      var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify(isTT?"warn":"error",isTT?"Question failed":"Turn failed — tap to retry");/* V1: a failed Table Talk question armed a retry of the last STORY action */if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+    else{if(!_mpResolve&&!(opts&&opts.silent)&&!_rfPair/* U3: the action is not put back to be sent as a NEW turn — the refused turn stands and can be re-rolled again */){_restored=restoreFailedInput(inp,txt);if(!isTT)savePendingAction(txt);/* #14: survive a page kill too — story turns only (a TT question restored into the story box would cross channels) */}
+      var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify(isTT?"warn":"error",isTT?"Question failed":"Turn failed — tap to retry");/* V1: a failed Table Talk question armed a retry of the last STORY action */var _retryFn=isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();};if(_rfPair)_retryFn=function(){rerollLast();};/* U3: a failed replacement is retried as the re-roll it was, never as a new turn */if(_attachGMErrorUI(em,_retryFn,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
   busy=false;document.getElementById("sendbtn").disabled=false;if(typeof focusStoryBox==="function")focusStoryBox();/* #481 F3: yields while a dialog is open (ui-shell.js) */
   // A non-empty box here normally means STT heard something WHILE the turn was in flight. Since
@@ -3146,11 +3161,26 @@ function retryLast(){if(lastAction)sendAction(lastAction,lastActionOpts?{mpBypas
 // swaps the displayed narration + the sessionLog assistant entry for the new one.
 // Deliberately NOT unified into commitGmTurn (audit 07-16 #5): it swaps/replaces instead of
 // appending and never runs applyMuts — a different pipeline, not a duplicate of it.
+/* The story pane's last narration block, taken off the page (a re-roll and a refusal's replacement both show their own). */
+function lastNarratorRemove(){
+  var story=(typeof document!=="undefined"&&typeof document.getElementById==="function")?document.getElementById("story-narrative"):null,nars=(story&&story.querySelectorAll)?story.querySelectorAll(".msg.narrator"):[];
+  if(nars.length&&nars[nars.length-1].parentNode){nars[nars.length-1].parentNode.removeChild(nars[nars.length-1]);return true;}
+  return false;
+}
 async function rerollLast(){
   if(busy||!worldState)return;
   if(activeChatTab==="tabletalk"){if(typeof showToast==="function")showToast("Switch to the Story tab to re-roll.");return;}
   var n=sessionLog.length;
   if(n<2||sessionLog[n-1].role!=="assistant"||sessionLog[n-2].role!=="user"){if(typeof showToast==="function")showToast("Nothing to re-roll yet.");return;}
+  /* audit 2026-11-19, U3 (owner ruling). The turn being re-rolled was REFUSED and nothing of it was applied (the mark
+     commitGmTurn left, for this very turn, and the book's last entry is that refusal): its replacement is not a second
+     telling of a turn that happened — it is the turn. So the action is sent again through sendAction: fresh notes, the map
+     request, the ordinary commit (tags once, the turn not counted again, the refusal replaced in the book). Everything
+     else is re-rolled as prose, below: a turn whose tags landed, an opening, a death scene (its stage moved on with the
+     refusal's commit), an ended campaign. */
+  var _ur=worldState.unappliedRefusal,_urE=worldState.transcript&&worldState.transcript[worldState.transcript.length-1];
+  if(_ur&&_ur.turn===worldState.turn&&typeof _ur.txt==="string"&&_ur.txt&&_urE&&_urE.r==="gm"&&_urE.rf&&_urE.t===worldState.turn&&!worldState.deathScene&&!(typeof campaignEnded==="function"&&campaignEnded()))
+    return sendAction(_ur.txt,{replaceRefusal:true,mpBypass:true,silent:!!_ur.silent,rollTag:_ur.rollTag||null});
   busy=true;document.getElementById("sendbtn").disabled=true;
   // UA4 note: the pop-push below is marker-safe — both the success path (push swapped pair)
   // and the failure path (restore originals) leave sessionLog.length unchanged, so the

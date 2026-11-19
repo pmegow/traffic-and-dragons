@@ -1,5 +1,5 @@
 {
-  "version": "v1.1470",
+  "version": "v1.1471",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -126,6 +126,7 @@
     "Death's arrival survives a reload; a check's modifier is read from fields like \"STR +3\"; Car Mode notices show as new in the Console.",
     "In Car Mode, a turn that was applied but could not be shown is now said aloud.",
     "On a place map, an exit already drawn no longer jumps to another edge when a new exit is stated in its direction.",
-    "Table Talk can list upcoming events your hero knows about, such as an appointment you made; the GM's secret plans stay hidden."
+    "Table Talk can list upcoming events your hero knows about, such as an appointment you made; the GM's secret plans stay hidden.",
+    "Re-rolling a scene the model declined now plays the turn properly: items, coin and other changes in the new scene are applied."
   ]
 }

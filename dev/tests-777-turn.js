@@ -123,6 +123,189 @@ kase("U2: the Rest button does nothing while a turn is in flight, and says so; t
   assert.ok(/onclick='restFromButton\(\)'/.test(src("ui-panels.js")) && src("ui-panels.js").indexOf("onclick='restSpells()'") < 0, "the panel's button calls the rest directly");
 });
 
+// ── U3 (designed build) ────────────────────────────────────────────────────────────────────────────────────────────
+var REFUSED = "I cannot continue generating content for this scene.";
+function u3World() {
+  fresh(); var ws = worldState; ws.turn = 9; ws.character.coin = 1000; ws.transcript = []; sessionLog = []; activeChatTab = "story";
+  if (typeof lastActions !== "undefined") lastActions = null;
+  return ws;
+}
+function gmSays(list, seen) { var i = 0; callGM = function (msg) { if (seen) seen.push({ msg: String(msg), log: JSON.stringify(sessionLog) }); var r = list[Math.min(i, list.length - 1)]; i++; return typeof r === "function" ? r() : Promise.resolve(r); }; }
+function refuseATurn(text, opts) {
+  assert.strictEqual(detectModelRefusal(REFUSED), true, "fixture: the refusal text is not read as a refusal");
+  gmSays([REFUSED]);
+  return sendAction(text, opts).then(function () {
+    var tr = worldState.transcript, last = tr[tr.length - 1];
+    assert.ok(last && last.r === "gm" && last.rf === 1, "fixture: the turn was not committed as a refusal: " + JSON.stringify(tr));
+    assert.strictEqual(worldState.turn, 10, "fixture: the refused turn was not counted");
+    assert.strictEqual(worldState.character.coin, 1000);
+  });
+}
+kase("U3: re-rolling a refused turn sends the action again — tags applied once, the turn not counted again, the refusal replaced in the book", function () {
+  u3World(); var seen = [];
+  return refuseATurn("I open the door.").then(function () {
+    assert.ok(worldState.unappliedRefusal && worldState.unappliedRefusal.turn === 10 && worldState.unappliedRefusal.txt === "I open the door.", "nothing on the save says this turn's tags were never applied: " + JSON.stringify(worldState.unappliedRefusal));
+    assert.strictEqual(worldState.transcript.length, 2);
+    said.msgs.length = 0;
+    gmSays(["The door swings wide and a purse lies on the sill. [GOLD:+3]"], seen);
+    REAL.notes = buildEngineNotes; buildEngineNotes = function () { return "[ENGINE NOTE — built for this request]"; };
+    return rerollLast();
+  }).then(function () {
+    buildEngineNotes = REAL.notes;
+    var asked = seen.filter(function (c) { return c.msg.indexOf("I open the door.") >= 0; });   /* the turn's own request; the settle steps after a commit make their small requests too */
+    assert.strictEqual(asked.length, 1, "the replacement was not asked for once: " + JSON.stringify(seen.map(function (c) { return c.msg.slice(0, 60); })));
+    assert.ok(seen.length > asked.length, "the steps that follow an ordinary commit did not run for the replacement (a re-roll's prose-only path was taken): " + seen.length);
+    seen = asked;
+    assert.ok(seen[0].log.indexOf("cannot continue") < 0, "the model was shown its own refusal as history");
+    assert.ok(seen[0].msg.indexOf("I open the door.") >= 0, "the player's action was not sent again");
+    assert.ok(seen[0].msg.indexOf("[ENGINE NOTE — built for this request]") === 0, "the replacement went out without freshly built engine notes: " + seen[0].msg.slice(0, 80));
+    assert.ok(!/PROSE REROLL|prose only/i.test(seen[0].msg), "the replacement was asked for prose only (the note of a real re-roll)");
+    assert.strictEqual(worldState.character.coin, 1300, "the replacement's tags were never applied: " + worldState.character.coin);
+    assert.strictEqual(worldState.turn, 10, "the turn was counted a second time: " + worldState.turn);
+    var tr = worldState.transcript;
+    assert.strictEqual(tr.length, 2, "the book gained or lost an entry: " + JSON.stringify(tr.map(function (e) { return [e.t, e.r, e.rf || 0]; })));
+    assert.ok(tr[0].r === "player" && tr[0].x === "I open the door.", "the player's line changed");
+    assert.ok(tr[1].r === "gm" && tr[1].t === 10 && !tr[1].rf && /purse lies/.test(tr[1].x) && tr[1].x.indexOf("GOLD") < 0, "the refusal is still what the book holds for this turn: " + JSON.stringify(tr[1]));
+    assert.strictEqual(sessionLog.length, 2, "the session log changed length: " + sessionLog.length);
+    assert.ok(/purse lies/.test(sessionLog[1].content) && sessionLog[0].content.indexOf("I open the door.") >= 0);
+    assert.ok(!worldState.unappliedRefusal, "the turn is still marked as never applied");
+    assert.strictEqual(said.msgs.filter(function (m) { return /^player:/.test(m); }).length, 0, "the player's line was shown a second time");
+    assert.strictEqual(busy, false, "the turn was left locked");
+    gmSays(["The door swings wide again. [GOLD:+3]"]);
+    return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1300, "re-rolling real narration applied its tags a second time");
+    assert.strictEqual(worldState.turn, 10); assert.strictEqual(worldState.transcript.length, 2);
+  });
+});
+kase("U3: a turn whose tags DID land, re-rolled into a refusal and then into narration, applies nothing twice", function () {
+  u3World();
+  gmSays(["A purse lies on the sill. [GOLD:+3]"]);
+  return sendAction("I open the door.").then(function () {
+    assert.strictEqual(worldState.character.coin, 1300, "fixture: the first turn's tags did not land");
+    gmSays([REFUSED]); return rerollLast();
+  }).then(function () {
+    var last = worldState.transcript[worldState.transcript.length - 1];
+    assert.strictEqual(last.rf, 1, "fixture: the re-roll did not turn the entry into a refusal");
+    assert.ok(!worldState.unappliedRefusal, "a turn whose tags landed is marked as never applied");
+    gmSays(["A heavier purse lies on the sill. [GOLD:+3]"]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1300, "the tags of one turn were applied twice: " + worldState.character.coin);
+    assert.strictEqual(worldState.turn, 10);
+  });
+});
+kase("U3: a replacement that is refused again changes nothing and can be re-rolled again; a failed request puts the refusal back", function () {
+  u3World();
+  return refuseATurn("I open the door.").then(function () {
+    gmSays([REFUSED]); return rerollLast();
+  }).then(function () {
+    var tr = worldState.transcript;
+    assert.strictEqual(worldState.turn, 10, "a refused replacement counted the turn again"); assert.strictEqual(tr.length, 2, "a refused replacement added to the book");
+    assert.strictEqual(tr[1].rf, 1); assert.strictEqual(worldState.character.coin, 1000);
+    assert.ok(worldState.unappliedRefusal && worldState.unappliedRefusal.turn === 10, "the turn is no longer marked as never applied");
+    assert.strictEqual(sessionLog.length, 2);
+    gmSays([function () { return Promise.reject(new Error("503 from the provider")); }]);
+    said.msgs.length = 0; clearPendingAction();
+    return rerollLast();
+  }).then(function () {
+    assert.strictEqual(sessionLog.length, 2, "a failed request lost the turn's exchange: " + sessionLog.length);
+    assert.ok(sessionLog[1].content.indexOf("cannot continue") >= 0, "the refusal was not put back");
+    assert.strictEqual(worldState.transcript.length, 2); assert.strictEqual(worldState.transcript[1].rf, 1);
+    assert.ok(worldState.unappliedRefusal && worldState.unappliedRefusal.turn === 10, "a failed request spent the mark");
+    assert.ok(said.msgs.some(function (m) { return /503 from the provider/.test(m); }), "the failure was not said: " + JSON.stringify(said.msgs));
+    assert.ok(!store.get(PENDING_ACT_K), "a failed replacement left the action queued to be sent as a NEW turn after a reload");
+    assert.strictEqual(busy, false);
+    gmSays(["The door swings wide. [GOLD:+3]"]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1300, "after a refusal and a failure the replacement's tags did not land once: " + worldState.character.coin);
+    assert.strictEqual(worldState.turn, 10); assert.strictEqual(worldState.transcript.length, 2);
+  });
+});
+kase("U3: a display failure after the replacement's tags landed spends the mark — no later re-roll applies them again", function () {
+  u3World(); var realAdd = addMsg;
+  return refuseATurn("I open the door.").then(function () {
+    gmSays(["The door swings wide. [GOLD:+3]"]);
+    addMsg = function (type, html) { if (type === "narrator") throw new Error("the story pane is gone"); return realAdd(type, html); };
+    return rerollLast();
+  }).then(function () {
+    addMsg = realAdd;
+    assert.strictEqual(worldState.character.coin, 1300, "fixture: the tags did not land before the display failed");
+    assert.ok(!worldState.unappliedRefusal, "the turn is still marked as never applied after its tags landed");
+    assert.strictEqual(sessionLog.length, 2, "after a display failure the session log holds " + sessionLog.length + " lines");
+    assert.ok(/swings wide/.test(sessionLog[1].content), "the refusal was put back over an exchange that was already logged");
+    gmSays(["The door swings wide once more. [GOLD:+3]"]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1300, "a re-roll after a display failure applied the tags a second time");
+  }, function (e) { addMsg = realAdd; throw e; });
+});
+kase("U3: the mark belongs to its turn — a later turn, an engine continuation and a death scene are re-rolled as prose", function () {
+  u3World();
+  return refuseATurn("I open the door.").then(function () {
+    gmSays(["You step through. [GOLD:+1]"]); return sendAction("I walk on.");
+  }).then(function () {
+    assert.strictEqual(worldState.turn, 11); assert.strictEqual(worldState.character.coin, 1100);
+    assert.ok(!worldState.unappliedRefusal, "a later turn left the old mark on the save");
+    gmSays(["You step through again. [GOLD:+1]"]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1100, "a real turn's re-roll applied tags"); assert.strictEqual(worldState.turn, 11);
+    // an engine continuation that is refused is sent again as the continuation it was: no player line
+    u3World(); return refuseATurn("[ENGINE NOTE — continue the scene]", { silent: true });
+  }).then(function () {
+    assert.ok(worldState.unappliedRefusal && worldState.unappliedRefusal.silent === true, "a refused continuation is not marked as one");
+    assert.strictEqual(worldState.transcript.filter(function (e) { return e.r === "player"; }).length, 0);
+    var seen = []; u3World.seen = seen; gmSays(["The scene goes on. [GOLD:+2]"], seen);
+    REAL.notes = buildEngineNotes; buildEngineNotes = function () { return "[ENGINE NOTE — for the player's own turns]"; };
+    return rerollLast();
+  }).then(function () {
+    buildEngineNotes = REAL.notes;
+    assert.strictEqual(u3World.seen[0].msg, "[ENGINE NOTE — continue the scene]", "a refused continuation was sent again as the player's own words (notes built for it): " + u3World.seen[0].msg.slice(0, 90));
+    assert.strictEqual(worldState.character.coin, 1200, "a refused continuation's replacement applied no tags");
+    assert.strictEqual(worldState.transcript.filter(function (e) { return e.r === "player"; }).length, 0, "the engine's note was logged as the player's line");
+    assert.strictEqual(worldState.turn, 10);
+    // a mark that is not this turn's, or whose turn the book no longer shows as refused, sends nothing again
+    u3World(); gmSays(["A purse lies on the sill. [GOLD:+3]"]); return sendAction("I open the door.");
+  }).then(function () {
+    worldState.unappliedRefusal = { turn: 10, txt: "I open the door." };
+    gmSays(["A purse lies there yet. [GOLD:+3]"]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1300, "a turn the book holds as narration was sent again on the mark's word alone");
+    // …and with the book showing a refusal for this turn (a landed turn re-rolled into one), a mark of ANOTHER turn is not this turn's
+    delete worldState.unappliedRefusal; gmSays([REFUSED]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.transcript[worldState.transcript.length - 1].rf, 1, "fixture: the landed turn was not re-rolled into a refusal");
+    worldState.unappliedRefusal = { turn: 9, txt: "I open the door." };
+    gmSays(["A purse lies there still. [GOLD:+3]"]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1300, "a mark left by another turn sent the action again over a turn whose tags had landed: " + worldState.character.coin);
+    // inside a death scene the old prose-only re-roll stands (Death's lines carry no tags, and the scene's stage has moved on)
+    u3World(); return refuseATurn("I open the door.");
+  }).then(function () {
+    worldState.deathScene = { stage: "ask", walk: 1 };
+    gmSays(["Death waits. [GOLD:+3]"]); return rerollLast();
+  }).then(function () {
+    assert.strictEqual(worldState.character.coin, 1000, "a death scene's re-roll applied tags");
+    assert.strictEqual(worldState.transcript.length, 2);
+  });
+});
+
+kase("U3: in the book only this turn's refused entry is ever replaced, and a retcon in the replacement corrects the scene before it", function () {
+  u3World(); var ws = worldState; ws.turn = 10;
+  function book(last) { ws.transcript = [{ t: 9, r: "gm", x: "The vault stands open." }, { t: 9, r: "player", x: "I look inside." }].concat(last ? [last] : []); said.warns.length = 0; }
+  [null, { t: 10, r: "gm", x: "Real narration." }, { t: 8, r: "gm", x: "An old refusal.", rf: 1 }, { t: 10, r: "player", x: "A line.", rf: 1 }].forEach(function (last) {
+    book(last); var n = ws.transcript.length;
+    logTranscript("gm", "The replacement.", "The replacement.", 0, { replaceRefusal: true });
+    assert.strictEqual(ws.transcript.length, n + 1, "an entry that is not this turn's refusal was overwritten: " + JSON.stringify(last));
+    assert.ok(said.warns.some(function (w) { return /no refused entry/.test(w); }), "an appended replacement was not said");
+  });
+  book({ t: 10, r: "gm", x: "I cannot continue.", rf: 1, e: ["stale"], m: "old-model", den: 1 });
+  var entry = ws.transcript[2];
+  logTranscript("gm", "The vault was shut all along.", "[RETCON:the vault was never opened] The vault was shut all along.", 5, { replaceRefusal: true });
+  assert.strictEqual(ws.transcript.length, 3); assert.strictEqual(ws.transcript[2], entry, "the entry was swapped for another object (the memo and the speaker stamp hold the old one)");
+  assert.ok(entry.x === "The vault was shut all along." && !entry.rf && entry.t === 10 && entry.ta === 5 && JSON.stringify(entry.e) !== '["stale"]' && entry.m !== "old-model" && !("den" in entry), "the refused entry's fields outlived it: " + JSON.stringify(entry));
+  assert.strictEqual(ws.transcript[0].rc, 1, "the retcon marked the refusal it replaced, not the scene before it");
+  assert.strictEqual(entry.rc, 1);
+});
+
 // ── U6, U11 ────────────────────────────────────────────────────────────────────────────────────────────────────────
 kase("U6, U11: a notice raised under an open modal pops up; in Car Mode a notice fades by itself", function () {
   assert.strictEqual(toastLifeMs(undefined, false), 0, "an ordinary notice no longer stays until tapped");
