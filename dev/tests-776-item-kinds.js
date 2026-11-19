@@ -89,6 +89,7 @@ test('the inventory files an answered item under its section; unclear and unaske
   const s = sections();
   assert.deepEqual(s.armor && s.armor.filter(n => n === 'hide armor'), ['hide armor']); assert.ok(s.tool.indexOf('iron flask') >= 0);
   assert.deepEqual(s.unclassified.slice().sort(), ['Severed Shadow-Wyrm Horns', 'Signet Ring (Ashenveil Oligarchs)'], 'unclear and never asked');
+  assert.equal(itemKindSection(itemBaseName('Severed Shadow-Wyrm Horns')), null, 'unclear is an answer on record, never a section'); assert.equal(itemKindSection(itemBaseName('war paint')), null, 'never asked: no section'); assert.equal(itemKindSection(itemBaseName('hide armor')), 'armor');
   worldState.itemKinds[itemBaseName(CANON)] = { kind: canonSection === 'weapon' ? 'mundane' : 'weapon', turn: 9 };
   assert.ok(sections()[canonSection].indexOf(invEntries(worldState.character.inventory)[4].name) >= 0, 'a record never moves an item that has canon');
   let total = 0; Object.keys(s).forEach(id => { total += s[id].length; }); assert.equal(total, 5, 'every row appears once');
