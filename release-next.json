@@ -1,5 +1,5 @@
 {
-  "version": "v1.1459",
+  "version": "v1.1460",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -115,6 +115,7 @@
     "Malformed or unclosed story tags no longer swallow prose or other tags; refusals are said; durations read weeks and decimals.",
     "Starting a new game is refused while a turn is running; the story-so-far Refresh button recovers after a campaign switch.",
     "A hero healed and rescued in the same reply is resolved correctly; bracketed asides inside story tags no longer break them.",
-    "Blueprint rules now apply only to their own campaign; Table Talk and companion talks no longer reveal hidden characters or GM secrets."
+    "Blueprint rules now apply only to their own campaign; Table Talk and companion talks no longer reveal hidden characters or GM secrets.",
+    "Distinct facts about one named person or place are all remembered; a failed memory save no longer files the same notes twice."
   ]
 }

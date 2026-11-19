@@ -568,8 +568,16 @@ function companionInitiativeFile(cs,what,turn){
 function companionInitiativeRecent(){var ws=(typeof worldState!=="undefined")?worldState:null;if(!ws||!ws.companionInitiatives||!ws.companionInitiatives.length)return null;var r=ws.companionInitiatives[ws.companionInitiatives.length-1],every=(typeof COMPANION_INITIATIVE_EVERY==="number")?COMPANION_INITIATIVE_EVERY:12;return (ws.turn-(r.turn||0)<every)?r:null;}
 function agendaFile(cs,want,kind,source,turn){
   if(!cs||!want)return null;var rec={want:String(want).trim().slice(0,160),kind:agendaKindOf(kind),source:source||"gm",born:turn};
+  if(!rec.want)return null;
+  /* audit 2026-11-19, M7: a want re-stated was queued again every time, the queue had no bound, and all of it rides the
+     prompt and the portable sheet. "known" = it is the active want or already waiting; "full" = AGENDA_QUEUE_MAX wait. */
+  var _wk=rec.want.toLowerCase(),_wi;
+  if(cs.agenda&&String(cs.agenda.want||"").trim().toLowerCase()===_wk)return "known";
+  for(_wi=0;_wi<(cs.agendaQueue||[]).length;_wi++)if(String(cs.agendaQueue[_wi].want||"").trim().toLowerCase()===_wk)return "known";
   if(!cs.agenda){rec.since=turn;rec.lastBeat=(typeof clockNow==="function")?clockNow():0;cs.agenda=rec;return "active";}
-  if(!cs.agendaQueue)cs.agendaQueue=[];cs.agendaQueue.push(rec);return "silent";
+  if(!cs.agendaQueue)cs.agendaQueue=[];
+  if(cs.agendaQueue.length>=AGENDA_QUEUE_MAX)return "full";
+  cs.agendaQueue.push(rec);return "silent";
 }
 // Complete the ACTIVE want (no fragment) — the oldest silent one is promoted and the announce note armed —
 // or resolve a SILENT want early by fragment (the Spike case): filed to history, nothing promoted.
@@ -577,6 +585,8 @@ function agendaComplete(cs,fragment,turn,how){
   if(!cs)return null;if(!cs.agendaHistory)cs.agendaHistory=[];var f=String(fragment||"").trim().toLowerCase(),i;
   if(f&&cs.agendaQueue&&cs.agendaQueue.length){for(i=0;i<cs.agendaQueue.length;i++){if(String(cs.agendaQueue[i].want).toLowerCase().indexOf(f)>=0){var q=cs.agendaQueue.splice(i,1)[0];q.done=turn;q.how=how||"resolved before its turn";cs.agendaHistory.push(q);return {done:q.want,promoted:null,early:true};}}}
   if(!cs.agenda)return null;var a=cs.agenda;a.done=turn;a.how=how||"fulfilled";cs.agendaHistory.push(a);cs.agenda=null;var next=null;
+  /* M7: an old save may hold the completed want again in its queue — it is done, not next */
+  if(cs.agendaQueue)cs.agendaQueue=cs.agendaQueue.filter(function(q){return String((q&&q.want)||"").trim().toLowerCase()!==String(a.want||"").trim().toLowerCase();});
   if(cs.agendaQueue&&cs.agendaQueue.length){next=cs.agendaQueue.shift();next.since=turn;next.lastBeat=(typeof clockNow==="function")?clockNow():0;cs.agenda=next;}
   return {done:a.want,promoted:next?next.want:null,early:false};
 }
@@ -3437,6 +3447,7 @@ function healthIndicators(ws,mem,withGrowth){
   for(i=0;i<ct.length;i++)if(ct[i].status==="committed"&&ct[i].evidenceGrade==="legacy")legacyN++;
   if(legacyN)anom.push(legacyN+" death authorization"+(legacyN>1?"s":"")+" rode legacy-grade (pre-epoch) evidence — receipted under the #194 fail-open window, closed at v1.760 (historical)");
   if(ws.summaryFailure&&(ws.summaryFailure.count||0)>=1)anom.push("memory filing failing ("+ws.summaryFailure.count+" strike"+(ws.summaryFailure.count>1?"s":"")+", "+(ws.summaryFailure.kind||"extraction")+": "+String(ws.summaryFailure.reason||"").slice(0,60)+")");
+  if(ws.eraFailure&&(ws.eraFailure.count||0)>=1)anom.push("era compile failing ("+ws.eraFailure.count+" in a row, last at t"+(ws.eraFailure.lastTurn||"?")+": "+String(ws.eraFailure.reason||"").slice(0,60)+")"+(ws.eraFailure.count>=ERA_FAIL_PAUSE?" — paused "+ERA_FAIL_COOLDOWN_TURNS+" turns":""));/* audit 2026-11-19, M5 */
   if(ws.phaseMismatch)anom.push("clock/narration phase mismatch armed (t"+(ws.phaseMismatch.turn||"?")+")");
   var extra=histQ?((anom.length?"; ":"")+histQ+" historical refusal"+(histQ>1?"s":"")+" on record (healed — receipts never retire by contract)"):"";
   push("anomaly","Standing anomalies",(activeQ||unresolved)?"bad":(anom.length?"warn":"ok"),

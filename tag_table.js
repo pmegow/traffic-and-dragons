@@ -570,7 +570,7 @@ var TAG_TABLE=[
    completion promotes and arms the announce note, a beat resets the push clock. Companion sheets only. */
 {t:"COMPANION_AGENDA",apply:function(text,R){var ts=text.match(/\[COMPANION_AGENDA:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/g)||[],i;for(i=0;i<ts.length;i++){var m=ts[i].match(/\[COMPANION_AGENDA:([^|\]]+)\|([^|\]]+)(?:\|([^\]]*))?\]/);if(!m)continue;var nm=resolveNpcName(m[1].trim()),cs=findCompanionChar(nm);
   if(!cs){if(typeof console!=="undefined")console.warn("[agenda] [COMPANION_AGENDA:"+m[1].trim()+"] — no companion sheet by that name; ignored (#330)");continue;}
-  var placed=agendaFile(cs,m[2].trim(),m[3],"gm",R.turn);if(placed==="active")R.muts.push(nm+" wants: "+m[2].trim());else if(placed==="silent")R.muts.push(nm+" (later, silent): "+m[2].trim());
+  var placed=agendaFile(cs,m[2].trim(),m[3],"gm",R.turn);if(placed==="active")R.muts.push(nm+" wants: "+m[2].trim());else if(placed==="silent")R.muts.push(nm+" (later, silent): "+m[2].trim());else if(placed==="known")R.muts.push(nm+": that want is already on file — nothing added");else if(placed==="full")R.muts.push("⚠ "+nm+": "+AGENDA_QUEUE_MAX+" wants are already waiting — \""+m[2].trim().slice(0,60)+"\" was not added");/* audit 2026-11-19, M7 */
   /* #347 (owner 2026-09-05): a want landing is a visible event, like a level-up — the sheet's Wants section fills in
      silently otherwise, and three manufactured wants went unnoticed for days. One toast per filing. */
   if(placed&&typeof showToast==="function")showToast((placed==="active"?"\u2605 "+nm+" wants: ":"\u2605 "+nm+" (later): ")+m[2].trim());

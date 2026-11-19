@@ -592,7 +592,7 @@ function fileNpcKnowledge(name,fact,turn,preferNew){
   var i;
   for(i=0;i<n.knowledge.length;i++){
     var ex=String(n.knowledge[i]);
-    if(feNearDup(f,ex)){
+    if(feNearDup(f,ex,feSharedNames(f,ex,[name].concat(n.aliases||[])))){/* M1 */
       var win=preferNew?f:(f.length>ex.length?f:ex),lose=(win===f)?ex:f;
       n.knowledge.splice(i,1);
       memArchive().npcKnowledge.push({npc:name,fact:lose,turn:turn,foldedInto:win.slice(0,200)});
@@ -653,10 +653,13 @@ function fileLocation(loc,note,turn,from){/* #481 A4: `from` = where this move l
   guestbookNoteArrival(loc,turn);/* #173: QUEUED during a parse, committed post-handler (amendment ③) — the attendance snapshot must see same-response split/rejoin state settled */
   // Edge + arrival tracking
   var prev=(from!=null)?from:(worldState&&worldState.world?worldState.world.location:null);
+  /* audit 2026-11-19, M6: the place left is resolved like the place reached, and so is every edge it is compared with — a
+     pointer that still held an alias recorded a second edge for a pair already joined, and an edge from a place to itself. */
+  var _lr=(typeof locResolve==="function")?locResolve:function(x){return x;};if(prev)prev=_lr(prev);
   if(prev&&prev!==loc){
     memory.map.lastArrivalFrom=prev;
     var exi=false,ei;
-    for(ei=0;ei<memory.map.edges.length;ei++){var e=memory.map.edges[ei];if((e.from===prev&&e.to===loc)||(e.from===loc&&e.to===prev)){exi=true;break;}}
+    for(ei=0;ei<memory.map.edges.length;ei++){var e=memory.map.edges[ei],_ef2=_lr(e.from),_et2=_lr(e.to);if((_ef2===prev&&_et2===loc)||(_ef2===loc&&_et2===prev)){exi=true;break;}}
     if(!exi)memory.map.edges.push({from:prev,to:loc,turn:turn});
   }
 }
@@ -1448,7 +1451,7 @@ function fileLore(fact){
   if(memory.lore.indexOf(fact)>=0)return;
   var i;
   for(i=0;i<memory.lore.length;i++){
-    if(feNearDup(fact,memory.lore[i])){
+    if(feNearDup(fact,memory.lore[i],feSharedNames(fact,memory.lore[i]))){/* M1 */
       var _exL=String(memory.lore[i]);
       var _win=fact.length>_exL.length?fact:_exL,_lose=(_win===fact)?_exL:fact;
       memory.lore.splice(i,1);memory.lore.push(_win);
@@ -1486,10 +1489,35 @@ function feTokens(s){
 // fileFutureEvent's inline #29 logic so scheduleAdd's promotion cross-check and the expiry
 // sweep's quest-linkage test reuse the SAME thresholds instead of minting a rival heuristic.
 // shared≥2 significant stemmed tokens AND ≥half the smaller fingerprint = the same business.
-function feNearDup(a,b){
+/* audit 2026-11-19, M1 — THE NAME IS NOT THE FACT. A fact about a person or a place restates the name, and a two-word name
+   alone supplies the two shared tokens the fingerprint asks for: three lore lines about "The Glass Spire" kept one, and
+   "Mara Voss lost her left eye in the war" was folded into "Mara Voss is the harbor master" — the loser goes to an
+   archive no prompt reads. The fact stores (fileLore, fileNpcKnowledge) pass `skip`: the tokens of the names both texts
+   share, which are then not counted. Every other caller (pending events, quest linkage, the schedule) passes nothing
+   and is unchanged — a goal re-minted in fresh words is recognised BY its name. */
+function feNearDup(a,b,skip){
   var at=feTokens(a),bt=feTokens(b),shared=0,i;
+  if(skip){at=at.filter(function(t){return !skip[t];});bt=bt.filter(function(t){return !skip[t];});}
   for(i=0;i<at.length;i++){if(bt.indexOf(at[i])>=0)shared++;}
   return shared>=2&&shared*2>=Math.min(at.length,bt.length);
+}
+/* The name tokens a text carries: every capitalised word that is not merely the first word of its sentence (a first word
+   counts when the word after it is capitalised too — "Mara Voss lost…"). Fingerprint form (feTokens), as a set. */
+function feNameTokens(s){
+  var out=keyedDict(),str=String(s||""),re=/[A-Z][A-Za-z'’\-]*/g,m,i;
+  while((m=re.exec(str))){
+    var first=!/[^\s"“‘(\[]\s*$/.test(str.slice(0,m.index).replace(/[.!?]["”’)]*\s*$/,"")),after=str.slice(m.index+m[0].length);
+    if(first&&!/^\s+[A-Z]/.test(after))continue;
+    var t=feTokens(m[0]);for(i=0;i<t.length;i++)out[t[i]]=1;
+  }
+  return out;
+}
+/* What two facts may NOT be matched on: the names both carry, and `names` (the subject and its aliases) outright. */
+function feSharedNames(a,b,names){
+  var na=feNameTokens(a),nb=feNameTokens(b),out=keyedDict(),k,i,j,t;
+  for(k in na)if(nb[k])out[k]=1;
+  for(i=0;i<(names||[]).length;i++){t=feTokens(names[i]);for(j=0;j<t.length;j++)out[t[j]]=1;}
+  return out;
 }
 // #150: does this pending thread fingerprint-match an ACTIVE quest's title or any objective?
 function feQuestLinked(f){
@@ -2486,7 +2514,10 @@ function sessKeptStart(){
   var k=(typeof worldState!=="undefined"&&worldState&&worldState.sessKept)||0;
   return (k>0&&k<=sessionLog.length)?k:0; // stale marker (import/clear/re-roll) fails safe: recount everything
 }
-function retainSessionTail(){
+/* audit 2026-11-19, M2: `upTo` — how far into the session log the extraction that is being committed read. Normally the
+   whole log; after a failed save and a retry, exchanges played in between lie beyond it. They are kept, and only what was
+   read is marked as filed (sessKept). */
+function retainSessionTail(upTo){
   var keep=[],tok=0,i=sessionLog.length;
   while(i>=2&&keep.length/2<SUMMARY_KEEP_EX){
     var u=sessionLog[i-2],a=sessionLog[i-1];
@@ -2494,8 +2525,10 @@ function retainSessionTail(){
     if(keep.length&&tok+pairTok>SUMMARY_KEEP_TOK)break; // newest pair always kept; older pairs only within budget
     keep.unshift(u,a);tok+=pairTok;i-=2;
   }
+  var filed=(typeof upTo==="number"&&upTo>=0&&upTo<sessionLog.length)?upTo:sessionLog.length;
+  if(filed<i){i=filed;keep=sessionLog.slice(i);}/* exchanges the extraction never read are older than the normal tail: kept all the same */
   sessionLog=keep;
-  if(typeof worldState!=="undefined"&&worldState)worldState.sessKept=keep.length;
+  if(typeof worldState!=="undefined"&&worldState)worldState.sessKept=filed-i;
 }
 /* Entry guards (v1.439, F8 — brief A probe F): a null/malformed sessionLog entry used to throw
    HERE, before summarize()'s try even existed — no catch, no report, no retry counter. */
@@ -2629,6 +2662,12 @@ async function compileEraIfDue(){
   var due=eraNextSources();
   var mergeDue=!due&&erasOverBudget();
   if(!due&&!mergeDue)return;
+  /* audit 2026-11-19, M5: a compile that keeps failing was retried — and billed — at every summarize for the rest of the
+     campaign, and said only on the console. After ERA_FAIL_PAUSE failures in a row it waits ERA_FAIL_COOLDOWN_TURNS turns
+     before one more try; the failure is on the save (worldState.eraFailure) and on the health readout until a compile
+     succeeds. */
+  var _ef=worldState&&worldState.eraFailure;
+  if(_ef&&_ef.count>=ERA_FAIL_PAUSE&&worldState.turn-(_ef.lastTurn||0)<=ERA_FAIL_COOLDOWN_TURNS)return;
   _eraBusy=true;
   /* Audit 2026-11-19, X1 — THE ERA BELONGS TO THE CAMPAIGN IT WAS COMPILED FROM. This call is fired un-awaited from
      summarize and does not hold `busy`; the player can load another campaign while it runs. Its answer used to be applied
@@ -2650,8 +2689,12 @@ async function compileEraIfDue(){
       eraApplyMergeResp(resp2);
       saveMem();
     }
+    if(worldState.eraFailure){delete worldState.eraFailure;saveCore();}/* M5: a compile or a merge landed */
   }catch(eErr){
     if(typeof console!=="undefined")console.warn("[memory] #148: era compile failed ("+(eErr&&eErr.message?eErr.message:eErr)+") — memory untouched, retries after a later summarize");
+    if(campaignStill(_eraMark,null)){var _efp=worldState.eraFailure&&typeof worldState.eraFailure.count==="number"?worldState.eraFailure.count:0;
+      worldState.eraFailure={count:_efp+1,lastTurn:worldState.turn,reason:String((eErr&&eErr.message)||eErr).slice(0,120)};saveCore();
+      if(_efp+1===ERA_FAIL_PAUSE&&typeof console!=="undefined")console.warn("[memory] the era compile has failed "+ERA_FAIL_PAUSE+" times running — paused for "+ERA_FAIL_COOLDOWN_TURNS+" turns (audit M5)");}
   }
   _eraBusy=false;
 }
@@ -2805,15 +2848,19 @@ function applySummaryExtract(extracted,identityTable,motivationTable){
   // then substring — the resolveFutureEvent discipline); retired facts ARCHIVE, never vanish.
   if(Array.isArray(extracted.supersededFacts)){for(i=0;i<extracted.supersededFacts.length;i++){var sf=extracted.supersededFacts[i];
     if(!sf||!sf.name||!sf.old||!sf["new"])continue;
+    /* audit 2026-11-19, M3: the needle is trimmed and has a minimum. An `old` of one space matched the first fact on file
+       by substring and retired it; so did any letter. Exact (trimmed) first; a partial needle must be a whole phrase of
+       at least SUPERSEDE_NEEDLE_MIN characters. */
+    var oldS=String(sf.old).trim();
     var sfName=resolveNpcName(String(sf.name)),sfNpc=memory.npcs[sfName];
-    if(authoredSupersede(sfNpc,sf.old)){
+    if(oldS.length>=SUPERSEDE_NEEDLE_MIN&&authoredSupersede(sfNpc,oldS)){
       fileNpcKnowledge(sfName,String(sf["new"]),worldState.turn,true);
       console.warn("[memory] authored dossier retained for "+sfName+"; play fact filed alongside");continue;
     }
     if(!sfNpc||!sfNpc.knowledge||!sfNpc.knowledge.length){if(typeof console!=="undefined")console.warn("[memory] supersede: no knowledge on file for "+sfName+" — ignored");continue;}
-    var oldS=String(sf.old),sfIdx=-1,ki;
-    for(ki=0;ki<sfNpc.knowledge.length;ki++){if(String(sfNpc.knowledge[ki])===oldS){sfIdx=ki;break;}}
-    if(sfIdx<0){for(ki=0;ki<sfNpc.knowledge.length;ki++){if(String(sfNpc.knowledge[ki]).indexOf(oldS)>=0){sfIdx=ki;break;}}}
+    var sfIdx=-1,ki;
+    for(ki=0;ki<sfNpc.knowledge.length;ki++){if(String(sfNpc.knowledge[ki]).trim()===oldS){sfIdx=ki;break;}}
+    if(sfIdx<0&&oldS.length>=SUPERSEDE_NEEDLE_MIN){var _sfRe=new RegExp("(^|[^A-Za-z0-9])"+oldS.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"($|[^A-Za-z0-9])");for(ki=0;ki<sfNpc.knowledge.length;ki++){if(_sfRe.test(String(sfNpc.knowledge[ki]))){sfIdx=ki;break;}}}
     if(sfIdx<0){if(typeof console!=="undefined")console.warn("[memory] supersede: no on-file fact on "+sfName+" matches \""+oldS.slice(0,80)+"\" — ignored (the extractor can only retire what exists)");continue;}
     var retired=sfNpc.knowledge.splice(sfIdx,1)[0];
     memArchive().superseded.push({npc:sfName,fact:retired,turn:worldState.turn,replacedBy:String(sf["new"])});
@@ -3020,7 +3067,8 @@ function recordRegisterDecide(original,rewrite,hits,names){
 var RECORD_DEFER_CAP=24;
 function recordDeferPush(job,turn){
   if(!worldState.recordDeferred)worldState.recordDeferred=[];var q=worldState.recordDeferred;
-  q.push({kind:job.kind||"lore",name:job.name||null,text:String(job.text||""),turn:turn});
+  var _row={kind:job.kind||"lore",name:job.name||null,text:String(job.text||""),turn:turn};if(job.scene)_row.scene=true;/* audit 2026-11-19, M4: a fact true only in its scene stays one across the deferral — the row dropped the mark and the line came back as standing knowledge */
+  q.push(_row);
   while(q.length>RECORD_DEFER_CAP){var ev=q.shift();if(typeof console!=="undefined")console.warn("[memory] #481 C7 the deferred record queue is full ("+RECORD_DEFER_CAP+") — the oldest line is dropped: \""+ev.text.slice(0,80)+"\"");if(typeof registerCensusFile==="function")registerCensusFile("record",registerScan(ev.text).length?registerScan(ev.text):["(evicted)"],turn,{evicted:true});}
 }
 async function recordRegisterGuard(extracted,turn,call){
@@ -3029,11 +3077,11 @@ async function recordRegisterGuard(extracted,turn,call){
   var jobs=[],i,names=(typeof recordCanonNames==="function")?recordCanonNames():[];
   /* #481 C7 (c): last window's deferred lines are guarded FIRST — they have waited longest; a clean one files through the extraction */
   var prev=(worldState&&worldState.recordDeferred)?worldState.recordDeferred.splice(0):[];if(worldState&&worldState.recordDeferred&&!worldState.recordDeferred.length)delete worldState.recordDeferred;
-  for(i=0;i<prev.length;i++){(function(dq){if(!dq||!dq.text)return;jobs.push({what:(dq.kind==="knowledge"?"knowledge ("+(dq.name||"?")+")":"lore")+" (deferred t"+dq.turn+")",kind:dq.kind,name:dq.name,text:dq.text,deferredFrom:dq.turn,
-    set:function(t){if(dq.kind==="knowledge"&&dq.name){if(!Array.isArray(extracted.npcUpdates))extracted.npcUpdates=[];extracted.npcUpdates.push({name:dq.name,knowledgeGained:t});}else{if(!Array.isArray(extracted.loreDiscovered))extracted.loreDiscovered=[];extracted.loreDiscovered.push(t);}},drop:function(){}});})(prev[i]);}
+  for(i=0;i<prev.length;i++){(function(dq){if(!dq||!dq.text)return;jobs.push({what:(dq.kind==="knowledge"?"knowledge ("+(dq.name||"?")+")":"lore")+" (deferred t"+dq.turn+")",kind:dq.kind,name:dq.name,text:dq.text,scene:!!dq.scene,deferredFrom:dq.turn,
+    set:function(t){if(dq.kind==="knowledge"&&dq.name){if(!Array.isArray(extracted.npcUpdates))extracted.npcUpdates=[];extracted.npcUpdates.push({name:dq.name,knowledgeGained:dq.scene?{fact:t,kind:"scene"}:t});/* M4 */}else{if(!Array.isArray(extracted.loreDiscovered))extracted.loreDiscovered=[];extracted.loreDiscovered.push(t);}},drop:function(){}});})(prev[i]);}
   var ups=Array.isArray(extracted.npcUpdates)?extracted.npcUpdates:[];
   for(i=0;i<ups.length;i++){(function(nu){if(!nu||nu.knowledgeGained==null)return;var v=nu.knowledgeGained,f=(typeof v==="object"&&v)?v.fact:v;if(typeof f!=="string"||!f)return;
-    jobs.push({what:"knowledge ("+(nu.name||"?")+")",kind:"knowledge",name:nu.name||null,text:f,set:function(t){if(typeof v==="object"&&v)v.fact=t;else nu.knowledgeGained=t;},drop:function(){delete nu.knowledgeGained;}});})(ups[i]);}
+    jobs.push({what:"knowledge ("+(nu.name||"?")+")",kind:"knowledge",name:nu.name||null,text:f,scene:(typeof v==="object"&&!!v&&String(v.kind||"").toLowerCase()==="scene"),set:function(t){if(typeof v==="object"&&v)v.fact=t;else nu.knowledgeGained=t;},drop:function(){delete nu.knowledgeGained;}});})(ups[i]);}
   var lore=Array.isArray(extracted.loreDiscovered)?extracted.loreDiscovered:[],loreDrop=[];
   for(i=0;i<lore.length;i++){(function(ix){var f=lore[ix];if(typeof f!=="string"||!f)return;jobs.push({what:"lore",kind:"lore",text:f,set:function(t){lore[ix]=t;},drop:function(){loreDrop.push(ix);}});})(i);}
   var asked=0;
@@ -3157,6 +3205,18 @@ function summarizeShouldDefer(){
   delete sf.deferSubject;delete sf.deferSince;
   return false;
 }
+/* audit 2026-11-19, M2 — AN EXTRACTION THAT WAS APPLIED IS NOT FILED AGAIN. When the save failed after the extraction had
+   been applied (storage full), or anything threw before the session log was trimmed, the window was kept "to be filed
+   again next turn" — and it was: the chapter, the decisions and the scene events a second time. The extraction leaves a
+   marker ON MEMORY (it travels with what it describes, in the same write): how far it read, where the window began, and
+   a signature of the last message read. While the marker describes the session log on hand, the retry asks the model
+   nothing and files nothing — it only saves and trims. A marker that does not describe this log is dropped, loudly. */
+function summarySig(m){var c=String((m&&m.content)||"");return c.length+":"+c.slice(0,48);}
+function summaryAppliedValid(){
+  var m=memory&&memory.summaryApplied;
+  if(!m||typeof m.upTo!=="number"||typeof m.kept!=="number")return false;
+  return m.kept===sessKeptStart()&&summarySig(sessionLog[m.upTo-1])===m.sig;
+}
 async function summarize(){
   if(sessionTokens()<SUMMARIZE_AT)return;
   if(summarizeShouldDefer()){if(typeof console!=="undefined")console.info("[memory] #263: extraction attempt skipped — the "+worldState.summaryFailure.deferSubject+" dispute owns this window; no call billed, no strike counted");return;}
@@ -3174,12 +3234,21 @@ async function summarize(){
   function _sumCommit(note){
     if(!saveLocal()){
       console.error("[memory] summarize commit did NOT persist (storage full?) — the extraction is in memory but not on disk; the session log is kept INTACT and the window retries next turn");
-      addMsg("system","Memory extraction couldn't be saved (storage full?) — this window is kept and will be filed again next turn.");
+      addMsg("system","Memory extraction couldn't be saved (storage full?) — the notes are kept and will be saved next turn.");
       return false;
     }
-    retainSessionTail();summaryFailureClear();saveCore();/* the shrink is persisted by the second saveCore; summaryFailureClear rides with it */
+    var _ap=memory.summaryApplied;
+    retainSessionTail(_ap&&typeof _ap.upTo==="number"?_ap.upTo:undefined);delete memory.summaryApplied;/* M2 */
+    summaryFailureClear();saveCore();if(_ap)saveMem();/* the marker's removal is persisted with the trim *//* the shrink is persisted by the second saveCore; summaryFailureClear rides with it */
     addMsg("system",note);
     return true;
+  }
+  /* M2: the extraction for this window is already in memory — save and trim, nothing else */
+  if(memory.summaryApplied&&!summaryAppliedValid()){if(typeof console!=="undefined")console.warn("[memory] a summarize marker that does not describe this session log was dropped (read to "+memory.summaryApplied.upTo+" at t"+memory.summaryApplied.turn+") — the window is extracted (audit M2)");delete memory.summaryApplied;}
+  if(memory.summaryApplied){
+    try{if(_sumCommit("Memory saved — the notes taken at turn "+memory.summaryApplied.turn+" are on file."))compileEraIfDue();}
+    catch(_ce){console.error("[memory] the commit of an applied extraction failed again ("+((_ce&&_ce.message)||_ce)+") — nothing is filed twice; it is tried again next turn");addMsg("system","Memory couldn't be saved ("+((_ce&&_ce.message)||"unknown")+") — it will be tried again next turn.");}
+    return;
   }
   var _deferSnap=null;/* #516: the deferred record queue as it stood before this attempt (set at the guard) */
   try{
@@ -3235,6 +3304,7 @@ async function summarize(){
     _deferSnap=(worldState&&Array.isArray(worldState.recordDeferred))?worldState.recordDeferred.slice():[];
     await recordRegisterGuard(extracted,worldState.turn);/* #459 ③: a knowledge or lore line in the register is re-asked ONCE, else dropped — never filed */
     var _exStats=applySummaryExtract(extracted,_identityTable,_motivationTable);
+    memory.summaryApplied={upTo:sessionLog.length,kept:sessKeptStart(),sig:summarySig(sessionLog[sessionLog.length-1]),turn:worldState.turn};/* M2 */
     _sumCommit("Memory updated: "+Object.keys(memory.npcs).length+" NPCs, "+memory.lore.length+" lore, "+memory.chapters.length+" chapters."+(_exStats&&_exStats.superseded?" "+_exStats.superseded+" outdated fact"+(_exStats.superseded>1?"s":"")+" superseded ("+_exStats.supersededNames.join(", ")+").":"")+(_withheld?" ("+_withheld.withheld+" of "+_withheld.total+" exchanges withheld by the provider's content filter — extracted around them; B38)":_reframed?" (extracted in the reframed, shortened shape after the provider blocked the full window — B38)":""));
     compileEraIfDue();/* #148 Phase 2 — fire-and-forget: era maintenance must never delay the turn; failures are loud inside and retry on a later cycle */
   }catch(e){
@@ -3244,6 +3314,8 @@ async function summarize(){
     /* #516: a failed extraction files nothing, so the deferred queue goes back to what it held before this attempt: the lines it
        took into the extraction wait for the retry, and the lines it deferred are dropped (the retry's own extraction reads them
        again, and a quarantined extraction leaks nothing into the next window). */
+    /* M2: thrown AFTER the extraction was applied (the trim, the commit) — it is no failed extraction: nothing is restored, no strike is counted, and the next summarize only saves and trims */
+    if(summaryAppliedValid()){console.error("[memory] summarize failed after its extraction was applied ("+((e&&e.message)||e)+") — the notes are in memory and are saved next turn; nothing is filed twice");addMsg("system","Memory couldn't be saved ("+((e&&e.message)||"unknown")+") — it will be tried again next turn.");return;}
     if(_deferSnap){if(_deferSnap.length)worldState.recordDeferred=_deferSnap;else delete worldState.recordDeferred;}
     _sumFails=summaryFailureBump(e);saveCore();/* the retry ceiling survives reloads; saveCore reports storage failure loudly */
     if(typeof sceneRefsSummaryFailure==="function")sceneRefsSummaryFailure(_sumFails>=3);

@@ -63,7 +63,7 @@ rc |= sabotage.prove({
 
     { label: "the lore fold is disabled — reworded twins evict distinct old lore into the dead archive again (#269⑤)",
       mustFail: "twin filed beside the original",
-      find: "    if(feNearDup(fact,memory.lore[i])){",
+      find: "    if(feNearDup(fact,memory.lore[i],feSharedNames(fact,memory.lore[i]))){/* M1 */",/* #777 M1: the same line, with the shared names left out of the count */
       replace: "    if(false){" }
   ]
 });

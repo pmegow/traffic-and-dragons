@@ -509,7 +509,11 @@ t("the three commit sites are ONE committer that saves before it truncates", fun
   if (/retainSessionTail\(\);summaryFailureClear\(\);saveMem\(\);saveCore\(\);/.test(s)) return "the unchecked two-write commit is back";
   var slice = s.slice(s.indexOf("function _sumCommit("), s.indexOf("function _sumCommit(") + 900);
   if (slice.indexOf("saveLocal()") < 0) return "_sumCommit does not pair the writes through saveLocal";
-  if (slice.indexOf("saveLocal()") > slice.indexOf("retainSessionTail()")) return "_sumCommit still truncates before it knows the writes landed";
+  /* #777 M2: the trim takes an argument now (how far the committed extraction read) — the call is found by its name, and a
+     committer with no trim at all is its own failure (indexOf -1 used to read as "truncates first") */
+  var trimAt = slice.indexOf("retainSessionTail(");
+  if (trimAt < 0) return "_sumCommit no longer trims the session log";
+  if (slice.indexOf("saveLocal()") > trimAt) return "_sumCommit still truncates before it knows the writes landed";
   return (s.match(/_sumCommit\(/g) || []).length >= 4 ? true : "not every summarize exit routes through the committer";
 });
 
