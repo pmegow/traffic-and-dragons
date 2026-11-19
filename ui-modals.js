@@ -71,7 +71,7 @@ function showLedgerModal(spec){
       if(ev.target&&ev.target.getAttribute&&ev.target.getAttribute("data-clear")){delete marks[side][key];render();return;}
       var max=1,ii,list=spec.rows[side];for(ii=0;ii<list.length;ii++)if(list[ii].key===key)max=list[ii].max;
       var nx=ledgerNextMark(marks[side][key]|0,max);if(nx)marks[side][key]=nx;else delete marks[side][key];render();});})(rows[n]);/* #497: the count wraps to none after the last unit */
-    var go=box.querySelector("#ledger-go");if(go&&plan.ok)go.addEventListener("click",function(){var res=spec.complete(marks);if(!res.ok){showToast(spec.refusedPrefix+res.reason,6000);return;}showToast(res.line,5000);
+    var go=box.querySelector("#ledger-go");if(go&&plan.ok)go.addEventListener("click",function(){var res=spec.complete(marks);if(!res.ok){showToast(spec.refusedPrefix+res.reason,6000);return;}showToast(res.line,5000,{kind:"inventory"});/* #772: a completed trade or stash move is an inventory change */
       if(spec.afterComplete&&spec.afterComplete()){marks={left:{},right:{}};render();return;}/* a spec that stays open rebuilds its rows and repaints */
       modal.remove();});
   }
@@ -1290,4 +1290,23 @@ function showVersionRefusedScreen(why){
   /* review R9: there is no File menu on this screen — the same routine the menu item runs is a button here */
   var c=document.getElementById("vr-clear");if(c)c.addEventListener("click",function(){if(typeof clearCacheAndReload==="function")clearCacheAndReload();else location.reload();});
   return m;
+}
+/* #772: THE CONSOLE — the game's notices, collected instead of popping up (owner 2026-11-16/18). A thin shell over the
+   session ring in helpers.js (consoleEntries / consoleRowsHtml): oldest first, scrolled to the newest, Clear empties it.
+   Opening it reads it (the button's dot goes grey); a line that lands while it is open is shown at once and is read. */
+function consoleModalPaint(){
+  var rows=document.getElementById("console-rows");if(!rows)return false;
+  rows.innerHTML=consoleRowsHtml(consoleEntries(),consoleDroppedCount());rows.scrollTop=rows.scrollHeight;
+  return true;
+}
+function consoleModalLanded(){return consoleModalPaint();}/* showToast calls this for a line that did not pop: true while the console is open */
+function showConsoleModal(){
+  var modal=modalShell("console-modal",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>Console</span><button id='console-x' aria-label='Close' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
+    +"<div id='console-rows' style='max-height:60vh;overflow-y:auto;'></div>"
+    +"<div style='display:flex;justify-content:flex-end;margin-top:12px;'><button class='qa' id='console-clear'>Clear</button></div>",
+    {maxWidth:560,closeId:"console-x",outside:true});
+  consoleModalPaint();consoleRead();consoleDotPaint();
+  document.getElementById("console-clear").addEventListener("click",function(){consoleClear();consoleModalPaint();consoleDotPaint();});
+  return modal;
 }

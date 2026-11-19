@@ -1,5 +1,5 @@
 {
-  "version": "v1.1449",
+  "version": "v1.1450",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -105,6 +105,7 @@
     "Blueprint text limits increase fivefold again: 20,000 characters per ordinary field, with matching import and assistant limits.",
     "The map gains a region: generated ground under fog, each visited place set on it in the direction travelled, replacing the journey sheet.",
     "Inworld narration now lets the voice model choose how to deliver each line; a character's own direction guides it.",
-    "The journey sheet is removed; the region is the only sheet above the places."
+    "The journey sheet is removed; the region is the only sheet above the places.",
+    "A Console button beside Table Talk collects the game's notices; only inventory changes still pop up, and a green dot marks new lines."
   ]
 }

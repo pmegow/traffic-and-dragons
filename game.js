@@ -2263,7 +2263,7 @@ function toastInventoryGains(pre){
   // A sync-style batch could name dozens; keep the toast readable but never claim it listed all.
   var shown=gained.slice(0,INV_TOAST_MAX).join(", ");
   if(gained.length>INV_TOAST_MAX)shown+=" +"+(gained.length-INV_TOAST_MAX)+" more";
-  if(typeof showToast==="function")showToast("🎒 Collected: "+shown);
+  if(typeof showToast==="function")showToast("🎒 Collected: "+shown,undefined,{kind:"inventory"});/* #772: an inventory change still pops up */
   return gained;
 }
 /* #638 (Thursday review 2026-10-15): the toast side of coinNarrationCheck (helpers.js) — when the coin the GM narrated and

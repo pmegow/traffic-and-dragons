@@ -106,6 +106,8 @@ jobs:
         run: node dev/tests-221-capability-names-browser.js
       - name: Cambion ancestry browser checks
         run: node dev/tests-221-cambion-browser.js
+      - name: The console collects the popups (#772)
+        run: node dev/tests-772-console-browser.js
       - name: Reserved name stores across browser doors (#545)
         run: node dev/tests-545-browser.js
       - name: Blueprint catalog in a real browser

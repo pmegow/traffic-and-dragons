@@ -71,7 +71,7 @@ function dropMarkedItems(owner,ev){
   if(!plan.ok){if(typeof showToast==="function")showToast("Nothing to delete"+stale,5000);_invSheetRepaint(owner);return;}
   var names=invDropApply(cs.inventory,plan);
   saveAll();
-  if(typeof showToast==="function")showToast("Deleted "+names.length+" item"+(names.length===1?"":"s")+": "+invDropNamesText(names)+stale,6000);
+  if(typeof showToast==="function")showToast("Deleted "+names.length+" item"+(names.length===1?"":"s")+": "+invDropNamesText(names)+stale,6000,{kind:"inventory"});/* #772 */
   _invSheetRepaint(owner);
 }
 /* Closing a sheet with marks pending: cleared, and said (the modalShell onClose on both hosts). */

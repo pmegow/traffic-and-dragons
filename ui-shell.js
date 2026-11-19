@@ -60,11 +60,25 @@ function requestSpeak(text,voices){
   });
   document.getElementById("am-cancel").addEventListener("click",function(){m.remove();});
 }
-function showToast(msg,ms){
+/* #772: a toast's KIND decides whether it pops up (TOAST_KINDS, helpers.js: inventory changes) or is collected in the
+   console; a toast always pops while the console's door cannot be reached. The third argument is {kind:"..."}. */
+function consoleDoorOpen(){
+  if(typeof carMode!=="undefined"&&carMode)return false;/* Car Mode's screen covers the button: the screen is the only channel there */
+  var b=document.getElementById("console-btn");return !!(b&&b.offsetParent!==null);/* hidden with the game screen */
+}
+function consoleDotPaint(){
+  var d=document.getElementById("console-dot"),b=document.getElementById("console-btn"),n=consoleNewCount();if(!d)return;
+  d.classList.toggle("new",n>0);
+  if(b)b.title=n>0?(n+" new line"+(n===1?"":"s")+" in the console"):"Console: the game's notices";
+}
+function showToast(msg,ms,opts){
   // Decode the HTML entities several call sites pass (audit E40) — showToast renders via textContent,
   // so "&#9729;"/"&mdash;" would show literally. Numeric refs + a couple of named ones; toast strings
   // are developer constants, so this is a safe decode (not model/user input).
   msg=String(msg==null?"":msg).replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(parseInt(n,10));}).replace(/&mdash;/g,"—").replace(/&ndash;/g,"–").replace(/&amp;/g,"&");
+  var _kind=toastKind(opts),_pops=toastPops(_kind,consoleDoorOpen());
+  consolePush(msg,_kind,_pops);/* #772: every line is on record; only one that did not pop counts as new */
+  if(!_pops){if(typeof consoleModalLanded==="function"&&consoleModalLanded())consoleRead();consoleDotPaint();return;}
   // TODO #7 (user pick 2026-07-18): a toast IS the "general poke at the user", so bone rides this
   // one choke point instead of dozens of call sites. playIfQuiet keeps it from doubling up on an
   // attention event (quests/level-ups/defining moments play glass just BEFORE their toast).

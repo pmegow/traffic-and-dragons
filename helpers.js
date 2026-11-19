@@ -4402,3 +4402,39 @@ function synopsisBlockHtml(syn,groups,nowLines,turn){
   h+="<div style='display:flex;gap:8px;align-items:center;margin-top:8px;'><button class='qa' id='qm-syn-refresh' title='Ask the GM to write the story so far again from what you have seen: the chapters, the lore, the people, the quests, the shape of the story. Never from the author’s notes.'>Refresh</button><span id='qm-syn-status' style='font-size:11px;color:var(--t2);'></span></div>";
   return h+"</div><div style='border-top:1px solid var(--brd);margin-bottom:12px;'></div>";
 }
+/* ═══ #772 THE CONSOLE (owner 2026-11-16 "We need a console modal to send all these popups to"; rulings 2026-11-18: a
+   Console button right of Table Talk, ONLY inventory changes still pop up, a dot that is grey, green when something was
+   written and grey again once the console is opened). Every popup already goes through showToast (ui-shell.js), so the
+   console is a bounded ring fed there. A toast's KIND decides the route, never its words: TOAST_KINDS is the one table
+   (a kind that still pops is an entry); a call names its kind in showToast's third argument, and a call that names none
+   is a "notice". A toast also pops when the console's door cannot be reached (no game on screen, Car Mode): a line
+   nobody can open is a silent failure. The log is the SESSION's (never saved), capped at CONSOLE_CAP (oldest dropped,
+   counted). Pure; the DOM shell is showToast / showConsoleModal. ═══ */
+var TOAST_KINDS={inventory:{pops:true}};
+var TOAST_KIND_DEFAULT="notice";
+function toastKind(opts){var k=opts&&typeof opts==="object"?opts.kind:null;return typeof k==="string"&&k?k:TOAST_KIND_DEFAULT;}
+function toastPops(kind,doorOpen){var row=ownValue(TOAST_KINDS,kind);return !!(row&&row.pops)||!doorOpen;}
+var CONSOLE_CAP=300,_consoleLog=[],_consoleNew=0,_consoleDropped=0;
+/* Files one line. `popped` lines are on record too, but only a line that did NOT pop counts as new (the dot). */
+function consolePush(msg,kind,popped){
+  var e={at:Date.now(),turn:(typeof worldState!=="undefined"&&worldState&&typeof worldState.turn==="number")?worldState.turn:null,msg:String(msg==null?"":msg),kind:String(kind||TOAST_KIND_DEFAULT),popped:!!popped};
+  _consoleLog.push(e);
+  if(_consoleLog.length>CONSOLE_CAP){_consoleDropped+=_consoleLog.length-CONSOLE_CAP;_consoleLog.splice(0,_consoleLog.length-CONSOLE_CAP);}
+  if(!e.popped)_consoleNew++;
+  return e;
+}
+function consoleEntries(){return _consoleLog.slice();}
+function consoleNewCount(){return _consoleNew;}
+function consoleDroppedCount(){return _consoleDropped;}
+function consoleRead(){_consoleNew=0;}
+function consoleClear(){_consoleLog=[];_consoleNew=0;_consoleDropped=0;}
+function consoleClock(at){var d=new Date(at),h=d.getHours(),m=d.getMinutes();return (h<10?"0":"")+h+":"+(m<10?"0":"")+m;}
+/* The console's body, one renderer: oldest first, each line its time, its turn and its words; plain rows, no pills. */
+function consoleRowsHtml(entries,dropped){
+  var h="",i,e;
+  if(dropped>0)h+="<div class='console-row console-note'>"+dropped+" older line"+(dropped===1?" was":"s were")+" dropped (the console keeps the last "+CONSOLE_CAP+").</div>";
+  if(!entries||!entries.length)return h+"<div class='console-row console-note'>Nothing yet. Notices from the game are collected here instead of popping up.</div>";
+  for(i=0;i<entries.length;i++){e=entries[i];
+    h+="<div class='console-row'><span class='console-when'>"+escHtml(consoleClock(e.at))+(e.turn===null?"":" · turn "+e.turn)+"</span> "+escHtml(e.msg)+"</div>";}
+  return h;
+}

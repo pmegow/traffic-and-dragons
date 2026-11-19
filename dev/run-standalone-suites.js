@@ -29,6 +29,7 @@ var SUITES = [
   "dev/tests-771-region.js",/* #771 P3: the region — the ground alone from the seed, every visited world place set on it once, under fog */
   "dev/tests-771-sites.js",/* #771 P2: a cave is drawn as a site — nameless rock, the mouth back out, the story's things on its chambers; nesting and the trail */
   "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again */
+  "dev/tests-772-console.js",/* #772: the console collects the popups; only an inventory change still pops */
   "dev/tests-767-no-narration-before-roll.js",/* #767: a roll the player's own action needs carries no narration; prose beside it waits for the dice */
   "dev/tests-766-directions.js",/* #766: the map asks for the directions it is owed; the GM is the author of a seen feature's bearing */
   "dev/tests-762-map-and-import.js",/* #762: the wizard's import skips the chooser; #763: one receipt per disclosure; #764: the marker's name; #765: ground by head noun */

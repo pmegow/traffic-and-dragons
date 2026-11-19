@@ -41,7 +41,7 @@ prove("ui-sheets.js", SHEET, [
     find: 'if(!plan.ok){if(typeof showToast==="function")showToast("Nothing to delete"+stale,5000);_invSheetRepaint(owner);return;}', replace: 'if(!plan.ok){_invSheetRepaint(owner);return;}',
     mustFail: "refused loudly" },
   { label: "a stale mark vanishes from the commit toast",
-    find: '+invDropNamesText(names)+stale,6000)', replace: '+invDropNamesText(names),6000)',
+    find: '+invDropNamesText(names)+stale,6000,', replace: '+invDropNamesText(names),6000,',
     mustFail: "reported in the same toast" },
   { label: "the render marks rows by raw key instead of the resolved plan",
     find: 'var _mkPlan=_canDrop?invDropPlan(c.inventory,_invDropMarksFor(invOwner)):{drop:[],count:0},_mkAt={},_mi;for(_mi=0;_mi<_mkPlan.drop.length;_mi++)_mkAt[_mkPlan.drop[_mi].idx]=true;',
