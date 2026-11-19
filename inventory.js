@@ -469,6 +469,7 @@ function groupInventory(inv,sheet){/* #599 (d2), review 5: the SHEET (optional) 
   var un={id:"unclassified",label:"Unclassified",rows:[]};
   for(i=0;i<inv.length;i++){
     var raw=inv[i],text=invEntryText(inv,i),er=invEntryRow(raw),e=itemLookup(text),cats=e?itemInvCategories(e):null;
+    if(!e&&typeof itemKindSection==="function"){var _ik=itemKindSection(itemBaseName(text));if(_ik)cats=[_ik];}/* #776: an item with NO canon files under the section the story answered for its name (item-kinds.js); canon decides first, and an entry with broken metadata stays visibly Unclassified */
     var row={raw:raw,text:text,name:er?er.name:"",qty:er?er.qty:1,equipped:!!(er&&(er.equipped||(typeof raw==="string"&&!!sheet&&typeof isWorn==="function"&&isWorn(sheet,er.name)))),sourceIndex:i,key:itemBaseName(text),entry:e,categories:cats||[]};/* #599 (b5): `text` is what a renderer shows and passes on — `raw` is the stored entry, whatever its shape (review (b) 2); (c): name, qty and equipped for the row's badge and mark */
     if(!cats){un.rows.push(row);continue;}
     var placed=false;

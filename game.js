@@ -3041,6 +3041,7 @@ async function sendAction(override,opts){
       if(typeof atlasDirectionsSettle==="function")await atlasDirectionsSettle(resp,txt);/* #766: the map asks for the directions it is still owed — after the commit, inside the turn; never throws */
       if(typeof atlasGroundSettle==="function")await atlasGroundSettle(resp,txt);/* #771: and for the ground of a place whose name does not say it — once per place; never throws */
       if(typeof atlasRegionSettle==="function")atlasRegionSettle();/* #771 P3: a place visited for the first time is set down on the region, once its ground is known; never throws */
+      if(typeof itemKindsSettle==="function")await itemKindsSettle();/* #776: items with no canon are filed by name, once; never throws */
     }
     syncUI();if(!isTT)maybeRefreshSynopsis();/* #671: the story so far — due after an arc or act completed in this commit; fire-and-forget, the turn never waits on it */
   }catch(e){th.remove();
@@ -3831,6 +3832,7 @@ async function beginAdventure(){
     if(typeof atlasDirectionsSettle==="function")await atlasDirectionsSettle(resp,"");/* #766: the opening's seen features too */
     if(typeof atlasGroundSettle==="function")await atlasGroundSettle(resp,"");/* #771: the opening place's ground too */
     if(typeof atlasRegionSettle==="function")atlasRegionSettle();/* #771 P3: the opening place is the region's first */
+    if(typeof itemKindsSettle==="function")await itemKindsSettle();/* #776: the starting gear too */
     if(typeof showFirstTurnOverlay==="function")showFirstTurnOverlay();/* #307: four sentences, once per device, after the first scene is on screen */
     syncUI();
     _promptCampaignFolder();

@@ -36610,7 +36610,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
   t("#671 the hook: sendAction asks synopsisDue after the commit and fires refreshSynopsis without awaiting it, Table Talk excluded; the call is a side call (noHistory, kind synopsis, its own system line, the button's wait ticking) and nothing in the prompt reads the record",function(){
     var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
     var at=g.indexOf("commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt");if(at<0)return "the commit site moved";
-    var tail=g.slice(at,at+1200);
+    var tail=g.slice(at,at+1600);/* #776 added one post-commit line (the item filing); the window was 1200 */
     if(!/syncUI\(\);if\(!isTT\)maybeRefreshSynopsis\(\);/.test(tail))return "maybeRefreshSynopsis() must follow the post-commit syncUI(), Table Talk excluded";
     if(/await\s+maybeRefreshSynopsis|await\s+refreshSynopsis\("spine"/.test(g))return "the turn must never wait on the recap";
     var fs=g.indexOf("async function refreshSynopsis(");if(fs<0)return "refreshSynopsis lives in game.js";
