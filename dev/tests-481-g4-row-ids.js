@@ -43,7 +43,8 @@ test('the real TODO.md and archive pass; the CI per-commit line hands the lint e
   const r = cp.spawnSync(process.execPath, [LINT, '--git-aware', '--cap', '--file', path.join(root, 'TODO.md'), '--head-file', path.join(root, 'TODO.md'), '--archive-file', path.join(root, 'DOC/TODO_ARCHIVE.md')], { encoding: 'utf8' });
   assert.equal(r.status, 0, 'the live files fail the id pass: ' + r.stdout + r.stderr);
   const wf = fs.readFileSync(path.join(root, '.github/workflows/engine-tests.yml'), 'utf8');
-  assert.ok(/node dev\/lint-todo\.js[^\n]*--archive-file \{file:DOC\/TODO_ARCHIVE\.md\}/.test(wf), 'CI must pass --archive-file {file:DOC/TODO_ARCHIVE.md}');
+  /* the TODO.md line itself: since audit G7 (2026-11-19) the TODO_Atlas.md line carries the same flag, and "anywhere in the workflow" was satisfied by it */
+  assert.ok(/node dev\/lint-todo\.js[^\n]*--file \{file:TODO\.md\}[^\n]*--archive-file \{file:DOC\/TODO_ARCHIVE\.md\}/.test(wf), 'CI must pass --archive-file {file:DOC/TODO_ARCHIVE.md} on the TODO.md lint line');
 });
 test('the hook\'s path: --staged reads the ARCHIVE from the index, so a staged row reusing an archived id is blocked', () => {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'tnd-g4-repo-'));

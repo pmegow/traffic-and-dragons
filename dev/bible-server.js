@@ -55,15 +55,28 @@ EDITOR_ASSETS["/capability-names.html"] = "capability-names.html";
 EDITOR_ASSETS["/ui-shell.js"] = "ui-shell.js";
 EDITOR_ASSETS["/audits/capability_vulnerabilities.html"] = "audits/capability_vulnerabilities.html";
 var MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css" };
+/* Audit 2026-11-19, G11. Every reply used to carry Access-Control-Allow-Origin: *, so ANY website open in the browser could
+   read this server's replies — /health among them, which names the project folder (and with it the Windows user) and the
+   process id. The header now names the asking origin only when it is this machine's own (localhost / 127.0.0.1) or "null" (a
+   file:// page, the legacy tools); a foreign website gets no such header, so its script cannot read a reply. /health gives the
+   folder and the process id to a local origin (or to no origin: curl, node) only. */
+var LOCAL_ORIGIN = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+function corsFor(origin) {
+  var h = {}, k;
+  for (k in CORS) h[k] = CORS[k];
+  if (origin && (origin === "null" || LOCAL_ORIGIN.test(origin))) { h["Access-Control-Allow-Origin"] = origin; h["Vary"] = "Origin"; }
+  return h;
+}
 var CORS = {
-  "Access-Control-Allow-Origin": "*",          // the pages run from file:// (Origin: null)
   "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-Bible-Token, X-Bible-Helper-Version"
 };
 
 function serveEditorAsset(req, res) {
-  var urlPath = decodeURIComponent(String(req.url || "/").split("?")[0]);
-  var rel = EDITOR_ASSETS[urlPath];
+  var urlPath;
+  try { urlPath = decodeURIComponent(String(req.url || "/").split("?")[0]); }
+  catch (e) { return false; }   /* G11: a malformed escape (/%) threw out of the handler and killed the server; it is an unknown route */
+  var rel = Object.prototype.hasOwnProperty.call(EDITOR_ASSETS, urlPath) ? EDITOR_ASSETS[urlPath] : null;
   if (!rel) return false;
   fs.readFile(path.join(ROOT, rel), function (err, data) {
     if (err) { res.writeHead(404, { "Content-Type": "text/plain" }); res.end("not found"); return; }
@@ -78,21 +91,24 @@ function serveEditorAsset(req, res) {
 
 var server = http.createServer(function (req, res) {
   function send(code, obj) {
-    var h = { "Content-Type": "application/json" }, k;
-    for (k in CORS) h[k] = CORS[k];
+    var h = corsFor(req.headers["origin"]);
+    h["Content-Type"] = "application/json";
     res.writeHead(code, h);
     res.end(JSON.stringify(obj));
   }
-  if (req.method === "OPTIONS") { res.writeHead(204, CORS); res.end(); return; }
+  if (req.method === "OPTIONS") { res.writeHead(204, corsFor(req.headers["origin"])); res.end(); return; }
 
   if (req.method === "GET" && req.url === "/health") {
     // cheap liveness probe for the editor's status pill — never reads a file
     if (process.env.BIBLE_LEGACY_HEALTH_OVERRIDE === "1")
       send(200, { ok: true, server: "bible-server", version: EDITOR_VERSION });
-    else
-      send(200, { ok: true, server: "bible-server", version: EDITOR_VERSION, helperVersion: HELPER_VERSION,
-        pid: process.pid, root: ROOT,
-        auth: "origin-allowlist (token only for legacy file:// tools)" });
+    else {
+      var health = { ok: true, server: "bible-server", version: EDITOR_VERSION, helperVersion: HELPER_VERSION,
+        auth: "origin-allowlist (token only for legacy file:// tools)" };
+      /* G11: a file:// page or a foreign site learns that the helper is up, nothing about this machine */
+      if (!req.headers["origin"] || LOCAL_ORIGIN.test(req.headers["origin"])) { health.pid = process.pid; health.root = ROOT; }
+      send(200, health);
+    }
     return;
   }
 
@@ -123,13 +139,16 @@ var server = http.createServer(function (req, res) {
     var body = "";
     req.on("data", function (c) { body += c; if (body.length > 5e6) { req.destroy(); } });
     req.on("end", function () {
-      var tmp = path.join(os.tmpdir(), "capability_bible_upload.js");
-      try { fs.writeFileSync(tmp, body); }
+      /* G11: every upload used to be staged at ONE fixed path, so two saves in flight could install each other's body. Each
+         gets its own folder, removed when its install has answered. */
+      var stage, tmp;
+      try { stage = fs.mkdtempSync(path.join(os.tmpdir(), "bible-upload-")); tmp = path.join(stage, "capability_bible_upload.js"); fs.writeFileSync(tmp, body); }
       catch (e) { send(500, { ok: false, output: "could not stage the upload: " + e.message }); return; }
       // install-bible.js is THE gate: it validates (and refuses) before touching the tracked file
       execFile(process.execPath, [path.join(__dirname, "install-bible.js"), tmp], { timeout: 30000 },
         function (err, stdout, stderr) {
           var out = String(stdout || "") + String(stderr || "");
+          try { fs.rmSync(stage, { recursive: true, force: true }); } catch (eRm) { console.warn("[install] could not remove the staged upload " + stage + ": " + eRm.message); }
           console.log("[install] " + new Date().toLocaleTimeString() + (err ? " REFUSED" : " ok") + "\n" + out.trim() + "\n");
           send(err ? 422 : 200, { ok: !err, output: out });
         });

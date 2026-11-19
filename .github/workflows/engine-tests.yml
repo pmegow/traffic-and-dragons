@@ -17,6 +17,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 240
+    # audit 2026-11-19, G8: with no timeout a hung browser suite ran to GitHub's six-hour cap. The longest honest run seen is 137 minutes (the range sweep);
+    # a run cut here ends `timed_out`, which dev/ci-status.js reads as red.
     # #647: every browser suite writes its screenshots under one folder (/tmp: the runner context is not allowed in a job env), kept as an artifact when a step fails —
     # a flake that lands on the runner alone (the #615 signup and #501 chest clicks of 2026-10-19) then comes with a picture.
     env:
@@ -57,9 +60,15 @@ jobs:
       # parent's (shape, the #310 row-size cap, the moved-row bytes) — PER COMMIT of the range
       # (#481 G2); a commit whose parent has no TODO.md is skipped out loud.
       - name: TODO.md table integrity, every commit of the push (shape, row cap, moved-row bytes)
-        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/lint-todo.js --git-aware --cap-changed --file {file:TODO.md} --head-file {parentFile:TODO.md} --archive-file {file:DOC/TODO_ARCHIVE.md} --head-archive {parentFile:DOC/TODO_ARCHIVE.md}
+        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/lint-todo.js --git-aware --cap-changed --file {file:TODO.md} --head-file {parentFile:TODO.md} --archive-file {file:DOC/TODO_ARCHIVE.md} --head-archive {parentFile:DOC/TODO_ARCHIVE.md} --atlas-file {file:TODO_Atlas.md}
       - name: TODO column counts, every commit of the push
         run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/check-todo-columns.js --file {file:TODO.md}
+      # Audit 2026-11-19, G7: TODO_Atlas.md was outside every tracker gate here. The lint line above now hands the id pass the
+      # atlas file as it is at each commit (--atlas-file), and these two steps run the other passes over it.
+      - name: TODO_Atlas.md table integrity, every commit of the push
+        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/lint-todo.js --git-aware --cap-changed --tracker TODO_Atlas.md --file {file:TODO_Atlas.md} --head-file {parentFile:TODO_Atlas.md} --archive-file {file:DOC/TODO_ARCHIVE.md} --head-archive {parentFile:DOC/TODO_ARCHIVE.md}
+      - name: TODO_Atlas.md column counts, every commit of the push
+        run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/check-todo-columns.js --file {file:TODO_Atlas.md}
       - name: TODO/session hygiene acceptance fixtures
         run: node dev/tests-todo-hygiene.js
       # #481 G10: the ES5-only rule used to live in the editor hooks alone, so a shell edit, a cloud

@@ -25,16 +25,20 @@ function brief(r) {
   return { sha: String(r.headSha || "").slice(0, 8), date: r.createdAt || "", title: String(r.displayTitle || ""), id: r.databaseId };
 }
 
-// summarize — runs newest first, as `gh run list` prints them. Only a run that reached a verdict
-// (success / failure) counts; in-progress, cancelled and skipped runs are not a verdict either way.
+// summarize — runs newest first, as `gh run list` prints them. Only a run that reached a verdict counts: success, or
+// one of the RED conclusions; in-progress, cancelled, skipped and neutral runs are not a verdict either way.
+// Audit 2026-11-19, G8: RED was `failure` alone, so a newest run that timed out or never started was passed over and an
+// older green read as the verdict. A run that did not finish its checks has not passed them.
+var RED = { failure: 1, timed_out: 1, startup_failure: 1, action_required: 1 };
+function isRed(r) { return !!(r && RED.hasOwnProperty(r.conclusion)); }
 function summarize(runs) {
   if (!(runs instanceof Array)) return { status: "unknown", reason: "the run list is not an array" };
-  var done = runs.filter(function (r) { return r && (r.conclusion === "success" || r.conclusion === "failure"); });
+  var done = runs.filter(function (r) { return r && (r.conclusion === "success" || isRed(r)); });
   if (!done.length) return { status: "unknown", reason: runs.length ? "none of the " + runs.length + " listed runs has a verdict yet" : "no runs listed" };
   var latest = brief(done[0]);
   if (done[0].conclusion === "success") return { status: "green", latest: latest, streak: 0, firstRed: null, lastGreen: latest, exhausted: false, window: done.length };
   var i = 0;
-  while (i < done.length && done[i].conclusion === "failure") i++;
+  while (i < done.length && isRed(done[i])) i++;
   return { status: "red", latest: latest, streak: i, firstRed: brief(done[i - 1]), lastGreen: i < done.length ? brief(done[i]) : null, exhausted: i >= done.length, window: done.length };
 }
 

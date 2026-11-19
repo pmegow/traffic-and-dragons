@@ -117,6 +117,28 @@ try {
     throw new Error("valid write boundary failed\n" + output(install));
   pass("validated input alone reaches the write boundary");
 
+  // Audit 2026-11-19, G6: the item type had no branch of its own — an item bible fell into the capability check and died on
+  // Object.keys(undefined), so every item save from the bible editor was refused with a stack trace. No item case existed.
+  function itemSource(count, opts) {
+    opts = opts || {};
+    const bible = {};
+    for (let i = 0; i < count; i++) bible[(opts.uppercase && i === 0 ? "Bad Key" : "item " + i)] = opts.noCategory && i === 1 ? { effect: "x" } : { category: "gear", marker: opts.marker || "base" };
+    if (opts.nullEntry) bible["item null"] = null;
+    return "var ITEM_BIBLE = " + JSON.stringify(bible) + ";\n";
+  }
+  const itemTarget = path.join(scratch, "item_bible.js");
+  fs.writeFileSync(itemTarget, itemSource(60, { marker: "current" }));
+  refusal("truncated item bible", itemSource(19), itemTarget, "looks truncated");
+  refusal("uppercase item key", itemSource(40, { uppercase: true }), itemTarget, "not lowercase");
+  refusal("item entry with no category", itemSource(40, { noCategory: true }), itemTarget, "no category");
+  refusal("item entry that is not an object", itemSource(40, { nullEntry: true }), itemTarget, "no category");
+  refusal("item bible that lost most of its entries", itemSource(25, { marker: "stale" }), itemTarget, "FEWER than half");
+  const itemText = itemSource(61, { marker: "installed" });
+  const itemInstall = runSource(itemText).result;
+  if (itemInstall.status !== 0 || fs.readFileSync(itemTarget, "utf8") !== itemText || /TypeError/.test(output(itemInstall)))
+    throw new Error("G6: a valid item bible did not install\n" + output(itemInstall));
+  pass("G6: a valid item bible is validated as an item bible and installed");
+
   console.log("ALL GREEN — " + passed + " install-bible fixtures");
 } finally {
   fs.rmSync(scratch, { recursive: true, force: true });

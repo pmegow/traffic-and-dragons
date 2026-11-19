@@ -111,6 +111,32 @@ test("session-check relays a red CI as a finding at session start, and says noth
   assert.doesNotMatch(off.stdout + off.stderr, /CI (RED|GREEN|UNKNOWN)/);
 });
 
+// Audit 2026-11-19, G8: only `success` and `failure` counted, so a newest run that timed out or never started was skipped
+// and an older green became "the" verdict — the blind gate this file was written to end. The job set no timeout either.
+test("G8: a newest run that timed out, failed to start or needs action is RED — an older green behind it is not the verdict", function () {
+  var green = { conclusion: "success", headSha: "aaaaaaaa0000", createdAt: "2026-11-18T10:00:00Z", displayTitle: "the last green", databaseId: 1 };
+  ["timed_out", "startup_failure", "action_required"].forEach(function (c) {
+    var s = ci.summarize([{ conclusion: c, headSha: "bbbbbbbb0000", createdAt: "2026-11-19T10:00:00Z", displayTitle: "hung", databaseId: 2 }, green]);
+    assert.equal(s.status, "red", c + " read as " + s.status);
+    assert.equal(s.streak, 1);
+    assert.equal(s.latest.sha, "bbbbbbbb");
+    assert.equal(s.lastGreen.sha, "aaaaaaaa");
+    assert.match(ci.describe(Object.assign({ steps: [] }, s)), /CI RED/);
+  });
+  var mixed = ci.summarize([{ conclusion: "timed_out", headSha: "c1", createdAt: "2026-11-19T12:00:00Z" }, { conclusion: "failure", headSha: "c2", createdAt: "2026-11-19T11:00:00Z" }, { conclusion: "startup_failure", headSha: "c3", createdAt: "2026-11-19T10:00:00Z" }, green]);
+  assert.equal(mixed.streak, 3, "a streak counts every kind of red");
+  // still not a verdict either way: a run cancelled (a newer push replaced it), skipped or neutral
+  ["cancelled", "skipped", "neutral", null].forEach(function (c) {
+    assert.equal(ci.summarize([{ conclusion: c, headSha: "dddddddd", createdAt: "2026-11-19T10:00:00Z" }, green]).status, "green", String(c) + " must not be a verdict");
+  });
+});
+test("G8: the Engine tests job has a timeout, so a hung step ends as a red run and not six hours later", function () {
+  var wf = fs.readFileSync(path.join(ROOT, ".github", "workflows", "engine-tests.yml"), "utf8");
+  var m = /\n  test:\n    runs-on: ubuntu-latest\n    timeout-minutes: (\d+)\n/.exec(wf.replace(/\r\n/g, "\n"));
+  assert.ok(m, "the test job sets no timeout-minutes");
+  assert.ok(Number(m[1]) >= 150 && Number(m[1]) <= 300, "the timeout must clear the longest honest run (137 minutes seen) and stay well under GitHub's six hours; it is " + m[1]);
+});
+
 test("the fixture is the real history: 80 runs, newest first, the dates descend", function () {
   assert.equal(fx.runs.length, 80);
   for (var i = 1; i < fx.runs.length; i++) assert.ok(fx.runs[i - 1].createdAt > fx.runs[i].createdAt, "run " + i + " is older than the one before it");

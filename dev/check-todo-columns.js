@@ -29,21 +29,24 @@ function columnErrors(text) {
   return errors;
 }
 function main(args) {
-  var staged = false, file = path.join(ROOT, "TODO.md"), supplied = false;
+  var staged = false, tracker = "TODO.md", file = null, supplied = false;   /* audit 2026-11-19, G7: --tracker checks TODO_Atlas.md the same way */
   try {
     for (var i = 0; i < args.length; i++) {
       if (args[i] === "--staged") staged = true;
       else if (args[i] === "--file" && args[i + 1]) { file = path.resolve(args[++i]); supplied = true; }
-      else throw new Error("Usage: node dev/check-todo-columns.js [--staged | --file path]");
+      else if (args[i] === "--tracker" && args[i + 1]) tracker = args[++i];
+      else throw new Error("Usage: node dev/check-todo-columns.js [--tracker TODO.md|TODO_Atlas.md] [--staged | --file path]");
     }
     if (staged && supplied) throw new Error("--staged and --file cannot be combined");
-    var text = staged ? cp.execFileSync("git", ["show", ":TODO.md"], { cwd: ROOT, encoding: "utf8" }) : fs.readFileSync(file, "utf8");
+    if (tracker !== "TODO.md" && tracker !== "TODO_Atlas.md") throw new Error("--tracker names " + JSON.stringify(tracker) + "; the tracker files are TODO.md and TODO_Atlas.md");
+    if (!supplied) file = path.join(ROOT, tracker);
+    var text = staged ? cp.execFileSync("git", ["show", ":" + tracker], { cwd: ROOT, encoding: "utf8" }) : fs.readFileSync(file, "utf8");
     var errors = columnErrors(text);
     if (errors.length) {
-      console.error("TODO COLUMN CHECK FAILED (" + (staged ? "staged TODO.md" : file) + "):\n  " + errors.join("\n  "));
+      console.error("TODO COLUMN CHECK FAILED (" + (staged ? "staged " + tracker : file) + "):\n  " + errors.join("\n  "));
       return 1;
     }
-    console.log("TODO columns OK (" + (staged ? "staged TODO.md" : file) + ")");
+    console.log("TODO columns OK (" + (staged ? "staged " + tracker : file) + ")");
     return 0;
   } catch (e) { console.error("TODO COLUMN CHECK FAILED: " + e.message); return 1; }
 }

@@ -29,6 +29,7 @@ var SUITES = [
   "dev/tests-771-region.js",/* #771 P3: the region — the ground alone from the seed, every visited world place set on it once, under fog */
   "dev/tests-771-sites.js",/* #771 P2: a cave is drawn as a site — nameless rock, the mouth back out, the story's things on its chambers; nesting and the trail */
   "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again */
+  "dev/tests-777-gates.js",/* audit 2026-11-19 (#777): the dev servers, the tracker gates over TODO_Atlas.md and the storage-key census */
   "dev/tests-776-item-kinds.js",/* #776: the story files a carried item under its obvious inventory section, once, by name */
   "dev/tests-772-console.js",/* #772: the console collects the popups; only an inventory change still pops */
   "dev/tests-767-no-narration-before-roll.js",/* #767: a roll the player's own action needs carries no narration; prose beside it waits for the dice */

@@ -43,7 +43,8 @@ test('the live files pass (L7 fits the cap); CI hands the lint each commit\'s pa
   const r = cp.spawnSync(process.execPath, [LINT, '--git-aware', '--cap'], { cwd: root, encoding: 'utf8' });
   assert.equal(r.status, 0, 'the live TODO.md fails: ' + (r.stdout + r.stderr).slice(0, 300));
   const wf = fs.readFileSync(path.join(root, '.github/workflows/engine-tests.yml'), 'utf8');
-  assert.ok(/node dev\/lint-todo\.js[^\n]*--head-archive \{parentFile:DOC\/TODO_ARCHIVE\.md\}/.test(wf), 'CI must pass --head-archive {parentFile:DOC/TODO_ARCHIVE.md}');
+  /* the TODO.md line itself (see tests-481-g4-row-ids.js): the TODO_Atlas.md line carries the same flag since audit G7 */
+  assert.ok(/node dev\/lint-todo\.js[^\n]*--file \{file:TODO\.md\}[^\n]*--head-archive \{parentFile:DOC\/TODO_ARCHIVE\.md\}/.test(wf), 'CI must pass --head-archive {parentFile:DOC/TODO_ARCHIVE.md} on the TODO.md lint line');
 });
 test('the hook\'s path: --staged compares HEAD\'s archive with the index\'s', () => {
   const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'tnd-g7-repo-'));

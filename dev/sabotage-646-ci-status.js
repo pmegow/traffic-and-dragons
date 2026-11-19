@@ -9,7 +9,7 @@ var rc = 0;
 
 rc |= sabotage.prove({ file: "dev/ci-status.js", command: SUITE, cases: [
   { label: "the streak stops at one (six days of red read as a single failed run)",
-    find: "  while (i < done.length && done[i].conclusion === \"failure\") i++;",
+    find: "  while (i < done.length && isRed(done[i])) i++;",
     replace: "  i = 1;",
     mustFail: "the real six-day red: a streak of 69" },
   { label: "the first red is the newest red (the warning names the wrong commit)",

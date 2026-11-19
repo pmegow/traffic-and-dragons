@@ -17,12 +17,12 @@ prove("dev/lint-todo.js", [
     find: "rowSizeErrors(candidateText, 0, opts.capChanged ? headText : null)", replace: "rowSizeErrors(candidateText, 0, null)",
     mustFail: "CI caps only the rows a commit adds or edits" },
   { label: "the hook's staged mode does not read HEAD's archive",
-    find: "    else if (opts.staged || opts.file === DEFAULT_FILE) { try { headArchiveText = readGit(\"HEAD:DOC/TODO_ARCHIVE.md\"); }", replace: "    else if (false) { try { headArchiveText = readGit(\"HEAD:DOC/TODO_ARCHIVE.md\"); }",
+    find: "    else if (opts.staged || isDefault) { try { headArchiveText = readGit(\"HEAD:DOC/TODO_ARCHIVE.md\"); }", replace: "    else if (false) { try { headArchiveText = readGit(\"HEAD:DOC/TODO_ARCHIVE.md\"); }",
     mustFail: "the hook's path" }
 ]);
 prove(".github/workflows/engine-tests.yml", [
   { label: "CI lints each commit without the parent's archive",
-    find: " --head-archive {parentFile:DOC/TODO_ARCHIVE.md}", replace: "",
+    find: " --head-archive {parentFile:DOC/TODO_ARCHIVE.md} --atlas-file", replace: " --atlas-file",   /* the TODO.md line: since audit G7 (2026-11-19) the TODO_Atlas.md line carries the same flag */
     mustFail: "the live files pass" }
 ]);
 process.exit(code);

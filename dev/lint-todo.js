@@ -14,6 +14,7 @@ var cp = require("child_process");
 
 var ROOT = path.join(__dirname, "..");
 var DEFAULT_FILE = path.join(ROOT, "TODO.md");
+var TRACKERS = ["TODO.md", "TODO_Atlas.md"];   /* the open-work files; row numbers are global across both and the archive */
 
 function isRow(s) { return /^\s*\|/.test(s); }
 function endsRow(s) { return /\|\s*$/.test(s); }
@@ -240,58 +241,69 @@ function readGit(spec) {
 }
 
 function parseArgs(argv) {
-  var opts = { gitAware: true, staged: false, file: DEFAULT_FILE, headFile: "", archiveFile: "", cap: false };
+  var opts = { gitAware: true, staged: false, file: DEFAULT_FILE, fileGiven: false, headFile: "", archiveFile: "", atlasFile: "", tracker: "TODO.md", cap: false };
   for (var i = 0; i < argv.length; i++) {
     if (argv[i] === "--git-aware") opts.gitAware = true;
     else if (argv[i] === "--shape-only") opts.gitAware = false;
     else if (argv[i] === "--staged") opts.staged = true;
     else if (argv[i] === "--cap") opts.cap = true; /* #310: enforce TODO_ROW_MAX (the hook passes it; fixture-driven suites do not) */
     else if (argv[i] === "--cap-changed") { opts.cap = true; opts.capChanged = true; } /* #481 G7: CI per commit — only the rows this change adds or edits (an old branch's untouched rows are not its commit's doing) */
-    else if (argv[i] === "--file" && argv[i + 1]) opts.file = path.resolve(argv[++i]);
+    else if (argv[i] === "--file" && argv[i + 1]) { opts.file = path.resolve(argv[++i]); opts.fileGiven = true; }
+    /* audit 2026-11-19, G7: TODO_Atlas.md was outside every gate but the hook's id pass. --atlas-file hands CI's id pass the
+       atlas tracker as it is at the commit; --tracker runs the shape, size, moved-row and archive-move passes over a tracker
+       other than TODO.md (the id pass stays with the TODO.md run, which reads all three files). */
+    else if (argv[i] === "--atlas-file" && argv[i + 1]) opts.atlasFile = path.resolve(argv[++i]);
+    else if (argv[i] === "--tracker" && argv[i + 1]) opts.tracker = argv[++i];
     else if (argv[i] === "--head-file" && argv[i + 1]) opts.headFile = path.resolve(argv[++i]);
     else if (argv[i] === "--archive-file" && argv[i + 1]) opts.archiveFile = path.resolve(argv[++i]); /* #481 G4: the archive the id pass reads */
     else if (argv[i] === "--head-archive" && argv[i + 1]) opts.headArchive = path.resolve(argv[++i]); /* #481 G7: the archive before this change (CI: the parent's) */
     else throw new Error("unknown or incomplete argument: " + argv[i]);
   }
-  if (opts.staged && opts.file !== DEFAULT_FILE) throw new Error("--staged cannot be combined with --file");
+  if (TRACKERS.indexOf(opts.tracker) < 0) throw new Error("--tracker names " + JSON.stringify(opts.tracker) + "; the tracker files are " + TRACKERS.join(" and "));
+  if (!opts.fileGiven) opts.file = path.join(ROOT, opts.tracker);
+  if (opts.staged && opts.fileGiven) throw new Error("--staged cannot be combined with --file");
   if (opts.headFile && !opts.gitAware) throw new Error("--head-file requires git-aware mode");
   return opts;
 }
 
 function main() {
-  var opts;
+  var opts, NAME = "TODO.md";
   var candidateText;
   var headText;
   var archiveText = "";
   var headArchiveText = null;
   try {
     opts = parseArgs(process.argv.slice(2));
-    candidateText = opts.staged ? readGit(":TODO.md") : fs.readFileSync(opts.file, "utf8");
-    if (opts.gitAware) headText = opts.headFile ? fs.readFileSync(opts.headFile, "utf8") : readGit("HEAD:TODO.md");
+    NAME = opts.tracker;
+    var isDefault = !opts.fileGiven;   /* the tracker's own working file (or the index, --staged) — not a fixture */
+    candidateText = opts.staged ? readGit(":" + NAME) : fs.readFileSync(opts.file, "utf8");
+    if (opts.gitAware) headText = opts.headFile ? fs.readFileSync(opts.headFile, "utf8") : readGit("HEAD:" + NAME);
     /* #481 G4: the archive for the id pass — the index's in the hook, the given file in CI / fixtures, the working copy by
        default; a bare --file fixture (no --archive-file) has no id pass */
     var ARCHIVE = path.join(ROOT, "DOC", "TODO_ARCHIVE.md");
     if (opts.archiveFile) archiveText = fs.readFileSync(opts.archiveFile, "utf8");
     else if (opts.staged) { try { archiveText = readGit(":DOC/TODO_ARCHIVE.md"); } catch (e2) { archiveText = ""; } }
-    else if (opts.file === DEFAULT_FILE && fs.existsSync(ARCHIVE)) archiveText = fs.readFileSync(ARCHIVE, "utf8");
+    else if (isDefault && fs.existsSync(ARCHIVE)) archiveText = fs.readFileSync(ARCHIVE, "utf8");
     else archiveText = "";
-    /* TODO_Atlas.md for the id pass: the index's in the hook, the working copy by default; a --file run (CI, fixtures) has none */
+    /* TODO_Atlas.md for the id pass: the given file (CI per commit — audit 2026-11-19 G7: a --file run had none, so a TODO.md
+       row that reused an atlas row's number passed CI), the index's in the hook, the working copy by default */
     var ATLAS_TODO = path.join(ROOT, "TODO_Atlas.md");
-    if (opts.staged) { try { _atlasTodoText = readGit(":TODO_Atlas.md"); } catch (e4) { _atlasTodoText = ""; } }
-    else if (opts.file === DEFAULT_FILE && fs.existsSync(ATLAS_TODO)) _atlasTodoText = fs.readFileSync(ATLAS_TODO, "utf8");
+    if (opts.atlasFile) _atlasTodoText = fs.readFileSync(opts.atlasFile, "utf8");
+    else if (opts.staged) { try { _atlasTodoText = readGit(":TODO_Atlas.md"); } catch (e4) { _atlasTodoText = ""; } }
+    else if (isDefault && fs.existsSync(ATLAS_TODO)) _atlasTodoText = fs.readFileSync(ATLAS_TODO, "utf8");
     /* #481 G7: the archive BEFORE this change, for the move check — the given file (CI), else HEAD's in the hook and the working
        tree; a bare --file fixture without --head-archive has no move check */
     if (opts.headArchive) headArchiveText = fs.readFileSync(opts.headArchive, "utf8");
-    else if (opts.staged || opts.file === DEFAULT_FILE) { try { headArchiveText = readGit("HEAD:DOC/TODO_ARCHIVE.md"); } catch (e3) { headArchiveText = null; } }
+    else if (opts.staged || isDefault) { try { headArchiveText = readGit("HEAD:DOC/TODO_ARCHIVE.md"); } catch (e3) { headArchiveText = null; } }
   } catch (e) {
-    console.error("TODO.md TABLE INTEGRITY FAILED: could not load verification inputs — " + (e && e.message));
+    console.error(NAME + " TABLE INTEGRITY FAILED: could not load verification inputs — " + (e && e.message));
     process.exit(1);
   }
 
   var lines = candidateText.split("\n");
   var errs = shapeErrors(candidateText);
   if (errs.length) {
-    console.error("TODO.md TABLE INTEGRITY FAILED (" + errs.length + " finding" + (errs.length > 1 ? "s" : "") + "):");
+    console.error(NAME + " TABLE INTEGRITY FAILED (" + errs.length + " finding" + (errs.length > 1 ? "s" : "") + "):");
     for (var e = 0; e < errs.length; e++) console.error("  ✗ line " + errs[e]);
     console.error("A table cell must not contain raw newlines — use <br>. Rows must be one physical line each.");
     process.exit(1);
@@ -299,14 +311,14 @@ function main() {
 
   var sizeErrs = opts.cap ? rowSizeErrors(candidateText, 0, opts.capChanged ? headText : null) : [];
   if (sizeErrs.length) {
-    console.error("TODO.md ROW SIZE CAP FAILED (" + sizeErrs.length + " row" + (sizeErrs.length > 1 ? "s" : "") + "):");
+    console.error(NAME + " ROW SIZE CAP FAILED (" + sizeErrs.length + " row" + (sizeErrs.length > 1 ? "s" : "") + "):");
     for (var r = 0; r < sizeErrs.length; r++) console.error("  ✗ " + sizeErrs[r]);
     process.exit(1);
   }
 
   /* #481 G4: the id pass runs where the archive is part of the input — the hook (the index), CI (--archive-file per commit), the
      working tree — never on a bare --file fixture (the moved-row fixtures are historical TODO.md files with pre-archive twins) */
-  var idPass = opts.gitAware && (!!opts.archiveFile || opts.staged || opts.file === DEFAULT_FILE);
+  var idPass = NAME === "TODO.md" && opts.gitAware && (!!opts.archiveFile || opts.staged || isDefault);   /* the TODO.md run reads all three files; a second tracker's run would only repeat it */
   var idErrs = idPass ? rowIdErrors(candidateText, archiveText) : [];
   if (idErrs.length) {
     console.error("TODO.md ROW ID CHECK FAILED (" + idErrs.length + " id" + (idErrs.length > 1 ? "s" : "") + " used more than once):");
@@ -317,7 +329,7 @@ function main() {
 
   var archErrs = (opts.gitAware && headArchiveText !== null && headText !== undefined) ? archiveMoveErrors(headText, candidateText, headArchiveText, archiveText) : [];   /* #481 G7 */
   if (archErrs.length) {
-    console.error("TODO.md → ARCHIVE MOVE CHECK FAILED (" + archErrs.length + " row" + (archErrs.length > 1 ? "s" : "") + " changed on the way):");
+    console.error(NAME + " → ARCHIVE MOVE CHECK FAILED (" + archErrs.length + " row" + (archErrs.length > 1 ? "s" : "") + " changed on the way):");
     for (var am = 0; am < archErrs.length; am++) console.error("  ✗ " + archErrs[am]);
     process.exit(1);
   }
@@ -325,14 +337,14 @@ function main() {
   var moves = { errors: [], reordered: 0, added: 0, deleted: 0 };
   if (opts.gitAware) moves = movedRowErrors(headText, candidateText);
   if (moves.errors.length) {
-    console.error("TODO.md MOVED-ROW BYTE VERIFICATION FAILED (" + moves.errors.length + " changed moved row" + (moves.errors.length > 1 ? "s" : "") + "):");
+    console.error(NAME + " MOVED-ROW BYTE VERIFICATION FAILED (" + moves.errors.length + " changed moved row" + (moves.errors.length > 1 ? "s" : "") + "):");
     for (var m = 0; m < moves.errors.length; m++) console.error("  ✗ " + moves.errors[m]);
     console.error("This is the 2026-08-14 truncation class: reordering is allowed, but every moved existing row must remain byte-identical to HEAD.");
     process.exit(1);
   }
 
   var suffix = opts.gitAware ? "; git-aware moved-row verification OK (" + moves.reordered + " reordered row reference" + (moves.reordered === 1 ? "" : "s") + ", " + moves.added + " added, " + moves.deleted + " deleted)" : "";
-  console.log("TODO.md tables OK (" + lines.length + " lines)" + suffix);
+  console.log(NAME + " tables OK (" + lines.length + " lines)" + suffix);
   process.exit(0);
 }
 

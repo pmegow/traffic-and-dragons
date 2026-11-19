@@ -21,7 +21,7 @@ prove("dev/lint-todo.js", [
 ]);
 prove(".github/workflows/engine-tests.yml", [
   { label: "CI lints each commit without its archive",
-    find: " --archive-file {file:DOC/TODO_ARCHIVE.md}", replace: "",
+    find: "--head-file {parentFile:TODO.md} --archive-file {file:DOC/TODO_ARCHIVE.md}", replace: "--head-file {parentFile:TODO.md}",   /* the TODO.md line: since audit G7 (2026-11-19) the TODO_Atlas.md line carries the same flag */
     mustFail: "the real TODO.md and archive pass" }
 ]);
 process.exit(code);

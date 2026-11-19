@@ -119,6 +119,29 @@ if (typeKey === "class") {
       ok("fill regression check: " + filled + " ≥ " + curFilled + " (current file)");
     }
   }
+} else if (typeKey === "item") {
+  /* audit 2026-11-19, G6: the item type had no branch — it fell into the capability check below and threw on
+     Object.keys(undefined), so every item save from the bible editor was refused with a stack trace. */
+  var itemKeys = Object.keys(ctx.ITEM_BIBLE);
+  if (itemKeys.length < 20) die("only " + itemKeys.length + " item entries — that looks truncated");
+  var badItemKeys = itemKeys.filter(function (k) { return k !== k.toLowerCase(); });
+  if (badItemKeys.length) die("these keys are not lowercase and would never resolve: " + badItemKeys.slice(0, 5).join(", "));
+  var shapeless = itemKeys.filter(function (k) { var e = ctx.ITEM_BIBLE[k]; return !e || typeof e !== "object" || typeof e.category !== "string" || !e.category; });
+  if (shapeless.length) die("these entries have no category (every item entry is an object with one): " + shapeless.slice(0, 5).join(", "));
+  ok(itemKeys.length + " item entries, all lowercase-keyed, each with a category");
+  // the stale-draft guard, as for classes: an editor tab left open saves an OLD copy whole
+  if (fs.existsSync(path.join(ROOT, "item_bible.js")) && !allowUnfill) {
+    var curItems = {};
+    vm.createContext(curItems);
+    try { vm.runInContext(fs.readFileSync(path.join(ROOT, "item_bible.js"), "utf8"), curItems); } catch (e) { curItems = null; }
+    if (curItems && curItems.ITEM_BIBLE) {
+      var curCount = Object.keys(curItems.ITEM_BIBLE).length;
+      if (itemKeys.length * 2 < curCount)
+        die("the incoming file has FEWER than half the entries (" + itemKeys.length + ") of the file it would replace (" + curCount + ") — " +
+            "that is the signature of a stale or cut-off copy. If removing them is intentional, rerun with --allow-unfill.");
+      ok("entry count check: " + itemKeys.length + " against " + curCount + " (current file)");
+    }
+  }
 } else {
   var keys = Object.keys(ctx.CAPABILITY_BIBLE);
   if (keys.length < 100) die("only " + keys.length + " capability entries — that looks truncated");
