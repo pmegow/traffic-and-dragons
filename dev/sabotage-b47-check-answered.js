@@ -33,7 +33,7 @@ prove("capability_bible.js", [
 ]);
 prove("game.js", [
   { label: "sendAction goes back to deleting the pending check inline — the step is bypassed",
-    find: "if(worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);", replace: "if(worldState.pendingCheck&&!(opts&&opts.silent)){delete worldState.pendingCheck;}",
+    find: "if(!isTT&&worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);", replace: "if(!isTT&&worldState.pendingCheck&&!(opts&&opts.silent)){delete worldState.pendingCheck;}",/* #777 U8: the line as it reads now */
     mustFail: "sendAction must lapse the check through checkLapseToAction" }
 ]);
 process.exit(code);

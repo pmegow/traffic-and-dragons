@@ -231,7 +231,17 @@ function damageRollText(d,faces){var parts=faces.join(" + ");if(d.mod)parts+=(d.
    never taken for it. Model text: capped at CHECK_STAKE_MAX, escaped wherever it is painted. null without one. */
 var CHECK_STAKE_MAX=200;
 function checkStakeField(f,i){var s=String(f||"").trim();if(i<2||!s||parseDamageExpr(s)||/^DC\s*\d+/i.test(s)||!/[A-Za-z]{2,}\s+\S*[A-Za-z]{2,}/.test(s))return null;s=s.replace(/^(?:at\s+)?stake\s*[:\u2014-]\s*/i,"").trim();return s?s.slice(0,CHECK_STAKE_MAX):null;}
-function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,stake=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:parseInt(String(p[1]||"").replace(/[^-+\d]/g,""),10);if(isNaN(mod))mod=0;for(i=1;i<p.length;i++){var sk=checkStakeField(p[i],i);if(sk){if(!stake)stake=sk;continue;}var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg,stake:stake,dmgOnly:!!(dmg&&dc===null&&parseDamageExpr(p[1]))};}/* #754: dice where the modifier sits and no DC = no d20 at all, the player rolls the damage alone */
+/* audit 2026-11-19, C3: the modifier is the field's LEADING signed whole number. The old read stripped every non-digit
+   and glued what was left: "+5 vs DC 15" rolled d20+515, and "DC 14" in the modifier's place was a modifier of 14 (a
+   natural 1 succeeded). A field that opens with DC, or with words, is no modifier; the number is kept within
+   ±CHECK_MOD_MAX. */
+function checkModField(field){
+  var m=String(field==null?"":field).trim().match(/^([+-])?\s*(\d{1,6})(?!\d)/);
+  if(!m)return 0;
+  var v=parseInt(m[2],10)*(m[1]==="-"?-1:1);
+  return Math.max(-CHECK_MOD_MAX,Math.min(CHECK_MOD_MAX,v));
+}
+function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,stake=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:checkModField(p[1]);for(i=1;i<p.length;i++){var sk=checkStakeField(p[i],i);if(sk){if(!stake)stake=sk;continue;}var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg,stake:stake,dmgOnly:!!(dmg&&dc===null&&parseDamageExpr(p[1]))};}/* #754: dice where the modifier sits and no DC = no d20 at all, the player rolls the damage alone */
 /* #750: what the narration read aloud adds while a roll with a stake waits \u2014 the tag is stripped from the prose, so a
    listener (Car Mode, the read-aloud) would otherwise never hear what the modal shows. "" without a stake. Pure. */
 function rollStakeSpeech(chk){return (chk&&chk.label&&chk.stake)?" Roll for "+chk.label+". At stake: "+chk.stake+(/[.!?]$/.test(chk.stake)?"":"."):"";}
@@ -1661,6 +1671,9 @@ function getMHP(){var c=classDef(cs.cls);if(!c)return 8;return c.hd+Math.floor((
    systemMsgHtml: a system line in the story is text unless its caller says it is HTML (addMsg, ui-shell.js). The hero's
    name and the place — from a .tnd, the place also from [LOCATION:] — were concatenated into such lines and assigned to
    innerHTML (H1). One caller hands HTML on purpose (the turn summary, with its links) and passes {html:true}. */
+/* audit 2026-11-19, U11 (owner ruling): how long a notice lives. A caller's own time wins; otherwise a notice stays until
+   tapped — except in Car Mode, where nobody taps: it fades after CAR_TOAST_MS (it is in the Console all the same). */
+function toastLifeMs(ms,car){return (typeof ms==="number"&&ms>0)?ms:(car?CAR_TOAST_MS:0);}
 function systemMsgHtml(html,opts){return (opts&&opts.html)?String(html==null?"":html):escHtml(html);}
 /* jsArg: a value as an argument of an INLINE handler (onclick='f(...)'): a JavaScript string literal, then HTML-escaped.
    The HTML parser decodes an attribute before the handler is compiled, so escaping alone left `");` live (H7). */
@@ -3992,7 +4005,7 @@ function worldStateNpcRows(npcs,memNpcs,npcFactions){
     bits=[];
     if(n.status)bits.push(n.status);
     if(n.rel&&n.rel!=="unknown")bits.push(n.rel);
-    facs=(npcFactions&&Array.isArray(npcFactions[n.name]))?npcFactions[n.name]:[];
+    facs=(npcFactions&&Array.isArray(npcFactions[n.name]))?npcFactions[n.name].filter(function(e){return !!e&&typeof e==="object"&&!!e.faction;}):[];/* audit 2026-11-19, U13: a null entry threw and blanked the panel */
     out.push({name:n.name,text:bits.join(" / "),faction:facs.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", ")});
   }
   return out;

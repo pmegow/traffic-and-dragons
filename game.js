@@ -1836,7 +1836,7 @@ function closeCampaign(){
   worldState.ended={turn:worldState.turn,cause:"closed by the player",at:Date.now(),closed:true,deaths:(worldState.respawns||0)};
   worldState.denouementOwed=true;worldState.lastActions=null;
   if(typeof saveAll==="function")saveAll();
-  if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+  if(typeof document!=="undefined"&&typeof campaignDenouement==="function")whenTurnSettles("the campaign's ending",campaignDenouement);
   return {action:"closed"};
 }
 /* #6 G1: fates are stamped at the ending — on the hero and every living party companion: the campaign, the cause, the
@@ -2692,7 +2692,7 @@ function commitGmTurn(resp,opts){
      still log the pair (#197: the player saw it; re-roll needs it). Silent sends and Table Talk
      never pass logPlayer, and the opening has no player half. */
   if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript("player",o.playerTxt);
-  if(!o.isOpening){
+  if(!o.isOpening&&!o.replacesRefusal){/* U3: a refusal's replacement is the SAME turn — the refusal's commit counted it */
     worldState.turn++;
     if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
   }
@@ -2899,7 +2899,6 @@ async function sendAction(override,opts){
     if(typeof showToast==="function")showToast("Death waits. Walk back to camp, or go onward.");return;
   }
   /* #329: a typed action while a roll is pending lets the check lapse — the story moves on without it. */
-  if(worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);/* B47: the lapse arms the CHECK ANSWERED note for THIS prompt — the GM hears that a roll was asked and an action came back */
   /* #325: the offered ending is a DECISION, not an action — no model call, a modal decides. */
   if(!(opts&&opts.silent)&&typeof endingChoiceFromText==="function"&&typeof endingOffered==="function"){var _eoTxt=override!==null?override:(inp?inp.value.trim():"");
     if(_eoTxt&&endingChoiceFromText(_eoTxt)&&endingOffered()){if(inp)inp.value="";if(typeof showEndingOfferModal==="function")showEndingOfferModal();else endingDecide("write");return;}}
@@ -2927,6 +2926,10 @@ async function sendAction(override,opts){
   // opts.ttRetry forces the Table Talk path regardless of the current tab — a failed TT question
   // must retry AS Table Talk even if the player switched to Story while it was in flight (#76).
   var isTT=(opts&&opts.ttRetry)?true:(activeChatTab==="tabletalk");
+  /* #329: a typed action while a roll is pending lets the check lapse — the story moves on without it. B47: the lapse arms the
+     CHECK ANSWERED note for THIS prompt. audit 2026-11-19, U8: it sat above the line that reads the action, so an empty Send
+     and a Table Talk question lapsed the roll with no turn sent (reachable mainly in Car Mode). */
+  if(!isTT&&worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);
   // ── TODO #1 P3 (D3/D5): multi-PC sub-turn queue ───────────────────────────────────────────
   // Engaged ONLY when playerCount()>1 and this is a real story action (Table Talk and silent
   // engine sends bypass — they are out-of-character). Each submit queues the SPOTLIGHT PC's
@@ -3073,9 +3076,9 @@ async function sendAction(override,opts){
     if(typeof reportError==="function")reportError("turn",e.message,((e&&e.stack)||"")
       +"\n(turn: "+(isTT?"tabletalk":"story")+((opts&&opts.silent)?", silent engine send":"")+(_tSent?", "+(Date.now()-_tSent)+"ms in flight":", failed before send")+")"
       +(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
-    if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn applied, but display failed");}/* no Retry — the mutation already landed (E82) */
+    if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("warn","Turn applied, but display failed");}/* audit 2026-11-19, V1: "error" arms tap-to-retry in the car — the tap sent the same action again, over state that had already landed *//* no Retry — the mutation already landed (E82) */
     else{if(!_mpResolve&&!(opts&&opts.silent)){_restored=restoreFailedInput(inp,txt);if(!isTT)savePendingAction(txt);/* #14: survive a page kill too — story turns only (a TT question restored into the story box would cross channels) */}
-      var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify("error","Turn failed — tap to retry");if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
+      var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify(isTT?"warn":"error",isTT?"Question failed":"Turn failed — tap to retry");/* V1: a failed Table Talk question armed a retry of the last STORY action */if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
   busy=false;document.getElementById("sendbtn").disabled=false;if(typeof focusStoryBox==="function")focusStoryBox();/* #481 F3: yields while a dialog is open (ui-shell.js) */
   // A non-empty box here normally means STT heard something WHILE the turn was in flight. Since
@@ -3150,12 +3153,24 @@ async function rerollLast(){
   // and the failure path (restore originals) leave sessionLog.length unchanged, so the
   // sessKept extraction marker (#28) stays valid. Pinned by an engine test; if this ever
   // stops being net-neutral, adjust worldState.sessKept alongside.
-  var prevA=sessionLog.pop(),prevU=sessionLog.pop(); // context is now just before the last action
+  var prevA=sessionLog.pop(),prevU=sessionLog.pop(),_rrMutated=false,_rrLen=n; // context is now just before the last action
   var th=addMsg("thinking","Re-rolling the scene...");
   try{
     var resp=await callGM(prevU.content+((typeof atlasKnowledgeRerollNote==="function")?atlasKnowledgeRerollNote():""),null,1500); // current voice; no muts, no turn++ (1500 = the turn budget, v1.540)
     th.remove();
     if(typeof atlasKnowledgeReroll==="function")resp=atlasKnowledgeReroll(resp,prevA.content);
+    /* audit 2026-11-19, U3 (owner ruling: a refusal's replacement goes through the normal commit). A re-roll applies no
+       tags because the original's already landed — but a REFUSAL's never did (#197: it commits as non-canon, tags
+       withheld), so real narration re-rolled over a refusal sat in the log as if its changes were canon and none was.
+       The replacement is committed like any turn — tags applied once, the book and the log written by the one committer —
+       except that the turn is not counted again (the refusal's commit counted it) and the player's line is not logged
+       twice. The refusal's own entry stays in the transcript, marked: the book is append-only. */
+    var _rrLast=(worldState.transcript&&worldState.transcript.length)?worldState.transcript[worldState.transcript.length-1]:null;
+    if(_rrLast&&_rrLast.r==="gm"&&_rrLast.rf&&!((typeof detectModelRefusal==="function")&&detectModelRefusal(cleanTxt(resp)))){
+      var _rrSt=document.getElementById("story-narrative");if(_rrSt){var _rrNs=_rrSt.querySelectorAll(".msg.narrator");if(_rrNs.length)_rrNs[_rrNs.length-1].parentNode.removeChild(_rrNs[_rrNs.length-1]);}
+      commitGmTurn(resp,{userMsg:prevU.content,logPlayer:false,replacesRefusal:true,onMutated:function(){_rrMutated=true;}});
+      busy=false;document.getElementById("sendbtn").disabled=false;return;
+    }
     sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:resp});
     var clean=cleanTxt(resp),dice=diceTxt(resp);
     /* #197: the replacement is judged like any narration — a rerolled-in refusal must not become
@@ -3198,7 +3213,9 @@ async function rerollLast(){
     saveAll();
     generateActions(narEl);
   }catch(e){
-    th.remove();sessionLog.push(prevU,prevA); // restore the original exchange on failure
+    if(th&&th.remove)th.remove();
+    if(_rrMutated){/* U3: the replacement's changes landed before the throw — the original exchange is not put back over them */if(sessionLog.length<_rrLen)sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:String(resp||"")});if(typeof reportError==="function")reportError("reroll",e.message,(e&&e.stack)||"");addMsg("system","Re-roll applied, but a display step failed: "+e.message);busy=false;document.getElementById("sendbtn").disabled=false;return;}
+    sessionLog.push(prevU,prevA); // restore the original exchange on failure
     if(typeof reportError==="function")reportError("reroll",e.message,(e&&e.stack)||"");
     addMsg("system","Re-roll error: "+e.message);
   }
@@ -3910,7 +3927,8 @@ function _promptCampaignFolder(){
   if(!window.showDirectoryPicker)return;  // browser doesn't support it
   if(typeof _campRootHandle!=="undefined"&&_campRootHandle)return;  // already set (#336: the ROOT is the one that persists)
   if(localStorage.getItem("tnd_folder_declined_v1"))return;  // user previously dismissed
-  var banner=document.createElement("div");
+  if(document.getElementById("folder-banner"))return;/* audit 2026-11-19, U12: a second banner carried the same button ids — its buttons were dead */
+  var banner=document.createElement("div");banner.id="folder-banner";
   banner.style.cssText="position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bg1);border:1px solid var(--acc);border-radius:var(--r);padding:12px 16px;z-index:500;display:flex;align-items:center;gap:12px;font-size:13px;font-family:var(--font);color:var(--t1);box-shadow:0 4px 16px rgba(0,0,0,.5);max-width:420px;width:90%;";
   banner.innerHTML="<span>📁 Pick your Campaigns folder once? Each campaign gets its own folder inside it for saves, renders, and logs.</span>"
     +"<button id='folder-yes' style='padding:6px 14px;font-size:12px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:#000;cursor:pointer;white-space:nowrap;'>Set folder</button>"
@@ -4240,6 +4258,13 @@ async function doRender(rOpts){
   }catch(e){if(th&&th.parentNode)th.remove();addMsg("system","Render failed: "+e.message);}/* audit E13: th may be undefined if the throw came from addMsg itself */
   finally{_rendering=false;}/* audit E13: the ONE clear, on every exit */
 }
+/* audit 2026-11-19, U2: the Rest BUTTON has its own door. restSpells is also what the reply's [REST:long] calls, inside
+   the turn; pressed mid-turn the button healed, rolled the clock and took a checkpoint of half a turn, and the reply's
+   own rest then rolled to the next dawn — a day lost. Only the button is gated. */
+function restFromButton(){
+  if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("Finish the current turn first — then rest.");return;}
+  restSpells();
+}
 function restSpells(fromTag){
   if(!worldState)return 0;
   var _landed=(typeof landOwedLevels==="function")?landOwedLevels():0;/* #349: levels land FIRST, so the heal and the mana refill below fill to the NEW maximums */
@@ -4301,7 +4326,7 @@ function resolvePlayerDeath(){
     if(typeof fileCoreMemory==="function"&&c)fileCoreMemory("death",c.name,c.name+" died the final time — "+cause+".");
     worldState.denouementOwed=true;/* #301: no escort, no question — the GM writes the campaign's denouement */
     if(typeof saveAll==="function")saveAll();
-    if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+    if(typeof document!=="undefined"&&typeof campaignDenouement==="function")whenTurnSettles("the campaign's ending",campaignDenouement);
     else if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(cause);
     if(typeof carNotify==="function")carNotify("ended","You have died for the last time. This story is complete.");
     return {action:"ended"};
@@ -4318,7 +4343,26 @@ function deathSceneBegin(cause){
   delete worldState.deathPending;delete worldState.downed;worldState.combat=null;
   if(typeof saveAll==="function")saveAll();
   if(typeof carNotify==="function")carNotify("info","Death has come for you.");
-  if(typeof document!=="undefined"&&typeof sendAction==="function")setTimeout(function(){sendAction(deathArrivalDirective(),{silent:true});},0);
+  if(typeof document!=="undefined"&&typeof sendAction==="function")whenTurnSettles("Death's arrival",function(){sendAction(deathArrivalDirective(),{silent:true});});
+}
+/* audit 2026-11-19, U1 — WHAT A COMMIT SCHEDULES RUNS ONCE THE TURN HAS LET GO. Death's arrival and the campaign's final
+   denouement are scheduled from INSIDE the commit, while `busy` is true, and both begin by returning when `busy` is set.
+   They were scheduled with setTimeout(…,0): once the turn went on to await the map and item requests (#766, #771, #776)
+   the timer fired during a network wait and was dropped without a word — the death stage had already advanced, so the
+   player's next line was taken as their question to a Death who never appeared; after the last death no ending showed
+   until a reload. The step now waits until nothing holds `busy`, runs once, is dropped (said) if another campaign was
+   opened meanwhile, and is said — never dropped in silence — if the turn has not let go after AFTER_TURN_MAX_MS. */
+function whenTurnSettles(what,fn){
+  var mark=(typeof campaignMark==="function")?campaignMark():null,t0=Date.now();
+  (function tick(){
+    setTimeout(function(){
+      if(typeof busy!=="undefined"&&busy){
+        if(Date.now()-t0>AFTER_TURN_MAX_MS){console.error("[turn] "+what+" never ran — the turn before it did not finish within "+Math.round(AFTER_TURN_MAX_MS/1000)+" s (audit U1)");if(typeof showToast==="function")showToast("⚠ "+what+" could not start — the turn before it never finished. Reload to continue.");return;}
+        tick();return;}
+      if(mark&&typeof campaignStill==="function"&&!campaignStill(mark,what))return;
+      fn();
+    },AFTER_TURN_POLL_MS);
+  })();
 }
 function deathArrivalDirective(){
   var ds=worldState.deathScene||{},c=worldState.character,d=worldState.deaths||[],i,prior=[];
@@ -4377,7 +4421,7 @@ function deathSceneOnwardConfirm(){
   worldState.denouementOwed=true;
   if(typeof fileCoreMemory==="function")fileCoreMemory("death",worldState.character.name,worldState.character.name+" died — "+cause+" — and walked onward with Death.");
   if(typeof saveAll==="function")saveAll();
-  if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+  if(typeof document!=="undefined"&&typeof campaignDenouement==="function")whenTurnSettles("the campaign's ending",campaignDenouement);
   return {action:"ended"};
 }
 // #301: the denouement — asked of the GM (a plain sysOverride call, no history), filed as the campaign's last
@@ -4402,7 +4446,7 @@ function endingDecide(choice,closing){
     worldState.ended={turn:worldState.turn,cause:"the tale is told",at:Date.now(),spine:true,deaths:(worldState.respawns||0)};
     worldState.denouementOwed=true;worldState.lastActions=null;
     if(typeof saveAll==="function")saveAll();
-    if(typeof document!=="undefined"&&typeof campaignDenouement==="function")setTimeout(campaignDenouement,0);
+    if(typeof document!=="undefined"&&typeof campaignDenouement==="function")whenTurnSettles("the campaign's ending",campaignDenouement);
     return {action:"ended"};
   }
   worldState.spineComplete.snoozedUntil=worldState.turn+((typeof ENDING_REOFFER_TURNS==="number")?ENDING_REOFFER_TURNS:15);

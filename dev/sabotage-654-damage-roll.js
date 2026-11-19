@@ -23,7 +23,7 @@ prove("helpers.js", [
     find: "the damage is rolled too, never roll it again.", replace: "the damage is rolled too.",
     mustFail: "note:" },
   { label: "dice in the modifier's seat parse as +14",
-    find: "var mod=parseDamageExpr(p[1])?0:parseInt(", replace: "var mod=parseInt(",
+    find: "var mod=parseDamageExpr(p[1])?0:checkModField(p[1]);", replace: "var mod=checkModField(p[1]);",/* #777 C3: the line as it reads now — the same mutation (dice in the seat are read as a modifier) */
     mustFail: "modifier's seat" },
   { label: "the fourth field is never read",
     find: "else if(!dmg)dmg=parseDamageExpr(p[i]);", replace: "",

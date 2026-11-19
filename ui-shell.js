@@ -64,6 +64,7 @@ function requestSpeak(text,voices){
    console; a toast always pops while the console's door cannot be reached. The third argument is {kind:"..."}. */
 function consoleDoorOpen(){
   if(typeof carMode!=="undefined"&&carMode)return false;/* Car Mode's screen covers the button: the screen is the only channel there */
+  if(typeof modalTopOpen==="function"&&modalTopOpen()&&!document.getElementById("console-modal"))return false;/* audit 2026-11-19, U6 (owner ruling): under a modal's backdrop the button cannot be reached — a modal's own refusal ("the turn is still landing") was only collected. It pops, and is in the Console too. The Console itself is a modal: a line that lands while IT is open is shown in it, as before. */
   var b=document.getElementById("console-btn");return !!(b&&b.offsetParent!==null);/* hidden with the game screen */
 }
 function consoleDotPaint(){
@@ -101,7 +102,8 @@ function showToast(msg,ms,opts){
   document.body.appendChild(t);
   // No ms = sticky tap-to-dismiss (default "cheers" design, unchanged). ms>0 auto-dismisses on top
   // of that — callers (e.g. tts.js) already pass 6000/8000 and start working the moment this ships.
-  if(typeof ms==="number"&&ms>0)setTimeout(dismiss,ms);
+  var _life=toastLifeMs(ms,typeof carMode!=="undefined"&&carMode);/* U11: in Car Mode a notice fades by itself */
+  if(_life>0)setTimeout(dismiss,_life);
 }
 function showLoadingModal(msg){
   var ex=document.getElementById("loading-modal");if(ex)ex.remove();

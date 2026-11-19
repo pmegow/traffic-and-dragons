@@ -25,7 +25,7 @@ var pure = [
     find: "return e.faction+(e.role?\" [\"+e.role+\"]\":\"\");}).join(\", \")});",
     replace: "return e.faction;}).join(\", \")});", mustFail: S + "the rows are blank at the start, skip the party, and carry status, relation and faction" },
   { label: "an inherited function is read as a character's factions (a character named toString breaks the panel)",
-    find: "facs=(npcFactions&&Array.isArray(npcFactions[n.name]))?npcFactions[n.name]:[];",
+    find: "facs=(npcFactions&&Array.isArray(npcFactions[n.name]))?npcFactions[n.name].filter(function(e){return !!e&&typeof e===\"object\"&&!!e.faction;}):[];",/* #777 U13: the line as it reads now */
     replace: "facs=(npcFactions&&npcFactions[n.name])?npcFactions[n.name]:[];", mustFail: S + "a character named like an object property reads no inherited faction or memory" }
 ];
 var panel = [

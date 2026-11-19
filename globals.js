@@ -39,6 +39,9 @@ var SUMMARY_KEEP_TOK=1600; // #28: token cap on that retained tail (newest excha
 var QUEST_ESCALATE_TURNS=3; // P3: an active quest all-objectives-done for this many turns triggers the engine-note escalation in sendAction (see buildQuestEscalation, api.js)
 var QUEST_STALE_TURNS=30; // #191ⓑ (owner-ruled 2026-08-14): an ACTIVE quest with no QUEST/QUEST_STEP tag activity for this many turns gets the outcomes-review engine note (buildQuestStaleNudge, api.js); also the re-fire cooldown and the #17 stalled-WATCH threshold. Legacy rows without lastTouch read infinitely old (the #133 ruling)
 var QUEST_NUDGE_REFIRE_TURNS=5; // audit 2026-09-18 B1: the escalation and objective nudges latch per quest and re-fire only every N turns — an unlatched pair burned 1–2 of the 3 delivery slots forever and starved every builder below them
+var AFTER_TURN_POLL_MS=60,AFTER_TURN_MAX_MS=300000; // audit 2026-11-19, U1: a step a commit schedules waits for the turn to let go (polled), and says so if it never does
+var CAR_TOAST_MS=8000;        // U11 (owner ruling): a notice in Car Mode fades by itself
+var CHECK_MOD_MAX=30;         // C3: a check's modifier is kept within ±this
 var SUPERSEDE_NEEDLE_MIN=8;   // audit 2026-11-19, M3: a partial superseded-fact needle must be a whole phrase at least this long (a one-space needle retired a live fact)
 var ERA_FAIL_PAUSE=3,ERA_FAIL_COOLDOWN_TURNS=60; // M5: an era compile failing this many times running waits this many turns before one more try
 var AGENDA_QUEUE_MAX=6;       // M7: a companion's waiting wants (the queue rides the prompt and the portable sheet)
@@ -448,7 +451,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1463";
+var APP_VERSION="v1.1464";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by

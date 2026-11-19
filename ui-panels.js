@@ -463,7 +463,7 @@ function updateSpPanel(){
   if(!h)h="<div style='font-size:11px;color:var(--t2);font-style:italic;padding:4px 0;'>No spells</div>";
   /* P2: restSpells() writes the HERO's spells — hide the button while a companion PC holds the
      spotlight, or resting would restore the wrong sheet (writes stay on their true owner). */
-  else if(_ap===worldState.character)h+="<button onclick='restSpells()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore mana)</button>";
+  else if(_ap===worldState.character)h+="<button onclick='restFromButton()' style='width:100%;margin-top:6px;padding:5px;font-size:10px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t2);cursor:pointer;'>Rest (restore mana)</button>";
   document.getElementById("sp-list").innerHTML=h;
 }
 function updateCombat(){

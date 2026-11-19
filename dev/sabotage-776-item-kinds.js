@@ -38,8 +38,8 @@ var kinds = [
   { label: "an unclear item is filed under a section named unclear", find: "return r&&r.kind!==ITEM_KIND_UNCLEAR?r.kind:null;", replace: "return r?r.kind:null;", mustFail: T5 },
   { label: "the request is counted as a turn", find: 'var ITEM_KIND_USAGE="item-kind";', replace: 'var ITEM_KIND_USAGE="turn";', mustFail: T7 },
   { label: "the request carries the history", find: "options={noHistory:true,kind:ITEM_KIND_USAGE,noRetry:true}", replace: "options={kind:ITEM_KIND_USAGE,noRetry:true}", mustFail: T7 },
-  { label: "the answers are not saved", find: '    if(typeof saveAll==="function")saveAll();\n    if(typeof showToast==="function")showToast(itemKindsSaid(', replace: '    if(typeof showToast==="function")showToast(itemKindsSaid(', mustFail: T7 },
-  { label: "the player is told nothing", find: '    if(typeof showToast==="function")showToast(itemKindsSaid(owed,read.kinds),8000);\n', replace: "", mustFail: T7 },
+  { label: "the answers are not saved", find: '    if(typeof saveAll==="function")saveAll();\n    var _line=itemKindsSaidFiled(_said);', replace: '    var _line=itemKindsSaidFiled(_said);', mustFail: T7 },/* #777 C4: the lines as they read now */
+  { label: "the player is told nothing", find: 'if(_line&&typeof showToast==="function")showToast(_line,8000);', replace: "", mustFail: T7 },
   { label: "what stays unclassified is not said", find: '(left.length?"Left unclassified (the name does not say): "+left.join(", ")+".":"")', replace: '""', mustFail: T7 },
   { label: "a failed ask is silent", find: '    itemKindsSay("the pack could not be sorted: "+((e&&e.message)||e)+". Nothing was filed; it is asked again next turn.");\n', replace: "", mustFail: T8 },
   { label: "an answer lands in another campaign", find: 'if(worldState!==ws){itemKindsSay("the campaign changed while the pack was being sorted; nothing was recorded");return null;}', replace: "", mustFail: T8 },

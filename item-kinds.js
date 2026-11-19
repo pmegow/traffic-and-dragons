@@ -79,9 +79,9 @@ function itemKindsRead(reply,finish,count){
   }catch(e){return refuse("the item-section JSON was refused: "+((e&&e.message)||e));}
 }
 /* Files one answer: once per item, never replaced, never over canon. */
-function itemKindFile(ws,name,kind,turn){
+function itemKindFile(ws,name,kind,turn,ownKey){
   function refuse(reason){return {ok:false,reason:reason};}
-  var key=itemBaseName(name);
+  var key=ownKey||itemBaseName(name);/* audit 2026-11-19, C4: the asker passes the key it found the item under — the NAME it sends is cut at ITEM_KIND_NAME_MAX, and the key of a cut name is another key: the item stayed owed, was asked (and billed) every turn, and was announced as sorted each time */
   if(!ws||typeof ws!=="object")return refuse("there is no campaign to file the item in");
   if(!itemKindWord(kind))return refuse("not one of the inventory's sections");
   if(!key)return refuse("the answer names no item");
@@ -108,6 +108,8 @@ function itemKindsSaid(owed,kinds){
   for(i=0;i<owed.length;i++){if(kinds[i]===ITEM_KIND_UNCLEAR)left.push(owed[i].name);else filed.push(owed[i].name+" → "+label[kinds[i]]);}
   return (filed.length?"Inventory sorted: "+filed.join("; ")+".":"")+(filed.length&&left.length?" ":"")+(left.length?"Left unclassified (the name does not say): "+left.join(", ")+".":"");
 }
+/* What was filed, as the one line: [{name, kind}] in, "" when nothing was. */
+function itemKindsSaidFiled(rows){return rows&&rows.length?itemKindsSaid(rows,rows.map(function(r){return r.kind;})):"";}
 function itemKindsSay(msg){if(typeof console!=="undefined")console.warn("[items] #776 "+msg);if(typeof showToast==="function")showToast("⚠ Inventory: "+msg,8000);}
 /* After a turn's commit. Never throws; returns the answers filed ([{key, kind}]), or null when nothing was asked or the
    ask failed (said). The campaign is checked again after the wait: an answer never lands in another campaign. */
@@ -121,9 +123,10 @@ async function itemKindsSettle(){
     text=await callGM(ask.user,ask.system,ITEM_KIND_TOKENS,null,options);
     if(worldState!==ws){itemKindsSay("the campaign changed while the pack was being sorted; nothing was recorded");return null;}
     read=itemKindsRead(text,options.finish,owed.length);if(!read.ok)throw new Error(read.reason);
-    for(i=0;i<owed.length;i++){r=itemKindFile(ws,owed[i].name,read.kinds[i],ws.turn);if(r.ok)filed.push({key:r.key,kind:r.kind});}
+    var _said=[];
+    for(i=0;i<owed.length;i++){r=itemKindFile(ws,owed[i].name,read.kinds[i],ws.turn,owed[i].key);if(r.ok){filed.push({key:r.key,kind:r.kind});_said.push({name:owed[i].name,kind:r.kind});}}
     if(typeof saveAll==="function")saveAll();
-    if(typeof showToast==="function")showToast(itemKindsSaid(owed,read.kinds),8000);
+    var _line=itemKindsSaidFiled(_said);if(_line&&typeof showToast==="function")showToast(_line,8000);/* C4: said from what was FILED, not from what was asked */
     return filed;
   }catch(e){
     itemKindsSay("the pack could not be sorted: "+((e&&e.message)||e)+". Nothing was filed; it is asked again next turn.");
