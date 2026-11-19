@@ -128,5 +128,14 @@ test("the atlas engine suite is wired to it: both group doors count before they 
   assert.doesNotMatch(only.stdout, /SHARD|processes/);
 });
 
+test("the live dice suite's three pages run at once only on a machine with the cores for it (CI's runner timed out with three)", function () {
+  var width = require("./tests-669-live-dice-browser.js").tracksAtOnce;
+  assert.equal(width({}, 2), 1, "a two-core runner: one after another");
+  assert.equal(width({}, 4), 1, "a four-core runner: one after another");
+  assert.equal(width({}, 8), 3); assert.equal(width({}, 32), 3);
+  assert.equal(width({ DICE_TRACKS: "2" }, 2), 2, "the variable wins");
+  assert.throws(function () { width({ DICE_TRACKS: "0" }, 8); }, /DICE_TRACKS is not a number of at least 1/);
+});
+
 fs.rmSync(tmp, { recursive: true, force: true });
 if (!process.exitCode) console.log("ALL GREEN — " + passed + " suite-shards assertions");

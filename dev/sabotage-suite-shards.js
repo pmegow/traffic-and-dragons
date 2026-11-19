@@ -54,4 +54,12 @@ rc |= sabotage.prove({ file: "dev/tests-684-atlas-engine.js", command: SUITE, ca
     mustFail: "the atlas engine suite is wired to it" }
 ] });
 
+/* the live dice suite's width rule (pure; its Chrome-driven clauses are in dev/sabotage-669-dice-tracks.js) */
+rc |= sabotage.prove({ file: "dev/tests-669-live-dice-browser.js", command: SUITE, cases: [
+  { label: "the dice suite draws on three pages at once on any machine (CI's runner times out again)",
+    find: "return cores>=8?3:1;}",
+    replace: "return 3;}",
+    mustFail: "the live dice suite's three pages run at once only on a machine with the cores for it" }
+] });
+
 process.exit(rc);

@@ -10,7 +10,7 @@ var tracks = [
     replace: "      try{t=await open(port===8102?'x/'+port:port);}catch(e){return;}",
     mustFail: "checks ran" },
   { label: "the tracks are not waited for: the browser closes under them and the verdict is read early",
-    find: "    await Promise.all(tracks);\n",
+    find: "    await Promise.all(Array.from({length:AT_ONCE},worker));\n",
     replace: "",
     mustFail: "checks ran" }
 ];

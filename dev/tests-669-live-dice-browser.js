@@ -11,6 +11,8 @@ const TYPES={'.html':'text/html','.css':'text/css','.js':'application/javascript
 // until 2026-11-09; Fade is 0.6 s, but a saved exit can be any of them). The old 5 s
 // budget was the fade's (250 ms) and turned CI red on dacc10b2; a dismiss that never ends still fails.
 const DISMISS_MS=30000;
+function tracksAtOnce(env,cores){if(env.DICE_TRACKS){if(!/^[1-9]\d*$/.test(env.DICE_TRACKS))throw new Error('DICE_TRACKS is not a number of at least 1: '+env.DICE_TRACKS);return Number(env.DICE_TRACKS);}return cores>=8?3:1;}
+if(require.main!==module){module.exports={tracksAtOnce};return;}/* required: the width rule alone, no browser */
 let ran=0;const CHECKS=16;/* 13 checks and each track's "no page errors" */
 async function check(name,fn){ran++;try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+' — '+e.message);}}
 (async()=>{
@@ -35,13 +37,18 @@ async function check(name,fn){ran++;try{await fn();console.log('PASS '+name);}ca
     await page.waitForFunction(()=>!!window.DiceSim,null,{timeout:20000}).catch(e=>{throw new Error('FAIL the dice module loads on an http page (localhost keeps its dice) — '+e.message);});
     return {page,errors};
     };
+    /* HOW MANY TRACKS AT ONCE. Three pages drawing dice at once need the cores for it: on CI's runner (no GPU, a few
+       cores) every roll took about three times as long and a 30 s wait ran out (run 44465314953, 2026-11-19, the first
+       push of the three tracks — green at the desk, red there). So: all three on a machine of 8 cores or more, one after
+       another on a smaller one. DICE_TRACKS=N sets it. The tracks, their pages and their checks are the same either way. */
+    const AT_ONCE=tracksAtOnce(process.env,require('os').cpus().length);
     const tracks=[];
-    const track=(name,port,body)=>tracks.push((async()=>{
+    const track=(name,port,body)=>tracks.push(async()=>{
       let t;
       try{t=await open(port);}catch(e){failed++;console.error('FAIL track '+name+' could not open its page — '+e.message);return;}
       try{await body(t.page);}catch(e){failed++;console.error('FAIL track '+name+' stopped — '+(e.stack||e.message));}
       await check('no page errors ('+name+')',async()=>{assert.deepEqual(t.errors,[]);});
-    })());
+    });
     const until=`var until=async(f,ms)=>{const t=Date.now();while(!f()){if(Date.now()-t>(ms||30000))throw new Error('timed out: '+f);await new Promise(r=>setTimeout(r,40));}};`;
 
     track('rolls and looks',8101,async page=>{
@@ -308,7 +315,9 @@ async function check(name,fn){ran++;try{await fn();console.log('PASS '+name);}ca
     });
     });
 
-    await Promise.all(tracks);
+    /* a pool of AT_ONCE: each worker takes the next track until none is left */
+    let nextTrack=0;const worker=async()=>{while(nextTrack<tracks.length)await tracks[nextTrack++]();};
+    await Promise.all(Array.from({length:AT_ONCE},worker));
     /* every check below must have run: a track that stopped early is red above, and the count says so too */
     if(ran!==CHECKS){failed++;console.error('FAIL '+ran+' of the file\'s '+CHECKS+' checks ran');}
   }finally{await browser.close();}
