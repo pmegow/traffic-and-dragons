@@ -1,5 +1,5 @@
 {
-  "version": "v1.1464",
+  "version": "v1.1465",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -120,6 +120,7 @@
     "A withheld reward can no longer be paid twice after a failed turn; Table Talk again knows every character met in play.",
     "Saves, character files and blueprints can no longer inject markup into the page; the read-only character preview no longer edits your hero.",
     "A companion's repeated wish is no longer announced as newly queued; restated facts still merge while distinct ones are kept.",
-    "Death's arrival and the campaign ending no longer vanish after a turn; re-rolling a declined scene applies its changes; Rest waits for the turn."
+    "Death's arrival and the campaign ending no longer vanish after a turn; re-rolling a declined scene applies its changes; Rest waits for the turn.",
+    "Car Mode beeps obey the mute button; saying \"I pause\" is taken as your action; interface sounds keep working after an audio interruption."
   ]
 }

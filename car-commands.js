@@ -16,7 +16,10 @@
 // the transcript would silently eat real turns, which is far worse than missing a command (the
 // driver just repeats themselves). So every pattern below is anchored ^…$ over the trimmed,
 // punctuation-stripped text, with only a short filler prefix ("uh", "let's", "I'll take") allowed.
-var CAR_CMD_FILLER = /^(?:uh+|um+|ok(?:ay)?|so|well|hey|please|lets|i(?:ll| will| want to| wanna)?(?: take| do| pick| choose| go with)?|give me|do|take|pick|choose|go with|the)\s+/;
+// audit 2026-11-19, V8: a bare "I" is no filler. It was optional-everything ("i" alone, then a space), so "I pause", "I repeat",
+// "I resume", "I stop here" and "I put it back" lost their "I" and ran as commands — the false-positive rule above, broken by its
+// own prefix. "I" is filler only with an auxiliary ("I'll", "I will", "I want to") or directly before a picking verb.
+var CAR_CMD_FILLER = /^(?:uh+|um+|ok(?:ay)?|so|well|hey|please|lets|i(?:ll| will| want to| wanna)(?: take| do| pick| choose| go with)?|i(?: take| do| pick| choose| go with)|give me|do|take|pick|choose|go with|the)\s+/;
 var CAR_ORDINALS = { one: 1, two: 2, three: 3, four: 4, first: 1, second: 2, third: 3, fourth: 4, "1": 1, "2": 2, "3": 3, "4": 4 };
 
 // The generic car vocabulary — one named entry per kind, so a host's table can interleave its own kinds between them.

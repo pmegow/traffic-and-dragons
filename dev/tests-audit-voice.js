@@ -383,6 +383,7 @@ function sttFixture(options = {}) {
   await test('F11 earcon() disconnects its oscillator and gain when the blip ends', () => {
     const f = ttsFixture();
     f.TTS.primeAudioSession();          // creates the ctx the earcon reuses
+    f.TTS.earcon('ack');                // #777 V6: an earcon goes out through the context's ONE master gain, built on first use — built here so the count below is the blips' own nodes
     const oscBase = f.nodes.oscillators.length, gainBase = f.nodes.gains.length, base = f.nodes.disconnects;
     f.TTS.earcon('ready');              // two blips = two oscillators + two gains
     const made = f.nodes.oscillators.slice(oscBase).concat(f.nodes.gains.slice(gainBase));

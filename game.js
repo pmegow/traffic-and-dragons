@@ -4328,7 +4328,7 @@ function resolvePlayerDeath(){
     if(typeof saveAll==="function")saveAll();
     if(typeof document!=="undefined"&&typeof campaignDenouement==="function")whenTurnSettles("the campaign's ending",campaignDenouement);
     else if(typeof showCampaignEndedModal==="function")showCampaignEndedModal(cause);
-    if(typeof carNotify==="function")carNotify("ended","You have died for the last time. This story is complete.");
+    if(typeof carNotify==="function")carNotify("info","You have died for the last time. This story is complete.");/* audit 2026-11-19, V9: "ended" is no kind the loop knows — the driver was told nothing */
     return {action:"ended"};
   }
   var snap=checkpointHeld();
@@ -4411,7 +4411,7 @@ function deathSceneChoose(choice){
   if(typeof rebuildNarrativeFromTranscript==="function"){try{rebuildNarrativeFromTranscript(20,true);}catch(e){console.warn("[death] the story pane could not be rebuilt after the respawn — it may show the pre-death tail until reload: "+((e&&e.message)||e));}}/* #206b: was (true) — a boolean count painted exactly ONE entry after a respawn */
   if(typeof syncUI==="function"){try{syncUI();}catch(e){console.warn("[death] the panels could not be repainted after the respawn — HP/place/party may read stale until the next turn: "+((e&&e.message)||e));}}
   if(typeof showRespawnModal==="function")showRespawnModal(r,cause);
-  if(typeof carNotify==="function")carNotify("respawn","You wake again at "+r.camp+". Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+".");
+  if(typeof carNotify==="function")carNotify("info","You wake again at "+r.camp+". Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+".");/* V9 */
   return {action:"respawn",turn:r.turn,camp:r.camp};
 }
 function deathSceneOnwardConfirm(){

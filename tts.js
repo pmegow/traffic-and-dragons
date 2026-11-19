@@ -3710,7 +3710,7 @@ var TTS = (function() {
         osc.frequency.value = freq;
         gain.gain.value = 0.08;
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(_masterNode(ctx));   /* audit 2026-11-19, V6: through the master gain like every other source — wired straight to the destination, the beep ignored the mute (every Car Mode turn beeped on a muted phone) */
         // audit F11 — the earcon was the one WebAudio path in this file that never disconnected:
         // Car Mode fires one per turn (2-4 nodes) on a context that lives as long as the page, so
         // the graph grew for the whole drive. Same discipline as _sources' onended and sound.js

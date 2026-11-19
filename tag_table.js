@@ -556,7 +556,7 @@ var TAG_TABLE=[
   /* #300: 0 HP is DOWNED, not dead. The engine arms the state here (the one HP write site); the downed
      note takes the wheel, the seam counts unresolved turns, DOWNED_RESOLVED or a heal above 0 ends it. */
   var _hc=worldState.character;
-  if(_hc.hp<=0){if(!worldState.downed){worldState.downed={since:R.turn,turns:0};R.muts.push("DOWNED — at death's door");if(typeof showToast==="function")showToast("☠ "+(_hc.name||"You")+" is DOWN — struggle, or yield");if(typeof carNotify==="function")carNotify("downed","You are down. Struggle, or yield?");}}
+  if(_hc.hp<=0){if(!worldState.downed){worldState.downed={since:R.turn,turns:0};R.muts.push("DOWNED — at death's door");if(typeof showToast==="function")showToast("☠ "+(_hc.name||"You")+" is DOWN — struggle, or yield");if(typeof carNotify==="function")carNotify("info","You are down. Struggle, or yield?");/* audit 2026-11-19, V9: "downed" is no kind the loop knows */}}
   else if(worldState.downed){delete worldState.downed;R.muts.push("Back on your feet");}}},
 /* #301: Death's answer — engine-only vocabulary (the DEATH QUESTION note teaches it). Records the gift on the
    scene; the gift becomes canon only when the player walks BACK (deathSceneChoose), on the restored world. */

@@ -183,7 +183,8 @@ var Sound = (function() {
   }
   function state() { return _ctx ? (_ctx.state + (_ctxDoomed ? "/doomed" : "") + (_ctxRebuilds ? "/rebuilt×" + _ctxRebuilds : "")) : "none"; }
   function _ensureCtx() {
-    if (_ctx && _ctxDoomed) { try { if (typeof _ctx.close === "function") _ctx.close(); } catch (e) {} _ctx = null; _ctxDoomed = false; _ctxRebuilds++; console.warn("[sound] doomed AudioContext closed — rebuilding (B39)"); }
+    if (_ctx && _ctxDoomed) { try { if (typeof _ctx.close === "function") _ctx.close(); } catch (e) {} _ctx = null; _ctxDoomed = false; _ctxRebuilds++; _verb = null;   /* audit 2026-11-19, V3: the reverb node belongs to the context that made it — kept across a rebuild, every play with reverb threw "different audio context" for the rest of the page's life */
+      console.warn("[sound] doomed AudioContext closed — rebuilding (B39)"); }
     if (_ctx) return _ctx;
     try {
       var AC = (typeof window !== "undefined" && (window.AudioContext || window.webkitAudioContext))
@@ -359,7 +360,14 @@ var Sound = (function() {
         if (send) { try { send.disconnect(); } catch (e) {} }
       }, (last + 2.2) * 1000);   // clear of the longest note AND the ~1.6s reverb tail
       _lastAt = (typeof performance !== "undefined" && performance.now) ? performance.now() : +new Date();
-    } catch (e) { console.debug("[sound] '" + id + "' play failed:", e && e.message); return false; }
+    } catch (e) {
+      /* V3: said at warn level (a sound that should have played and did not is no benign skip), and the bus it had
+         already connected is taken down — each failed play used to leave one behind */
+      console.warn("[sound] '" + id + "' play failed: " + (e && e.message));
+      if (bus) { try { bus.disconnect(); } catch (e2) {} }   /* `var` is function-scoped: bus and send are undefined here when the throw came before them */
+      if (send) { try { send.disconnect(); } catch (e3) {} }
+      return false;
+    }
     return true;
   }
   // preview(id) — audition path for the Sound Library modal: plays even when UI sounds are OFF,
