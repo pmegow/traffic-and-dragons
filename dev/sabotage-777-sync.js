@@ -46,11 +46,130 @@ sync("storage-adapter.js", [
   { label: "S2: the skipped adopt no longer pauses sync (the next save posts the older copy)",
     find: "        _onConflict(serverTurn);\n        syncCampaignList(null);\n        return;", replace: "        syncCampaignList(null);\n        return;", mustFail: S2 },
   { label: "S2: the reason is not logged",
-    find: "console.warn(\"[storage] reconcile: the cloud copy of \"", replace: "void (\"[storage] reconcile: the cloud copy of \"", mustFail: S2 },
+    find: "console.warn(\"[storage] reconcile: the cloud copy of \" + _serverCamp + \" is ahead (turn \"", replace: "void (\"[storage] reconcile: the cloud copy of \" + _serverCamp + \" is ahead (turn \"", mustFail: S2 },
   { label: "S2: a newer cloud copy is never adopted, turn in flight or not",
     find: "      // Never swap worldState out from under an in-flight turn (audit E4): that case returned above (S2), paused.\n      if (serverTurn > localTurn) {",
     replace: "      // Never swap worldState out from under an in-flight turn (audit E4): that case returned above (S2), paused.\n      if (false) {",
     mustFail: "FAIL #777 S2: with no turn in flight the same reconcile adopts the newer cloud copy" }
+]);
+
+// ── S3: a save this build could not read or prepare ─────────────────────────────────────────────────────────────────
+var S3_CUT = "FAIL #777 S3: a cut-off save is refused out loud";
+var S3_SCREEN = "FAIL #777 S3: the refusal screen's text escapes the reason";
+sync("state.js", [
+  { label: "S3: a save that fails to parse is dropped without a word again",
+    find: "    else refuseUnreadableSave(ws,e,\"read\");", replace: "", mustFail: S3_CUT },
+  { label: "S3: a save whose heal throws is dropped without a word again",
+    find: "worldState=null;refuseUnreadableSave(ws,e,\"prepared\");", replace: "worldState=null;",
+    mustFail: "FAIL #777 S3: a save whose heal throws" },
+  { label: "S3: no second copy of the unreadable save is kept",
+    find: "rk=STORE_RESCUE_K+\"core_\"+id,kept=false;", replace: "rk=STORE_RESCUE_K+\"core_\"+id,kept=false;raw=null;", mustFail: S3_CUT },
+  { label: "S3: a refusal survives the next good load",
+    find: "_versionRefusedLoad=null;_unreadableLoad=null;", replace: "_versionRefusedLoad=null;",
+    mustFail: "FAIL #777 S3: a healthy save loads with no refusal" },
+  { label: "S3: an unreadable slot gets the generic line on top of its reason",
+    find: "var _vr=_versionRefusedLoad||_unreadableLoad;", replace: "var _vr=_versionRefusedLoad;",
+    mustFail: "FAIL #777 S3: switching to a campaign whose slot is unreadable" }
+]);
+sync("storage-adapter.js", [
+  { label: "S3: the boot adopts the account's latest cloud campaign over an unreadable save",
+    find: "    if (!localOk && typeof unreadableLoad === \"function\" && unreadableLoad()) {", replace: "    if (false) {",
+    mustFail: "FAIL #777 S3: with an unreadable local save the boot adopts nothing" }
+]);
+sync("ui-boot.js", [
+  { label: "S3: the wizard is shown over an unreadable save",
+    find: "    if(typeof unreadableLoad===\"function\"&&unreadableLoad()){showUnreadableSaveScreen(unreadableLoad(),_wizard);return;}\n", replace: "", mustFail: S3_SCREEN }
+]);
+sync("helpers.js", [
+  { label: "S3: the refusal screen paints the reason as HTML",
+    find: "\": \"+escHtml(String(info.reason||\"unknown error\"))+\".</p>\"", replace: "\": \"+String(info.reason||\"unknown error\")+\".</p>\"", mustFail: S3_SCREEN }
+]);
+
+// ── S4, S6: the .tnd import ─────────────────────────────────────────────────────────────────────────────────────────
+var S4 = "FAIL #777 S4: an import that throws while it is prepared is undone";
+sync("state.js", [
+  { label: "S4: a failed import leaves the half-prepared world in the globals",
+    find: "    worldState=_prevWs;sessionLog=_prevSl;memory=_prevMem;\n    setActiveCampId(_prevId);_checkpointMem=_prevCamp;", replace: "    setActiveCampId(_prevId);_checkpointMem=_prevCamp;", mustFail: S4 },
+  { label: "S4: a failed import leaves the new campaign id active",
+    find: "    setActiveCampId(_prevId);_checkpointMem=_prevCamp;", replace: "    _checkpointMem=_prevCamp;", mustFail: S4 },
+  { label: "S4: the undo is not logged",
+    find: "console.error(\"[import] the file could not be prepared — \"", replace: "void (\"[import] the file could not be prepared — \"", mustFail: S4 },
+  { label: "S6: an import runs under a turn in flight",
+    find: "if(typeof busy!==\"undefined\"&&busy)throw new Error(\"A turn is still in flight", replace: "if(false)throw new Error(\"A turn is still in flight",
+    mustFail: "FAIL #777 S6: an import while a turn is in flight" }
+]);
+
+// ── S5: what counts as a long-term memory ───────────────────────────────────────────────────────────────────────────
+sync("state.js", [
+  { label: "S5: {} counts as a memory again",
+    find: "if(missing.length===MEMORY_CORE_STORES.length)return \"an empty shell — none of its stores are there\";", replace: "if(missing.length===MEMORY_CORE_STORES.length)return \"\";",
+    mustFail: "FAIL #777 S5: {} and every other non-memory are named as such" },
+  { label: "S5: a memory missing some stores is blanked whole (what it holds is thrown away)",
+    find: "if(!m||typeof m!==\"object\"||Array.isArray(m)||/^an empty shell/.test(issue))return", replace: "if(true)return",
+    mustFail: "FAIL #777 S5: {} and every other non-memory are named as such" },
+  { label: "S5: a stored {} loads without being kept or said",
+    find: "  if(_hma.blank)throw new Error(\"the long-term memory is \"+_hma.issue);\n", replace: "",
+    mustFail: "FAIL #777 S5: a stored memory of {} is rescued and replaced at load" },
+  { label: "S5: a camp with no memory stores is restored (the heal lets an empty shell through)",
+    find: "  if(_hma.blank)throw new Error(\"the long-term memory is \"+_hma.issue);\n", replace: "",
+    mustFail: "FAIL #777 S5: a camp held with a memory of {} is refused at restore" }
+]);
+sync("storage-adapter.js", [
+  { label: "S5: the reconcile adopts any truthy memory again",
+    find: "var _adm = memoryAdmit(data.memory);", replace: "var _adm = { memory: data.memory || blankMemory(), issue: \"\" };",
+    mustFail: "FAIL #777 S5: the reconcile adopts a cloud copy whose memory is {}" },
+  { label: "S5: an adopted empty memory is not said",
+    find: "if (_adm.blank && typeof showToast === \"function\") showToast(", replace: "if (false) showToast(",
+    mustFail: "FAIL #777 S5: the reconcile adopts a cloud copy whose memory is {}" }
+]);
+sync("ui-campaigns.js", [
+  { label: "S5: the manual pull hands {} on as the campaign's memory",
+    find: "  if(!a.issue)return a.memory;\n", replace: "  if(data&&data.memory&&typeof data.memory===\"object\")return data.memory;\n",
+    mustFail: "FAIL #777 S5: the manual pull's memory check is the same one" },
+  { label: "S5: the manual push uploads a memory of {}",
+    find: "  if(_pmi){_refuse(\"its memory slot is \"+_pmi", replace: "  if(false){_refuse(\"its memory slot is \"+_pmi",
+    mustFail: "FAIL #777 S13: a push of a campaign whose saved world cannot be read says so" },
+  { label: "S13: an unreadable world is refused without a word",
+    find: "catch(e){_refuse(\"its saved world could not be read\",\"unparseable: \"+(e&&e.message));return;}", replace: "catch(e){if(cb)cb(false);return;}",
+    mustFail: "FAIL #777 S13: a push of a campaign whose saved world cannot be read says so" },
+  { label: "S7: the local Load switches campaigns under a turn in flight",
+    find: "  if(typeof busy!==\"undefined\"&&busy){showToast(\"Finish the current turn first.\");return;}\n  var ok=switchToCampaign(id);", replace: "  var ok=switchToCampaign(id);",
+    mustFail: "FAIL #777 S7: the local Load does not switch campaigns while a turn is in flight" }
+]);
+
+// ── S8–S11 ──────────────────────────────────────────────────────────────────────────────────────────────────────────
+var S8 = "FAIL #777 S8: a script loaded by a page outside the app shell is network-first too";
+sync("sw.js", [
+  { label: "S8: the designer's scripts are served cache-first again",
+    find: "|\\/designer-/.test(e.request.url)", replace: "/.test(e.request.url)", mustFail: S8 }
+]);
+sync("dev/class-guards.js", [
+  { label: "S8: the script check leaves the class guards",
+    find: ".concat(networkFirstScriptProblems(root))", replace: "", mustFail: S8 },
+  { label: "S8: a script in the app shell or on another origin is all the check looks past (a query string hides a script)",
+    find: "sw.regex.test(\"https://tnd.example/\" + url.replace(/^\\.\\//, \"\"))", replace: "(sw.regex.test(\"https://tnd.example/\" + url.replace(/^\\.\\//, \"\")) || url.indexOf(\"?\") >= 0)", mustFail: S8 }
+]);
+sync("storage-adapter.js", [
+  { label: "S9: a refused portrait upload reads as a success",
+    find: "if (!r || !r.ok) { _portraitDirty = true;", replace: "if (false) { _portraitDirty = true;",
+    mustFail: "FAIL #777 S9: a portrait upload the server refuses is logged and sent again" }
+]);
+var S10 = "FAIL #777 S10: a re-homed campaign takes its preserved copies with it";
+var S11_DEL = "FAIL #777 S11: a deleted campaign's camp leaves IndexedDB";
+sync("state.js", [
+  { label: "S10: the preserved copies stay under the old id",
+    find: "try{store.set(_rn[i],v);if(store.get(_rn[i])===v)store.del(_ro[i]);else throw new Error(\"the copy did not read back\");}", replace: "try{}", mustFail: S10 },
+  { label: "S10: the saved-campaign rescue is not on the list that moves",
+    find: "STORE_RESCUE_K+\"mem_\"+id,STORE_RESCUE_K+\"core_\"+id];}", replace: "STORE_RESCUE_K+\"mem_\"+id];}", mustFail: S10 },
+  { label: "S11: a deleted campaign keeps its camp in IndexedDB",
+    find: "  forgetCampaignCheckpoint(id);/* S11: and its camp */\n", replace: "", mustFail: S11_DEL },
+  { label: "S11: Remove local keeps the camp in IndexedDB",
+    find: "forgetCampaignSyncMarkers(id);forgetCampaignCheckpoint(id);/* S11: a campaign that comes back", replace: "forgetCampaignSyncMarkers(id);/* S11: a campaign that comes back", mustFail: S11_DEL },
+  { label: "S11: freeing a slot mid-switch drops the camp too",
+    find: "  if(opts&&opts.teardown){forgetCampaignSyncMarkers(id);", replace: "  forgetCampaignCheckpoint(id);if(opts&&opts.teardown){forgetCampaignSyncMarkers(id);", mustFail: S11_DEL },
+  { label: "S11: a re-homed campaign's camp stays under the old id",
+    find: "return idbPutCheckpoint(nid,snap).then(function(){return idbDelCheckpoint(old);});", replace: "return null;",
+    mustFail: "FAIL #777 S11: a re-homed campaign's camp is moved to the new id" }
 ]);
 
 process.exit(failed ? 1 : 0);

@@ -536,7 +536,12 @@ var storageAdapter = (function() {
       method:  "PUT",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + _token },
       body:    JSON.stringify({ portrait: portrait, npcPortraits: npcPortraits })
-    }, SYNC_TIMEOUT_MS).catch(function(e) {
+    }, SYNC_TIMEOUT_MS).then(function(r) {
+      /* audit 2026-11-19, S9: only a thrown fetch counted as a failure, so a 401, a 413 or a 500 read as success — the flag
+         stayed clear, nothing was logged, and a sheet-less NPC's portrait (this store is its only transport) never reached
+         the other device. A refused upload is a failed one: marked to go again with the next state sync. */
+      if (!r || !r.ok) { _portraitDirty = true; console.warn("[storage] portrait sync refused for " + campId + ": HTTP " + (r ? r.status : "?") + " — it is tried again with the next save"); }
+    }).catch(function(e) {
       _portraitDirty = true;
       console.warn("[storage] portrait sync failed:", e.message);
     });
@@ -861,6 +866,11 @@ var storageAdapter = (function() {
        No reconcile, no boot push: the "fresh device" branch would otherwise adopt the account's latest cloud world over it,
        and the refusal screen would be lying. The player reloads into the newer build; that build reconciles. */
     if (!localOk && typeof versionRefusedLoad === "function" && versionRefusedLoad()) { console.warn("[version] boot reconcile skipped — the local save was refused as newer (" + versionRefusedLoad() + ")"); cb(false); return; }
+    /* Audit 2026-11-19, S3: the same for a local save this build could not read or prepare. The "fresh device" reconcile
+       would adopt the ACCOUNT'S MOST RECENT cloud campaign — possibly another campaign — into the live keys that still hold
+       the unreadable one. The refusal screen offers the campaign list instead, where the cloud copy of THIS campaign can be
+       loaded on purpose. */
+    if (!localOk && typeof unreadableLoad === "function" && unreadableLoad()) { console.warn("[storage] boot reconcile skipped — the local save could not be " + unreadableLoad().stage + " (" + unreadableLoad().reason + "); nothing is adopted over it"); cb(false); return; }
 
     if (!_serverUrl) {
       cb(localOk);
@@ -1051,7 +1061,14 @@ var storageAdapter = (function() {
         var _scid = data.campaignId || (worldState && worldState.campId);
         if (_scid) { if (typeof setActiveCampId === "function") setActiveCampId(_scid); worldState.campId = _scid; }
         sessionLog = data.sessionLog || [];
-        memory     = data.memory || blankMemory();
+        /* audit 2026-11-19, S5: `data.memory || blankMemory()` took ANY truthy value — `{}` above all, which clients before
+           audit D5 pushed with a real turn number — and saveAll() below persisted it. state.js memoryAdmit is the one test. */
+        var _adm = memoryAdmit(data.memory);
+        memory = _adm.memory;
+        if (_adm.issue) {
+          console.warn("[storage] reconcile: the cloud copy of " + _serverCamp + " carries no usable long-term memory (" + _adm.issue + ") — " + (_adm.blank ? "adopted with an EMPTY memory" : "the missing stores start empty"));
+          if (_adm.blank && typeof showToast === "function") showToast("&#9888; The cloud copy has no long-term memory &mdash; this campaign continues without NPC and lore recall.");
+        }
         // Adopted an un-migrated, un-healed server blob (audit E14) — run the same battery loadState
         // and importSave (audit #15) do, so old-schema fields don't run all session and re-sync.
         if (typeof migrateWorldState === "function") migrateWorldState();

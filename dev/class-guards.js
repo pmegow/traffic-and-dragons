@@ -240,6 +240,29 @@ function networkFirstProblems(root, opts) {
   return pages.filter(function (p) { return sw.shell.indexOf(p.file) < 0 && !exempt[p.file] && !sw.regex.test("https://tnd.example/" + p.file); })
     .map(function (p) { return p.file + " is outside APP_SHELL and not in sw.js's network-first regex — the service worker serves it cache-first, stale until the next CACHE bump (the v1.360 bug_tracker lesson)"; });
 }
+/* Audit 2026-11-19, S8 — the SCRIPTS a network-first page loads. The check above reads pages only, and four Blueprint
+   Designer scripts (designer-acts.js, designer-assistant.js, designer-prose.js, designer-assistant-ui.js) matched no
+   network-first branch: the service worker served them cache-first, and a designer-only commit bumps no CACHE, so authors
+   ran stale code against a fresh page. Every same-folder script (or stylesheet) a page outside APP_SHELL loads must itself
+   be in APP_SHELL (it changes with CACHE) or match the network-first regex, tested on the URL as written, query included.
+   opts as networkFirstProblems. */
+function networkFirstScriptProblems(root, opts) {
+  var pages = (opts && opts.pages) || trackedPages(root);
+  var sw = swShellAndRegex((opts && opts.sw) || fs.readFileSync(path.join(root, "sw.js"), "utf8")), out = [], seen = {};
+  pages.forEach(function (p) {
+    if (sw.shell.indexOf(p.file) >= 0) return;
+    var re = /<(?:script\b[^>]*\bsrc|link\b[^>]*\bhref)\s*=\s*["']([^"'#]+)["']/g, m;
+    while ((m = re.exec(p.text))) {
+      var url = m[1], file = url.split("?")[0].replace(/^\.\//, "");
+      if (/^[a-z][a-z0-9+.-]*:|^\/\//i.test(url) || !/\.(?:js|css)$/.test(file)) continue;   /* another origin, or not a script or stylesheet */
+      if (sw.shell.indexOf(file) >= 0 || sw.regex.test("https://tnd.example/" + url.replace(/^\.\//, ""))) continue;
+      if (seen[p.file + "|" + url]) continue;
+      seen[p.file + "|" + url] = 1;
+      out.push(p.file + " loads " + url + ", which is outside APP_SHELL and not in sw.js's network-first regex — the service worker serves it cache-first, so the page runs a stale copy until the next CACHE bump (audit 2026-11-19 S8)");
+    }
+  });
+  return out;
+}
 // An exemption the source no longer needs is a problem too: the registry must stay the truth.
 function staleExemptions(root, opts) {
   var pages = (opts && opts.pages) || trackedPages(root), reg = (opts && opts.registry) || EXEMPT, out = [];
@@ -258,11 +281,11 @@ function staleExemptions(root, opts) {
 function allProblems(root) {
   return frozenWaitPaints(root).map(function (p) { return p.file + ":" + p.line + " paints \"" + p.literal + "\" in " + p.fn + ", which waits on a model or an image — ride elapsedTicker (#356), or add a reasoned EXEMPT.paints entry"; })
     .concat(thinkingMarkerWrites(root).map(function (p) { return p.file + ":" + p.line + " writes the thinking marker " + p.name + " directly in " + p.fn + " — the next tick repaints it; use setThinking(" + p.name + ", text) (#481 G5 follow-up)"; }))
-    .concat(paletteProblems(root)).concat(networkFirstProblems(root)).concat(staleExemptions(root));
+    .concat(paletteProblems(root)).concat(networkFirstProblems(root)).concat(networkFirstScriptProblems(root)).concat(staleExemptions(root));
 }
 
 module.exports = { WAIT_PRIMITIVES: WAIT_PRIMITIVES, EXEMPT: EXEMPT, scriptText: scriptText, functionsOf: functionsOf, codeOnly: codeOnly, loadSources: loadSources, sourcesOf: sourcesOf,
-  waitingNames: waitingNames, frozenWaitPaints: frozenWaitPaints, thinkingMarkerWrites: thinkingMarkerWrites, paletteProblems: paletteProblems, networkFirstProblems: networkFirstProblems, staleExemptions: staleExemptions, allProblems: allProblems };
+  waitingNames: waitingNames, frozenWaitPaints: frozenWaitPaints, thinkingMarkerWrites: thinkingMarkerWrites, paletteProblems: paletteProblems, networkFirstProblems: networkFirstProblems, networkFirstScriptProblems: networkFirstScriptProblems, staleExemptions: staleExemptions, allProblems: allProblems };
 
 if (require.main === module) {
   var probs = allProblems(path.join(__dirname, ".."));

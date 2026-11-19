@@ -66,6 +66,33 @@ function archiveHeal(arc){
 }
 function blankMemory(){return keyedStores({npcs:{},locations:{},quests:{},lore:[],keyDecisions:[],futureEvents:[],chapters:[],eras:[],nameIdx:0,attitudeSpec:2,map:{nodes:keyedDict(),edges:[],lastArrivalFrom:null},npcGraph:{edges:[],factions:keyedDict(),factionEdges:[],npcFactions:keyedDict()},archive:blankArchive()},"memory");}/* eras: #148 Phase 2 — compiled era summaries above chapters; legacy saves self-heal via memEras() */
 var memory=blankMemory();
+/* Audit 2026-11-19, S5 — THE ONE TEST OF "IS THIS A LONG-TERM MEMORY". healMemory fills the lazily added fields (map,
+   npcGraph, futureEvents, nameIdx, the archive) but never the six stores every reader assumes; an object without them
+   passed every door as healthy — `{}` above all (audit D5: not an empty memory but a broken one, and clients before D5
+   pushed it with a real turn) — and the first reader threw. memoryShapeIssue(m) → "" when m is usable, else the reason.
+   memoryAdmit(m) → {memory, issue, blank}: a value that is no memory at all, or an empty shell, becomes blankMemory()
+   (blank:true); a memory missing SOME stores keeps what it has and gets the missing ones empty. The caller says the
+   issue out loud; a door that must not degrade (checkpointRestore) refuses on memoryShapeIssue instead. */
+var MEMORY_CORE_STORES=[["npcs","object"],["locations","object"],["quests","object"],["lore","array"],["keyDecisions","array"],["chapters","array"]];
+function _memoryStoreOk(v,kind){return kind==="array"?Array.isArray(v):!!v&&typeof v==="object"&&!Array.isArray(v);}
+function memoryShapeIssue(m){
+  if(m===undefined)return "absent";
+  if(m===null)return "null";
+  if(Array.isArray(m))return "an array";
+  if(typeof m!=="object")return "a "+typeof m;
+  var missing=[],i;
+  for(i=0;i<MEMORY_CORE_STORES.length;i++)if(!_memoryStoreOk(m[MEMORY_CORE_STORES[i][0]],MEMORY_CORE_STORES[i][1]))missing.push(MEMORY_CORE_STORES[i][0]);
+  if(missing.length===MEMORY_CORE_STORES.length)return "an empty shell — none of its stores are there";
+  return missing.length?"missing "+missing.join(", "):"";
+}
+function memoryAdmit(m){
+  var issue=memoryShapeIssue(m),i,blank,k;
+  if(!issue)return {memory:m,issue:"",blank:false};
+  if(!m||typeof m!=="object"||Array.isArray(m)||/^an empty shell/.test(issue))return {memory:blankMemory(),issue:issue,blank:true};
+  blank=blankMemory();
+  for(i=0;i<MEMORY_CORE_STORES.length;i++){k=MEMORY_CORE_STORES[i][0];if(!_memoryStoreOk(m[k],MEMORY_CORE_STORES[i][1]))m[k]=blank[k];}
+  return {memory:m,issue:issue,blank:false};
+}
 // Usage/cost telemetry (TODO #21) — per-campaign accumulator on worldState.usage.
 // byKind buckets: turn / actions / summarize / skeleton / sync / other. costUSD is an
 // estimate priced at record time from MODEL_PRICING (unknown models contribute $0).
@@ -298,6 +325,23 @@ function parseWorldState(str){return inflateWorldStateSnapshot(JSON.parse(str));
    at the top of every loadState; ui-boot's initState shows the refusal screen instead of the wizard while it is set. */
 var _versionRefusedLoad=null;
 function versionRefusedLoad(){return _versionRefusedLoad;}
+/* Audit 2026-11-19, S3 — A SAVE THIS BUILD COULD NOT READ IS REFUSED OUT LOUD, NEVER DROPPED. loadState used to return false
+   without a word when the stored campaign failed to parse (cut-off bytes) or to be prepared (a heal that threw on a field it
+   did not expect): the boot then showed the character wizard, and a new game's first save wrote over the only copy. The
+   session and memory keys have had a rescue copy since JP0-4; the campaign itself had none. Now the raw bytes are kept a
+   second time under their own rescue key, the reason is said (console, toast), and the boot shows a refusal screen in place
+   of the wizard (ui-boot initState, as the newer-build refusal does). {reason, stage, campId, rescueKey|null}; null = none. */
+var _unreadableLoad=null;
+function unreadableLoad(){return _unreadableLoad;}
+function refuseUnreadableSave(raw,err,stage){
+  var id=(typeof getActiveCampId==="function"&&getActiveCampId())||"default",rk=STORE_RESCUE_K+"core_"+id,kept=false;
+  if(typeof raw==="string"&&raw.length>0){try{store.set(rk,raw);kept=(store.get(rk)===raw);}catch(eKeep){kept=false;}}/* the bytes, verbatim — the JP0-4 rule */
+  var why=(err&&err.message)||String(err||"unknown error");
+  _unreadableLoad={reason:why,stage:stage,campId:id,rescueKey:kept?rk:null};
+  if(typeof console!=="undefined")console.error("[save] the campaign saved on this device could not be "+stage+" — "+why+". Nothing was changed: the stored save is still under "+WSK+(kept?", and a second copy is kept under "+rk:", but a second copy could NOT be kept (storage full?)")+". No new game is started over it.",err);
+  if(typeof showToast==="function")showToast("⚠ The campaign saved on this device could not be read ("+escHtml(why)+"). Nothing was changed"+(kept?"; a backup of the unreadable save was kept.":"."),9000);
+  return _unreadableLoad;
+}
 /* #599 (a): THE PUBLICATION LOCK. When the cloud copy of a campaign was written by a newer build than this one (the reconcile
    or a manual pull refused it), this device must never push its older state over it. ONE stored key holding the campaign id
    and the reason: it outlives a reload of the same stale build (the SW can lag a navigation); _syncNow refuses while it
@@ -903,17 +947,18 @@ function loadState(){
   // then overwrote the intact campaign). SLK is parsed BEFORE the migrate/saveCore (audit E36) so a
   // migrate-save persists the loaded log, not the stale global.
   try{sessionLog=sl?JSON.parse(sl):[];}catch(e){rescueCorruptStore("sess",sl,e);sessionLog=[];}/* JP0-4: preserve + shout before degrading */
-  _versionRefusedLoad=null;
+  _versionRefusedLoad=null;_unreadableLoad=null;
   try{if(ws){worldState=parseWorldState(ws);restoreTranscriptRescue();/* UA3: BEFORE any migrate-save — preserve the rescued transcript. */if(typeof _sumFails!=="undefined")_sumFails=worldState.summaryFailure&&typeof worldState.summaryFailure.count==="number"?worldState.summaryFailure.count:0;}}catch(e){worldState=null;
     /* #599 (a): the stored save was written by a newer build. Nothing was changed (the gate threw before the first write);
        the reason is kept for the boot, which shows the refusal screen instead of the wizard (ui-boot initState). */
     if(e&&e.incompatible){_versionRefusedLoad=e.message;console.error("[version] local load REFUSED — "+e.message+"; nothing was changed, reload to update");if(typeof showToast==="function")showToast("⚠ "+e.message+VERSION_RELOAD_HINT,9000);}
+    else refuseUnreadableSave(ws,e,"read");/* S3: any other parse failure — cut-off or damaged bytes */
     return false;}
   try{if(mm){memory=JSON.parse(mm);_mapHealed=healMemory();}else memory=blankMemory();}catch(e){rescueCorruptStore("mem",mm,e);memory=blankMemory();}/* JP0-4: covers a heal throw on VALID json too — the bytes are still the only copy */
   if(memoryOwnerMismatch(worldState,memory)){/* #365: loud, attributable, never silent */var _own=(typeof campDisplayName==="function"&&campDisplayName(memory.campId))||memory.campId;console.error("[load] MEMORY OWNER MISMATCH — the live memory is stamped for "+memory.campId+" but the worldState is "+worldState.campId+" (#365). Play would run this campaign on another campaign's canon.");if(typeof showToast==="function")showToast("\u26a0 This campaign's memory belongs to \""+_own+"\" \u2014 Load a saved copy of "+(worldState.campName||"this campaign")+" before playing on (#365).");if(typeof reportError==="function")reportError("memory-owner","memory "+memory.campId+" under worldState "+worldState.campId,{turn:worldState.turn});}
   /* #168 W7: relationship entity migration needs THIS campaign's alias table. Parsing/healing
      memory first prevents the previously active campaign from re-keying the incoming save. */
-  try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;return false;}
+  try{if(worldState&&migrateWorldState())saveCore();}catch(e){worldState=null;refuseUnreadableSave(ws,e,"prepared");/* S3: the bytes parsed but a heal threw — the stored save is untouched (saveCore never ran) */return false;}
   /* Persist the pre-image in the world before replacing the stored geography. */
   if(_mapHealed)saveMem();
   if(typeof audioScenePublish==="function")audioScenePublish("load");
@@ -925,6 +970,14 @@ function loadState(){
 function healMemory(){
   keyedStores(memory,"memory");
   if(!memory)memory=blankMemory();
+  /* audit 2026-11-19, S5: this function fills the lazily added fields but never the six stores every reader assumes, so a
+     memory without them (a stored `{}` above all — written by a pull before audit D5) came out "healed" and threw at its
+     first reader. An empty shell is no memory: it THROWS here, and every caller already treats a heal throw as an unreadable
+     memory (loadState rescues the bytes and says so; checkpointRestore rolls back). A memory missing SOME stores keeps what
+     it has and gets the missing ones empty, with a console line. */
+  var _hma=memoryAdmit(memory);
+  if(_hma.blank)throw new Error("the long-term memory is "+_hma.issue);
+  if(_hma.issue&&typeof console!=="undefined")console.warn("[save] the long-term memory was "+_hma.issue+" — those stores start empty; everything else is kept");
   if(!memory.futureEvents)memory.futureEvents=[];
   if(memory.usedNames!==undefined)delete memory.usedNames;/* AUDIT_FABLE_07_16 #12: dead field — nothing ever read or wrote it (name uniqueness moved to nameIdx rotation); heal converges old saves to the canonical shape by removing it */
   if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
@@ -1087,11 +1140,23 @@ function resolveImportedCampaignId(fileId){
    latch, the #365 memory owner stamp (only when it matched the old id — a stamp that never matched stays the signal
    it is), the held checkpoint (the D1 id change would drop it; restamped instead), and the live worldState.campId.
    ONE function, so the sync path's 403 re-home and any future caller cannot each forget a key. Returns the new id. */
+/* Every key that holds a preserved (rescue) copy for one campaign id — the ONE list rehomeCampaign moves (audit S10). A new
+   per-campaign rescue key is added here. */
+function campRescueKeys(id){return [TRANSCRIPT_RESCUE_K+id,CLOCK_RESCUE_K+id,STORE_RESCUE_K+"sess_"+id,STORE_RESCUE_K+"mem_"+id,STORE_RESCUE_K+"core_"+id];}
 function rehomeCampaign(reason){
   if(typeof stashJournalEnsure==="function")stashJournalEnsure(worldState,false);
   var old=getActiveCampId(),nid=newCampaignId(),parts=["ws","sl","mem"],i,v;
   if(old){
     for(i=0;i<parts.length;i++){v=store.get(campSlotKey(old,parts[i]));if(v!=null){store.set(campSlotKey(nid,parts[i]),v);store.del(campSlotKey(old,parts[i]));}}
+    /* audit 2026-11-19, S10: the preserved copies follow the campaign too. A transcript rescue left under the old id is
+       looked for under the new one at the next load (restoreTranscriptRescue) and never found — the "auto-recovers on a
+       healthy reload" the player was promised. A copy that cannot be moved stays where it is, and that is said. */
+    var _ro=campRescueKeys(old),_rn=campRescueKeys(nid);
+    for(i=0;i<_ro.length;i++){
+      v=store.get(_ro[i]);if(v==null)continue;
+      try{store.set(_rn[i],v);if(store.get(_rn[i])===v)store.del(_ro[i]);else throw new Error("the copy did not read back");}
+      catch(eRk){if(typeof console!=="undefined")console.warn("[camps] re-home: the preserved copy "+_ro[i]+" could not be moved to "+_rn[i]+" ("+((eRk&&eRk.message)||eRk)+") — it stays under the old id");}
+    }
     var meta=getCampMeta(),changed=false;
     for(i=0;i<meta.length;i++){if(meta[i]&&meta[i].id===old){meta[i]=ownAssign({},meta[i],{id:nid});delete meta[i].onServer;changed=true;}}
     if(changed)setCampMeta(meta);
@@ -1104,6 +1169,17 @@ function rehomeCampaign(reason){
   var held=_checkpointMem;
   setActiveCampId(nid);/* D1 clears the holder on an id change — restored below under the new stamp */
   if(held){held.campId=nid;_checkpointMem=held;}
+  /* audit 2026-11-19, S11: the IndexedDB camp is keyed by the OLD id — after a reload the re-homed campaign looked for its
+     camp under the new id and had none, and the old copy stayed for good. Moved: written under the new id (the held copy,
+     else the stored one, restamped), then the old key deleted; a failure is said and the old copy stays. */
+  if(old&&typeof idbGetCheckpoint==="function"&&typeof idbPutCheckpoint==="function"&&typeof idbDelCheckpoint==="function"){
+    try{(held?Promise.resolve(held):idbGetCheckpoint(old)).then(function(snap){
+      if(!snap)return null;
+      snap.campId=nid;
+      return idbPutCheckpoint(nid,snap).then(function(){return idbDelCheckpoint(old);});
+    }).catch(function(eCp){if(typeof console!=="undefined")console.warn("[checkpoint] re-home: the camp could not be moved from "+old+" to "+nid+" ("+((eCp&&eCp.message)||eCp)+")");});}
+    catch(eCp2){if(typeof console!=="undefined")console.warn("[checkpoint] re-home: the camp could not be moved ("+((eCp2&&eCp2.message)||eCp2)+")");}
+  }
   if(typeof worldState!=="undefined"&&worldState){worldState.campId=nid;
     /* #509: the campaign's own stamped moments follow it, or they read as "an earlier adventure" */
     var _rs=(old&&typeof campRestampId==="function")?campRestampId(worldState,old,nid):0;if(_rs)console.info("[camps] re-home: "+_rs+" stamped record(s) follow the campaign to "+nid+" (#509)");}
@@ -1117,6 +1193,9 @@ function rehomeCampaign(reason){
    path in dev/tests-423-import-ownership.js. Throws the same Errors the shell used to surface as "Import failed: …";
    returns the id plan ({id, reminted, fileId}). */
 function importSaveData(data){
+  /* audit 2026-11-19, S6: every other campaign door refuses while a turn is in flight (audit E3); this one did not, so the
+     old campaign's reply landed in the imported one. Refused before anything is read or written. */
+  if(typeof busy!=="undefined"&&busy)throw new Error("A turn is still in flight — wait for it to finish, then import.");
   /* #481 F2: a portrait that is not an image never enters the campaign (loud, one toast) */
   if(data&&data.worldState&&typeof portraitsSanitizeWorld==="function"){var _pd=portraitsSanitizeWorld(data.worldState);if(_pd&&typeof showToast==="function")showToast("⚠ "+_pd+" portrait"+(_pd>1?"s were":" was")+" dropped from the save — not an image");}
   if(!data||!data.worldState||!data.worldState.character)throw new Error("Invalid save.");
@@ -1137,6 +1216,30 @@ function importSaveData(data){
   // used to overwrite worldState + the active campaign id without preserving the current campaign,
   // silently destroying its in-session progress since the last snapshot.
   if(!snapshotActiveCamp())throw new Error("Storage full — couldn't back up the current campaign before importing.");/* B4: surfaces via importSave's own import-error path */
+  /* Audit 2026-11-19, S4 — AN IMPORT LANDS WHOLE OR NOT AT ALL. Everything from here to the save installs the file into the
+     live globals and the active id, and the heals that follow can throw on a field they did not expect (a null in a spell
+     list). The throw used to leave the app half-switched: the screen said "Import failed" while worldState, memory and the
+     active id were the half-prepared import, and the next save wrote that under the new id. The installs are undone on a
+     throw — globals, active id, the outgoing campaign's camp — and the error goes on to the importer as before. Nothing
+     is stored until saveAll, so the live keys still hold the outgoing campaign. */
+  var _prevWs=worldState,_prevSl=sessionLog,_prevMem=memory,_prevId=getActiveCampId(),_prevCamp=_checkpointMem,plan;
+  try{plan=_importInstall(data,ws);}
+  catch(eImp){
+    worldState=_prevWs;sessionLog=_prevSl;memory=_prevMem;
+    setActiveCampId(_prevId);_checkpointMem=_prevCamp;
+    if(typeof console!=="undefined")console.error("[import] the file could not be prepared — "+((eImp&&eImp.message)||eImp)+". The import is undone: the campaign that was open is still open, and nothing was saved.",eImp);
+    throw eImp;
+  }
+  saveAll();
+  if(plan.reminted){
+    console.info("[import] the file's campaign id "+plan.fileId+" is not one this device owns — imported as a NEW campaign "+plan.id+" (#423); nothing in the cloud is overwritten.");
+    if(typeof showToast==="function")showToast("Imported as a new campaign — the file's campaign id isn't one of yours on this device, so no cloud save is overwritten.");
+  }
+  return plan;
+}
+/* The installing half of importSaveData (S4): repoints the globals and the active id at the file and prepares it. It writes
+   nothing to storage; importSaveData undoes it when it throws. */
+function _importInstall(data,ws){
   worldState=ws;
   // Resolve the campaign slot (#423): the file's own id only when this device owns it; a foreign id is re-minted.
   var plan=resolveImportedCampaignId(ws.campId);
@@ -1180,11 +1283,6 @@ function importSaveData(data){
   migrateWorldState();/* relationship re-keying must see the imported campaign's memory aliases, not the outgoing campaign's. */
   if(typeof healMemory==="function")healMemory();
   if(typeof restoreCheckpointHolder==="function")restoreCheckpointHolder();/* D1: setActiveCampId dropped the OUTGOING campaign's camp (it would have restored the wrong world); fetch this one's own */
-  saveAll();
-  if(plan.reminted){
-    console.info("[import] the file's campaign id "+plan.fileId+" is not one this device owns — imported as a NEW campaign "+plan.id+" (#423); nothing in the cloud is overwritten.");
-    if(typeof showToast==="function")showToast("Imported as a new campaign — the file's campaign id isn't one of yours on this device, so no cloud save is overwritten.");
-  }
   return plan;
 }
 function updateCampMeta(){
@@ -1320,7 +1418,7 @@ function switchToCampaign(id){
     // id and live keys are already repointed while the worldState/memory globals still hold the OLD
     // campaign — the next saveAll then writes campaign A's state under campaign B's id, locally AND
     // on the server. The previous layout fits by construction (it existed at entry).
-    var _vr=_versionRefusedLoad;/* #599 (a): read before the rollback's own loadState resets it (review R11) */
+    var _vr=_versionRefusedLoad||_unreadableLoad;/* #599 (a): read before the rollback's own loadState resets it (review R11); S3: an unreadable slot has said its own reason too, and kept a copy */
     writeLiveKeys(prevWs,prevSl,prevMem);
     setActiveCampId(prevId);
     loadState(); // restore the previous campaign into the globals
@@ -1353,7 +1451,7 @@ function dedupeActiveCampSlots(){
 // the campaign the player is about to play — the silent cross-device loss JP0-11 exists to prevent.
 function removeCampaignLocalCopy(id,opts){
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
-  if(opts&&opts.teardown)forgetCampaignSyncMarkers(id);
+  if(opts&&opts.teardown){forgetCampaignSyncMarkers(id);forgetCampaignCheckpoint(id);/* S11: a campaign that comes back is loaded from the cloud, whose own camp slot still holds it */}
 }
 /* Audit D10/D13: the two per-campaign sync accumulators die WITH the campaign. JP0-11's unsynced-flush
    marker is capped at SYNC_DIRTY_CAP=8 with oldest-first eviction, so a marker for a campaign that no
@@ -1365,6 +1463,14 @@ function forgetCampaignSyncMarkers(id){
   if(!id||typeof storageAdapter==="undefined"||!storageAdapter)return;
   if(storageAdapter.clearFlushDirty)storageAdapter.clearFlushDirty(id);
   if(storageAdapter.clearSyncSizeWarn)storageAdapter.clearSyncSizeWarn(id);
+}
+/* Audit 2026-11-19, S11: the campaign's last camp leaves the device with it. The IndexedDB copy (ui-files.js; absent in the
+   headless engine) holds a whole world per campaign and nothing ever deleted one. Called where a campaign is deleted or its
+   local copy torn down; a failure is said and costs nothing but the space. */
+function forgetCampaignCheckpoint(id){
+  if(!id||typeof idbDelCheckpoint!=="function")return;
+  try{idbDelCheckpoint(id).catch(function(e){if(typeof console!=="undefined")console.warn("[checkpoint] the camp of "+id+" could not be removed from this device ("+((e&&e.message)||e)+") — it stays in IndexedDB");});}
+  catch(e2){if(typeof console!=="undefined")console.warn("[checkpoint] the camp of "+id+" could not be removed from this device ("+((e2&&e2.message)||e2)+")");}
 }
 // B4: policy for the picker's "Remove local" flow — pure so the engine tests can pin every branch;
 // ui-campaigns owns the dialogs and transport. cloudErr/cloudWs come from a FRESH server GET of
@@ -1440,6 +1546,7 @@ function deleteCampaign(id){
   store.del(campSlotKey(id,"ws"));store.del(campSlotKey(id,"sl"));store.del(campSlotKey(id,"mem"));
   setCampMeta(getCampMeta().filter(function(c){return c.id!==id;}));
   forgetCampaignSyncMarkers(id);/* D10/D13: the campaign is gone — its sync markers must not keep a capped slot */
+  forgetCampaignCheckpoint(id);/* S11: and its camp */
 }
 function migrateToCampaigns(){
   if(getActiveCampId())return;

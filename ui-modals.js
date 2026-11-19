@@ -1291,6 +1291,27 @@ function showVersionRefusedScreen(why){
   var c=document.getElementById("vr-clear");if(c)c.addEventListener("click",function(){if(typeof clearCacheAndReload==="function")clearCacheAndReload();else location.reload();});
   return m;
 }
+/* Audit 2026-11-19, S3: the campaign saved on this device could not be read — shown in place of the character wizard, so a
+   new game is a choice the player makes knowing the old save is still there. A thin shell over unreadableSaveHtml
+   (helpers.js); onNew runs the boot's own wizard path. The bytes offered for download are the kept backup, else the stored
+   save itself. */
+function showUnreadableSaveScreen(info,onNew){
+  var m=modalShell("unreadable-save",unreadableSaveHtml(info),{wireClose:false,noEscape:true});
+  function close(){var e=document.getElementById("unreadable-save");if(e)e.remove();}
+  var d=document.getElementById("us-download");
+  if(d)d.addEventListener("click",function(){
+    var raw=null;
+    try{raw=(info&&info.rescueKey&&store.get(info.rescueKey))||store.get(WSK);}catch(e){raw=null;}
+    if(typeof raw!=="string"||!raw.length){showToast("The unreadable save could not be fetched from this device's storage.");return;}
+    try{_downloadBlob(new Blob([raw],{type:"text/plain"}),"unreadable-save-"+String((info&&info.campId)||"campaign").replace(/[^A-Za-z0-9_-]/g,"_")+".txt");}
+    catch(e){console.error("[save] the unreadable save could not be downloaded:",e);showToast("The download failed: "+escHtml((e&&e.message)||"unknown error"));}
+  });
+  var c=document.getElementById("us-campaigns");
+  if(c)c.addEventListener("click",function(){close();if(typeof onNew==="function")onNew();if(typeof showCampaignPicker==="function")showCampaignPicker();});
+  var n=document.getElementById("us-new");
+  if(n)n.addEventListener("click",function(){close();if(typeof onNew==="function")onNew();});
+  return m;
+}
 /* #772: THE CONSOLE — the game's notices, collected instead of popping up (owner 2026-11-16/18). A thin shell over the
    session ring in helpers.js (consoleEntries / consoleRowsHtml): oldest first, scrolled to the newest, Clear empties it.
    Opening it reads it (the button's dot goes grey); a line that lands while it is open is shown at once and is read. */

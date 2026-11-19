@@ -95,6 +95,14 @@ function idbPutCheckpoint(campId,snap){
     tx.oncomplete=function(){res(true);};tx.onerror=function(){rej(tx.error);};
   });});
 }
+/* audit 2026-11-19, S11: nothing ever deleted a camp — each holds a whole world, and a deleted or re-homed campaign's stayed
+   in IndexedDB for good. state.js forgetCampaignCheckpoint / rehomeCampaign call this. */
+function idbDelCheckpoint(campId){
+  return _idbOpen().then(function(db){return new Promise(function(res,rej){
+    var tx=db.transaction(CP_IDB_STORE,"readwrite");tx.objectStore(CP_IDB_STORE)["delete"](campId);
+    tx.oncomplete=function(){res(true);};tx.onerror=function(){rej(tx.error);};
+  });});
+}
 function idbGetCheckpoint(campId){
   return _idbOpen().then(function(db){return new Promise(function(res,rej){
     var tx=db.transaction(CP_IDB_STORE,"readonly");var rq=tx.objectStore(CP_IDB_STORE).get(campId);

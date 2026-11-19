@@ -498,10 +498,16 @@ function initState(saved){
     /* #599 (a): a saved campaign this build could not read (written by a newer build) never gets the wizard — a new game
        would save over it. The refusal screen's only way on is a reload, which fetches the newer build. */
     if(typeof versionRefusedLoad==="function"&&versionRefusedLoad()){showVersionRefusedScreen(versionRefusedLoad());return;}
-    showChar();
-    consumeHomeCampaignAction(false);
-    if(typeof consumeHomeQuickStart==="function"&&consumeHomeQuickStart())return;/* #307: a hero + story picked on the home page — the campaign is already running */
-    if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290: a blueprint picked on the home page */
+    var _wizard=function(){
+      showChar();
+      consumeHomeCampaignAction(false);
+      if(typeof consumeHomeQuickStart==="function"&&consumeHomeQuickStart())return;/* #307: a hero + story picked on the home page — the campaign is already running */
+      if(typeof consumeHomeBlueprint==="function")consumeHomeBlueprint();/* #290: a blueprint picked on the home page */
+    };
+    /* audit 2026-11-19, S3: a saved campaign this build could not read or prepare never gets the wizard unasked — a new
+       game's first save would write over the only copy. The screen names the reason and the wizard is one of its choices. */
+    if(typeof unreadableLoad==="function"&&unreadableLoad()){showUnreadableSaveScreen(unreadableLoad(),_wizard);return;}
+    _wizard();
   }
 }
 function init(){initSettings();storageAdapter.load(initState);}

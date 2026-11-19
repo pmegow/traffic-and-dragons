@@ -1,4 +1,4 @@
-var CACHE = "tnd-v3-1452";
+var CACHE = "tnd-v3-1453";
 importScripts("audio-catalog.js?build="+CACHE,"audio-loader.js?build="+CACHE,"audio-cache.js?build="+CACHE);
 var AUDIO_CACHE_NAME="tnd-audio-"+AUDIO_CATALOG.version;
 var deliveryCache=createAudioCache({catalog:AUDIO_CATALOG,name:AUDIO_CACHE_NAME,caches:caches,fetch:function(r){return fetch(r);},warn:function(reason){
@@ -197,10 +197,13 @@ self.addEventListener("fetch", function(e){
   // test.html loads dev/engine-manifest.js + dev/engine-tests.js and map_cleanup.html loads
   // dev/loc-repair-core.js, none of which bump CACHE when they change, so a browser test run could
   // grade a STALE suite green and map_cleanup could run a stale repair core against real saves.
+  // Audit 2026-11-19, S8: /designer- — the Blueprint Designer's own scripts. A designer-only commit bumps no CACHE, so
+  // served cache-first they stayed stale under a fresh page. dev/class-guards.js networkFirstScriptProblems now derives
+  // this for every script a network-first page loads.
   // Nothing under /dev/ is in APP_SHELL, so this costs the app shell no bandwidth. Tested against
   // e.request.url (the FULL URL), hence the path-fragment style.
   if(/\/sfx\//.test(new URL(e.request.url).pathname)){e.respondWith(deliveryCache.fetch(e.request));return;}
-  if(/blueprint-designer|todo-viewer|bible_study|\/satellite\.css|home\.html(?:$|[?#])|admin_console|mementos|character_editor|bible_editor|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|capability-names|capability_vulnerabilities|recall_gate|map_viewer|map_cleanup|story_compiler|speaker_browser|libritts_speakers|vctk_speakers|\/test\.html(?:$|[?#])|\/dev\/|\/DOC\/|\/samples\/|signup\.html(?:$|[?#])|faq\.html(?:$|[?#])|invitation\.html(?:$|[?#])|game-theme\.js|\/website\/themes\.css/.test(e.request.url)){/* class_bible left this regex at C6-② (2026-08-03): it precaches with the app shell now — keeping it network-first too would re-download it every load (the Netlify bandwidth class) */
+  if(/blueprint-designer|todo-viewer|bible_study|\/satellite\.css|home\.html(?:$|[?#])|admin_console|mementos|character_editor|bible_editor|piper_test|npc-merge-studio|bug_tracker|author_voice_lab|voice_picker|capability-names|capability_vulnerabilities|recall_gate|map_viewer|map_cleanup|story_compiler|speaker_browser|libritts_speakers|vctk_speakers|\/test\.html(?:$|[?#])|\/dev\/|\/DOC\/|\/samples\/|signup\.html(?:$|[?#])|faq\.html(?:$|[?#])|invitation\.html(?:$|[?#])|game-theme\.js|\/website\/themes\.css|\/designer-/.test(e.request.url)){/* class_bible left this regex at C6-② (2026-08-03): it precaches with the app shell now — keeping it network-first too would re-download it every load (the Netlify bandwidth class) */
     e.respondWith(
       fetch(e.request).then(function(response){
         // OK response: cache a clone (restores offline support) and serve it fresh.

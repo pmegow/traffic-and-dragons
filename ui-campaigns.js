@@ -103,13 +103,18 @@ function campCloudPushSilent(id,cb){
   if(mem==null){_refuse("its memory slot is missing — push refused rather than uploading empty memory");return;}
   try{memObj=JSON.parse(mem);}catch(e){_refuse("its memory slot could not be read","unparseable: "+(e&&e.message));return;}
   if(!memObj||typeof memObj!=="object"||Array.isArray(memObj)){_refuse("its memory slot is not a memory — push refused");return;}
+  /* audit 2026-11-19, S5: an object is not yet a memory — a stored `{}` went up as memory:{} with a real turn (the D5 wipe) */
+  var _pmi=memoryShapeIssue(memObj);
+  if(_pmi){_refuse("its memory slot is "+_pmi+" — push refused rather than uploading it");return;}
   try{slObj=JSON.parse(sl==null?"[]":sl);}catch(e){_refuse("its session log could not be read","unparseable: "+(e&&e.message));return;}
   if(!Array.isArray(slObj)){_refuse("its session log is not a session log — push refused");return;}
   // v1.240: parseWorldState, NOT bare JSON.parse — since v1.227 the stored save carries the
   // transcript LZ-compressed ({__lz:…}). Shipping that raw poisoned the server blob: every
   // device that adopted it silently failed the story rebuild until UA3's tolerant inflate
   // self-healed it on the NEXT load (observed live 2026-07-10, the Ammut F5 incident).
-  var wsObj;try{wsObj=parseWorldState(ws);}catch(e){if(cb)cb(false);return;}
+  /* audit 2026-11-19, S13: an unreadable world used to answer cb(false) with no reason — and the rename path calls this with
+     no callback at all, so nothing was said anywhere */
+  var wsObj;try{wsObj=parseWorldState(ws);}catch(e){_refuse("its saved world could not be read","unparseable: "+(e&&e.message));return;}
   // #7③ (#23① sweep): this push must not clobber a NEWER server copy silently. Probe the server's
   // turn first and confirm; null (offline / no server row / the turn route not deployed) means
   // "cannot judge" and proceeds exactly as before, so the connect-time bulk push of local-only
@@ -256,11 +261,13 @@ function _applyLoadedCampaign(){
    throws. blankMemory() is the one legitimate empty shape, and a blob with no memory is worth saying
    out loud — it means the cloud copy of this campaign has no long-term memory to give back. */
 function _pulledMemory(data,id){
-  var m=data&&data.memory;
-  if(m&&typeof m==="object"&&!Array.isArray(m))return m;
-  console.warn("[camps] the server copy of "+campDisplayName(id)+" carries no long-term memory ("+(m===undefined?"absent":(m===null?"null":(Array.isArray(m)?"array":typeof m)))+") — this campaign downloads with an EMPTY memory (audit D5)");
-  if(typeof showToast==="function")showToast("⚠ "+campDisplayName(id)+"'s cloud copy has no long-term memory — it downloads without NPC/lore recall.");
-  return blankMemory();
+  /* audit 2026-11-19, S5: THE shape test is state.js memoryAdmit — this used to accept any plain object, `{}` included (the
+     very value D5 calls broken; clients before D5 pushed it with a real turn number, so such rows exist). */
+  var a=memoryAdmit(data&&data.memory);
+  if(!a.issue)return a.memory;
+  console.warn("[camps] the server copy of "+campDisplayName(id)+" carries no usable long-term memory ("+a.issue+") — "+(a.blank?"this campaign downloads with an EMPTY memory":"the missing stores download empty")+" (audit D5, S5)");
+  if(a.blank&&typeof showToast==="function")showToast("⚠ "+escHtml(campDisplayName(id))+"'s cloud copy has no long-term memory — it downloads without NPC/lore recall.");
+  return a.memory;
 }
 function campLoad(id){
   if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}// audit E23
@@ -296,6 +303,9 @@ function campLoad(id){
 }
 // #424: the pre-#424 Load — switch to this device's copy of the campaign.
 function _campLoadLocal(id){
+  /* audit 2026-11-19, S7: campLoad checks `busy` once, then waits up to 20 s for the cloud probe; a turn sent in that wait
+     used to have its reply land in the campaign switched to here. Checked again at the switch itself. */
+  if(typeof busy!=="undefined"&&busy){showToast("Finish the current turn first.");return;}
   var ok=switchToCampaign(id);
   if(!ok)return;/* #337: switchToCampaign toasts the specific reason (quota / corrupt) and restored the start layout */
   _applyLoadedCampaign();

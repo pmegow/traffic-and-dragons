@@ -4438,3 +4438,16 @@ function consoleRowsHtml(entries,dropped){
     h+="<div class='console-row'><span class='console-when'>"+escHtml(consoleClock(e.at))+(e.turn===null?"":" · turn "+e.turn)+"</span> "+escHtml(e.msg)+"</div>";}
   return h;
 }
+/* Audit 2026-11-19, S3: the screen shown in place of the character wizard when the campaign saved on this device could not be
+   read or prepared (state.js refuseUnreadableSave). Pure; every value is escaped. info = {reason, stage, campId, rescueKey}. */
+function unreadableSaveHtml(info){
+  info=info||{};
+  var kept=!!info.rescueKey,btn="font-family:var(--font);padding:8px 14px;background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;";
+  return "<h3 style='margin:0 0 10px;color:var(--acc);'>The campaign saved on this device could not be read</h3>"
+    +"<p style='color:var(--t1);margin:0 0 8px;'>It could not be "+(info.stage==="prepared"?"prepared for play":"read")+": "+escHtml(String(info.reason||"unknown error"))+".</p>"
+    +"<p style='color:var(--t1);margin:0 0 14px;'>Nothing was changed. "+(kept?"A backup of the unreadable save was kept on this device.":"A backup could NOT be kept (storage is full) &mdash; download the save before doing anything else.")
+    +" You can download it, load another campaign or this one's cloud copy from the campaign list, or start a new game.</p>"
+    +"<div style='display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;'><button id='us-download' style='"+btn+"'>Download the unreadable save</button>"
+    +"<button id='us-campaigns' style='"+btn+"'>Campaign list</button>"
+    +"<button id='us-new' style='font-family:var(--font);padding:8px 16px;background:var(--acc);color:var(--on-acc);border:none;border-radius:var(--r);cursor:pointer;font-weight:bold;'>Start a new game</button></div>";
+}
