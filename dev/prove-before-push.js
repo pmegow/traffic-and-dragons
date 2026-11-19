@@ -36,10 +36,8 @@ function replayCommands(workflow) {
 }
 
 // sweepSize — how many batteries the range sweep would run (run-sabotage-diff.js's own rule): CI's job, counted here.
-function sweepSize(changed, batterySources) {
-  return Object.keys(batterySources).filter(function (f) {
-    return changed.indexOf("dev/" + f) >= 0 || targets.targetsOf(batterySources[f]).some(function (t) { return changed.indexOf(t) >= 0; });
-  }).length;
+function sweepSize(changed, batterySources, more) {
+  return targets.due(changed, batterySources, more || null).length;   /* the sweep's own rule, from the one module (audit G2) */
 }
 
 function parseArgs(argv) {
@@ -88,7 +86,7 @@ function main() {
   if (!step(root, "applicability scan (every retained clause finds its anchor once)", ["dev/check-sabotage-applicability.js"])) red.push("the applicability scan");
   replays.forEach(function (c) { if (!step(root, "replay " + c[1], c)) red.push("replay " + c[1]); });
   if (!replays.length) { console.log("FAIL the workflow names no replay baseline (diff-replay … --check) — the list is derived from it"); red.push("no replay baselines found"); }
-  var left = sweepSize(changed, sources);
+  var left = sweepSize(changed, sources, targets.collected(root));   /* null for a foreign --root: its batteries are read from their text */
   function verdict(skipped) {
     var ciLine = "The range sweep is CI's: " + left + " battery(ies) target " + opts.range + " and run there on the push" + (left ? "; a red one reaches the next session through dev/ci-status.js." : ".");
     if (red.length) { console.error("PROVE BEFORE PUSH RED — " + red.join(", ") + ". " + ciLine); process.exit(1); }

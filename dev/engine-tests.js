@@ -35843,7 +35843,7 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var fs=__fsForTests,R=__rootForTests,mod={exports:{}};new Function("module","exports","require",fs.readFileSync(R+"/dev/battery-targets.js","utf8"))(mod,mod.exports,function(){throw new Error("no deps");});var T=mod.exports.targetsOf;
     var got=T('prove("tag_table.js", [\n { file: "api.js" }\n]);\nsabotage.prove({ file: "helpers.js", cases: [] });\nvar o = { "file": "ui-panels.js" };\nsabotage.prove("A LABEL, NOT A FILE", cases);\nprofile: "x"');
     if(got.join("|")!=="api.js|helpers.js|ui-panels.js|tag_table.js")return "targets: "+JSON.stringify(got);
-    var rsd=fs.readFileSync(R+"/dev/run-sabotage-diff.js","utf8");if(rsd.indexOf('require("./battery-targets.js").targetsOf(src)')<0||/file\["'\]\?\\s\*:/.test(rsd))return "run-sabotage-diff reads targets through the one module";
+    var rsd=fs.readFileSync(R+"/dev/run-sabotage-diff.js","utf8");if(rsd.indexOf('require("./battery-targets.js")')<0||rsd.indexOf(".due(changed,sources,more)")<0||/file\["'\]\?\\s\*:/.test(rsd))return "run-sabotage-diff reads targets through the one module";
     var names=["sabotage-599c-shape-flip.js","sabotage-599c2-review.js","sabotage-599d-equipped.js","sabotage-607-jewelry.js","sabotage-608-display-order.js","sabotage-599b3-one-key.js"],i;
     for(i=0;i<names.length;i++){var t=T(fs.readFileSync(R+"/dev/"+names[i],"utf8"));if(!t.length||t.some(function(x){return !fs.existsSync(R+"/"+x);}))return names[i]+" declares its targets through the wrapper: "+JSON.stringify(t);}
     return true;

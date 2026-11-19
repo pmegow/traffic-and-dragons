@@ -10,19 +10,18 @@ var ROOT=path.join(__dirname,"..");
 var args;try{args=pool.jobsFrom(process.argv.slice(2),process.env,os.cpus().length);}catch(e){console.error("run-sabotage-diff: "+e.message);process.exit(2);}
 var range=args.rest[0]||"HEAD~1..HEAD";
 var diff=cp.spawnSync("git",["diff","--name-only",range],{cwd:ROOT,encoding:"utf8"});
-if(diff.status!==0){console.log("run-sabotage-diff: no diff available ("+String(diff.stderr||"").trim()+") — nothing to run");process.exit(0);}
+/* audit 2026-11-19, G9: an unreadable range used to exit 0 ("nothing to run") — a green over nothing, on the only sweep a push gets */
+if(diff.status!==0){console.error("run-sabotage-diff: could not read the range "+range+" ("+String(diff.stderr||diff.error||"").trim().split(/\r?\n/)[0]+") — NOTHING was proven. Pass a range that exists.");process.exit(2);}
 var changed=diff.stdout.split(/\r?\n/).map(function(s){return s.trim().replace(/\\/g,"/");}).filter(Boolean);
 if(!changed.length){console.log("run-sabotage-diff: no changed files in "+range);process.exit(0);}
 var batteries=fs.readdirSync(path.join(ROOT,"dev")).filter(function(f){return /^sabotage-.*\.js$/.test(f)&&f!=="sabotage.js";});
-var due=[];
-batteries.forEach(function(f){
-  var src=fs.readFileSync(path.join(ROOT,"dev",f),"utf8");
-  /* #472: a quoted key ("file": "x") counts too — sabotage-blueprint-catalog.js declares its target that way and was never
-     scheduled; the boundary keeps a key like profile: from reading as file: */
-  var targets=require("./battery-targets.js").targetsOf(src);/* #599 (d2), review 4: the prove("file", …) wrapper counts too — 78 batteries were invisible to this sweep */
-  var hit=changed.indexOf("dev/"+f)>=0||targets.some(function(t){return changed.indexOf(t)>=0;});
-  if(hit)due.push(f);
-});
+/* The ONE scheduling rule lives in dev/battery-targets.js (due): a battery that changed, or one that targets a changed file — by its
+   text (file: "x", "file": "x", prove("x", …); #472, #599 (d2)) or by what it HANDS the harness (collected; audit 2026-11-19 G2:
+   a wrapper named proveV or a target held in a variable hid 94 clauses from this sweep, 19 of them on memory.js). */
+var T=require("./battery-targets.js"),more,sources={};
+try{more=T.collected(ROOT);}catch(e){console.error("run-sabotage-diff: could not read what the batteries target ("+(e&&e.message||e)+") — refusing to schedule from a partial list");process.exit(2);}
+batteries.forEach(function(f){sources[f]=fs.readFileSync(path.join(ROOT,"dev",f),"utf8");});
+var due=T.due(changed,sources,more);
 if(!due.length){console.log("run-sabotage-diff: "+changed.length+" changed file(s), no battery targets them");process.exit(0);}
 console.log("run-sabotage-diff: "+due.length+" battery(ies) target changed files — "+due.join(", "));
 console.log("run-sabotage-diff: "+Math.min(args.jobs,due.length)+" at a time (--jobs=N or SABOTAGE_JOBS=N to change)");

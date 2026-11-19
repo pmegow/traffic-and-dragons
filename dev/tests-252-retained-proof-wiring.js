@@ -212,8 +212,45 @@ test("diff runner schedules a quoted \"file\" key, ignores a profile: key, print
     git(["commit", "-q", "-am", "an unannounced 78"]);
     run = cp.spawnSync(process.execPath, ["dev/run-sabotage-diff.js"], { cwd: tmp, env: env, encoding: "utf8" }); out = output(run);
     if (run.status === 0) return "an unannounced exit 78 passed the gate: " + out;
-    return /FAIL sabotage-skip\.js/.test(out) ? "" : "the unannounced 78 was not named as the failure: " + out;
+    if (!/FAIL sabotage-skip\.js/.test(out)) return "the unannounced 78 was not named as the failure: " + out;
+    /* audit 2026-11-19, G9: a range git cannot read ran nothing and exited GREEN ("nothing to run"), while its sibling tools
+       refuse the same condition — and this sweep is the only proof a push gets */
+    run = cp.spawnSync(process.execPath, ["dev/run-sabotage-diff.js", "no-such-ref-g9..HEAD"], { cwd: tmp, env: env, encoding: "utf8" }); out = output(run);
+    if (run.status === 0) return "G9: a range that cannot be read exited green with nothing run: " + out;
+    return /could not read the range no-such-ref-g9\.\.HEAD/.test(out) && /NOTHING was proven/.test(out) ? "" : "G9: the unreadable range was not named, or the run did not say that nothing was proven: " + out;
   } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+});
+
+// Audit 2026-11-19, G2: battery-targets.js read a battery's targets from its SOURCE TEXT — `file: "x"` and a call spelled
+// exactly `prove("x"`. A battery that wraps the call (proveV, proveU, proveE, proveF) or holds the target in a variable was
+// invisible to the range sweep: 18 battery/target pairs, 94 clauses, 19 of them on memory.js. The sweep is the only proof a
+// push gets, so for this repository the targets are also read from what each battery actually hands the harness.
+test("G2: the range sweep schedules a battery whose target reaches the harness through a wrapper or a variable", function () {
+  var T = require("./battery-targets.js"), more;
+  if (typeof T.collected !== "function" || typeof T.due !== "function") return "battery-targets.js reads source text only (no collected(), no due())";
+  more = T.collected(ROOT);
+  if (!more) return "no targets were collected for this repository";
+  var want = [["sabotage-b38-extractor-refusal.js", "memory.js"], ["sabotage-bible-editor-remaining.js", "bible_editor.html"], ["sabotage-427-library-upstream.js", "game.js"]];
+  var sources = {};
+  fs.readdirSync(path.join(ROOT, "dev")).filter(function (f) { return /^sabotage-.*\.js$/.test(f); }).forEach(function (f) { sources[f] = fs.readFileSync(path.join(ROOT, "dev", f), "utf8"); });
+  for (var i = 0; i < want.length; i++) {
+    if (T.targetsOf(sources[want[i][0]]).indexOf(want[i][1]) >= 0) return want[i][0] + " now names " + want[i][1] + " in its text — pick another example of a wrapped target";
+    if (T.due([want[i][1]], sources, more).indexOf(want[i][0]) < 0) return "a change to " + want[i][1] + " does not schedule " + want[i][0];
+    if (T.due([want[i][1]], sources, null).indexOf(want[i][0]) >= 0) return "the text reader alone found " + want[i][0] + " — the example proves nothing";
+  }
+  // the class, not the examples: every target a battery hands the harness is a target the sweep knows
+  var unseen = [];
+  Object.keys(more).forEach(function (b) { more[b].forEach(function (t) { if (T.due([t], sources, more).indexOf(b) < 0) unseen.push(b + " → " + t); }); });
+  if (unseen.length) return "targets the sweep cannot see: " + unseen.join(", ");
+  if (T.due(["dev/sabotage-473-capture-run.js"], sources, more).indexOf("sabotage-473-capture-run.js") < 0) return "a changed battery is not scheduled";
+  // a foreign tree (a fixture repo, --root) is read from its text only: collecting would RUN its battery files
+  var tmp = fs.mkdtempSync(path.join(os.tmpdir(), "tnd-targets-foreign-"));
+  try { if (T.collected(tmp) !== null) return "a foreign root was collected (its batteries would be executed)"; }
+  finally { fs.rmSync(tmp, { recursive: true, force: true }); }
+  var rsd = fs.readFileSync(path.join(ROOT, "dev", "run-sabotage-diff.js"), "utf8"), pbp = fs.readFileSync(path.join(ROOT, "dev", "prove-before-push.js"), "utf8");
+  if (rsd.indexOf("more=T.collected(ROOT);") < 0 || rsd.indexOf("var due=T.due(changed,sources,more);") < 0) return "run-sabotage-diff does not schedule through collected() and due()";
+  if (pbp.indexOf("sweepSize(changed, sources, targets.collected(root))") < 0 || pbp.indexOf("targets.due(changed, batterySources, more || null)") < 0) return "prove-before-push counts the sweep without collected() and due()";
+  return "";
 });
 
 // The battery pool (dev/battery-pool.js, 2026-10-02): both runners run batteries several at a time. Proven on fixture

@@ -64,4 +64,31 @@ failed += sabotage.prove({ file: "dev/scratch-contract-sabotage.js", command: CO
     mustFail: "FAIL G1: the guarded command is told which file is under mutation" }
 ] });
 
+// G2: the range sweep schedules by what a battery HANDS the harness, not only by what its text spells.
+var SWEEP = ["node", ["dev/tests-252-retained-proof-wiring.js", "G2: the range sweep"]];
+var G2 = "FAIL G2: the range sweep schedules a battery whose target reaches the harness";
+failed += sabotage.prove({ file: "dev/battery-targets.js", command: SWEEP, cases: [
+  { label: "G2: the schedule reads the battery's text alone again",
+    find: "if (more && more[f]) t = t.concat(more[f]);", replace: "", mustFail: G2 },
+  { label: "G2: a foreign tree is collected (its battery files would be run)",
+    find: "if (path.resolve(root) !== own || !fs.existsSync(tool)) return null;", replace: "if (!fs.existsSync(tool)) return null;", mustFail: G2 }
+] });
+failed += sabotage.prove({ file: "dev/run-sabotage-diff.js", command: SWEEP, cases: [
+  { label: "G2: the sweep schedules without the collected targets",
+    find: "var due=T.due(changed,sources,more);", replace: "var due=T.due(changed,sources,null);", mustFail: G2 }
+] });
+// G9: a range the sweep cannot read is a refusal, never a green over nothing.
+failed += sabotage.prove({ file: "dev/run-sabotage-diff.js", command: ["node", ["dev/tests-252-retained-proof-wiring.js", "diff runner schedules"]], cases: [
+  { label: "G9: an unreadable range exits green again",
+    find: "NOTHING was proven. Pass a range that exists.\");process.exit(2);}", replace: "NOTHING was proven. Pass a range that exists.\");process.exit(0);}",
+    mustFail: "G9: a range that cannot be read exited green" },
+  { label: "G9: the refusal no longer says that nothing was proven",
+    find: "\") — NOTHING was proven. Pass a range that exists.\"", replace: "\")\"",
+    mustFail: "G9: the unreadable range was not named" }
+] });
+failed += sabotage.prove({ file: "dev/prove-before-push.js", command: SWEEP, cases: [
+  { label: "G2: the push report counts the sweep from text alone",
+    find: "sweepSize(changed, sources, targets.collected(root))", replace: "sweepSize(changed, sources)", mustFail: G2 }
+] });
+
 process.exit(failed ? 1 : 0);
