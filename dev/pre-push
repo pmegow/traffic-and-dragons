@@ -5,6 +5,9 @@
 # red 2.6 days. This is the TRACKED copy; git only executes it from .git/hooks/. After a fresh clone, install:
 #   cp dev/pre-push .git/hooks/pre-push
 # dev/check-hook-parity.js (run by the pre-commit) refuses a commit while the installed copy differs or is missing.
+# Then the local proof (owner ruling 2026-11-18, "push first, prove in CI"): dev/prove-before-push.js runs the
+# applicability scan, the replay baselines and the batteries this push itself added or edited. The RANGE SWEEP
+# (every battery whose target the push touched, 4 to 40 minutes) is CI's alone now.
 # A machine without Chrome says so and lets the push through (CI runs the suites regardless). Bypassing
 # (git push --no-verify) is for emergencies only — a red suite means a real regression.
 TOP="$(git rev-parse --show-toplevel)"
@@ -19,3 +22,11 @@ node "$TOP/dev/run-browser-suites.js" || {
   echo "Push blocked: a browser suite is red (details above). CI would have found it half an hour from now; fix it first." >&2
   exit 1
 }
+# A checkout from before the local proof has no such file: the browser suites above were its whole gate.
+if [ -f "$TOP/dev/prove-before-push.js" ]; then
+  node "$TOP/dev/prove-before-push.js" || {
+    echo "" >&2
+    echo "Push blocked: the local proof is red (details above): a sabotage anchor, a replay baseline or a battery this push changed." >&2
+    exit 1
+  }
+fi

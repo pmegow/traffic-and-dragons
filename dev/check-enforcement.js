@@ -58,6 +58,8 @@ function workflowProblems(source) {
     { label: "node dev/tests-blueprint-catalog-browser.js (#481 G6)", pattern: /run:\s*node dev\/tests-blueprint-catalog-browser\.js(?:\s|$)/ },
     { label: "node dev/tests-blueprint-editions-browser.js (#481 G6)", pattern: /run:\s*node dev\/tests-blueprint-editions-browser\.js(?:\s|$)/ },
     { label: "node dev/tests-blueprint-publish-browser.js (#481 G6)", pattern: /run:\s*node dev\/tests-blueprint-publish-browser\.js(?:\s|$)/ },
+    /* 2026-11-18: the range sweep runs ONLY in CI since the owner's "push first, prove in CI" ruling, so an earlier red step must not hide it */
+    { label: "the sabotage sweep runs even when an earlier step is red (if: ${{ !cancelled() }} on its step)", pattern: /if:\s*\$\{\{\s*!cancelled\(\)\s*\}\}[ \t]*\r?\n\s*(?=run:\s*node dev\/run-sabotage-diff\.js)/ },
     { label: "node dev/run-sabotage-diff.js \"$CI_RANGE\" (#481 G2: the whole push, once)", pattern: /run:\s*node dev\/run-sabotage-diff\.js\s+"\$CI_RANGE"(?:\s|$)/ }
   ], "engine-tests.yml");
 }

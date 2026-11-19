@@ -190,7 +190,11 @@ jobs:
       # #312 ①: a battery whose target file changed in this push runs in this push (the weekly
       # job proves every battery; this keeps a guard's own edit honest the day it lands). #481 G2: the
       # WHOLE push's range, once — not just its last commit.
+      # 2026-11-18 (owner ruling, "push first, prove in CI"): this step is now the ONLY run of the range sweep — the
+      # desk runs dev/prove-before-push.js instead (the scan, the replays, the batteries the change itself added or
+      # edited). So it must run even when an earlier step is red: a red replay or browser step used to hide it.
       - name: Run the sabotage batteries whose targets this change touched
+        if: ${{ !cancelled() }}
         run: node dev/run-sabotage-diff.js "$CI_RANGE"
       # #647: the browser suites' screenshots survive a red step (see the job env above); nothing is uploaded on green.
       - name: Keep the browser suites' screenshots when a step failed

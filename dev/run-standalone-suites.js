@@ -173,6 +173,7 @@ var SUITES = [
   "dev/tests-audit-voice.js",
   "dev/tests-dedup-b.js",
   "dev/tests-modal-shell.js",
+  "dev/tests-prove-before-push.js",/* the local proof before a push: the scan, the replays, the range's own batteries; the sweep is CI's and cannot be hidden */
   "dev/tests-suite-shards.js",/* one long suite split across processes runs every group once; a split that ran less is red with the reason */
   "dev/tests-standalone-runner.js"/* this runner itself: several at a time, output whole and in list order, one failure fails the run */
 ];
