@@ -146,6 +146,16 @@ test('A3: a way stated later in the direction a dotted way already holds is draw
   assert.deepEqual(now[0], first[0], 'the dotted way moved when a later way was stated in its direction');
   assert.equal(now[1][3], true); assert.equal(now[1][2], 700, 'the stated way is not on the edge the story named'); assert.notEqual(now[1][1], now[0][1], 'the two ways are drawn on top of each other');
   assert.equal(JSON.stringify(after.relief), JSON.stringify(before.relief), 'the ground');
+  /* review of 614a5fe1: SE and SW are the second and third edges a dotted way takes, and on a corner the library clamped a
+     second exit onto the first (TnD Maps before 0.28.1): the two ways were one dot. Every bearing, a dotted way then a stated one. */
+  ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'].forEach(b => {
+    const r = atlasSheetRecipe(place(MIRE), [], [{ id: 'way-1', name: 'A', bearing: null, lean: b }, { id: 'way-2', name: 'B', bearing: b, lean: 'N' }, { id: 'way-3', name: 'C', bearing: b, lean: 'N' }], []);
+    assert.deepEqual(r.params.site.exits.map(e => e.bearing), [b, b, b], 'fixture: the three ways share the ' + b + ' edge');
+    const d = TnDMaps.generate('wild', r.params), ps = ['way-1', 'way-2', 'way-3'].map(id => d.portals.filter(p => p.id === id)[0]);
+    const alone = TnDMaps.generate('wild', Object.assign({}, r.params, { site: Object.assign({}, r.params.site, { exits: r.params.site.exits.slice(0, 1) }) })).portals[0];
+    assert.deepEqual([ps[0].x, ps[0].y], [alone.x, alone.y], 'on the ' + b + ' edge the first way moved when the others arrived');
+    ps.forEach((p, i) => ps.forEach((q, j) => { if (j > i) assert.ok(Math.hypot(p.x - q.x, p.y - q.y) >= 35, 'on the ' + b + ' edge two ways are drawn on one spot: ' + JSON.stringify(ps.map(z => [z.x, z.y]))); }));
+  });
 });
 
 test('the card of a drawn thing: where and when it was disclosed; of a listed one, that its position is not established', () => {

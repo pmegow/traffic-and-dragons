@@ -48,6 +48,8 @@ prove("car-session.js", [
     find: "    if (V && typeof V.speak === \"function\") V.speak(text);\n    _carSyncBtn();\n  } else if (kind === \"info\"", replace: "    _carSyncBtn();\n  } else if (kind === \"info\"", mustFail: ONLY + T.V1 },
   { label: "V1: a spoken failure arms the tap-to-retry",
     find: "    _carSetStatus(CAR_STR.errorPrefix + text);\n    if (V && typeof V.speak === \"function\") V.speak(text);", replace: "    _carSetStatus(CAR_STR.errorPrefix + text); _carRetryArmed = true;\n    if (V && typeof V.speak === \"function\") V.speak(text);", mustFail: ONLY + T.V1 },
+  { label: "V1 review: a spoken committed failure leaves an older retry armed",
+    find: "an arm left by an earlier failure would send it again.\n    _carRetryArmed = false;\n", replace: "an arm left by an earlier failure would send it again.\n", mustFail: ONLY + T.V1 },
   { label: "V1: the car has no way to say a failure (the kind falls through in silence)",
     find: "  } else if (kind === \"say\") {", replace: "  } else if (kind === \"said\") {", mustFail: ONLY + T.V1 }
 ]);

@@ -136,7 +136,9 @@ function carNotify(kind, text) {
   } else if (kind === "say") {
     // #777 V1 (owner 2026-11-19): a failure the driver must HEAR that a tap must not retry — the turn (or the opening)
     // already landed, so "error" would send it again and "warn" reaches nobody with eyes on the road. The failure
-    // earcon, the status line, the line read aloud; the retry arm is left as it was.
+    // earcon, the status line, the line read aloud. The retry arm is CLEARED (review of 28fcf28a): what it would retry is
+    // the host's last action, which is now the turn that just landed — an arm left by an earlier failure would send it again.
+    _carRetryArmed = false;
     if (V && typeof V.earcon === "function") V.earcon("fail");
     _carSetStatus(CAR_STR.errorPrefix + text);
     if (V && typeof V.speak === "function") V.speak(text);

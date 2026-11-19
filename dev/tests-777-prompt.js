@@ -222,8 +222,20 @@ kase("K2 ruling: Table Talk lists the pending events the hero knows of, and only
   applyMuts("[FUTURE_EVENT:The cult strikes the cathedral|at midnight|known]");
   assert.strictEqual(ev(/cult/).known, true, "an event the hero later learned of stayed the GM's own");
   applyMuts("[FUTURE_EVENT:Find Shalelu at the Glassworks bridge|soon]"); applyMuts("[FUTURE_EVENT:Find Shalelu near the Glassworks bridge today|soon| Known ]");
-  assert.strictEqual(memory.futureEvents.filter(function (e) { return /Shalelu/.test(e.what); }).length, 1, "fixture: the restatement was not folded");
-  assert.strictEqual(ev(/Shalelu/).known, true, "a restatement marked known did not mark the event it was folded into");
+  // review (HIGH): the fold keeps the EXISTING words — so a known event never folds into a thread only the GM knows
+  var sh = memory.futureEvents.filter(function (e) { return /Shalelu/.test(e.what); });
+  assert.strictEqual(sh.length, 2, "an event the hero knows of was folded into the GM's own thread: " + JSON.stringify(sh));
+  assert.ok(!sh[0].known && sh[0].what === "Find Shalelu at the Glassworks bridge", "the GM's own thread was marked known"); assert.ok(sh[1].known === true && /near the Glassworks bridge today/.test(sh[1].what));
+  applyMuts("[FUTURE_EVENT:The Baron's assassin ambushes Tess at the Hagfish feast tonight|at dusk]");   /* another place than the first supper: that one is known, and a known thread may take a known restatement */
+  applyMuts("[FUTURE_EVENT:Feast tonight with Ameiko at the Hagfish|at dusk|known]");
+  assert.ok(feNearDup("Feast tonight with Ameiko at the Hagfish", "The Baron's assassin ambushes Tess at the Hagfish feast tonight"), "fixture: the two events are not near-duplicates, so nothing is being tested");
+  var leak = ttRecallBlock("what is planned for tonight?");
+  assert.ok(leak.indexOf("assassin") < 0, "Table Talk was told the GM's plan because an appointment resembled it: " + leak.slice(leak.indexOf("PENDING EVENTS"), leak.indexOf("PENDING EVENTS") + 260));
+  assert.ok(/Feast tonight with Ameiko at the Hagfish \(at dusk\)/.test(leak), "the appointment the hero made is missing");
+  // a known event still folds into a KNOWN thread (one entry), and an unmarked restatement into either
+  applyMuts("[FUTURE_EVENT:Feast tonight with Ameiko at the Hagfish tavern|at dusk|known]");
+  assert.strictEqual(memory.futureEvents.filter(function (e) { return /Ameiko/.test(e.what); }).length, 1, "a known restatement of a known thread was filed twice");
+  memory.futureEvents = memory.futureEvents.filter(function (e) { return !/assassin|Ameiko|Shalelu/.test(e.what); });
   applyMuts("[FUTURE_EVENT:Supper with Mara at the Rusty Dragon|at dusk]");
   assert.strictEqual(ev(/Supper/).known, true, "an unmarked restatement took the knowledge away");
   // the marker alone in the when seat; a clock time with the marker still reaches the clock
@@ -234,6 +246,16 @@ kase("K2 ruling: Table Talk lists the pending events the hero knows of, and only
   var sched = (worldState.clock && worldState.clock.schedule) || [];
   assert.strictEqual(sched.length, before + 1, "a duration with the marker no longer reaches the clock schedule: " + JSON.stringify(memory.futureEvents.slice(-1)));
   assert.ok(JSON.stringify(sched).indexOf("known") < 0 && !ev(/tide gate/), "the marker leaked into the schedule, or the event was filed twice");
+  // review: a third field that is not the exact word marks nothing and is not kept in the when
+  [["|unknown", false], ["|secret", false], ["|known: yes", false], ["| KNOWN |", true], ["|private|known", true]].forEach(function (c, n) {
+    applyMuts("[FUTURE_EVENT:Third field case number " + (n === 0 ? "one alpha" : n === 1 ? "two bravo" : n === 2 ? "three charlie" : n === 3 ? "four delta" : "five echo") + "|after the new moon" + c[0] + "]");
+    var e = memory.futureEvents[memory.futureEvents.length - 1];
+    assert.strictEqual(e.when, "after the new moon", JSON.stringify(c[0]) + " was kept in the when: " + e.when);
+    assert.strictEqual(e.known === true, c[1], JSON.stringify(c[0]) + " was read as " + (e.known === true ? "known" : "not known"));
+  });
+  before = ((worldState.clock && worldState.clock.schedule) || []).length;
+  applyMuts("[FUTURE_EVENT:The ferry leaves|2 days|secret]");
+  assert.strictEqual(((worldState.clock && worldState.clock.schedule) || []).length, before + 1, "a duration followed by a stray third field no longer reaches the clock");
   // the summariser: only a literal true
   memory.futureEvents = [];
   applySummaryExtract({ chapterSummary: "c", futureEvents: [{ what: "Deliver the sealed letter to Hemlock", when: "tomorrow", known: true }, { what: "Tsuto plans a second raid on the glassworks", when: "soon", known: false }, { what: "Ameiko expects an answer about the inn", when: "soon", known: "true" }, { what: "The mayor will call a council", when: "soon" }] }, null, null);

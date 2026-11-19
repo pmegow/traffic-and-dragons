@@ -1604,6 +1604,7 @@ function fileFutureEvent(when,who,what,setTurn,known){
   for(i=0;i<memory.futureEvents.length;i++){
     var ex=memory.futureEvents[i];
     if(ex.resolved)continue;
+    if(known===true&&ex.known!==true)continue;/* review of 33950980 (HIGH): the fold keeps the EXISTING entry's words. An event the hero knows of, folded into a thread only the GM knows ("supper at the Rusty Dragon" into "the assassin strikes at the Rusty Dragon supper"), marked the GM's plan as known and Table Talk printed it. A known event never folds into an unmarked one: it is filed in its own words. */
     if(feNearDup(what,ex.what)){/* #150: same thresholds, now via the shared fingerprint */
       /* #269④ (f42): the fold is LOUD and the swallowed text is ARCHIVED — a genuinely distinct
          thread sharing an NPC+place token can land here (traced: "Rescue Ameiko from the
@@ -1615,7 +1616,6 @@ function fileFutureEvent(when,who,what,setTurn,known){
       memArchive().futureEvents.push({when:when,who:who||"",what:what,setTurn:setTurn,foldedInto:String(ex.what).slice(0,200)});
       if(typeof console!=="undefined")console.info("[memory] pending-event fold: \""+what.slice(0,80)+"\" absorbed by existing \""+String(ex.what).slice(0,80)+"\" (archived — if these were distinct threads, re-state the lost one in fresh words)");
       if(typeof setTurn==="number")ex.setTurn=setTurn;
-      if(known===true)ex.known=true;/* K2: the restatement says the hero knows — the thread it folds into is known */
       return;
     }
   }

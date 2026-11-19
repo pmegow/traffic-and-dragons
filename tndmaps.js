@@ -1,11 +1,11 @@
-/* TnD Maps 0.28.0 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
+/* TnD Maps 0.28.1 — assembled from src/ by dev/bundle.js; edit src/, not this file. */
 /* ───── 00-core.js ───── */
 /* 00-core.js — the TnDMaps namespace, version marker, loud failure, seeded PRNG, hashing, base64 and small utilities.
    Every module attaches to root.TnDMaps; nothing here touches the DOM. ES5.1 only (dev/check-es5.js). */
 (function (root) {
   "use strict";
   var NS = root.TnDMaps = root.TnDMaps || {};
-  NS.VERSION = "0.28.0";
+  NS.VERSION = "0.28.1";
   NS.DOC_FORMAT = "tndmap";
   NS.DOC_VER = 6;
 
@@ -5643,8 +5643,24 @@
        between them is the zone's own, found further down) */
     var ways = [], siteRoads = S.roads || [];
     siteRoads.forEach(function (rd) { ways.push({ kind: T.path || rd.kind, a: [rd.from.x, rd.from.y], b: [rd.to.x, rd.to.y], from: rd.from.edge || null, to: rd.to.edge || null, joinA: !!rd.from.join, joinB: !!rd.to.join, towards: { from: say(rd.from.towards), to: say(rd.to.towards) }, roadsA: rd.from.roads || null, roadsB: rd.to.roads || null, road: rd.id, fixed: true }); });
-    var siteExits = S.exits || null, exitN = {};
-    if (siteExits) siteExits.forEach(function (e) { var k = exitN[e.bearing] = (exitN[e.bearing] || 0) + 1, slide = k === 1 ? 0 : (k % 2 ? -1 : 1) * 0.5 * Math.floor(k / 2), a = edgePoint(W, H, e.bearing, slide); ways.push({ kind: T.path || "track", a: a, b: [W / 2, H / 2], from: edgeOf(a, W, H), to: null, joinA: false, joinB: true, towards: { from: e.name, to: null }, roadsA: null, roadsB: null, fixed: true, exit: e }); });
+    /* v0.28.1: the ways that share a bearing never share a spot. The k-th takes the slide it always took (0, +½, −½, +1, −1 …
+       of the edge's reach) when that leaves it clear of the ones before it; where the frame clamps it back onto one — a
+       diagonal's point sits clamped off the corner, so the outward slide lands on it again — it takes the first slide of a
+       fixed list that stands clear (EXIT_GAP of the frame's short side). The first on a bearing never moves, and neither
+       does any that stood clear before. */
+    var siteExits = S.exits || null, exitN = {}, exitAt = {}, EXIT_GAP = 0.05;
+    function exitPoint(bearing, k) {
+      var slides = [k === 1 ? 0 : (k % 2 ? -1 : 1) * 0.5 * Math.floor(k / 2)], taken = exitAt[bearing] || (exitAt[bearing] = []), gap = Math.min(W, H) * EXIT_GAP, m, i, j, p, clear;
+      for (m = 1; m <= 9; m++) { slides.push(-m / 3); slides.push(m / 3); }
+      for (i = 0; i < slides.length; i++) {
+        p = edgePoint(W, H, bearing, slides[i]); clear = true;
+        for (j = 0; j < taken.length && clear; j++) if (Math.abs(p[0] - taken[j][0]) + Math.abs(p[1] - taken[j][1]) < gap) clear = false;
+        if (clear) break;
+      }
+      if (!clear) p = edgePoint(W, H, bearing, slides[0]);   /* more ways on one bearing than the edge has room for: the old place, said by the cap on exits */
+      taken.push(p); return p;
+    }
+    if (siteExits) siteExits.forEach(function (e) { var k = exitN[e.bearing] = (exitN[e.bearing] || 0) + 1, a = exitPoint(e.bearing, k); ways.push({ kind: T.path || "track", a: a, b: [W / 2, H / 2], from: edgeOf(a, W, H), to: null, joinA: false, joinB: true, towards: { from: e.name, to: null }, roadsA: null, roadsB: null, fixed: true, exit: e }); });
     /* the valley line: a pass follows the river, else the road, else a seeded way across */
     var RL = T.relief, valley = null;
     if (RL.valley) { valley = riverXY ? riverXY : S.road ? acrossLine(W, H, S.road.from, S.road.to, rng, 0.12) : !siteExits && ways.length && G.dist(ways[0].a, ways[0].b) > 60 ? bendLine(ways[0].a, ways[0].b, rng, 0.12) : acrossLine(W, H, rng.pick(["W", "N", "SW", "NW"]), rng.pick(["E", "S", "SE", "NE"]), rng, 0.12); }

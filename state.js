@@ -441,7 +441,7 @@ function saveAll(){var ok=saveLocal();if(typeof storageAdapter!=="undefined")sto
 // transcript. When the GM emits the tag, mark the correcting entry AND the immediately preceding
 // GM entry (the likely superseded narration) so ragRetrieve never serves either as episodic
 // truth. `rc` rides at the top level of the entry — additive, invisible to everything but retrieval.
-function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeeping);if(!worldState||(!text&&!_bk))return;if(!worldState.transcript)worldState.transcript=[];
+function logTranscript(role,text,raw,taMin,meta){var _bk=!!(meta&&meta.bookkeeping);if(!worldState||(!text&&!_bk)){if(worldState&&meta&&meta.replaceRefusal&&typeof console!=="undefined")console.warn("[transcript] a refusal's replacement had no narration to put in the book (tags only) — the refused entry stays as turn "+worldState.turn+"'s record; its tags were applied (audit U3)");return;}if(!worldState.transcript)worldState.transcript=[];
   /* audit 2026-11-19, U3: meta.replaceRefusal — this entry takes the PLACE of the refused GM entry of the same turn (the last
      one in the book), so the record holds what the player read, once. Only that exact entry is ever replaced; anything else
      is appended as usual, and said. */

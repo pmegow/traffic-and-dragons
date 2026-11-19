@@ -78,4 +78,9 @@ var pub = [
 ];
 var failed = sabotage.prove({ file: "atlas-public-sheet.js", command: CMD, only: P, cases: sheet });
 if (!failed) failed = sabotage.prove({ file: "atlas-public.js", command: CMD, only: P, cases: pub });
+/* audit A3 review: the vendored library lays two exits of one bearing apart on a corner too (TnD Maps 0.28.1). The mutation
+   takes its alternative slides away, which is the library as it was: a second exit on a diagonal lands on the first. */
+if (!failed) failed = sabotage.prove({ file: "tndmaps.js", command: CMD, only: P, cases: [
+  { label: "A3: on a corner a second way is drawn on top of the first (the library before 0.28.1)", find: "for (m = 1; m <= 9; m++) { slides.push(-m / 3); slides.push(m / 3); }", replace: "", mustFail: P + "A3: a way stated later in the direction a dotted way already holds is drawn beside it, and the dotted way does not move" }
+] });
 process.exit(failed ? 1 : 0);

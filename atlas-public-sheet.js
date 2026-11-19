@@ -210,7 +210,8 @@ function atlasSheetRecipe(place,features,ways,inside){
      first travelled, and each takes its edge knowing only the ways BEFORE it. Every stated bearing used to be reserved up
      front, so a way stated later in the direction a dotted way already held pushed the dotted way to another edge of a
      sheet the player had already seen. Now the dotted way stays and the stated one is drawn beside it (the library lays
-     two exits of one bearing apart, the earlier where it stood). Known limit: when an EARLIER way's direction is learned
+     two exits of one bearing apart, the earlier where it stood — on a corner too since TnD Maps 0.28.1; before that a
+     diagonal clamped the second onto the first, found by this change's review). Known limit: when an EARLIER way's direction is learned
      later, a dotted way that came after it may take the edge it frees — nothing is stored to say where it was drawn. */
   for(i=0;i<ways.length;i++){
     w=ways[i];e={id:w.id,name:atlasSheetCut(w.name,ATLAS_SHEET_WAY_MAX),sure:!!w.bearing,bearing:w.bearing};

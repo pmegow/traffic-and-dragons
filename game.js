@@ -820,6 +820,7 @@ async function generateActions(msgEl){
   if(worldState&&worldState.deathScene){worldState.lastActions=null;return;}/* #301: no suggestions while Death speaks — the next line is the question */
   if(worldState&&worldState.pendingCheck){worldState.lastActions=null;if(typeof showRollModal==="function")showRollModal();return;}/* #329: the die is the only button while a roll is pending — #677: and the die is a modal (ui-modals.js) */
   if(worldState&&worldState.downed&&typeof downedChoices==="function"){var _dc=downedChoices();msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_dc));worldState.lastActions=_dc;if(typeof saveAll==="function")saveAll();return;}
+  if(unappliedRefusalNow()){var _ra=[REFUSAL_AGAIN];msgEl.insertAdjacentHTML("beforeend",buildActionButtons(_ra));worldState.lastActions=_ra;if(typeof saveAll==="function")saveAll();return;}/* #777 U3: after a refusal the one thing to offer is the same turn again — no model call for suggestions over a refusal's text */
   var btnDiv=document.createElement("div");
   btnDiv.style.cssText="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;";
   var btns=[],i;
@@ -2719,7 +2720,7 @@ function commitGmTurn(resp,opts){
     if(o.latchSnap&&typeof restoreNoteLatches==="function")restoreNoteLatches(o.latchSnap);
     if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: a note the GM never acted on is not a note the engine fired */
     console.warn("[refusal] the model declined to narrate (turn "+worldState.turn+") — committed as NON-CANON: embedded tags withheld, retrieval-excluded (#197)");
-    if(typeof showToast==="function")showToast("⚠ The model declined this scene — re-roll or rephrase",6000);
+    if(typeof showToast==="function")showToast("⚠ The model declined this scene — ask again or rephrase",6000);
     if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
   }else{
   _audioMuts=applyMuts(resp,{deferSave:true});delete worldState.unappliedRefusal;/* U3: tags have landed for this turn (or a later one) — the mark is spent HERE, so a failure in any step below can never let a re-roll apply them twice *//* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
@@ -2912,6 +2913,7 @@ async function sendAction(override,opts){
   if(!(opts&&opts.silent)&&typeof endingChoiceFromText==="function"&&typeof endingOffered==="function"){var _eoTxt=override!==null?override:(inp?inp.value.trim():"");
     if(_eoTxt&&endingChoiceFromText(_eoTxt)&&endingOffered()){if(inp)inp.value="";if(typeof showEndingOfferModal==="function")showEndingOfferModal();else endingDecide("write");return;}}
   var txt=override!==null?override:inp.value.trim();if(!txt)return;
+  if(!(opts&&opts.silent)&&!(opts&&opts.replaceRefusal)&&refusalAgainChosen(txt)&&unappliedRefusalNow()){if(inp)inp.value="";return rerollLast();}/* #777 U3: the engine's own button after a refusal — a decision, not an action */
   if(worldState.clockHold)delete worldState.clockHold;/* #368: a hold lives for exactly one turn */
   if(!(opts&&opts.silent)&&typeof oocActionPrefix==="function"&&oocActionPrefix(txt)){worldState.clockHold={turn:worldState.turn};if(typeof showToast==="function")showToast("Out-of-character question \u2014 the clock will not move this turn.");}
   if(typeof recklessArmIfChosen==="function"&&!(opts&&opts.silent))recklessArmIfChosen(txt);/* #305: the wildcard's reward note */
@@ -2987,9 +2989,12 @@ async function sendAction(override,opts){
   /* audit 2026-11-19, U3: re-rolling a refused turn (rerollLast) arrives here as the SAME action sent again. The refused
      exchange is set aside so the model is not shown its own refusal; it goes back if the request dies before the new one
      is logged. Notes are built fresh below (the refusal un-burned their latches), the map request runs, the commit is the
-     ordinary one with replacesRefusal. */
+     ordinary one with replacesRefusal. The commit is also handed `resend` (what a re-roll of a refusal would send again)
+     and `onLogged`, where the refusal leaves the page — as its replacement is logged, never before a step that can still
+     refuse it (review, finding 8). */
   var _rfPair=null,_rfLogged=false;
   if(opts&&opts.replaceRefusal&&!isTT&&sessionLog.length>=2&&sessionLog[sessionLog.length-1].role==="assistant"&&sessionLog[sessionLog.length-2].role==="user")_rfPair=sessionLog.splice(sessionLog.length-2,2);
+  if(_rfPair&&typeof worldState.sessKept==="number"&&worldState.sessKept>sessionLog.length)worldState.sessKept=sessionLog.length;/* review (finding 4): the refused exchange may already be FILED (a summarize ran over it) — the replacement that takes its place is not, and a marker left past it would never extract the real narration */
   try{
     if(!isTT&&sessionTokens()>=SUMMARIZE_AT)await summarize();
     // #76: Table Talk is a HELP AGENT with its own prompt builder (table-talk.js) — app help
@@ -3072,10 +3077,9 @@ async function sendAction(override,opts){
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
       if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
       var _mapDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
-      if(_rfPair)lastNarratorRemove();/* U3: the refusal leaves the page as its replacement arrives */
       if(opts&&opts.silent&&opts.rollTag&&typeof diceRevealWait==="function")await diceRevealWait();/* #759: the reply to a roll is shown only once its dice have come to rest — requested at the click, held here, bounded by DICE_REVEAL_MAX_MS */
       if(opts&&opts.deathArrival&&worldState.deathScene)delete worldState.deathScene.arrivalOwed;/* the arrival is in the book with this commit */
-      commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */},replacesRefusal:!!_rfPair,onLogged:function(){_rfLogged=true;},resend:{txt:txt,silent:!!(opts&&opts.silent),rollTag:(opts&&opts.rollTag)||null}/* U3: what a re-roll of a refusal sends again, and whether this commit IS such a replacement */});
+      commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */},replacesRefusal:!!_rfPair,onLogged:function(){_rfLogged=true;if(_rfPair)lastNarratorRemove();},resend:{txt:txt,silent:!!(opts&&opts.silent),rollTag:(opts&&opts.rollTag)||null}/* U3 */});
       if(typeof atlasDirectionsSettle==="function")await atlasDirectionsSettle(resp,txt);/* #766: the map asks for the directions it is still owed — after the commit, inside the turn; never throws */
       if(typeof atlasGroundSettle==="function")await atlasGroundSettle(resp,txt);/* #771: and for the ground of a place whose name does not say it — once per place; never throws */
       if(typeof atlasRegionSettle==="function")atlasRegionSettle();/* #771 P3: a place visited for the first time is set down on the region, once its ground is known; never throws */
@@ -3154,13 +3158,31 @@ function reconsiderPendingCheck(){
   if(typeof showToast==="function")showToast("Roll withdrawn \u2014 say what you do instead.");
   if(typeof saveAll==="function")saveAll();
 }
-function retryLast(){if(lastAction)sendAction(lastAction,lastActionOpts?{mpBypass:true,silent:true,rollTag:lastActionOpts.rollTag}:{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
+function retryLast(){if(unappliedRefusalNow()&&lastAction===worldState.unappliedRefusal.txt){rerollLast();return;}/* #777 U3 review: Car Mode's tap and the error line's Retry sent a failed replacement as a NEW turn (counted twice, the refusal left in the book) */if(lastAction)sendAction(lastAction,lastActionOpts?{mpBypass:true,silent:true,rollTag:lastActionOpts.rollTag}:{mpBypass:true});}/* P3: a retried multi-PC round is already an assembled block — re-queueing it as one PC's action would corrupt the round */
 // Re-roll the last GM narration in the CURRENT prose voice WITHOUT advancing the turn
 // or re-applying state tags — a clean A/B tool for trying Prose Style voices on the
 // same scene. Pops the last exchange so the GM regenerates in the original context, then
 // swaps the displayed narration + the sessionLog assistant entry for the new one.
 // Deliberately NOT unified into commitGmTurn (audit 07-16 #5): it swaps/replaces instead of
 // appending and never runs applyMuts — a different pipeline, not a duplicate of it.
+/* review of d87a7414 (finding 3): the re-send had NO DOOR — #634 took the Re-roll button off every surface, so nothing a
+   player can press reached rerollLast and the refusal toast named a control that does not exist. The door is the one the
+   engine already uses for its own choices (Death's two, the downed hero's two): after a refused turn the story offers ONE
+   engine button, REFUSAL_AGAIN, in place of model-written suggestions; sendAction reads that choice as a decision, not an
+   action, and re-rolls. It rides worldState.lastActions, so a reload shows it again and Car Mode reads it as option one. */
+var REFUSAL_AGAIN="Ask the GM again";
+function refusalAgainChosen(t){return /^\s*(?:i\s+)?ask the gm again[.!]?\s*$/i.test(String(t==null?"":t));}
+/* THE test: this turn was refused, nothing of it was applied, and the book's last entry is that refusal — outside a death
+   scene (its stage moved on with the refusal's commit) and an ended campaign. Read by the re-roll, the button, the choice
+   and Retry. */
+function unappliedRefusalNow(){
+  if(typeof worldState==="undefined"||!worldState)return false;
+  var u=worldState.unappliedRefusal,tr=worldState.transcript,e=(tr&&tr.length)?tr[tr.length-1]:null;
+  if(!u||u.turn!==worldState.turn||typeof u.txt!=="string"||!u.txt)return false;
+  if(!e||e.r!=="gm"||!e.rf||e.t!==worldState.turn)return false;
+  if(worldState.deathScene)return false;
+  return !(typeof campaignEnded==="function"&&campaignEnded());
+}
 /* The story pane's last narration block, taken off the page (a re-roll and a refusal's replacement both show their own). */
 function lastNarratorRemove(){
   var story=(typeof document!=="undefined"&&typeof document.getElementById==="function")?document.getElementById("story-narrative"):null,nars=(story&&story.querySelectorAll)?story.querySelectorAll(".msg.narrator"):[];
@@ -3178,8 +3200,8 @@ async function rerollLast(){
      request, the ordinary commit (tags once, the turn not counted again, the refusal replaced in the book). Everything
      else is re-rolled as prose, below: a turn whose tags landed, an opening, a death scene (its stage moved on with the
      refusal's commit), an ended campaign. */
-  var _ur=worldState.unappliedRefusal,_urE=worldState.transcript&&worldState.transcript[worldState.transcript.length-1];
-  if(_ur&&_ur.turn===worldState.turn&&typeof _ur.txt==="string"&&_ur.txt&&_urE&&_urE.r==="gm"&&_urE.rf&&_urE.t===worldState.turn&&!worldState.deathScene&&!(typeof campaignEnded==="function"&&campaignEnded()))
+  var _ur=worldState.unappliedRefusal;
+  if(unappliedRefusalNow())
     return sendAction(_ur.txt,{replaceRefusal:true,mpBypass:true,silent:!!_ur.silent,rollTag:_ur.rollTag||null});
   busy=true;document.getElementById("sendbtn").disabled=true;
   // UA4 note: the pop-push below is marker-safe — both the success path (push swapped pair)

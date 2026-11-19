@@ -21,6 +21,7 @@ addMsg = function (type, html) { said.msgs.push(type + ": " + String(html)); ret
 showToast = function (m) { said.toasts.push(String(m)); };
 syncUI = function () {}; updateAbPanel = function () {}; updateSpPanel = function () {}; reportError = function () {};
 saveAll = function () { return true; }; saveCore = function () { return true; }; saveMem = function () { return true; }; saveLocal = function () { return true; };
+var realGenerateActions = generateActions;
 speakNarration = function () {}; generateActions = function () {}; narrateWithSpeakers = function () {}; processPendingCompanionSheets = function () {};
 if (typeof storageAdapter === "undefined") storageAdapter = { syncToServer: function () {}, syncNow: function () {} };
 var REAL = { sendAction: sendAction, restSpells: restSpells, callGM: (typeof callGM === "function") ? callGM : null, maxMs: AFTER_TURN_MAX_MS };
@@ -288,6 +289,83 @@ kase("U3: the mark belongs to its turn — a later turn, an engine continuation 
   });
 });
 
+kase("U3 door: after a refused turn the story offers ONE engine button, and choosing it re-rolls the turn — it is never sent as an action", function () {
+  u3World(); var html = "", seen = [];
+  return refuseATurn("I open the door.").then(function () {
+    gmSays(["should never be asked for suggestions"], seen);
+    return realGenerateActions({ insertAdjacentHTML: function (where, h) { html += h; }, appendChild: function () {} });
+  }).then(function () {
+    assert.deepStrictEqual(seen, [], "the model was asked to suggest actions over a refusal's text");
+    assert.deepStrictEqual(worldState.lastActions, [REFUSAL_AGAIN], "the one button is not what the save holds for a reload: " + JSON.stringify(worldState.lastActions));
+    assert.ok(html.indexOf("Ask the GM again") >= 0 && html.split("<button").length === 2, "the story does not offer exactly the one button: " + html);
+    var clicked = toFirstPerson(punctuateAction(REFUSAL_AGAIN));
+    [clicked, "Ask the GM again", "ask the gm again!", "I ask the GM again.", "  Ask the GM again.  "].forEach(function (t) { assert.strictEqual(refusalAgainChosen(t), true, JSON.stringify(t) + " is not read as the choice"); });
+    ["Ask the GM again about the door", "I ask the innkeeper again", "Ask again", "", null].forEach(function (t) { assert.strictEqual(refusalAgainChosen(t), false, JSON.stringify(t) + " is read as the choice"); });
+    gmSays(["The door swings wide. [GOLD:+3]"], seen);
+    return sendAction(clicked);
+  }).then(function () {
+    var own = seen.filter(function (c) { return c.msg.indexOf("I open the door.") >= 0; });
+    assert.strictEqual(own.length, 1, "choosing the button did not send the refused action again: " + JSON.stringify(seen.map(function (c) { return c.msg.slice(0, 50); })));
+    assert.ok(!seen.some(function (c) { return /ask the gm again/i.test(c.msg); }), "the button's own words were sent to the model as an action");
+    assert.strictEqual(worldState.character.coin, 1300); assert.strictEqual(worldState.turn, 10); assert.strictEqual(worldState.transcript.length, 2);
+    assert.ok(!worldState.transcript.some(function (e) { return /ask the gm again/i.test(e.x); }), "the button's words are in the book as the player's line");
+    // with no refusal waiting the same words are an ordinary action
+    seen.length = 0; gmSays(["The GM considers. [GOLD:+1]"], seen);
+    return sendAction("Ask the GM again");
+  }).then(function () {
+    assert.ok(seen.some(function (c) { return /Ask the GM again/.test(c.msg); }), "with no refusal waiting, the words were swallowed as a re-roll");
+    assert.strictEqual(worldState.turn, 11); assert.strictEqual(worldState.character.coin, 1400);
+    // a turn whose tags landed offers ordinary suggestions (the model is asked), never the button
+    seen.length = 0; gmSays(["Look around | Walk on | Wait"], seen);
+    return realGenerateActions({ insertAdjacentHTML: function () {}, appendChild: function () {} });
+  }).then(function () {
+    assert.ok(JSON.stringify(worldState.lastActions || []).indexOf(REFUSAL_AGAIN) < 0, "the button is offered after a turn that was not refused");
+  });
+});
+kase("U3 retry: a failed replacement is retried as the replacement; another action that failed is retried as itself; the log marker and the page follow", function () {
+  u3World(); var removed = 0, realRemove = lastNarratorRemove, realAccept = atlasDiscoveryAccept;
+  lastNarratorRemove = function () { removed++; return true; };
+  function done(v) { lastNarratorRemove = realRemove; atlasDiscoveryAccept = realAccept; return v; }
+  return refuseATurn("I open the door.").then(function () {
+    // the refused exchange was already filed to memory (a summarize ran over it): the replacement must not land inside the filed part
+    worldState.sessKept = sessionLog.length;
+    gmSays([function () { return Promise.reject(new Error("503 from the provider")); }]);
+    return rerollLast();
+  }).then(function () {
+    assert.strictEqual(removed, 0, "the refusal was taken off the page though its replacement never arrived");
+    assert.strictEqual(lastAction, "I open the door.");
+    gmSays(["The door swings wide. [GOLD:+3]"]);
+    retryLast(); return wait(150);
+  }).then(function () {
+    assert.strictEqual(worldState.turn, 10, "Retry sent the failed replacement as a NEW turn: turn " + worldState.turn);
+    assert.strictEqual(worldState.transcript.length, 2, "Retry left the refusal in the book beside a new exchange: " + JSON.stringify(worldState.transcript.map(function (e) { return [e.t, e.r, e.rf || 0]; })));
+    assert.strictEqual(worldState.character.coin, 1300);
+    assert.strictEqual(removed, 1, "the refusal was not taken off the page when its replacement was logged (" + removed + ")");
+    assert.ok(typeof worldState.sessKept !== "number" || worldState.sessKept <= sessionLog.length - 2, "the replacement lies inside the part of the session log already filed to memory (marker " + worldState.sessKept + " of " + sessionLog.length + ") — it would never be extracted");
+    // a commit that refuses the replacement before anything is logged leaves the refusal on the page
+    u3World(); removed = 0; return refuseATurn("I open the door.");
+  }).then(function () {
+    atlasDiscoveryAccept = function () { throw new Error("the map request went stale"); };
+    gmSays(["The door swings wide. [GOLD:+3]"]);
+    return rerollLast();
+  }).then(function () {
+    atlasDiscoveryAccept = realAccept;
+    assert.strictEqual(removed, 0, "the refusal left the page before a commit that then refused the replacement");
+    assert.strictEqual(sessionLog.length, 2); assert.ok(sessionLog[1].content.indexOf("cannot continue") >= 0);
+    assert.ok(worldState.unappliedRefusal && worldState.character.coin === 1000);
+    // the player rephrases instead and THAT request fails: Retry sends the new action, as a new turn — never the old one again
+    gmSays([function () { return Promise.reject(new Error("503 again")); }]);
+    return sendAction("I knock instead.");
+  }).then(function () {
+    var seen = []; gmSays(["A voice answers. [GOLD:+1]"], seen);
+    retryLast(); return wait(150).then(function () { return seen; });
+  }).then(function (seen) {
+    assert.ok(seen.some(function (c) { return c.msg.indexOf("I knock instead.") >= 0; }) && !seen.some(function (c) { return c.msg.indexOf("I open the door.") >= 0; }), "Retry re-rolled the refused turn instead of sending the action that failed: " + JSON.stringify(seen.map(function (c) { return c.msg.slice(0, 40); })));
+    assert.strictEqual(worldState.turn, 11);
+    return done();
+  }, function (e) { done(); throw e; });
+});
+
 kase("U3: in the book only this turn's refused entry is ever replaced, and a retcon in the replacement corrects the scene before it", function () {
   u3World(); var ws = worldState; ws.turn = 10;
   function book(last) { ws.transcript = [{ t: 9, r: "gm", x: "The vault stands open." }, { t: 9, r: "player", x: "I look inside." }].concat(last ? [last] : []); said.warns.length = 0; }
@@ -303,6 +381,11 @@ kase("U3: in the book only this turn's refused entry is ever replaced, and a ret
   assert.strictEqual(ws.transcript.length, 3); assert.strictEqual(ws.transcript[2], entry, "the entry was swapped for another object (the memo and the speaker stamp hold the old one)");
   assert.ok(entry.x === "The vault was shut all along." && !entry.rf && entry.t === 10 && entry.ta === 5 && JSON.stringify(entry.e) !== '["stale"]' && entry.m !== "old-model" && !("den" in entry), "the refused entry's fields outlived it: " + JSON.stringify(entry));
   assert.strictEqual(ws.transcript[0].rc, 1, "the retcon marked the refusal it replaced, not the scene before it");
+  // a replacement with tags and no narration puts nothing in the book — and that is said
+  book({ t: 10, r: "gm", x: "I cannot continue.", rf: 1 }); said.warns.length = 0;
+  logTranscript("gm", "", "[GOLD:+1]", 0, { replaceRefusal: true });
+  assert.ok(ws.transcript.length === 3 && ws.transcript[2].rf === 1, "an empty replacement changed the book");
+  assert.ok(said.warns.some(function (w) { return /no narration to put in the book/.test(w); }), "a refusal left as the record of a turn whose tags landed was not said");
   assert.strictEqual(entry.rc, 1);
 });
 

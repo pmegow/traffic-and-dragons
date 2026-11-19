@@ -146,7 +146,7 @@ kase("V1: a failure the game hands the car to SAY is read aloud with the failure
   assert.ok(/could not be shown/.test(f.els["car-status"].textContent), "the status line does not carry it");
   assert.strictEqual(f.c._carRetryArmed, false, "a spoken failure armed the tap that sends the last action again");
   f.c.carNotify("error", "Turn failed"); assert.strictEqual(f.c._carRetryArmed, true, "fixture: a real turn failure no longer arms the retry");
-  f.c.carNotify("say", "x"); assert.strictEqual(f.c._carRetryArmed, true, "a spoken notice disarmed a retry that was owed");
+  f.c.carNotify("say", "x"); assert.strictEqual(f.c._carRetryArmed, false, "a spoken committed failure left an older retry armed — its tap would send the turn that just landed again");
   var g = src("game.js");
   assert.ok(g.indexOf('carNotify("say","The turn was applied, but it could not be shown.")') >= 0 && g.indexOf('carNotify("say","The opening could not be shown. Reload to continue.")') >= 0, "the game does not hand the car its committed failures to say");
 });
