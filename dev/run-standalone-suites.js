@@ -173,6 +173,7 @@ var SUITES = [
   "dev/tests-audit-voice.js",
   "dev/tests-dedup-b.js",
   "dev/tests-modal-shell.js",
+  "dev/tests-suite-shards.js",/* one long suite split across processes runs every group once; a split that ran less is red with the reason */
   "dev/tests-standalone-runner.js"/* this runner itself: several at a time, output whole and in list order, one failure fails the run */
 ];
 
@@ -208,7 +209,7 @@ function jobCount(argv, env) {
 
 // The suites that take longest START first (the order of the PRINT stays the list's): the run can be no shorter than
 // its longest suite, so that one must not wait behind the others. A name here that is not in the list is refused.
-var START_FIRST = ["dev/tests-684-atlas-engine.js", "dev/tests-754-damage-only.js", "dev/tests-633-companion-talk.js",
+var START_FIRST = ["dev/tests-754-damage-only.js", "dev/tests-684-atlas-engine.js", "dev/tests-633-companion-talk.js",
   "dev/tests-sabotage-meta.js", "dev/tests-252-retained-proof-wiring.js", "dev/tests-jp011-flush-dirty.js"];
 function startOrder(suites, first) {
   var order = first.map(function (n) { var i = suites.indexOf(n); if (i < 0) throw new Error("START_FIRST names a suite that is not in the list: " + n); return i; });

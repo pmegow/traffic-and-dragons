@@ -19,11 +19,29 @@
 //   node dev/tests-684-atlas-engine.js
 //   node dev/tests-684-atlas-engine.js --only "<part of a group's name>"   (one group alone; nothing matched = red)
 var assert = require("assert/strict"), fs = require("fs"), path = require("path");
+/* SEVERAL PROCESSES AT ONCE (2026-11-18). Run whole, this file took 42 s and every commit's test run waited on it. Every
+   group builds its own state (dev/check-684-groups-alone.js proves it), so with no argument the file hands every n-th
+   group to its own process and the parent proves the counts add up (dev/suite-shards.js). --only runs in this process
+   as before; ATLAS_ENGINE_SHARDS=1 runs the whole file in this process. */
+var shards = require("./suite-shards.js");
+var SHARD, SHARD_COUNT;
+try {
+  SHARD = shards.arg(process.argv);
+  if (SHARD && process.argv.indexOf("--only") > 0) throw new Error("--shard and --only do not go together");
+  SHARD_COUNT = SHARD || process.argv.indexOf("--only") > 0 ? 1 : shards.count(process.env, "ATLAS_ENGINE_SHARDS", 6);
+} catch (eShard) { console.error("tests-684-atlas-engine: " + eShard.message); process.exit(2); }
+if (SHARD_COUNT > 1) {
+  shards.runParent(__filename, SHARD_COUNT, function (verdict) {
+    console.log((verdict.ok ? "ALL GREEN" : "FAILED") + " — " + verdict.ran + " atlas engine groups (#684), in " + SHARD_COUNT + " processes");
+    process.exit(verdict.ok ? 0 : 1);
+  });
+  return;   /* the parent loads no engine and runs no group */
+}
 var engine = require("./load-engine.js");
 engine.loadEngine();
 var ROOT = path.join(__dirname, "..");
 function src(f) { return fs.readFileSync(path.join(ROOT, f), "utf8"); }
-var passed = 0, matched = 0;
+var passed = 0, matched = 0, seen = 0;
 /* --only <text> (2026-11-06): run only the groups whose name contains the text. Every group builds its own state from
    fresh() / start() / makeTestWorld(), so one runs alone exactly as it runs in the file (dev/check-684-groups-alone.js
    proves it for every group). The sabotage batteries run each clause's own named test this way (sabotage.js `only:`) —
@@ -31,12 +49,14 @@ var passed = 0, matched = 0;
    never a silent green (the #677 lesson: a filter that ran nothing proved eight clauses falsely). */
 var ONLY = (function () { var i = process.argv.indexOf("--only"); return i > 0 && typeof process.argv[i + 1] === "string" ? process.argv[i + 1] : null; })();
 function test(name, fn) {
+  if (!shards.mine(SHARD, seen++)) return;
   if (ONLY !== null && name.indexOf(ONLY) < 0) return;
   matched++;
   try { fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); }
 }
 /* #708: a group that awaits (the start's classification is a model call) — the same filter, count and verdict; the file's IIFE is async and awaits it in place */
 async function atest(name, fn) {
+  if (!shards.mine(SHARD, seen++)) return;
   if (ONLY !== null && name.indexOf(ONLY) < 0) return;
   matched++;
   try { await fn(); passed++; console.log("PASS #684 " + name); } catch (e) { process.exitCode = 1; console.error("FAIL #684 " + name + " — " + e.stack); }
@@ -2406,5 +2426,6 @@ var ATLAS_REDRAWN_BY_0_13 = ["campaign-1/z202_178"];
 
   console.warn = realWarn; console.info = realInfo;
   if (ONLY !== null && !matched) { process.exitCode = 1; console.error("--only \"" + ONLY + "\" matched 0 tests — NOTHING ran (a group is named by a substring of its name)"); }
-  console.log((process.exitCode ? "FAILED" : "ALL GREEN") + " — " + passed + " atlas engine groups (#684)" + (ONLY !== null ? " (--only: " + matched + " of the file's groups ran)" : ""));
+  console.log((process.exitCode ? "FAILED" : "ALL GREEN") + " — " + passed + " atlas engine groups (#684)" + (ONLY !== null ? " (--only: " + matched + " of the file's groups ran)" : "") + (SHARD ? " (shard " + SHARD.k + "/" + SHARD.n + ")" : ""));
+  if (SHARD) console.log(shards.line(SHARD, matched, seen));
 })();

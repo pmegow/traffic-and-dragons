@@ -11,10 +11,15 @@ const TYPES={'.html':'text/html','.css':'text/css','.js':'application/javascript
 // until 2026-11-09; Fade is 0.6 s, but a saved exit can be any of them). The old 5 s
 // budget was the fade's (250 ms) and turned CI red on dacc10b2; a dismiss that never ends still fails.
 const DISMISS_MS=30000;
-async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+' — '+e.message);}}
+let ran=0;const CHECKS=16;/* 13 checks and each track's "no page errors" */
+async function check(name,fn){ran++;try{await fn();console.log('PASS '+name);}catch(e){failed++;console.error('FAIL '+name+' — '+e.message);}}
 (async()=>{
   const browser=await chromium.launch({headless:true});
   try{
+    /* THREE TRACKS AT ONCE (2026-11-18): the file took 72 s on one page and every push waited on it. Each track is its
+       own page on its own ORIGIN (a port of its own, all served from the tree by the route below), so each has its own
+       localStorage, dice overlay and WebGL context; inside a track the checks run in file order as before. */
+    const open=async port=>{
     const ctx=await browser.newContext({viewport:{width:1150,height:900},serviceWorkers:'block'});
     await ctx.route('**/*',async route=>{
       const u=new URL(route.request().url());if(u.hostname!=='127.0.0.1')return route.abort();
@@ -23,11 +28,23 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
     });
     const page=await ctx.newPage();
     const errors=[];page.on('pageerror',e=>errors.push(String(e)));
-    await page.goto('http://127.0.0.1/index.html');
+    await page.goto('http://127.0.0.1:'+port+'/index.html');
     await page.waitForFunction(()=>typeof showDiceRoll==='function'&&typeof showGame==='function');
     await page.evaluate(()=>{document.getElementById('api-screen').style.display='none';showGame();});
     /* named, so a refusal grown too wide (B60: only a local file is refused) is read as that and not as a timeout */
     await page.waitForFunction(()=>!!window.DiceSim,null,{timeout:20000}).catch(e=>{throw new Error('FAIL the dice module loads on an http page (localhost keeps its dice) — '+e.message);});
+    return {page,errors};
+    };
+    const tracks=[];
+    const track=(name,port,body)=>tracks.push((async()=>{
+      let t;
+      try{t=await open(port);}catch(e){failed++;console.error('FAIL track '+name+' could not open its page — '+e.message);return;}
+      try{await body(t.page);}catch(e){failed++;console.error('FAIL track '+name+' stopped — '+(e.stack||e.message));}
+      await check('no page errors ('+name+')',async()=>{assert.deepEqual(t.errors,[]);});
+    })());
+    const until=`var until=async(f,ms)=>{const t=Date.now();while(!f()){if(Date.now()-t>(ms||30000))throw new Error('timed out: '+f);await new Promise(r=>setTimeout(r,40));}};`;
+
+    track('rolls and looks',8101,async page=>{
 
     await check('a check\'s d20 is thrown live and lands on the engine\'s face; the click dismisses it and runs onClose',async()=>{
       const shown=await page.evaluate(()=>{window.__closed=0;return showDiceRoll(17,{onClose:function(){window.__closed++;}});});
@@ -82,7 +99,9 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
     });
 
     // #670 (owner 2026-10-26): the dice leave by an exit — Fade until the player picks (owner 2026-11-09; Smoke puff before); the damage dice roll as the d20 leaves.
-    const until=`var until=async(f,ms)=>{const t=Date.now();while(!f()){if(Date.now()-t>(ms||30000))throw new Error('timed out: '+f);await new Promise(r=>setTimeout(r,40));}};`;
+    });
+
+    track('exits',8102,async page=>{
     await check('#670 a dismiss plays the exit (Fade until the player picks): the story stays clickable while the dice go, the layer hides once they have gone',async()=>{
       const r=await page.evaluate(until+`(async()=>{
         const exit=diceLiveState().exit;
@@ -168,6 +187,9 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
       assert.deepEqual(r,{offered:false,selected:'fade',worn:'fade',started:1,remaining:0,closed:1});
     });
 
+    });
+
+    track('the test die and the failed starts',8103,async page=>{
     // Owner 2026-11-13: the test d20 rolls OVER the Dice appearance modal, which stays open so the looks can be browsed.
     await check('Roll a test d20 rolls over the Dice appearance modal, which stays open and usable; closing it sends the dice away',async()=>{
       const r=await page.evaluate(until+`(async()=>{
@@ -284,7 +306,11 @@ async function check(name,fn){try{await fn();console.log('PASS '+name);}catch(e)
         assert.equal(r.toastsAfterTest,3,'Roll a test d20 says why nothing rolls instead of doing nothing');
       }finally{await unstash();}
     });
-    await check('no page errors',async()=>{assert.deepEqual(errors,[]);});
+    });
+
+    await Promise.all(tracks);
+    /* every check below must have run: a track that stopped early is red above, and the count says so too */
+    if(ran!==CHECKS){failed++;console.error('FAIL '+ran+' of the file\'s '+CHECKS+' checks ran');}
   }finally{await browser.close();}
   process.exitCode=failed?1:0;
 })().catch(e=>{console.error(e);process.exitCode=1;});
