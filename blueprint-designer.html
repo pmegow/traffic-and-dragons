@@ -198,7 +198,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.80";
+var BP_DESIGNER_VERSION="v0.81";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 /* audit 2026-11-19, X6/X7: bpDoc counts the DOCUMENTS this page has held — it goes up when the working copy is replaced by
@@ -1505,7 +1505,7 @@ async function applyFinding(idx){
     var before=textSnapshot(); // taken at the write, not at the request: the author's edits during the wait are theirs
     var res=applyPatches(bp,patch.patches); // in-place merge by identity; throws (→ rollback) on a bad patch
     normalizeBlueprint(bp,{preserveProse:true});
-    var err=validateBlueprint(bp);
+    var err=validateBlueprintDraft(bp);/* #777 review: a row the author has not named yet is not the fix's doing (game.js) */
     if(err)throw new Error("fix produced an invalid blueprint ("+err+") — rolled back");
     var di;for(di=0;di<res.deleted.length;di++)_batchDeleted[res.deleted[di]]=1; // commit deletions only now (survived validation) so later findings won't resurrect them
     bp.review.findings[idx].status="applied";

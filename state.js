@@ -609,16 +609,20 @@ function migrateAncestryNames(c){
    any of those run; a missing registry fails loudly, never skips (§5.3). */
 function inventoryAdmitWorld(ws,door){
   var sheets=worldSheetsOf(ws),i,why="",changed=false,ctx,dropped=0,_entries=0;
+  /* review of 2438cfd7: the list heal runs BEFORE the pack check, on its own — the packs are all or nothing, and a world
+     whose packs were refused kept its null condition, on which every turn fails (the admission "lists" entry then finds
+     nothing left here; it serves the other doors). */
+  for(i=0;i<sheets.length;i++)_entries+=sheetListsHeal(sheets[i].sheet);
+  if(_entries){changed=true;if(typeof showToast==="function")showToast("⚠ "+_entries+" unreadable condition entr"+(_entries===1?"y was":"ies were")+" removed from this campaign's sheets on load",9000);}
   for(i=0;i<sheets.length&&!why;i++)why=invSheetIssue(sheets[i].sheet);
   if(why){if(typeof console!=="undefined")console.error("[inventory] "+(door||"load")+": the packs were NOT converted — "+why+"; the save stays at v"+(ws&&ws.ver!==undefined?ws.ver:"?")+" with every pack as it was");
     if(typeof showToast==="function")showToast("⚠ "+why+" — this campaign's items were not converted; repair the sheet and reload",9000);return {ok:false,reason:why,changed:false};}
   for(i=0;i<sheets.length;i++){ctx={door:(door||"load")+" "+sheets[i].who,mode:"same",detach:false,rel:sheets[i].rel,portable:sheets[i].portable,toast:false};
     var a=sheetAdmit(sheets[i].sheet,ctx);
     if(!a.ok){if(typeof console!=="undefined")console.error("[inventory] "+(door||"load")+": "+sheets[i].who+" refused after its pack check passed — "+a.reason);return {ok:false,reason:a.reason,changed:changed};}
-    if(ctx.healed)changed=true;dropped+=ctx.portraitsDropped||0;_entries+=ctx.entriesDropped||0;}
+    if(ctx.healed)changed=true;dropped+=ctx.portraitsDropped||0;}
   if(ws&&(typeof ws.ver!=="number"||ws.ver<SAVE_VER)){ws.ver=SAVE_VER;changed=true;}
   if(dropped&&typeof showToast==="function")showToast("⚠ "+dropped+" portrait"+(dropped>1?"s were":" was")+" dropped from this campaign on load — not an image",9000);/* #599 (c2), review 5: the door says it ONCE, with the count — the import and the reconcile already did; a console line alone is silent on a phone */
-  if(_entries&&typeof showToast==="function")showToast("⚠ "+_entries+" unreadable condition entr"+(_entries===1?"y was":"ies were")+" removed from this campaign's sheets on load",9000);/* audit 2026-11-19, P8: said once, with the count */
   return {ok:true,reason:"",changed:changed};
 }
 /* #599 (c2), review 3: a world that holds a ROW is a v11 world wherever it is WRITTEN. After a refused load (one sheet the

@@ -24,7 +24,7 @@ function openAsk(seedFinding){
   var modal=modalShell('ask-modal',html,{maxWidth:780,boxBg:'var(--bg1)',boxExtra:'max-height:90vh;overflow:auto;',closeId:'ask-x',onClose:closeAsk});session.modal=modal;
   var input=modal.querySelector('#ask-inp'),sendButton=modal.querySelector('#ask-send'),applyButton=modal.querySelector('#ask-apply'),status=modal.querySelector('#ask-status'),reply=modal.querySelector('#ask-reply'),changes=modal.querySelector('#ask-changes');
   function live(){return designerAssistantSession===session;}
-  var host={previous:function(){return session.previous;},current:function(){return live()?bp:null;},key:BlueprintEdition.key,merge:applyPatches,normalize:function(value){return normalizeBlueprint(value,{preserveProse:true});},validate:validateBlueprint,fields:blueprintTextFields,caps:IMPORT_CAPS,repair:repairModelJson,model:designerModel,ask:function(msg,sys,tokens,model,opts){return callGM(msg,sys,tokens,model,opts);}};
+  var host={previous:function(){return session.previous;},current:function(){return live()?bp:null;},key:BlueprintEdition.key,merge:applyPatches,normalize:function(value){return normalizeBlueprint(value,{preserveProse:true});},validate:validateBlueprintDraft/* #777 review: unnamed rows in progress do not refuse a proposal */,fields:blueprintTextFields,caps:IMPORT_CAPS,repair:repairModelJson,model:designerModel,ask:function(msg,sys,tokens,model,opts){return callGM(msg,sys,tokens,model,opts);}};
   function error(e){console.warn('[designer assistant] '+e.message);status.textContent=e.message;status.className='err';}
   async function send(){
     if(!live()||session.busy)return;

@@ -56,7 +56,7 @@ var SHEET_ADMISSION=[
   {name:"arrays",phase:"prepare",applies:function(){return typeof ensureV10Arrays==="function";},
    run:function(sheet){ensureV10Arrays(sheet);}},/* #428: the v10 field guarantee (game.js; a host without game.js has no v10 doors) */
   {name:"lists",phase:"prepare",applies:function(){return true;},
-   run:function(sheet,ctx){var _ld=sheetListsHeal(sheet);if(!_ld)return;ctx.healed=true;ctx.entriesDropped=(ctx.entriesDropped||0)+_ld;if(ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+_ld+" unreadable entr"+(_ld===1?"y was":"ies were")+" removed from "+(sheet.name||"the character")+"'s conditions");}},/* audit 2026-11-19, P8: a null in a sheet's conditions made every turn fail and no door repaired it (helpers.js SHEET_LIST_RULES) */
+   run:function(sheet,ctx){var _ld=sheetListsHeal(sheet);if(!_ld)return;ctx.healed=true;if(ctx.toast!==false&&typeof showToast==="function")showToast("⚠ "+_ld+" unreadable entr"+(_ld===1?"y was":"ies were")+" removed from "+(sheet.name||"the character")+"'s conditions");}},/* audit 2026-11-19, P8: a null in a sheet's conditions made every turn fail and no door repaired it (helpers.js SHEET_LIST_RULES) */
   {name:"relationships",phase:"prepare",applies:function(){return true;},
    run:function(sheet,ctx){relationshipMigrateSheet(sheet,ctx.rel===undefined?sheet.name:ctx.rel,ctx.portable?{portable:true}:undefined);}},/* #168 W7: the axis adapter */
   {name:"scene",phase:"prepare",applies:function(ctx){return ctx.mode!=="same";},

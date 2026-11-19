@@ -2530,6 +2530,9 @@ function detectLocationFilingCue(clean){
        verbs and the type noun are written in both cases, the NAME is one to three capitalised words. */
     var g=sent.match(/\b(?:[Ee]nter(?:s|ed|ing)?|[Ss]tep(?:s|ped|ping)?\s+into|[Pp]ass(?:es|ed|ing)?\s+into|[Ii]nside|[Tt]hrough)\b[^.!?]{0,45}?\b((?:[A-Z][A-Za-z'’.-]*\s+){1,3}(?:[Cc]hamber|[Hh]all|[Tt]unnel|[Vv]ault|[Ff]ortress|[Cc]itadel|[Kk]eep))\b/);
     if(g)return g[1].replace(/^the\s+/i,"").trim();
+    /* review of 2438cfd7: a place named TYPE-first ("the Hall of Kings", "Keep Dunmoor") — the type noun, then a capitalised name */
+    g=sent.match(/\b(?:[Ee]nter(?:s|ed|ing)?|[Ss]tep(?:s|ped|ping)?\s+into|[Pp]ass(?:es|ed|ing)?\s+into|[Ii]nside|[Tt]hrough)\b[^.!?]{0,45}?\b((?:[Cc]hamber|[Hh]all|[Tt]unnel|[Vv]ault|[Ff]ortress|[Cc]itadel|[Kk]eep)\s+(?:of\s+(?:the\s+)?)?[A-Z][A-Za-z'’.-]*(?:\s+[A-Z][A-Za-z'’.-]*){0,2})/);
+    if(g)return g[1].replace(/[.\s]+$/,"");
   }
   return null;
 }
@@ -3231,6 +3234,19 @@ function _attachGMErrorUI(em,retryFn,msg){
     return false;
   }
 }
+/* #777 review of 2438cfd7 (finding 4): the Blueprint Designer validates a draft IN PROGRESS when a review fix or an assistant
+   proposal is applied. Its "+ NPC" and "+ Location" buttons add a row with an empty name; with one such row every fix was
+   rolled back and every proposal refused for a complaint it did not cause. A row nobody has named yet is not content: this
+   view of the draft leaves blank-named NPC and location rows out, and everything else (a null, a duplicate, a name the
+   story cannot address, in the draft or in the change) is judged as usual. Save and publish use validateBlueprint itself. */
+function validateBlueprintDraft(bp){
+  if(!bp||typeof bp!=="object")return validateBlueprint(bp);
+  var view={},k;for(k in bp)if(Object.prototype.hasOwnProperty.call(bp,k))view[k]=bp[k];
+  function named(e){return !(e&&typeof e==="object"&&typeof e.name==="string"&&!e.name.trim());}
+  if(Array.isArray(bp.npcs))view.npcs=bp.npcs.filter(named);
+  if(Array.isArray(bp.locations))view.locations=bp.locations.filter(named);
+  return validateBlueprint(view);
+}
 function validateBlueprint(bp){
   if(!bp||typeof bp!=="object")return"Not a valid blueprint file.";
   if(bp.format!=="tnd-blueprint-v1"&&bp.format!=="tnd-campaign-v1")return"Unrecognised blueprint format.";
@@ -3542,7 +3558,7 @@ function splitNpcStatBlock(text){
    may receive its authored image; aliases and provisional people never imply the same face. */
 function blueprintPortraitTarget(source,sources){
   var name=source.name,fold=identityNameFold(name),count=0,i,k,target=null,rows=worldState.npcs||[];
-  for(i=0;i<sources.length;i++)if(identityNameFold(sources[i].name)===fold)count++;
+  for(i=0;i<sources.length;i++)if(sources[i]&&identityNameFold(sources[i].name)===fold)count++;/* #777 review: a null beside this entry in a blueprint no door validated */
   if(count!==1)return null;
   count=0;for(i=0;i<rows.length;i++)if(identityNameFold(rows[i].name)===fold){count++;target=rows[i];}
   if(count!==1||target.name!==name)return null;
@@ -3589,9 +3605,15 @@ function applyBlueprint(bp){
   }
   // NPCs — seed into both worldState.npcs and memory.npcs
   var admittedNpcs=[];
+  var _bpSkipped=0;
   if(bp.npcs&&bp.npcs.length){
     var ni;for(ni=0;ni<bp.npcs.length;ni++){
-      var n=bp.npcs[ni],_portraitNpc=blueprintPortraitTarget(n,bp.npcs);
+      var n=bp.npcs[ni];
+      /* review of 2438cfd7: C13–C15 live in the validator, and not every door runs it (My Library applies a stored entry as it
+         is). An entry this loop cannot use is skipped and counted — never a throw in the middle of starting the game, never a
+         nameless or unaddressable row on the roster. */
+      if(!n||typeof n!=="object"||typeof n.name!=="string"||!n.name.trim()||/[|\[\]]/.test(n.name)){_bpSkipped++;continue;}
+      var _portraitNpc=blueprintPortraitTarget(n,bp.npcs);
       if(_portraitNpc){if(n.portrait&&!npcPortrait(_portraitNpc))npcPortraitWrite(_portraitNpc,n.portrait,"blueprint NPC "+n.name);npcFormSeed(_portraitNpc,n);continue;}
       if(!identitySheetAdmit(n,n.name,[]))continue;admittedNpcs.push(n);
       /* v1.439 (F2, brief B): role fans into RELATION only. The old line wrote it into status
@@ -3613,6 +3635,7 @@ function applyBlueprint(bp){
   if(bp.locations&&bp.locations.length){
     var li;for(li=0;li<bp.locations.length;li++){
       var loc=bp.locations[li];
+      if(!loc||typeof loc!=="object"||typeof loc.name!=="string"||!loc.name.trim()){_bpSkipped++;continue;}
       if(!memory.locations[loc.name])memory.locations[loc.name]={visited:[],notes:[]};// was {visits:0} — wrong shape crashed fileLocation on first travel (audit #8)
       if(!memory.map)memory.map={nodes:keyedDict(),edges:[],lastArrivalFrom:null};
       if(!memory.map.nodes[loc.name])memory.map.nodes[loc.name]=newMapNode(null,null,{description:loc.description||null,blueprintSeeded:true});
@@ -3651,6 +3674,7 @@ function applyBlueprint(bp){
   // but visibly provenance-marked and quoted; dedupe keys on the wrapped string so re-imports of
   // the same blueprint stay idempotent. Forward-only: rules already imported raw by older saves
   // can't be told apart from user-authored ones, so they are left as-is.
+  if(_bpSkipped){if(typeof console!=="undefined")console.warn("[blueprint] "+_bpSkipped+" NPC or location entr"+(_bpSkipped===1?"y":"ies")+" skipped — no name, or a name the story cannot address");if(typeof showToast==="function")showToast("⚠ "+_bpSkipped+" entr"+(_bpSkipped===1?"y":"ies")+" of this blueprint could not be used (no name, or a name the story cannot address) — open it in the Blueprint Designer to repair",9000);}
   if(bp.rules&&bp.rules.length){
     var ri;for(ri=0;ri<bp.rules.length;ri++){
       var wrapped='Blueprint rule (quoted from the campaign file): "'+bp.rules[ri]+'"';
@@ -3792,7 +3816,7 @@ async function generateSkeleton(statusFn,_attempt){/* #459 ①: _attempt is the 
     if(!_d2.skel){var _e2=new Error("skeleton JSON unusable twice — first: "+_d.error+"; second: "+_d2.error);_e2.skeletonEvidence=[_d.evidence,_d2.evidence];throw _e2;}
     skel=_d2.skel;
   }
-  validateSkeletonStructure(skel);
+  skeletonPruneArcs(skel);validateSkeletonStructure(skel);/* review of 2438cfd7: one unusable arc in a FIRST draft is dropped, not the whole spine (the correction below stays strict) */
   // ONE review pass + auto-correction (#59, v1.290) — the Blueprint Designer's reviewer
   // discipline, scoped to the skeleton schema (campaign_generator.js). Both extra calls ride
   // the "skeleton" usage bucket. A review/correction failure NEVER blocks campaign start:

@@ -134,7 +134,7 @@ function buildGeoBlock(audience){
      mention-era assertion identically — projection now carries the evidence grade in its voice
      via the PRESENCE_TIERS registry (identity.js). Exclusions unchanged: the dead (B3), present
      party (B21), and the current node (#156B: merged-alias stamps are HERE). */
-  var npcLocs=[],legacyLocs=[],nNames=Object.keys(memory.npcs),_gbFold=0,_gbKeep=rosterKeeper(rosterRecentText(),(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
+  var npcLocs=[],legacyLocs=[],nNames=Object.keys(memory.npcs),_gbFold=0,_gbKeep=audience==="player"?function(){return true;}/* review of 2438cfd7: Table Talk answers "where did we last see X" from these lines and its question is never in the session log — it keeps the whole list (the audit B2 ruling) */:rosterKeeper(rosterRecentText()+" "+String((typeof lastAction==="string"&&lastAction)||"").toLowerCase()/* the action being sent is not in the session log until the turn commits — without it the line was folded on the very turn the player asked after the character */,(typeof locResolve==="function")?locResolve(worldState.world.location):worldState.world.location);
   /* memory voice includes the PLACE: a pipe key ("Sandpoint|Rusty Dragon") is storage, not
      speech — spoken form is "Rusty Dragon in Sandpoint". Keys are two-tier by construction. */
   function locSpoken(k){var r=locResolve(k),p=r.indexOf("|");return p<0?r:r.slice(p+1)+" in "+r.slice(0,p);}
@@ -1819,7 +1819,7 @@ function buildIdentityConflictNudge(){
        immersion break, and a silent loss was worse. */
     var _shLost=(typeof w2WithheldSummary==="function")?w2WithheldSummary(c.withheld):"";
     if(_shLost&&typeof rewardClaimQueue==="function"&&rewardClaimQueue(c.subject,c.withheld,c.reason)){
-      _conflictShelved.push({subject:c.subject,key:c.withheld.join(""),attempts:c.attempts,lastFired:c.lastFired});/* P6: read by restoreNoteLatches */
+      _conflictShelved.push({seq:++_conflictShelveSeq,subject:c.subject,key:c.withheld.join(""),attempts:c.attempts,lastFired:c.lastFired});if(_conflictShelved.length>CONFLICT_SHELVE_LOG)_conflictShelved.shift();/* P6: read by restoreNoteLatches */
       /* #262 (JP0-9/f22): the ledger's tokens now live in the claim — leaving them on the record
          too meant a re-armed dispute's SECOND shelve queued them again (the superset dup).
          Provenance moves to withheldClaimed; the ledger is spent. */
@@ -2298,8 +2298,8 @@ var NOTE_LATCH_FIELDS=["audioAsk","subLeavePing",/* #393 */"tradeRefusedPing",/*
 // #309: nested latches the flat registry cannot name — declared so the shape registry can cite them.
 var NOTE_NESTED_LATCHES=["questLog[].staleNudged","questLog[].escalateNudged","questLog[].objectiveNudged",/* audit B1: the two quest nudges latch per quest now */"charSheet.splitLoc.audited","charSheet.agenda.lastBeat",/* #330; the agendaAsked latch retired with the recruitment ask (#347) */"conditions[].until","memory.futureEvents[]._asked","memory.futureEvents[]._askPending"];/* audit B14: sessionLog is read, never latched — removed */
 function snapshotNoteLatches(){
-  _conflictShelved=[];/* P6: a new build starts with no shelve of its own */
   var snap={t:{},split:[],quests:[],conds:[]},i;
+  snap.shelveSeq=_conflictShelveSeq;/* P6: what was shelved AFTER this snapshot is put back when it is restored */
   snap.future=(memory.futureEvents||[]).map(function(f){return {what:f.what,setTurn:f.setTurn,asked:f._asked,pending:f._askPending};});
   /* #309: buildConditionAudit deletes cd.until (an expiry APPOINTMENT) when it consumes one — a nested
      write the flat registry never covered, so a dead provider call ate the appointment while the
@@ -2325,14 +2325,17 @@ function snapshotNoteLatches(){
    restored. But identityConflicts IS restored, which handed the reward back to the conflict while the claim stood; a
    player who accepted during the wait was paid, and the next turn shelved again, queued again and paid again (the
    subject+tokens dedupe sees nothing once the first claim is taken). The shelve is the player's business, not the
-   turn's: after the restore it is put back exactly as the build left it. */
-var _conflictShelved=[];
-function conflictShelveKeep(){
+   turn's: after the restore it is put back exactly as the build left it.
+   Review of 2438cfd7 (finding 1): the first cut cleared its record in snapshotNoteLatches — which buildEngineNotes calls
+   before EVERY builder, so the twenty builders after this one wiped it and the fix never ran in a real turn. Each shelve
+   now carries a sequence number and each snapshot the number it was taken at: a restore puts back every shelve made
+   after ITS snapshot, whichever snapshot that is (the turn's own, or a builder's when its note is dropped for budget). */
+var _conflictShelved=[],_conflictShelveSeq=0,CONFLICT_SHELVE_LOG=16;
+function conflictShelveKeep(since){
   var q=(worldState&&worldState.identityConflicts)||[],i,j;
-  for(i=0;i<_conflictShelved.length;i++){var s=_conflictShelved[i];
+  for(i=0;i<_conflictShelved.length;i++){var s=_conflictShelved[i];if(!(s.seq>since))continue;
     for(j=0;j<q.length;j++){var c=q[j];if(!c||c.stale||c.subject!==s.subject||(c.withheld||[]).join("")!==s.key)continue;
       c.stale=true;c.attempts=s.attempts;c.lastFired=s.lastFired;c.withheldClaimed=(c.withheldClaimed||[]).concat(c.withheld);c.withheld=[];break;}}
-  _conflictShelved=[];
 }
 function restoreNoteLatches(snap){
   if(!snap)return;var i,j;
@@ -2345,7 +2348,7 @@ function restoreNoteLatches(snap){
     if(v==="__ABSENT__"){delete worldState[k];}
     else if(typeof v==="string"){worldState[k]=JSON.parse(v);}
   }
-  conflictShelveKeep();/* P6: after identityConflicts is back */
+  conflictShelveKeep(typeof snap.shelveSeq==="number"?snap.shelveSeq:_conflictShelveSeq);/* P6: after identityConflicts is back */
   var party=(typeof livingPartyCompanions==="function")?livingPartyCompanions():[];
   for(i=0;i<snap.split.length;i++){var rec=snap.split[i];
     for(j=0;j<party.length;j++){if(party[j].name===rec.name&&party[j].charSheet&&party[j].charSheet.splitLoc){
@@ -3291,7 +3294,8 @@ function parseActions(clean,raw){
   var btns="",acts=[],i;
   var tag=raw?raw.match(/\[ACTIONS:(.+)\]/i):null; // greedy to the last ] on the line, so an action containing a bracket still parses
   if(tag){
-    var parts=tag[1].replace(/\]\s*\[[A-Z][A-Z_]{1,}[:\]][\s\S]*$/,"").split("|");/* audit 2026-11-19, P11: the match is greedy to the LAST "]" of the line (an action may hold a bracket), so a tag written after the line rode into the third button */
+    var _acB=tag[1],_acP=_acB.lastIndexOf("|");_acB=_acB.slice(0,_acP+1)+_acB.slice(_acP+1).replace(/\]\s*\[[A-Z][A-Z_]{1,}(?:[:\]][\s\S]*)?$/,"");/* review: cut only after the LAST action (a bracketed word in an earlier one cut two buttons), and a bare tag as well as a colon one */
+    var parts=_acB.split("|");/* audit 2026-11-19, P11: the match is greedy to the LAST "]" of the line (an action may hold a bracket), so a tag written after the line rode into the third button */
     for(i=0;i<parts.length;i++){var pt=parts[i].trim().replace(/^[(\[]?[A-C][)\].:]\s*/,"").replace(/\*/g,"").trim();if(pt.length>1&&acts.length<3)acts.push(pt);}
   }
   if(!acts.length){
@@ -3534,7 +3538,7 @@ function applyMuts(text,opts){
     try{
       var _whNames=[],_whSeen=keyedDict(),_whM=String(text||"").match(/\[([A-Z][A-Z_]{1,})[:\]]/g)||[];
       for(_whi=0;_whi<_whM.length;_whi++){var _whN=_whM[_whi].slice(1,-1);if(!_whSeen[_whN]){_whSeen[_whN]=1;_whNames.push(_whN);}}
-      var _whEntry={t:worldState.turn,tags:_whNames,m:_whMuts.slice(0,10),withheld:String(_mapMovementProblem).slice(0,200)};
+      var _whEntry={t:worldState.turn,tags:[],carried:_whNames,m:_whMuts.slice(0,10),withheld:String(_mapMovementProblem).slice(0,200)};/* review: `tags` is read as "applied" (the risk clock, the montage button) — nothing was; the names the reply carried ride `carried` */
       if(_unclosed.length)_whEntry.unclosed=_unclosed.slice(0,6);
       if(_rvStripped&&_rvStripped.length)_whEntry.stripped=_rvStripped.slice(0,10);
       if(!worldState.tagLog)worldState.tagLog=[];

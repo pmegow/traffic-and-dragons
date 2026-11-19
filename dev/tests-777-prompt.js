@@ -69,6 +69,8 @@ kase("P6: a failed turn still un-delivers a conflict note that shelved nothing",
   assert.ok(!worldState.identityConflicts[0].stale, "an earlier turn's shelve was applied to this conflict — its reward is gone with no claim");
   assert.strictEqual(worldState.identityConflicts[0].attempts, 1, "the un-delivered note still counted as an attempt");
   assert.deepStrictEqual(worldState.identityConflicts[0].withheld, ["[XP:5]"]);
+  var k; for (k = 0; k < CONFLICT_SHELVE_LOG + 8; k++) { worldState.turn += 5; delete worldState.pendingRewardClaims; worldState.identityConflicts = [{ subject: "Foe " + k, handle: "-", reason: "r", withheld: ["[XP:" + (k + 1) + "]"], attempts: IDENTITY_CONFLICT_STALE_ATTEMPTS, lastFired: 0 }]; buildIdentityConflictNudge(); }
+  assert.ok(_conflictShelved.length <= CONFLICT_SHELVE_LOG, "the shelve log grows without bound: " + _conflictShelved.length);
 });
 
 // ── P7: the geography block's "elsewhere" lines ────────────────────────────────────────────────────────────────────
@@ -140,7 +142,7 @@ kase("P10: a reply whose tags the public map withholds is still on the provenanc
   var log = worldState.tagLog || [];
   assert.strictEqual(log.length, n + 1, "the turn left no provenance entry");
   var e = log[log.length - 1];
-  assert.ok(e.tags.indexOf("GOLD") >= 0 && e.tags.indexOf("SUBLOCATION_LEAVE") >= 0, "the entry does not name the tags the reply carried: " + JSON.stringify(e));
+  assert.ok(e.carried.indexOf("GOLD") >= 0 && e.carried.indexOf("SUBLOCATION_LEAVE") >= 0, "the entry does not name the tags the reply carried: " + JSON.stringify(e));
   assert.ok(e.withheld && /malformed|truncated/.test(e.withheld), "the entry does not say why nothing was applied: " + JSON.stringify(e));
   assert.deepStrictEqual(e.unclosed, ["NPC"], "an unclosed opener on this path is not recorded");
 });
@@ -283,6 +285,117 @@ kase("H3: Narrative Rules shows a rule as text — markup in a rule is not run",
   var src = fs.readFileSync(path.join(ROOT, "ui-modals.js"), "utf8"), modal = src.slice(src.indexOf("function showRulesModal"), src.indexOf("function removeRule"));
   assert.ok(/h\+=rulesListHtml\(\);/.test(modal), "the modal does not paint the escaped list");
   assert.ok(!/\+customRules\[i\]\+/.test(modal) && !/campaignRules\[i\]/.test(modal), "the modal paints a rule itself, unescaped");
+});
+
+// ── The independent review of this batch (commit 2438cfd7) ─────────────────────────────────────────────────────────
+kase("review P6: through the turn's real note build, a reward shelved and taken before a failed request is not queued again", function () {
+  fresh(); worldState.turn = 20;
+  worldState.identityConflicts = [{ subject: "Bram", handle: "-", reason: "death not on record", withheld: ["[XP:5]"], attempts: IDENTITY_CONFLICT_STALE_ATTEMPTS, lastFired: 0 }];
+  var snap = snapshotNoteLatches();                           // sendAction's order: the snapshot, then every builder
+  buildEngineNotes();
+  var q = worldState.pendingRewardClaims || [];
+  assert.strictEqual(q.length, 1, "fixture: the shelve queued no claim");
+  var xp0 = worldState.character.xp;
+  assert.ok(rewardClaimAccept(q[0].id)); assert.strictEqual(worldState.character.xp, xp0 + 5);
+  restoreNoteLatches(snap);                                   // the request failed
+  assert.ok(worldState.identityConflicts[0].stale && !worldState.identityConflicts[0].withheld.length, "the builders that ran after the shelve wiped its record — the reward went back to the conflict: " + JSON.stringify(worldState.identityConflicts[0]));
+  worldState.turn += 3; snapshotNoteLatches(); buildEngineNotes();
+  assert.strictEqual((worldState.pendingRewardClaims || []).length, 0, "the reward the player already took was queued again");
+});
+kase("review P7: a character named in the action being sent is listed this turn, and Table Talk keeps the whole list", function () {
+  fresh(); worldState.turn = 300;
+  npc("Sheriff Hemlock", { met: 10, statusTurn: 10 }, { lastSeenAt: "Farholt", lastSeenTurn: 10 });
+  npc("Old Grik", { met: 10, statusTurn: 10 }, { lastSeenAt: "Farholt", lastSeenTurn: 10 });
+  sessionLog = []; lastAction = "I ask the innkeeper where Sheriff Hemlock is these days.";
+  var geo = buildGeoBlock();
+  assert.ok(/Sheriff Hemlock was last seen at Farholt/.test(geo), "the one line recording a character was folded on the turn the player asked after them");
+  assert.ok(!/Old Grik/.test(geo) && /1 more character/.test(geo), geo.slice(-300));
+  lastAction = null;
+  var tt = buildGeoBlock("player");
+  assert.ok(/Sheriff Hemlock/.test(tt) && /Old Grik/.test(tt) && !/not listed/.test(tt), "Table Talk lost the last-seen lines it answers from: " + tt.slice(-300));
+});
+kase("review K2: Table Talk still knows a character the summariser filed from play, and hides only a seeded cast member play has not touched", function () {
+  fresh();
+  memory.npcs["Rat-Kabob Vendor"] = { attitude: "", knowledge: ["Sells rat kabobs by the gate"], events: [], aliases: [] };   // memory only: filed from play
+  npc("Seeded Schemer", { met: 0, status: "", statusTurn: 0 }, { knowledge: ["He plots against the crown."] });               // the blueprint's own note
+  npc("Quiet Witness", { met: 0, status: "", statusTurn: 0 }); fileNpcEvent("Quiet Witness", "Saw the fire from the quay", 3);
+  var tt = ttRecallBlock("who is around?");
+  assert.ok(/Rat-Kabob Vendor/.test(tt), "a character filed from play with no roster row is hidden from Table Talk");
+  assert.ok(/Quiet Witness/.test(tt), "a character with a play-filed event is hidden from Table Talk");
+  assert.ok(tt.indexOf("Seeded Schemer") < 0, "a seeded cast member play has not touched is shown");
+});
+kase("review C13: a blueprint that reaches the game unvalidated starts it all the same — unusable entries are skipped and counted", function () {
+  fresh(); var b = bp({ npcs: [null, { role: "ally" }, { name: "Bram|Kitchen" }, { name: "Ilse" }], locations: [null, { description: "nameless" }, { name: "Ashfen Quay", description: "A quay." }] });
+  said.toasts.length = 0;
+  assert.doesNotThrow(function () { applyBlueprint(b); }, "a null entry threw in the middle of starting the game");
+  assert.deepStrictEqual(worldState.npcs.map(function (n) { return n.name; }).filter(function (n) { return n !== "Tess"; }), ["Ilse"], "an unusable NPC entry was seated: " + JSON.stringify(worldState.npcs.map(function (n) { return n.name; })));
+  assert.ok(memory.map.nodes["Ashfen Quay"] && !memory.map.nodes["undefined"] && !memory.locations["undefined"], "a nameless location was filed");
+  assert.ok(said.toasts.some(function (t) { return /5 entr/.test(t) && /blueprint/i.test(t); }), "the skipped entries were not said: " + JSON.stringify(said.toasts));
+});
+kase("review P10: the withheld reply's ring entry claims no tag was applied — the names it carried are kept apart", function () {
+  fresh(); worldState.atlas = { v: ATLAS_VER, seed: "p10", knowledge: 1 }; memory.map.geography = MapKnowledge.create();
+  applyMuts("You go. [SUBLOCATION_LEAVE:the inn] [CONDITION:Poisoned|1 day] [HP:-3]");
+  var e = worldState.tagLog[worldState.tagLog.length - 1];
+  assert.deepStrictEqual(e.tags, [], "the ring says tags were applied that were not: " + JSON.stringify(e.tags));
+  assert.ok(e.carried.indexOf("CONDITION") >= 0 && e.carried.indexOf("HP") >= 0, JSON.stringify(e));
+});
+kase("review P11: a bare tag after the buttons line is cut too, and a bracketed word inside an earlier action cuts nothing", function () {
+  fresh();
+  var a = parseActions("x", "x [ACTIONS: Go north | Wait | Rest][NO_CHANGE]").btns;
+  assert.ok(/Rest/.test(a) && a.indexOf("NO_CHANGE") < 0, "a bare tag rode into the third button: " + a.slice(0, 300));
+  var b = parseActions("x", "x [ACTIONS: Go north | Pull the lever [A] [DANGER] | Wait]").btns;
+  assert.strictEqual(b.split("<button").length - 1, 3, "an action with bracketed words lost a button: " + b.slice(0, 400));
+  assert.ok(/Wait/.test(b));
+});
+kase("review P12: a place named type-first is still a place", function () {
+  fresh();
+  assert.strictEqual(detectLocationFilingCue("You enter the Hall of Kings at dusk."), "Hall of Kings");
+  assert.strictEqual(detectLocationFilingCue("You step into the Vault of the Seven Whispers."), "Vault of the Seven Whispers");
+  assert.strictEqual(detectLocationFilingCue("You enter Keep Dunmoor by the postern."), "Keep Dunmoor");
+  assert.strictEqual(detectLocationFilingCue("You enter the hall of mirrors."), null);
+  assert.strictEqual(detectLocationFilingCue("You pass through the keep and out again."), null);
+});
+kase("review P8: the load removes an unreadable condition even when the campaign's packs are refused", function () {
+  var ws = LE.makeTestWorld({});
+  ws.character.inventoryJunk = "not a list";                    // the pack check refuses the world whole
+  ws.character.conditions = [null, { name: "Poisoned", duration: "1 hour" }];
+  said.toasts.length = 0;
+  migrateWorldState(ws); worldState = ws;
+  assert.deepStrictEqual(worldState.character.conditions.map(function (c) { return c && c.name; }), ["Poisoned"], "with the packs refused the null stayed — every turn would fail on it");
+  assert.ok(said.toasts.some(function (t) { return /condition/i.test(t); }));
+  assert.doesNotThrow(function () { conditionSnapshot(); });
+});
+kase("review C2: a first draft with one unusable arc keeps its spine — the arc is dropped, said, and an act left with none is still refused", function () {
+  fresh(); var s = skel();
+  s.acts[1].arcs.push({ title: "No objective here" }); s.acts[2].arcs.unshift(null);
+  assert.strictEqual(skeletonPruneArcs(s), 2);
+  assert.doesNotThrow(function () { validateSkeletonStructure(s); });
+  assert.deepStrictEqual(s.acts.map(function (a) { return a.arcs.length; }), [1, 1, 1]);
+  assert.ok(said.warns.some(function (w) { return /arc/i.test(w) && /dropped/i.test(w); }), "the dropped arcs were not said");
+  var t = skel(); t.acts[0].arcs = [{ title: "Only a title" }];
+  skeletonPruneArcs(t);
+  assert.throws(function () { validateSkeletonStructure(t); }, /no arcs/i);
+  var game = fs.readFileSync(path.join(ROOT, "game.js"), "utf8"), at = game.indexOf("async function generateSkeleton");
+  assert.ok(/skeletonPruneArcs\(skel\);\s*validateSkeletonStructure\(skel\);/.test(game.slice(at, at + 9000)), "the game validates a first draft without first dropping its unusable arcs");
+  callGM = function () { var d = skel(); d.name = "Drowned"; d.acts[0].arcs.push(null); return Promise.resolve(JSON.stringify(d)); };
+  return generateBlueprintDraft({ concept: "a drowned city" }, null).then(function (d) { assert.strictEqual(d.acts[0].arcs.length, 1, "the designer's draft was refused or kept the null arc"); });
+});
+kase("review C13: the designer's draft check passes over a row nobody has named yet, and nothing else", function () {
+  fresh();
+  var draft = bp({ npcs: [{ name: "Bram" }, { name: "" }], locations: [{ name: "Ashfen" }, { name: "  " }] });
+  assert.ok(/NPC 2 has no name/.test(String(validateBlueprint(draft))), "save and publish no longer refuse an unnamed row");
+  assert.strictEqual(validateBlueprintDraft(draft), null, "an unnamed row in progress refuses every fix and proposal: " + validateBlueprintDraft(draft));
+  assert.ok(/Bram\|Kitchen/.test(String(validateBlueprintDraft(bp({ npcs: [{ name: "" }, { name: "Bram|Kitchen" }] })))), "a real problem hid behind the unnamed row");
+  assert.ok(/NPC 1 is not an entry/.test(String(validateBlueprintDraft(bp({ npcs: [null] })))));
+  assert.ok(/share the same name/.test(String(validateBlueprintDraft(bp({ npcs: [{ name: "Bram" }, { name: "bram " }] })))));
+  var html = fs.readFileSync(path.join(ROOT, "blueprint-designer.html"), "utf8"), ui = fs.readFileSync(path.join(ROOT, "designer-assistant-ui.js"), "utf8"), at = html.indexOf("async function applyFinding(");
+  assert.ok(/var err=validateBlueprintDraft\(bp\);/.test(html.slice(at, at + 6000)), "applying a review fix judges the draft with the save's check");
+  assert.ok(/validate:validateBlueprintDraft/.test(ui), "an assistant proposal judges the draft with the save's check");
+});
+kase("review C1: a correction that returns the age ladder as null does not drop it", function () {
+  fresh(); var s = skel();
+  callGM = function () { return Promise.resolve(JSON.stringify({ premise: "p2", acts: s.acts, deepTime: null })); };
+  return correctCampaignSkeleton(s, [{ sev: "HIGH", where: "premise", issue: "thin", fix: "thicken" }], null, "skeleton").then(function (fixed) { assert.deepStrictEqual(fixed.deepTime, s.deepTime); });
 });
 
 // ── runner ─────────────────────────────────────────────────────────────────────────────────────────────────────────

@@ -32,16 +32,41 @@ var T = {
   "C14": "C14: a null entry in a blueprint's acts, arcs, NPCs or locations is a reason, never a throw",
   "C15": "C15: two blueprint NPCs with one name are refused by name",
   "H3": "H3: a blueprint's rules belong to its campaign",
-  "H3M": "H3: Narrative Rules shows a rule as text"
+  "H3M": "H3: Narrative Rules shows a rule as text",
+  "RP6": "review P6: through the turn's real note build, a reward shelved and taken before a failed request is not queued again",
+  "RP7": "review P7: a character named in the action being sent is listed this turn, and Table Talk keeps the whole list",
+  "RK2": "review K2: Table Talk still knows a character the summariser filed from play",
+  "RC13": "review C13: a blueprint that reaches the game unvalidated starts it all the same",
+  "RC13D": "review C13: the designer's draft check passes over a row nobody has named yet, and nothing else",
+  "RP10": "review P10: the withheld reply's ring entry claims no tag was applied",
+  "RP11": "review P11: a bare tag after the buttons line is cut too",
+  "RP12": "review P12: a place named type-first is still a place",
+  "RP8": "review P8: the load removes an unreadable condition even when the campaign's packs are refused",
+  "RC2": "review C2: a first draft with one unusable arc keeps its spine",
+  "RC1": "review C1: a correction that returns the age ladder as null does not drop it"
 };
 
 prove("api.js", [
   { label: "P6: the failed turn's restore hands the spent reward back to the conflict",
-    find: "  conflictShelveKeep();/* P6: after identityConflicts is back */\n", replace: "", mustFail: ONLY + T.P6 },
+    find: "  conflictShelveKeep(typeof snap.shelveSeq===\"number\"?snap.shelveSeq:_conflictShelveSeq);/* P6: after identityConflicts is back */\n", replace: "", mustFail: ONLY + T.P6 },
   { label: "P6: the shelve is not remembered for the restore",
-    find: "      _conflictShelved.push({subject:c.subject,key:c.withheld.join(\"\"),attempts:c.attempts,lastFired:c.lastFired});/* P6: read by restoreNoteLatches */", replace: "", mustFail: ONLY + T.P6 },
+    find: "_conflictShelved.push({seq:++_conflictShelveSeq,subject:c.subject,key:c.withheld.join(\"\"),attempts:c.attempts,lastFired:c.lastFired});", replace: "", mustFail: ONLY + T.P6 },
   { label: "P6: an earlier turn's shelve is applied to a later conflict",
-    find: "  _conflictShelved=[];/* P6: a new build starts with no shelve of its own */\n", replace: "", mustFail: ONLY + T.P6B },
+    find: "if(!(s.seq>since))continue;", replace: "", mustFail: ONLY + T.P6B },
+  { label: "P6: the shelve log grows without bound",
+    find: "if(_conflictShelved.length>CONFLICT_SHELVE_LOG)_conflictShelved.shift();", replace: "", mustFail: ONLY + T.P6B },
+  { label: "review P6: a snapshot does not know what was shelved after it (the builders after the shelve wipe it)",
+    find: "  snap.shelveSeq=_conflictShelveSeq;/* P6:", replace: "  /* P6:", mustFail: ONLY + T.RP6 },
+  { label: "review P7: Table Talk's last-seen lines are folded",
+    find: "_gbKeep=audience===\"player\"?function(){return true;}", replace: "_gbKeep=false?function(){return true;}", mustFail: ONLY + T.RP7 },
+  { label: "review P7: the action being sent is not heard by the geography judge",
+    find: "+\" \"+String((typeof lastAction===\"string\"&&lastAction)||\"\").toLowerCase()", replace: "", mustFail: ONLY + T.RP7 },
+  { label: "review P10: the withheld entry lists its tags as applied",
+    find: "tags:[],carried:_whNames,", replace: "tags:_whNames,carried:_whNames,", mustFail: ONLY + T.RP10 },
+  { label: "review P11: a bare tag after the buttons line rides into a button",
+    find: "(?:[:\\]][\\s\\S]*)?$/,\"\");/* review: cut only", replace: "[:\\]][\\s\\S]*$/,\"\");/* review: cut only", mustFail: ONLY + T.RP11 },
+  { label: "review P11: a bracketed word in an earlier action cuts the buttons after it",
+    find: "_acB=_acB.slice(0,_acP+1)+_acB.slice(_acP+1).replace(", replace: "_acB=_acB.replace(", mustFail: ONLY + T.RP11 },
   { label: "P7: every character ever sighted elsewhere is listed",
     find: "{_gbFold++;continue;}/* P7 */", replace: "{}/* P7 */", mustFail: ONLY + T.P7 },
   { label: "P7: the folded characters are not counted",
@@ -63,7 +88,7 @@ prove("api.js", [
   { label: "P10: an unclosed opener on the withheld path is not recorded",
     find: "      if(_unclosed.length)_whEntry.unclosed=_unclosed.slice(0,6);\n", replace: "", mustFail: ONLY + T.P10 },
   { label: "P11: a tag after the buttons line rides into the third button",
-    find: ".replace(/\\]\\s*\\[[A-Z][A-Z_]{1,}[:\\]][\\s\\S]*$/,\"\").split(\"|\");/* audit 2026-11-19, P11", replace: ".split(\"|\");/* audit 2026-11-19, P11", mustFail: ONLY + T.P11 },
+    find: "_acB=_acB.slice(0,_acP+1)+_acB.slice(_acP+1).replace(/\\]\\s*\\[[A-Z][A-Z_]{1,}(?:[:\\]][\\s\\S]*)?$/,\"\");", replace: "", mustFail: ONLY + T.P11 },
   { label: "H3: the rules block reads the device's rules only",
     find: "DEFAULT_RULES.concat(rulesInForce().map(", replace: "DEFAULT_RULES.concat(customRules.map(", mustFail: ONLY + T.H3 }
 ]);
@@ -95,7 +120,27 @@ prove("game.js", [
   { label: "C14: locations that are not a list pass",
     find: "  if(!Array.isArray(_vbLocs))return\"Blueprint locations must be a list.\";\n", replace: "", mustFail: ONLY + T.C14 },
   { label: "C15: two NPCs under one name pass",
-    find: "if(_vbSeen[_vbk])return\"Two NPCs share", replace: "if(false)return\"Two NPCs share", mustFail: ONLY + T.C15 }
+    find: "if(_vbSeen[_vbk])return\"Two NPCs share", replace: "if(false)return\"Two NPCs share", mustFail: ONLY + T.C15 },
+  { label: "review P12: a place named type-first is no place",
+    find: "    if(g)return g[1].replace(/[.\\s]+$/,\"\");", replace: "", mustFail: ONLY + T.RP12 },
+  { label: "review C13: a nameless or unaddressable NPC of an unvalidated blueprint is seated",
+    find: "if(!n||typeof n!==\"object\"||typeof n.name!==\"string\"||!n.name.trim()||/[|\\[\\]]/.test(n.name)){_bpSkipped++;continue;}", replace: "if(!n){_bpSkipped++;continue;}", mustFail: ONLY + T.RC13 },
+  { label: "review C13: a null NPC of an unvalidated blueprint throws at the start",
+    find: "if(!n||typeof n!==\"object\"||typeof n.name", replace: "if(typeof n!==\"object\"||typeof n.name", mustFail: ONLY + T.RC13 },
+  { label: "review C13: a null or nameless location of an unvalidated blueprint is filed",
+    find: "      if(!loc||typeof loc!==\"object\"||typeof loc.name!==\"string\"||!loc.name.trim()){_bpSkipped++;continue;}\n", replace: "", mustFail: ONLY + T.RC13 },
+  { label: "review C13: the skipped entries are not said",
+    find: "if(typeof showToast===\"function\")showToast(\"⚠ \"+_bpSkipped+\" entr\"", replace: "if(false)showToast(\"⚠ \"+_bpSkipped+\" entr\"", mustFail: ONLY + T.RC13 },
+  { label: "review C13: a null beside an entry throws in the portrait match",
+    find: "if(sources[i]&&identityNameFold(sources[i].name)===fold)count++;", replace: "if(identityNameFold(sources[i].name)===fold)count++;", mustFail: ONLY + T.RC13 },
+  { label: "review C13: the draft check refuses an unnamed NPC row",
+    find: "  if(Array.isArray(bp.npcs))view.npcs=bp.npcs.filter(named);\n", replace: "", mustFail: ONLY + T.RC13D },
+  { label: "review C13: the draft check refuses an unnamed location row",
+    find: "  if(Array.isArray(bp.locations))view.locations=bp.locations.filter(named);\n", replace: "", mustFail: ONLY + T.RC13D },
+  { label: "review C13: the draft check leaves every row out",
+    find: "&&typeof e.name===\"string\"&&!e.name.trim());}", replace: ");}", mustFail: ONLY + T.RC13D },
+  { label: "review C2: the game checks a first draft without dropping its unusable arcs",
+    find: "  skeletonPruneArcs(skel);validateSkeletonStructure(skel);/* review", replace: "  validateSkeletonStructure(skel);/* review", mustFail: ONLY + T.RC2 }
 ]);
 prove("memory.js", [
   { label: "K1: the talk is given the authored secret",
@@ -109,7 +154,11 @@ prove("memory.js", [
   { label: "K2: Table Talk is told the GM's pending events",
     find: "  if(fe.length&&!_player){var fs=[];", replace: "  if(fe.length){var fs=[];", mustFail: ONLY + T.K2 },
   { label: "K2: Table Talk loses the full list of visited places",
-    find: "if(_player)_subCap=Infinity;", replace: "", mustFail: ONLY + T.K2 }
+    find: "if(_player)_subCap=Infinity;", replace: "", mustFail: ONLY + T.K2 },
+  { label: "review K2: a character filed from play with no roster row is hidden",
+    find: "if(!_w)return !!(_m.dead||(_m.knowledge&&_m.knowledge.length)||(_m.events&&_m.events.length)||", replace: "if(!_w)return !!(_m.dead||", mustFail: ONLY + T.RK2 },
+  { label: "review K2: a roster row with a play-filed event is hidden",
+    find: "return npcDiscovered(_w,_m)||!!(_m.events&&_m.events.length);}", replace: "return npcDiscovered(_w,_m);}", mustFail: ONLY + T.RK2 }
 ]);
 prove("table-talk.js", [
   { label: "K2: Table Talk asks for the GM's contents",
@@ -121,7 +170,13 @@ prove("companion-talk.js", [
 ]);
 prove("campaign_generator.js", [
   { label: "C1: the correction drops what the draft carried beside premise and acts",
-    find: "&&fixed[k]===undefined)fixed[k]=skel[k];}", replace: "&&fixed[k]===undefined){}}", mustFail: ONLY + T.C1 },
+    find: "&&fixed[k]==null)fixed[k]=skel[k];}", replace: "&&fixed[k]==null){}}", mustFail: ONLY + T.C1 },
+  { label: "review C1: a ladder answered as null is dropped",
+    find: "&&fixed[k]==null)fixed[k]=skel[k];}", replace: "&&fixed[k]===undefined)fixed[k]=skel[k];}", mustFail: ONLY + T.RC1 },
+  { label: "review C2: the unusable arcs of a first draft are kept",
+    find: "console.warn(\"[skeleton] \"+(a.arcs.length-kept.length)+\" unusable arc(s) dropped from act \"+(i+1)+\" of the draft (no title or objective)\");a.arcs=kept;}}", replace: "console.warn(\"[skeleton] \"+(a.arcs.length-kept.length)+\" unusable arc(s) dropped from act \"+(i+1)+\" of the draft (no title or objective)\");}}", mustFail: ONLY + T.RC2 },
+  { label: "review C2: the designer's draft is checked without dropping its unusable arcs",
+    find: "  skeletonPruneArcs(draft);validateSkeletonStructure(draft);", replace: "  validateSkeletonStructure(draft);", mustFail: ONLY + T.RC2 },
   { label: "C2: a null arc passes the structure check",
     find: "      if(!r||typeof r!==\"object\")throw new Error(\"Act \"+(i+1)+\", arc \"+(j+1)+\" is not an arc\");\n", replace: "", mustFail: ONLY + T.C2 },
   { label: "C2: an arc with no title passes",
@@ -145,15 +200,23 @@ prove("helpers.js", [
 ]);
 prove("admission.js", [
   { label: "P8: the admission registry does not heal a sheet's lists",
-    find: "{name:\"lists\",phase:\"prepare\",applies:function(){return true;},", replace: "{name:\"lists\",phase:\"prepare\",applies:function(){return false;},", mustFail: ONLY + T.P8L },
+    find: "{name:\"lists\",phase:\"prepare\",applies:function(){return true;},", replace: "{name:\"lists\",phase:\"prepare\",applies:function(){return false;},", mustFail: ONLY + T.P8D },
   { label: "P8: a door other than the load says nothing",
     find: "if(ctx.toast!==false&&typeof showToast===\"function\")showToast(\"⚠ \"+_ld+\" unreadable entr\"", replace: "if(false)showToast(\"⚠ \"+_ld+\" unreadable entr\"", mustFail: ONLY + T.P8D }
 ]);
 prove("state.js", [
   { label: "P8: the load says nothing",
-    find: "if(_entries&&typeof showToast===\"function\")showToast(", replace: "if(false)showToast(", mustFail: ONLY + T.P8L },
-  { label: "P8: the load does not count what the sheets dropped",
-    find: "_entries+=ctx.entriesDropped||0;}", replace: "}", mustFail: ONLY + T.P8L }
+    find: "if(_entries){changed=true;if(typeof showToast===\"function\")showToast(", replace: "if(_entries){changed=true;if(false)showToast(", mustFail: ONLY + T.P8L },
+  { label: "review P8: the load heals lists only when the packs pass",
+    find: "  for(i=0;i<sheets.length;i++)_entries+=sheetListsHeal(sheets[i].sheet);\n", replace: "", mustFail: ONLY + T.RP8 }
+]);
+prove("blueprint-designer.html", [
+  { label: "review C13: applying a review fix judges a draft with the save's check",
+    find: "    var err=validateBlueprintDraft(bp);/* #777 review", replace: "    var err=validateBlueprint(bp);/* #777 review", mustFail: ONLY + T.RC13D }
+]);
+prove("designer-assistant-ui.js", [
+  { label: "review C13: an assistant proposal judges a draft with the save's check",
+    find: "validate:validateBlueprintDraft/*", replace: "validate:validateBlueprint/*", mustFail: ONLY + T.RC13D }
 ]);
 prove("ui-modals.js", [
   { label: "H3: the modal does not paint the escaped list",

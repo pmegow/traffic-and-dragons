@@ -73,6 +73,18 @@ function validateSkeletonStructure(skel){
       if(typeof r.objective!=="string"||!r.objective.trim())throw new Error("Act "+(i+1)+", arc "+(j+1)+" has no objective");}}
   return skel;
 }
+/* Review of 2438cfd7 (finding 10): the stricter check above, run on a FIRST draft, turned one arc with a blank objective
+   into "Skeleton failed — playing freeform" (and, in the designer, threw away a paid draft). A first draft is pruned
+   before it is checked: an arc that is no arc, or has no title or objective, is dropped and said; an act left with none
+   is still refused by the check. Returns the number dropped. The corrected skeleton is NOT pruned — a correction that
+   damages an arc is refused and the draft kept. */
+function skeletonPruneArcs(skel){
+  var n=0,i;if(!skel||!Array.isArray(skel.acts))return 0;
+  for(i=0;i<skel.acts.length;i++){var a=skel.acts[i];if(!a||typeof a!=="object"||!Array.isArray(a.arcs))continue;
+    var kept=a.arcs.filter(function(r){return !!r&&typeof r==="object"&&typeof r.title==="string"&&!!r.title.trim()&&typeof r.objective==="string"&&!!r.objective.trim();});
+    if(kept.length!==a.arcs.length){n+=a.arcs.length-kept.length;if(typeof console!=="undefined")console.warn("[skeleton] "+(a.arcs.length-kept.length)+" unusable arc(s) dropped from act "+(i+1)+" of the draft (no title or objective)");a.arcs=kept;}}
+  return n;
+}
 function stampSkeletonStatus(skel){
   var i,j;
   for(i=0;i<skel.acts.length;i++){
@@ -177,7 +189,7 @@ async function correctCampaignSkeleton(skel,findings,model,kind){
   /* audit 2026-11-19, C1: the correction is sent, and returns, {premise, acts} ONLY — every other field of the draft was
      lost with it. The age ladder (deepTime) is one: the campaign then played with no age ceiling and the console blamed
      the model. Whatever the draft carried beside premise and acts is carried across. */
-  var k;for(k in skel){if(Object.prototype.hasOwnProperty.call(skel,k)&&k!=="premise"&&k!=="acts"&&fixed[k]===undefined)fixed[k]=skel[k];}
+  var k;for(k in skel){if(Object.prototype.hasOwnProperty.call(skel,k)&&k!=="premise"&&k!=="acts"&&fixed[k]==null)fixed[k]=skel[k];}/* == null: a correction that answers "deepTime": null dropped the ladder too (review) */
   return fixed;
 }
 
@@ -210,7 +222,7 @@ async function generateBlueprintDraft(opts,model){
     +"- NPC notes and location descriptions are CHARACTER and canon, not stat blocks.";
   var resp=await callGM(prompt,SKELETON_ARCHITECT_SYS,8192,model,{noHistory:true,kind:"other"});
   var draft=JSON.parse(repairModelJson(resp));
-  validateSkeletonStructure(draft); // the premise+acts core shares the skeleton schema
+  skeletonPruneArcs(draft);validateSkeletonStructure(draft); // the premise+acts core shares the skeleton schema (a first draft: pruned, then checked)
   return draft;
 }
 
