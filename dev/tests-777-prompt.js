@@ -200,6 +200,52 @@ kase("K2: Table Talk is not told of characters the player has not discovered, no
   assert.strictEqual(tt.split("Sandpoint — Place ").length - 1, TOC_SUB_CAP + 2, "Table Talk no longer lists every visited place (#464)");
 });
 
+kase("K2 ruling: Table Talk lists the pending events the hero knows of, and only those", function () {
+  fresh(); memory.futureEvents = [];
+  function ev(re) { return memory.futureEvents.filter(function (e) { return re.test(e.what); })[0]; }
+  applyMuts("[FUTURE_EVENT:Supper with Mara at the Rusty Dragon|at dusk|known]");
+  applyMuts("[FUTURE_EVENT:The cult strikes the cathedral|at midnight]");
+  assert.ok(ev(/Supper/) && ev(/cult/), "fixture: the two events were not filed: " + JSON.stringify(memory.futureEvents));
+  assert.strictEqual(ev(/Supper/).known, true, "an event the GM marked known is not on file as known");
+  assert.strictEqual(ev(/Supper/).when, "at dusk", "the marker was kept as part of the when: " + ev(/Supper/).when);
+  assert.ok(!("known" in ev(/cult/)), "an unmarked event is on file as known (the default must be the GM's own)");
+  var gm = memoryTOC();
+  assert.ok(gm.indexOf("PENDING EVENTS: Supper with Mara at the Rusty Dragon (at dusk); The cult strikes the cathedral (at midnight)") >= 0, "the GM's own line changed: " + gm);
+  var tt = ttRecallBlock("what did I agree to do tonight?");
+  assert.ok(/Supper with Mara at the Rusty Dragon \(at dusk\)/.test(tt), "Table Talk is not told of an appointment the hero made: " + tt);
+  assert.ok(tt.indexOf("cult strikes") < 0, "Table Talk is told of the GM's own pending event");
+  // nothing known: no line at all (never an empty heading that says something is being withheld)
+  ev(/Supper/).known = false; assert.ok(!/PENDING EVENTS/.test(ttRecallBlock("anything pending?")), "a heading with nothing under it tells the player events are hidden");
+  ev(/Supper/).known = "yes"; assert.ok(!/Supper/.test(ttRecallBlock("anything pending?")), "anything but true counts as known");
+  ev(/Supper/).known = true;
+  // knowledge only grows: the same event filed again as known, exactly and in fresh words
+  applyMuts("[FUTURE_EVENT:The cult strikes the cathedral|at midnight|known]");
+  assert.strictEqual(ev(/cult/).known, true, "an event the hero later learned of stayed the GM's own");
+  applyMuts("[FUTURE_EVENT:Find Shalelu at the Glassworks bridge|soon]"); applyMuts("[FUTURE_EVENT:Find Shalelu near the Glassworks bridge today|soon| Known ]");
+  assert.strictEqual(memory.futureEvents.filter(function (e) { return /Shalelu/.test(e.what); }).length, 1, "fixture: the restatement was not folded");
+  assert.strictEqual(ev(/Shalelu/).known, true, "a restatement marked known did not mark the event it was folded into");
+  applyMuts("[FUTURE_EVENT:Supper with Mara at the Rusty Dragon|at dusk]");
+  assert.strictEqual(ev(/Supper/).known, true, "an unmarked restatement took the knowledge away");
+  // the marker alone in the when seat; a clock time with the marker still reaches the clock
+  applyMuts("[FUTURE_EVENT:Return the borrowed lantern to Ven|known]");
+  assert.strictEqual(ev(/lantern/).known, true); assert.strictEqual(ev(/lantern/).when, "soon", "a bare marker became the when: " + ev(/lantern/).when);
+  var before = ((worldState.clock && worldState.clock.schedule) || []).length;
+  applyMuts("[FUTURE_EVENT:The tide gate opens|3 days|known]");
+  var sched = (worldState.clock && worldState.clock.schedule) || [];
+  assert.strictEqual(sched.length, before + 1, "a duration with the marker no longer reaches the clock schedule: " + JSON.stringify(memory.futureEvents.slice(-1)));
+  assert.ok(JSON.stringify(sched).indexOf("known") < 0 && !ev(/tide gate/), "the marker leaked into the schedule, or the event was filed twice");
+  // the summariser: only a literal true
+  memory.futureEvents = [];
+  applySummaryExtract({ chapterSummary: "c", futureEvents: [{ what: "Deliver the sealed letter to Hemlock", when: "tomorrow", known: true }, { what: "Tsuto plans a second raid on the glassworks", when: "soon", known: false }, { what: "Ameiko expects an answer about the inn", when: "soon", known: "true" }, { what: "The mayor will call a council", when: "soon" }] }, null, null);
+  assert.deepStrictEqual(memory.futureEvents.map(function (e) { return [e.what.split(" ")[0], e.known === true]; }), [["Deliver", true], ["Tsuto", false], ["Ameiko", false], ["The", false]], "the summariser's marker is not read as a literal true only");
+  // both authors are told
+  assert.ok(/\[FUTURE_EVENT:what\|when\|known\]/.test(buildStateTagsDoc()), "the GM is never taught the marker");
+  assert.ok(/\\"futureEvents\\":\[\{\\"what\\":\\"\\",\\"when\\":\\"\\",\\"known\\":/.test(fs.readFileSync(path.join(ROOT, "memory.js"), "utf8")), "the summariser is never asked whether the hero knows");
+  var xp = buildExtractPrompt("a summary", [], "", "The session text.", { rows: [] }, null);
+  assert.ok(/known is true ONLY when the session shows the hero knows of the event/.test(xp) && /whenever you are unsure/.test(xp), "the summariser is not told what known means");
+  assert.ok(xp.indexOf("KNOWN EVENTS:") < xp.indexOf("Output ONLY valid JSON") && xp.indexOf("KNOWN EVENTS:") > xp.indexOf("SESSION:"), "the rule is not between the session and the schema (the schema is last)");
+});
+
 // ── C1, C2: the skeleton review ────────────────────────────────────────────────────────────────────────────────────
 function skel() {
   return { premise: "A drowned city wakes.", deepTime: [{ age: "The Drowning", years: 300 }],

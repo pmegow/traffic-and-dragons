@@ -35,6 +35,7 @@ var T = {
   "H3M": "H3: Narrative Rules shows a rule as text",
   "RP6": "review P6: through the turn's real note build, a reward shelved and taken before a failed request is not queued again",
   "RP7": "review P7: a character named in the action being sent is listed this turn, and Table Talk keeps the whole list",
+  "K2R": "K2 ruling: Table Talk lists the pending events the hero knows of, and only those",
   "RK2": "review K2: Table Talk still knows a character the summariser filed from play",
   "RC13": "review C13: a blueprint that reaches the game unvalidated starts it all the same",
   "RC13D": "review C13: the designer's draft check passes over a row nobody has named yet, and nothing else",
@@ -221,6 +222,41 @@ prove("designer-assistant-ui.js", [
 prove("ui-modals.js", [
   { label: "H3: the modal does not paint the escaped list",
     find: "    h+=rulesListHtml();/* audit 2026-11-19, H3:", replace: "    /* audit 2026-11-19, H3:", mustFail: ONLY + T.H3M }
+]);
+// K2, second ruling (owner 2026-11-19): the `known` marker on a pending event
+prove("memory.js", [
+  { label: "K2 ruling: every event is filed as known",
+    find: "  if(known===true)memory.futureEvents[memory.futureEvents.length-1].known=true;", replace: "  memory.futureEvents[memory.futureEvents.length-1].known=true;", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: a marked event is not filed as known",
+    find: "  if(known===true)memory.futureEvents[memory.futureEvents.length-1].known=true;", replace: "  ", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: the same event filed again as known stays the GM's own",
+    find: "{if(known===true)memory.futureEvents[i].known=true;return;}}// dedupe", replace: "{return;}}// dedupe", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: a known restatement does not mark the thread it folds into",
+    find: "      if(known===true)ex.known=true;", replace: "      ", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: Table Talk is told every pending event",
+    find: "return !e.resolved&&e.known===true;}).slice(-8)", replace: "return !e.resolved;}).slice(-8)", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: anything truthy counts as known",
+    find: "&&e.known===true;}).slice(-8)", replace: "&&e.known;}).slice(-8)", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: a bare heading says events are withheld",
+    find: "    if(fk.length)lines.push(\"PENDING EVENTS: \"+fk.join(\"; \"));", replace: "    lines.push(\"PENDING EVENTS: \"+fk.join(\"; \"));", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: the summariser's marker is read loosely",
+    find: "worldState.turn,fe.known===true);}}", replace: "worldState.turn,!!fe.known);}}", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: the summariser's schema has no marker",
+    find: ",\\\"known\\\":false}]", replace: "}]", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: the summariser is not told what known means",
+    find: "  p+=\"\\nKNOWN EVENTS: in futureEvents", replace: "  if(false)p+=\"\\nKNOWN EVENTS: in futureEvents", mustFail: ONLY + T.K2R }
+]);
+prove("tag_table.js", [
+  { label: "K2 ruling: the GM's marker is not read",
+    find: "else if(/\\|\\s*known\\s*$/i.test(_fw)){_fk=true;", replace: "else if(false){_fk=true;", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: the marker stays in the when",
+    find: "_fw=_fw.replace(/\\|\\s*known\\s*$/i,\"\");}", replace: "}", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: a bare marker becomes the when",
+    find: "if(/^\\s*known\\s*$/i.test(_fw)){_fk=true;_fw=\"soon\";}else ", replace: "", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: every tagged event is known",
+    find: "fileFutureEvent(_fw,\"\",fp[1],R.turn,_fk);", replace: "fileFutureEvent(_fw,\"\",fp[1],R.turn,true);", mustFail: ONLY + T.K2R },
+  { label: "K2 ruling: the GM is not taught the marker",
+    find: "[FUTURE_EVENT:what|when|known]. Leave it off", replace: "[FUTURE_EVENT:what|when]. Leave it off", mustFail: ONLY + T.K2R }
 ]);
 
 process.exit(failed ? 1 : 0);

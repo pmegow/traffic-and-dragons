@@ -1574,7 +1574,13 @@ function expireFutureEvents(){
    day 8 — and an entry past the horizon was offered and refused on every sweep, never ageing out. The stated words are
    kept for the GM; the note makes the string one no duration reader accepts. */
 function futureWhenOffClock(when){var w=String(when==null?"":when);if(/not on the clock\)$/.test(w))return w;return w+" (as first stated"+((typeof worldState!=="undefined"&&worldState)?" at turn "+(worldState.turn||0):"")+"; not on the clock)";}
-function fileFutureEvent(when,who,what,setTurn){
+/* audit 2026-11-19, K2 (owner ruling: Table Talk lists the pending events the player knows of, never the GM's own).
+   `known` is the marker: true ONLY when whoever files the event says the hero knows of it — the GM's tag
+   ([FUTURE_EVENT:what|when|known]) or the summariser's `known:true`. It is stored only when true (an event without it is
+   the GM's own: fail closed), it is never taken away by a restatement that lacks it, and nothing but Table Talk's
+   contents reads it — the GM's PENDING EVENTS line is the same bytes with or without it. A duration-bound event goes to
+   the clock schedule as before; the schedule is shown to Table Talk whole (#73), so the marker does not ride there. */
+function fileFutureEvent(when,who,what,setTurn,known){
   fileFutureEvent._lastRefusal=null;
   if(what==null)return;what=String(what);if(!what)return;
   /* #777 review: the schedule cuts its label; the pending store took any length, and it rides the memory block every turn */
@@ -1588,7 +1594,7 @@ function fileFutureEvent(when,who,what,setTurn){
     if(typeof console!=="undefined")console.warn("[memory] the clock schedule refused \""+what.slice(0,60)+"\" ("+(scheduleAdd._lastRefusal||"no reason given")+") — kept as a pending event with no clock time");
     fileFutureEvent._lastRefusal=scheduleAdd._lastRefusal||"the schedule refused it";when=futureWhenOffClock(when);
   }
-  var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what)return;}// dedupe
+  var i;for(i=0;i<memory.futureEvents.length;i++){if(memory.futureEvents[i].what===what){if(known===true)memory.futureEvents[i].known=true;return;}}// dedupe (K2: knowledge only grows)
   // Near-duplicate dedupe (#29): the extractor re-mints pending goals in fresh words every cycle —
   // the t198 save held SEVEN "find Shalelu" variants. If the new event shares ≥2 significant tokens
   // AND ≥half of the smaller fingerprint with an existing pending event, refresh that event's age
@@ -1609,10 +1615,12 @@ function fileFutureEvent(when,who,what,setTurn){
       memArchive().futureEvents.push({when:when,who:who||"",what:what,setTurn:setTurn,foldedInto:String(ex.what).slice(0,200)});
       if(typeof console!=="undefined")console.info("[memory] pending-event fold: \""+what.slice(0,80)+"\" absorbed by existing \""+String(ex.what).slice(0,80)+"\" (archived — if these were distinct threads, re-state the lost one in fresh words)");
       if(typeof setTurn==="number")ex.setTurn=setTurn;
+      if(known===true)ex.known=true;/* K2: the restatement says the hero knows — the thread it folds into is known */
       return;
     }
   }
   memory.futureEvents.push({when:when,who:who||"",what:what,setTurn:setTurn,resolved:false});
+  if(known===true)memory.futureEvents[memory.futureEvents.length-1].known=true;/* K2: stored only when true */
   if(memory.futureEvents.length>30){var _feOv=memory.futureEvents.splice(0,memory.futureEvents.length-30),_feI;for(_feI=0;_feI<_feOv.length;_feI++)memArchive().futureEvents.push({when:_feOv[_feI].when,who:_feOv[_feI].who,what:_feOv[_feI].what,setTurn:_feOv[_feI].setTurn,expiredAt:(typeof worldState!=="undefined"&&worldState&&worldState.turn)||0,capOverflow:true});}/* #150: the cap's shrink archives too — no shrink site left silent */
 }
 function resolveFutureEvent(what){var i;
@@ -2389,6 +2397,10 @@ function memoryTOC(opts){
   }
   var fe=memory.futureEvents.filter(function(e){return !e.resolved;}).slice(-8);
   if(fe.length&&!_player){var fs=[];for(i=0;i<fe.length;i++)fs.push(fe[i].what+" ("+fe[i].when+")");lines.push("PENDING EVENTS: "+fs.join("; "));}
+  if(_player){/* K2 ruling: the events the hero knows of, and no heading when there are none (a bare heading would say something is withheld) */
+    var fk=memory.futureEvents.filter(function(e){return !e.resolved&&e.known===true;}).slice(-8).map(function(e){return e.what+" ("+e.when+")";});
+    if(fk.length)lines.push("PENDING EVENTS: "+fk.join("; "));
+  }
   if(memory.lore.length){
     if(!_diet)lines.push("LORE: "+memory.lore.join("; "));
     else{
@@ -2953,7 +2965,7 @@ function applySummaryExtract(extracted,identityTable,motivationTable){
   // nets out removed — the near-dup filing collapses it onto the existing entry, then resolve
   // deletes it. Resolve-first would delete then re-file it as fresh pending.
   expireFutureEvents();
-  if(Array.isArray(extracted.futureEvents)){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe&&fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn);}}
+  if(Array.isArray(extracted.futureEvents)){for(i=0;i<extracted.futureEvents.length;i++){var fe=extracted.futureEvents[i];if(fe&&fe.what)fileFutureEvent(fe.when||"soon","",fe.what,worldState.turn,fe.known===true);}}/* K2: a literal true only */
   if(Array.isArray(extracted.resolvedEvents)){for(i=0;i<extracted.resolvedEvents.length;i++)resolveFutureEvent(extracted.resolvedEvents[i]);}
   canonContradictionScan();/* P5①: after all tiers land, look for the two-truths state */
   recurringNameScan();/* P7: and for characters the GM keeps using without registering */
@@ -3012,7 +3024,8 @@ function buildExtractPrompt(chapterDesc,pend,sessRaw,sessStripped,identityTable,
   p+=buildSummaryMotivationBlock(motivationTable||summaryMotivationTable());
   p+="\nSESSION:\n"+sessStripped;
   p+="\nREFERENTIAL SCHEMA OVERRIDE: npcDeaths MUST be objects shaped [{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}], never bare strings. Cite only prior engine-authoritative SCENE REFERENTS. If the victim is anonymous, omit npcDeaths rather than substituting a known name. A death-like chapter sentence without a matching cited npcDeaths object is rejected as a whole.\n";
-  p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\"}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}],\"attire\":[{\"name\":\"\",\"donned\":[\"exact inventory names put ON this session\"],\"doffed\":[\"exact inventory names taken OFF\"],\"outfit\":\"what they wear beneath or instead of gear, one line, ONLY if it changed this session (stripped for a bath, a borrowed robe, back in road clothes)\"}],\"motivationChanges\":[{\"name\":\"party member\",\"settledPurpose\":\"EXACT text of the purpose fulfilled, copied from COMPANION PURPOSES; required with settled\",\"settled\":\"how their STANDING motivation was fulfilled this session, ONLY if it was fulfilled on screen\",\"now\":\"a NEW purpose the session gave them, one sentence, ONLY if one was born on screen -- never a debt, ledger, contract or paperwork purpose\"}]}\n";/* #388: the attire belt — the GM tags changes live; the extractor catches the ones it narrated without tagging */
+  p+="\nKNOWN EVENTS: in futureEvents, known is true ONLY when the session shows the hero knows of the event -- was told of it, agreed to it, or saw it arranged. It is false for anything only the GM or an NPC knows or plans, and whenever you are unsure.";/* audit 2026-11-19, K2 (owner ruling): the marker Table Talk's contents read */
+  p+="\nOutput ONLY valid JSON, no markdown:\n{\"chapterSummary\":\""+chapterDesc+"\",\"npcUpdates\":[{\"name\":\"\",\"attitude\":\"how this NPC regards the PLAYER in 2-4 words -- their standing DISPOSITION (e.g. 'wary, testing' or 'openly loyal'), NOT their momentary mood, which the engine tracks separately\",\"knowledgeGained\":{\"fact\":\"\",\"kind\":\"durable = standing truth about the person or world (secrets, history, learned facts, commitments); scene = true only in that moment (where they stood, what they were doing) -- scene facts are filed as dated history, never as permanent knowledge\"}}],\"loreDiscovered\":[\"string\"],\"decisionsMade\":[\"string\"],\"futureEvents\":[{\"what\":\"\",\"when\":\"\",\"known\":false}],\"resolvedEvents\":[\"string\"],\"supersededFacts\":[{\"name\":\"\",\"old\":\"exact text of the outdated recorded fact\",\"new\":\"the fact that replaces it\"}],\"sameNpc\":[{\"canonical\":\"\",\"duplicate\":\"\"}],\"npcDeaths\":[{\"name\":\"exact on-file NPC name\",\"handle\":\"scene handle\",\"sourceTurn\":0,\"canonTxnId\":\"stable id if one exists\"}],\"attire\":[{\"name\":\"\",\"donned\":[\"exact inventory names put ON this session\"],\"doffed\":[\"exact inventory names taken OFF\"],\"outfit\":\"what they wear beneath or instead of gear, one line, ONLY if it changed this session (stripped for a bath, a borrowed robe, back in road clothes)\"}],\"motivationChanges\":[{\"name\":\"party member\",\"settledPurpose\":\"EXACT text of the purpose fulfilled, copied from COMPANION PURPOSES; required with settled\",\"settled\":\"how their STANDING motivation was fulfilled this session, ONLY if it was fulfilled on screen\",\"now\":\"a NEW purpose the session gave them, one sentence, ONLY if one was born on screen -- never a debt, ledger, contract or paperwork purpose\"}]}\n";/* #388: the attire belt — the GM tags changes live; the extractor catches the ones it narrated without tagging */
   return p;
 }
 /* B38 (2026-09-21): the extractor's two SHAPES. The window builder is the old inline composition made a function — the
