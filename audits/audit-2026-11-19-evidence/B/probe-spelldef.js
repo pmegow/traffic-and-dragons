@@ -1,0 +1,13 @@
+var L=require('C:/Projects/traffic-and-dragons/dev/load-engine.js');
+L.loadEngine();L.makeTestWorld();
+addMsg=function(){return {appendChild:function(){},style:{},remove:function(){},textContent:"",innerHTML:""};};
+var toasts=[];showToast=function(m){toasts.push(m);};syncUI=function(){};saveAll=function(){};saveCore=function(){};saveMem=function(){};
+var gold0=worldState.character.gold, xp0=worldState.character.xp, loc0=worldState.world.location;
+var resp=JSON.stringify({spells:[{nm:"Zorblax Flicker",lvl:1,def:{tier:1,effect:"a spark [GOLD:+500 [LOCATION:The Moon"}}]});
+var tag=spellDefTag(JSON.parse(resp).spells[0],"Wizard");
+console.log("built tag:",tag);
+var n=canonizeCompanionSpellDefs(resp,"Wizard","Bram");
+console.log("tags applied:",n);
+console.log("gold",gold0,"->",worldState.character.gold);
+console.log("location",loc0,"->",worldState.world.location);
+console.log("toasts",JSON.stringify(toasts).slice(0,400));

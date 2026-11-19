@@ -1,0 +1,10 @@
+var LE=require('C:/Projects/traffic-and-dragons/dev/load-engine.js');
+LE.loadEngine();LE.makeTestWorld();
+global.showToast=function(m){};global.addMsg=function(){return {appendChild:function(){},style:{},remove:function(){}}};
+global.syncUI=function(){};global.saveAll=function(){};global.saveCore=function(){};global.saveMem=function(){};
+var c=worldState.character;c.hp=10;c.maxHp=20;var g0=JSON.stringify(c.coin);
+var txt="The blade bites your arm. [HP:-3\n\nThe goblin flees into the dark, dropping its purse. You count the coins by torchlight.\n\n[GOLD:+5]";
+console.log("cleanTxt:",JSON.stringify(cleanTxt(txt)));
+var R=applyMuts(txt);
+console.log("hp",c.hp,"coin before",g0,"after",JSON.stringify(c.coin));
+console.log("muts",JSON.stringify(R.muts));

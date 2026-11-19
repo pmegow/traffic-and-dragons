@@ -1,0 +1,10 @@
+var LE=require('C:/Projects/traffic-and-dragons/dev/load-engine.js');
+LE.loadEngine();LE.makeTestWorld();
+global.showToast=function(m){};global.addMsg=function(){return {appendChild:function(){},style:{},remove:function(){}}};
+global.syncUI=function(){};global.saveAll=function(){};global.saveCore=function(){};global.saveMem=function(){};
+console.log("location before:",worldState.world.location);
+var R=applyMuts("The quest is done. [QUEST:Find the cat|completed The cat purrs. [LOCATION:Magnimar]",{allow:REVIEW_CALL_TAGS});
+console.log("location after whitelisted review call:",worldState.world.location);
+console.log("muts:",JSON.stringify(R.muts));
+var R2=applyMuts("Plain control. [LOCATION:Korvosa]",{allow:REVIEW_CALL_TAGS});
+console.log("control (closed tag) location:",worldState.world.location,JSON.stringify(R2.muts));

@@ -1,0 +1,14 @@
+'use strict';
+const engine = require('C:/Projects/traffic-and-dragons/dev/load-engine.js'); engine.loadEngine('game.js');
+global.showToast = function () {}; global.syncUI = function () {}; global.saveAll = function () {};
+engine.makeTestWorld();
+const place = { id: 's1', name: 'Petrified Mire', container: 'Petrified Mire' };
+const wayA = { id: 'way-1', key: 'Alpha Keep', name: 'Alpha Keep', bearing: null, lean: 'N', to: 's0' };
+const before = atlasSheetRecipe(place, [], [wayA], []);
+console.log('turn 1: one way in, direction never stated ->', JSON.stringify(before.params.site.exits.map(e => [e.id, e.name, e.bearing, e.sure])));
+const wayB = { id: 'way-2', key: 'Beta Ford', name: 'Beta Ford', bearing: 'N', lean: 'S', to: 's2' };
+const after = atlasSheetRecipe(place, [], [wayA, wayB], []);
+console.log('turn 2: a second way, stated north ->', JSON.stringify(after.params.site.exits.map(e => [e.id, e.name, e.bearing, e.sure])));
+const d1 = TnDMaps.generate('wild', before.params), d2 = TnDMaps.generate('wild', after.params);
+const at = (d, id) => { const p = (d.portals || []).filter(x => x.id === id)[0]; return p ? [p.x, p.y] : null; };
+console.log('way-1 drawn at', JSON.stringify(at(d1, 'way-1')), '->', JSON.stringify(at(d2, 'way-1')));

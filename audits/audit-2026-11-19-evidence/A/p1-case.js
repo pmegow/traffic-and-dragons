@@ -1,0 +1,12 @@
+var LE=require('C:/Projects/traffic-and-dragons/dev/load-engine.js');
+LE.loadEngine();LE.makeTestWorld();
+global.showToast=function(m){console.log("TOAST:",m);};global.addMsg=function(){return {appendChild:function(){},style:{},remove:function(){}}};
+global.syncUI=function(){};global.saveAll=function(){};global.saveCore=function(){};global.saveMem=function(){};
+var c=worldState.character;
+c.hp=1;c.maxHp=20;
+var al0=JSON.stringify(c.alignAxes||c.alignment);
+var R=applyMuts("The scribe nods. [rest:long] [alignment:good+2] [ITEM_DEF:Rope|category=gear]",{allow:REVIEW_CALL_TAGS});
+console.log("hp after whitelisted review call:",c.hp,"/",c.maxHp);
+console.log("align before",al0,"after",JSON.stringify(c.alignAxes||c.alignment), c.align);
+console.log("muts:",JSON.stringify(R.muts));
+console.log("cleanTxt:",JSON.stringify(cleanTxt("You sleep. [rest:long] You wake. [Alignment:Good+1] [hp:-3]")));
