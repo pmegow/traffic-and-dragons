@@ -158,6 +158,20 @@ async function test(name, fn) { try { await fn(); passed++; console.log('PASS #7
       assert.equal(s.premise, 'The second premise.'); assert.equal(s.review, null, 'a review appeared on a blueprint that had none');
       await page.evaluate(() => { const h = window._held; window._held = []; h.forEach(x => x.res('{}')); });
     });
+    await test('D1: a blueprint with unreadable entries opens without them, and a file that is no blueprint leaves the working copy alone', async () => {
+      await page.evaluate(b => __bpdTest.load(b), one);
+      const bad = Object.assign({}, two, { npcs: [null, { name: 'Bram', role: 'ally' }, 'junk'], locations: [null] });
+      await page.evaluate(b => __bpdTest.load(b), bad);
+      let s = await state();
+      assert.equal(s.name, 'Second Blueprint', 'the file did not open');
+      assert.equal(await page.evaluate(() => __bpdTest.getBp().npcs.length), 1, 'an unreadable entry is in the working copy');
+      assert.match(s.status, /3 unreadable entries were left out/);
+      const threw = await page.evaluate(() => { try { __bpdTest.load(null); return ''; } catch (e) { return String(e.message); } });
+      assert.match(threw, /not a blueprint/);
+      s = await state();
+      assert.equal(s.name, 'Second Blueprint', 'a file that was refused replaced the working copy');
+      assert.equal(await page.evaluate(() => typeof render === 'function' && (render(), true)), true, 'the page cannot paint the working copy');
+    });
     assert.deepEqual(errors, [], 'page errors: ' + errors.join(' | '));
   } finally { await browser.close(); }
   console.log((failed ? 'FAILED' : 'ALL GREEN') + ' — ' + passed + ' passed, ' + failed + ' failed (#777 designer browser)');

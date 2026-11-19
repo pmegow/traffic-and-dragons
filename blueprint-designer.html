@@ -198,7 +198,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.81";
+var BP_DESIGNER_VERSION="v0.82";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 /* audit 2026-11-19, X6/X7: bpDoc counts the DOCUMENTS this page has held — it goes up when the working copy is replaced by
@@ -804,11 +804,24 @@ function openBreakout(btn){
 }
 
 // ── Load / New / Save ──────────────────────────────────────────────────────────
+/* audit 2026-11-19, D1: the working copy was replaced BEFORE the file had been judged — a file with a null entry threw part-way,
+   the status said "Failed to read file", and the half-read blueprint was already the document (and was saved at the next
+   keystroke; after a reload the draft no longer opened). The file is read into a local, its unreadable entries are left
+   out and counted, and only then does it become the working copy. */
+function designerDropNonEntries(next){
+  var n=0;function keep(list){if(!Array.isArray(list))return list;var out=list.filter(function(e){return !!e&&typeof e==="object";});n+=list.length-out.length;return out;}
+  ["npcs","locations","creatures","acts","customClasses"].forEach(function(k){if(Array.isArray(next[k]))next[k]=keep(next[k]);});
+  (next.acts||[]).forEach(function(a){if(Array.isArray(a.arcs))a.arcs=keep(a.arcs);});
+  return n;
+}
 function loadBlueprintObject(obj){
-  bp=normalizeBlueprint(obj,{preserveProse:true});bpDoc++;editionBaseline=BlueprintEdition.baseline(bp);
+  if(!obj||typeof obj!=="object"||Array.isArray(obj))throw new Error("not a blueprint");
+  var src=JSON.parse(JSON.stringify(obj)),_dropped=designerDropNonEntries(src);
+  var next=normalizeBlueprint(src,{preserveProse:true});
   // Legacy review shape (pre-v0.19): findings carried a single `fix` string — lift into fixes[].
-  if(bp.review&&bp.review.findings){bp.review.findings.forEach(function(f){if(!f.fixes||!f.fixes.length)f.fixes=f.fix!=null?[String(f.fix)]:[""];delete f.fix;});}
-  var err=validateBlueprint(bp);
+  if(next.review&&next.review.findings){next.review.findings=next.review.findings.filter(function(f){return !!f&&typeof f==="object";});next.review.findings.forEach(function(f){if(!f.fixes||!f.fixes.length)f.fixes=f.fix!=null?[String(f.fix)]:[""];delete f.fix;});}
+  var err=validateBlueprint(next);if(_dropped)err=_dropped+" unreadable entr"+(_dropped===1?"y was":"ies were")+" left out"+(err?"; "+err:"");
+  bp=next;bpDoc++;editionBaseline=BlueprintEdition.baseline(bp);
   collapseAll(); // existing blueprints open folded — scroll relief + spoiler cover
   dirty=false;render();
   setStatus(err?("Loaded with issues — "+err):"Loaded: "+bp.name,err?"err":"ok");
@@ -1386,6 +1399,9 @@ var _applyingAll=false; // suppresses per-finding Apply buttons + the Apply-all 
 // or appended — so the old shrink guards are obsolete; validateBlueprint is still the backstop.
 var _PATCH_PRESERVE={creatures:DesignerCreatures.preserveCreature,npcs:DesignerCreatures.preserveEntity};
 var _PATCH_BYNAME={npcs:1,locations:1,creatures:1,customClasses:1}; // arrays of objects keyed by .name
+/* audit 2026-11-19, D4: a section name is one of these tables' OWN keys. Read by bare bracket, "constructor" was a by-name section
+   and a patch for it wrote a `constructor` array into the exported blueprint (the assistant's merge already used own keys). */
+function _patchOwn(table,sec){return Object.prototype.hasOwnProperty.call(table,sec);}
 var _PATCH_TOP={name:1,author:1,tone:1,proseAuthor:1,narratorVoice:1,premise:1,startingLocation:1,startingRegion:1,startingTime:1}; // top-level strings
 function _findByName(arr,nm){var i;nm=String(nm||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].name||"").toLowerCase()===nm)return i;}return -1;}
 function _findByTitle(arr,t){var i;t=String(t||"").toLowerCase();for(i=0;i<arr.length;i++){if(String(arr[i].title||"").toLowerCase()===t)return i;}return -1;}
@@ -1403,7 +1419,7 @@ function applyPatches(bp,patches,deletedContext){
   for(i=0;i<patches.length;i++){
     p=patches[i];if(!p||!p.section)throw new Error("a patch is missing its section");
     sec=String(p.section);isDel=!!(p.delete||p.remove);
-    if(_PATCH_BYNAME[sec]){
+    if(_patchOwn(_PATCH_BYNAME,sec)){
       var nm=String(p.name||(p.item&&p.item.name)||"");if(!nm)throw new Error(sec+" patch missing a name");
       if(!Array.isArray(bp[sec]))bp[sec]=[];
       var ai=_findByName(bp[sec],nm);
@@ -1412,7 +1428,7 @@ function applyPatches(bp,patches,deletedContext){
         else labels.push(sec+": "+nm+" already absent");
       }else{
         if(!p.item||typeof p.item!=="object")throw new Error(sec+" patch missing an item object");
-        if(_PATCH_PRESERVE[sec])p.item=_PATCH_PRESERVE[sec](ai>=0?bp[sec][ai]:null,p.item);
+        if(_patchOwn(_PATCH_PRESERVE,sec))p.item=_PATCH_PRESERVE[sec](ai>=0?bp[sec][ai]:null,p.item);
         if(ai>=0){bp[sec][ai]=p.item;labels.push(sec+": "+nm);}
         else if(deletedBefore[_delKey(sec,nm)])labels.push(sec+": skipped "+nm+" (removed earlier this run)");
         else{bp[sec].push(p.item);labels.push(sec+": "+nm+" (new)");}
@@ -1455,7 +1471,7 @@ function applyPatches(bp,patches,deletedContext){
         if(!rt)throw new Error("rule patch missing text");
         if(ri>=0){bp.rules[ri]=rt;labels.push("rule: edited");}else{bp.rules.push(rt);labels.push("rule: added");}
       }
-    }else if(_PATCH_TOP[sec]){
+    }else if(_patchOwn(_PATCH_TOP,sec)){
       bp[sec]=(typeof p.item==="string")?p.item:String(p.item||"");labels.push(sec);
     }else throw new Error("patch targets unknown section \""+sec+"\"");
   }

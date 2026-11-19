@@ -122,10 +122,14 @@ function invUnits(n){return (typeof n==="number"&&n===Math.floor(n)&&n>=1)?n:1;}
 /* invAdd(rows, name, n, extras): stacks by key, else appends a row. `extras` (#599 (c2), review 4 — I5) is a fragment's unknown
    fields riding a TRANSFER: a new row carries them; a stack with the same fields takes the units; a stack with DIFFERENT
    fields refuses with fields:true (the caller restores the move). A plain add (no extras) merges as it always did. */
+/* audit 2026-11-19, C7: a row's unknown fields are copied by NAME, and one may be named "__proto__" (JSON.parse makes it an own
+   property). `row[k]=v` with that key sets the row's PROTOTYPE instead: the field was lost in the move and the row inherited
+   its value — against I5 (unknown fields ride every move). Defined, never assigned. */
+function invOwnSet(row,k,v){Object.defineProperty(row,k,{value:v,enumerable:true,writable:true,configurable:true});}
 function invAdd(rows,name,n,extras){
   n=invUnits(n);var nm=String(name==null?"":name).trim(),t,i,row,k,ex=(extras&&typeof extras==="object")?keyedDict(extras):null,exn=ex?Object.keys(ex).length:0;if(!nm)return {ok:false,reason:"no name"};t=itemKey(nm);
   for(i=0;i<rows.length;i++)if(_invIsRow(rows[i])&&itemKey(rows[i].name)===t){if(exn&&!invDeepEqual(invExtras(rows[i]),ex))return {ok:false,reason:"'"+rows[i].name+"' carries different fields",fields:true};if(rows[i].qty+n>INV_QTY_MAX)return {ok:false,reason:"'"+rows[i].name+"' would pass "+INV_QTY_MAX};rows[i].qty+=n;return {ok:true,row:rows[i]};}
-  if(n>INV_QTY_MAX)return {ok:false,reason:"a count above "+INV_QTY_MAX};row={name:nm,qty:n,equipped:false};if(exn)for(k in ex)row[k]=JSON.parse(JSON.stringify(ex[k]));rows.push(row);return {ok:true,row:row};
+  if(n>INV_QTY_MAX)return {ok:false,reason:"a count above "+INV_QTY_MAX};row={name:nm,qty:n,equipped:false};if(exn)for(k in ex)invOwnSet(row,k,JSON.parse(JSON.stringify(ex[k])));rows.push(row);return {ok:true,row:row};
 }
 /* invRemove returns the removed FRAGMENT — the row's unknown fields with the units taken (I5 through a transfer) */
 function invRemove(rows,name,n){
@@ -161,7 +165,7 @@ function invCarryFields(rows,name,frag,units){
   var row=rows[i],have=invExtras(row);if(invDeepEqual(have,ex))return {ok:true,row:row};
   if(Object.keys(have).length)return {ok:false,reason:"'"+row.name+"' already carries different fields"};
   if(row.qty!==units)return {ok:false,reason:"'"+row.name+"' is a stack of "+row.qty+" without those fields"};
-  for(k in ex)row[k]=JSON.parse(JSON.stringify(ex[k]));return {ok:true,row:row};
+  for(k in ex)invOwnSet(row,k,JSON.parse(JSON.stringify(ex[k])));return {ok:true,row:row};
 }
 function invHoldsRow(inv){var i;for(i=0;i<(inv||[]).length;i++)if(_invIsRow(inv[i]))return true;return false;}
 /* a detached copy for preflights and snapshots (§5.2 ⑦) — validated first, so nothing is lost in the clone */

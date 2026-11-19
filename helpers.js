@@ -4208,7 +4208,7 @@ var SAY_SPEECH_VERB_RE=/^(speak|speaking|speaks|say|saying|says|sound|sounding|s
    steers only when every word of it is a FEELING that renders as a feeling, or a VOLUME word (whisper, shout, softly); anything
    else — pace, energy, pitch, manner, gravity ("solemn" and "grave" push tempo, so they are out; "sad" and "mournful" stay,
    a sad line should sound sad) — is dropped and logged by the prefix. Adding a word that proves to render well is one entry. */
-var SAY_STEER_WORDS=(function(){var o={};("amused fond warm warmly cheerful cheery happy glad delighted pleased excited eager enthusiastic playful teasing wry sly smug proud "
+var SAY_STEER_WORDS=(function(){var o=Object.create(null);/* audit 2026-11-19, C11: a plain object answered for "constructor" — an inherited name passed the allow-list */("amused fond warm warmly cheerful cheery happy glad delighted pleased excited eager enthusiastic playful teasing wry sly smug proud "
   +"curious interested intrigued surprised startled astonished alarmed afraid scared frightened terrified nervous anxious worried uneasy tense "
   +"angry furious annoyed irritated exasperated bitter cold stern firm sharp impatient urgent desperate pleading hopeful relieved grateful "
   +"tender gentle kind affectionate sad sorrowful mournful grieving hurt weary tired bored scornful mocking sarcastic sardonic dry deadpan "
@@ -4291,7 +4291,7 @@ function voiceAccentOf(code){
 var VOICE_AGES={young:"Young",middle_aged:"Middle-aged",elderly:"Elderly"};
 function voiceAgeLabel(code){
   var s=String(code||"").trim().toLowerCase();if(!s)return "";
-  return VOICE_AGES[s]||(s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g," "));
+  return (Object.prototype.hasOwnProperty.call(VOICE_AGES,s)?VOICE_AGES[s]:"")||(s.charAt(0).toUpperCase()+s.slice(1).replace(/_/g," "));/* C11: its own rows only */
 }
 /* Owner 2026-10-14: the actor line drops the vendor's USAGE pitch ("…, ideal for customer service, narration, and support") —
    the voice's use is the player's call, and the list was crowded with it. Census 2026-10-14: 200 of 275 Inworld descriptions

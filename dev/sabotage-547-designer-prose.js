@@ -17,7 +17,7 @@ failed+=sabotage.prove({file:'game.js',command:['node',['dev/run-tests.js','clas
 ]});
 failed+=sabotage.prove({file:'blueprint-designer.html',skip:!chrome.path,command:['node',['dev/tests-designer-creatures-browser.js']],cases:[
  {label:'catalog publishes newly overlong draft',find:'var readiness=designerValidate();if(readiness){error.textContent=readiness;return;}',replace:'',mustFail:'catalog rechecks text limits at confirmation after a draft changes'},
- {label:'file load loses authoring mode',find:'bp=normalizeBlueprint(obj,{preserveProse:true});',replace:'bp=normalizeBlueprint(obj);',mustFail:'loaded NPC notes preserve the exact reported tail beyond the field cap'},
+ {label:'file load loses authoring mode',find:'var next=normalizeBlueprint(src,{preserveProse:true});',replace:'var next=normalizeBlueprint(src);'/* #777 D1: the file is read into a local first */,mustFail:'loaded NPC notes preserve the exact reported tail beyond the field cap'},
  {label:'AI fix skips its revision pass',find:'snapshot=null;if(!_applyingAll)await fitDesignerText(writtenSince(before));',replace:'snapshot=null;',mustFail:'AI fixes draft in full then revise before finalizing'},
  {label:'an AI write shortens text it did not write',find:'if(written)fields=fields.filter(written);',replace:'',mustFail:'the imported note was not sent for shortening'}
 ]});

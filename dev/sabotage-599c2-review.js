@@ -16,7 +16,7 @@ prove("inventory.js", [
     find: "if(exn&&!invDeepEqual(invExtras(rows[i]),ex))return {ok:false,reason:\"'\"+rows[i].name+\"' carries different fields\",fields:true};", replace: "",
     mustFail: R4A },
   { label: "invAdd drops a fragment's fields from the new row it creates",
-    find: "if(exn)for(k in ex)row[k]=JSON.parse(JSON.stringify(ex[k]));", replace: "",
+    find: "if(exn)for(k in ex)invOwnSet(row,k,JSON.parse(JSON.stringify(ex[k])));", replace: "",/* #777 C7: the fields are defined, not assigned */
     mustFail: R4A },
   { label: "a worn value that is not a list is deleted without evidence again",
     find: "if(worn!==undefined&&worn!==null&&!Array.isArray(worn))diags.push({reason:\"a worn list that is not a list\",original:worn});", replace: "",

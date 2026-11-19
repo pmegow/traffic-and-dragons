@@ -99,7 +99,7 @@ designer([
     find: "if(bpDoc!==_fixDoc||!bp.review||!bp.review.findings[idx]){f.status=\"\";", replace: "if(false){f.status=\"\";",
     mustFail: "FAIL #777 designer browser X7: a fix written for one blueprint is not applied to the blueprint opened while it was written" },
   { label: "X6/X7: loading a blueprint is not counted as another document",
-    find: "  bp=normalizeBlueprint(obj,{preserveProse:true});bpDoc++;", replace: "  bp=normalizeBlueprint(obj,{preserveProse:true});",
+    find: "  bp=next;bpDoc++;editionBaseline=BlueprintEdition.baseline(bp);", replace: "  bp=next;editionBaseline=BlueprintEdition.baseline(bp);",
     mustFail: "FAIL #777 designer browser X7: a review of one blueprint is not attached to the blueprint opened while it ran" }
 ]);
 

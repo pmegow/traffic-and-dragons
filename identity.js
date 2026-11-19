@@ -473,6 +473,10 @@ function locMerge(canonical,duplicate,R){
   if(canonical===duplicate){if(typeof console!=="undefined")console.warn("[identity] location merge no-op — '"+duplicate+"' already resolves to '"+canonical+"'");return false;}
   if(!memory.map.nodes[duplicate]){if(typeof console!=="undefined")console.warn("[identity] location merge refused — duplicate node '"+duplicate+"' not on the map");R.muts.push("⚠ location merge refused (unknown duplicate)");return false;}
   if(!memory.map.nodes[canonical]){if(typeof console!=="undefined")console.warn("[identity] location merge refused — canonical node '"+canonical+"' not on the map (locations are never created by merge)");R.muts.push("⚠ location merge refused (unknown canonical)");return false;}
+  /* audit 2026-11-19, C8: a place may not be merged into one of its own descendants — the survivor would be its own parent, and
+     the party pointer would name a place that no longer exists (locReparent has had this check; this door did not). */
+  var _mw=memory.map.nodes[canonical].parent?locResolve(memory.map.nodes[canonical].parent):null,_mg=0;
+  while(_mw&&_mg++<12){if(_mw===duplicate){if(typeof console!=="undefined")console.warn("[identity] location merge refused — '"+canonical+"' lies inside '"+duplicate+"'; a place cannot be merged into its own child");R.muts.push("⚠ location merge refused (a place cannot be merged into a place inside it)");return false;}var _mn=memory.map.nodes[_mw];_mw=_mn&&_mn.parent?locResolve(_mn.parent):null;}
   var entries=_locEntriesEnsure();
   memArchive().identityMerges.push({domain:"location",op:"merge",canonical:canonical,duplicate:duplicate,turn:R.turn,
     records:{node:JSON.parse(JSON.stringify(memory.map.nodes[duplicate])),identity:entries[duplicate]?JSON.parse(JSON.stringify(entries[duplicate])):null,locations:memory.locations[duplicate]?JSON.parse(JSON.stringify(memory.locations[duplicate])):null}});

@@ -13,8 +13,8 @@ code|=sabotage.prove({file:'helpers.js',command:CMD,cases:[
 /* #555: the allow-list itself */
 code|=sabotage.prove({file:'helpers.js',command:CMD,cases:[
  {label:'"low" and "practical" are admitted to the steering list (the t264 dirge returns)',mustFail:"'low' and 'practical' must vanish",
-  find:'var o={};("amused fond warm warmly',
-  replace:'var o={};("low practical amused fond warm warmly'},
+  find:'("amused fond warm warmly',/* #777 C11: the table is no longer a plain object — anchored on the word list itself */
+  replace:'("low practical amused fond warm warmly'},
  {label:'one allowed word carries a whole part ("morbidly amused" and "low and warm" steer)',mustFail:'one word outside the list drops the whole part',
   find:'  for(i=0;i<words.length;i++)if(!SAY_STEER_WORDS[words[i].replace(/[^a-z]/g,"")])return "";',
   replace:'  var anyOk=false;for(i=0;i<words.length;i++)if(SAY_STEER_WORDS[words[i].replace(/[^a-z]/g,"")])anyOk=true;if(!anyOk)return "";'}

@@ -55,3 +55,5 @@ The canonical skills reference. `SKILL_LEVEL_MECHANICS` = ONE global ladder (ind
 ## The story's filing (#776)
 
 `item-kinds.js`: a carried item with NO canon is filed under the inventory section the story answers for its NAME, once, after a turn commits, through one small no-history request (`itemKindsSettle`). The answer (`worldState.itemKinds[<itemBaseName>] = {kind, turn}`; a section id of `INVENTORY_CATEGORY_REGISTRY`, or `unclear`) is a DISPLAY filing: `groupInventory` reads it for a row `itemLookup` does not resolve, and nothing else reads it. It is never canon (never injected, never priced, never a Define answer), and a bible or accepted overlay entry always decides first. Proven by `dev/sabotage-776-item-kinds.js`.
+
+**audit 2026-11-19 (#777 C7, v1.1466):** a row's unknown fields are DEFINED on the row (`invOwnSet`, inventory.js), never assigned by name — a field named `__proto__` rides a move like any other (I5) and cannot replace the row's prototype. Tests `dev/tests-777-small.js`.
