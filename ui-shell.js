@@ -78,8 +78,10 @@ function showToast(msg,ms,opts){
   // are developer constants, so this is a safe decode (not model/user input).
   msg=String(msg==null?"":msg).replace(/&#(\d+);/g,function(_,n){return String.fromCharCode(parseInt(n,10));}).replace(/&mdash;/g,"—").replace(/&ndash;/g,"–").replace(/&amp;/g,"&");
   var _kind=toastKind(opts),_pops=toastPops(_kind,consoleDoorOpen());
-  consolePush(msg,_kind,_pops);/* #772: every line is on record; only one that did not pop counts as new */
+  var _carFades=_pops&&typeof carMode!=="undefined"&&!!carMode;/* #777 U11 review: a Car Mode notice fades by itself, usually unread — it popped, and it still counts as new */
+  consolePush(msg,_kind,_pops,_carFades);/* #772: every line is on record; only one that did not pop counts as new */
   if(!_pops){if(typeof consoleModalLanded==="function"&&consoleModalLanded())consoleRead();consoleDotPaint();return;}
+  if(_carFades)consoleDotPaint();
   // TODO #7 (user pick 2026-07-18): a toast IS the "general poke at the user", so bone rides this
   // one choke point instead of dozens of call sites. playIfQuiet keeps it from doubling up on an
   // attention event (quests/level-ups/defining moments play glass just BEFORE their toast).

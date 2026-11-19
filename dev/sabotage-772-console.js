@@ -16,7 +16,7 @@ var pure = [
   { label: "every kind pops", find: "return !!(row&&row.pops)||!doorOpen;", replace: "return true;", mustFail: T2 },
   { label: "a notice is swallowed when the console cannot be opened", find: "return !!(row&&row.pops)||!doorOpen;", replace: "return !!(row&&row.pops);", mustFail: T2 },
   { label: "a second kind pops", find: "var TOAST_KINDS={inventory:{pops:true}};", replace: "var TOAST_KINDS={inventory:{pops:true},notice:{pops:true}};", mustFail: T2 },
-  { label: "a popped line counts as new", find: "  if(!e.popped)_consoleNew++;", replace: "  _consoleNew++;", mustFail: T3 },
+  { label: "a popped line counts as new", find: "  if(!e.popped||unread)_consoleNew++;", replace: "  _consoleNew++;", mustFail: T3 },
   { label: "reading does not clear the count", find: "function consoleRead(){_consoleNew=0;}", replace: "function consoleRead(){}", mustFail: T3 },
   { label: "a reader is handed the ring itself", find: "function consoleEntries(){return _consoleLog.slice();}", replace: "function consoleEntries(){return _consoleLog;}", mustFail: T3 },
   { label: "a line loses its turn", find: 'worldState.turn==="number")?worldState.turn:null,msg:', replace: 'worldState.turn==="number")?null:null,msg:', mustFail: T3 },
@@ -29,7 +29,7 @@ var pure = [
 ];
 var shell = [
   { label: "a collected line is drawn as a toast anyway", find: 'if(!_pops){if(typeof consoleModalLanded==="function"&&consoleModalLanded())consoleRead();consoleDotPaint();return;}', replace: "consoleDotPaint();", mustFail: T6 },
-  { label: "a line is not put on record", find: "  consolePush(msg,_kind,_pops);", replace: "  ", mustFail: T6 }
+  { label: "a line is not put on record", find: "  consolePush(msg,_kind,_pops,_carFades);", replace: "  ", mustFail: T6 }
 ];
 var gained = [{ label: "items gained are collected instead of popping", find: 'showToast("🎒 Collected: "+shown,undefined,{kind:"inventory"});', replace: 'showToast("🎒 Collected: "+shown);', mustFail: T6 }];
 var dropped = [{ label: "items deleted are collected instead of popping", find: '+stale,6000,{kind:"inventory"});', replace: "+stale,6000);", mustFail: T6 }];

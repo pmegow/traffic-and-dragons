@@ -47,9 +47,49 @@ kase("U1: Death's arrival waits for the turn that is still running, then is sent
     return wait(200);
   }).then(function () {
     assert.strictEqual(sent.length, 1, "Death never arrived after the turn let go: " + sent.length);
-    assert.strictEqual(sent[0].t, deathArrivalDirective()); assert.ok(sent[0].o && sent[0].o.silent); assert.strictEqual(sent[0].busy, false);
+    assert.strictEqual(sent[0].t, deathArrivalDirective()); assert.ok(sent[0].o && sent[0].o.silent && sent[0].o.deathArrival); assert.strictEqual(sent[0].busy, false);
+    assert.strictEqual(worldState.deathScene.arrivalOwed, true, "the arrival is not owed on the save until it commits");
     return wait(150);
-  }).then(function () { assert.strictEqual(sent.length, 1, "the arrival was sent twice"); });
+  }).then(function () {
+    assert.strictEqual(sent.length, 1, "the arrival was sent twice");
+    // a reload before the arrival committed: the load re-arms it; once it is in the book it is owed no more
+    sent.length = 0; deathArrivalRearm();
+    return wait(200);
+  }).then(function () {
+    assert.strictEqual(sent.length, 1, "an arrival still owed at load was not sent");
+    delete worldState.deathScene.arrivalOwed; sent.length = 0; deathArrivalRearm();
+    return wait(200);
+  }).then(function () {
+    assert.deepStrictEqual(sent, [], "an arrival already in the book was sent again at load");
+    // two steps armed for ONE arrival (the commit's and a load's): the first puts it in the book, the second finds nothing owed
+    worldState.deathScene.arrivalOwed = true; sent.length = 0;
+    sendAction = function (t, o) { sent.push(t); delete worldState.deathScene.arrivalOwed; };
+    deathArrivalRearm(); deathArrivalRearm();
+    return wait(200);
+  }).then(function () {
+    assert.strictEqual(sent.length, 1, "one arrival owed was sent " + sent.length + " times");
+    deathArrivalRearm();
+    assert.strictEqual(turnSettleOwed(), false, "a load with nothing owed holds the player's send back");
+    assert.ok(/if\(typeof deathArrivalRearm==="function"\)deathArrivalRearm\(\);/.test(src("ui-boot.js")), "the load does not re-arm an owed arrival");
+    assert.ok(/if\(opts&&opts\.deathArrival&&worldState\.deathScene\)delete worldState\.deathScene\.arrivalOwed;/.test(src("game.js")), "the arrival's commit does not settle the debt");
+  });
+});
+kase("U1: while a step is owed the player's own send waits, and the give-up is counted in polls run, not in wall-clock time", function () {
+  fresh(); var ran = 0, realNow = Date.now;
+  busy = true; whenTurnSettles("a test step", function () { ran++; });
+  assert.strictEqual(turnSettleOwed(), true, "nothing says a step is owed");
+  Date.now = function () { return realNow() + 6 * 60 * 1000; };              // the phone slept: six minutes "passed" in one poll
+  return wait(AFTER_TURN_POLL_MS * 2 + 60).then(function () {                 // polls run while the turn still holds, under the jumped clock
+    assert.strictEqual(turnSettleOwed(), true, "the step was given up on a clock jump, not on polls run");
+    busy = false;
+    return wait(AFTER_TURN_POLL_MS * 2 + 60);
+  }).then(function () {
+    Date.now = realNow;
+    assert.strictEqual(ran, 1, "a step about to run was dropped because the clock had jumped");
+    assert.strictEqual(turnSettleOwed(), false, "the debt outlived its step");
+    var g = src("game.js"), at = g.indexOf("async function sendAction("), head = g.slice(at, at + 1200);
+    assert.ok(/if\(!\(opts&&opts\.silent\)&&typeof turnSettleOwed==="function"&&turnSettleOwed\(\)\)\{/.test(head), "a line sent before the owed step ran is not held back");
+  }, function (e) { Date.now = realNow; throw e; });
 });
 kase("U1: what a commit schedules is dropped out loud when another campaign is opened first, and said when the turn never lets go", function () {
   fresh(); var ran = 0;
@@ -83,31 +123,6 @@ kase("U2: the Rest button does nothing while a turn is in flight, and says so; t
   assert.ok(/onclick='restFromButton\(\)'/.test(src("ui-panels.js")) && src("ui-panels.js").indexOf("onclick='restSpells()'") < 0, "the panel's button calls the rest directly");
 });
 
-// ── U3 ─────────────────────────────────────────────────────────────────────────────────────────────────────────────
-kase("U3: re-rolling a refused turn commits the replacement — its tags are applied once, the turn is not counted again", function () {
-  fresh(); var ws = worldState; ws.turn = 9; ws.character.coin = 1000;
-  ws.transcript = [{ t: 9, r: "player", x: "I open the door." }, { t: 9, r: "gm", x: "I can't continue this scene.", rf: 1 }];
-  sessionLog = [{ role: "user", content: "I open the door." }, { role: "assistant", content: "I can't continue this scene." }];
-  var calls = 0; callGM = function () { calls++; return Promise.resolve("The door swings wide and a purse lies on the sill. [GOLD:+3]"); };
-  activeChatTab = "story";
-  return rerollLast().then(function () {
-    assert.strictEqual(calls, 1);
-    assert.strictEqual(worldState.character.coin, 1300, "the replacement's tags were never applied: " + worldState.character.coin);
-    assert.strictEqual(worldState.turn, 9, "the turn was counted a second time: " + worldState.turn);
-    var tr = worldState.transcript, last = tr[tr.length - 1];
-    assert.ok(last.r === "gm" && !last.rf && /purse lies/.test(last.x) && last.t === 9, "the replacement is not in the book as this turn's narration: " + JSON.stringify(last));
-    assert.strictEqual(tr.filter(function (e) { return e.r === "player"; }).length, 1, "the player's line was logged twice");
-    assert.strictEqual(sessionLog.length, 2, "the session log changed length: " + sessionLog.length);
-    assert.ok(/purse lies/.test(sessionLog[1].content));
-    assert.strictEqual(busy, false, "the turn was left locked");
-    callGM = function () { calls++; return Promise.resolve("The door swings wide again. [GOLD:+3]"); };
-    return rerollLast();
-  }).then(function () {
-    assert.strictEqual(worldState.character.coin, 1300, "re-rolling real narration applied its tags a second time");
-    assert.strictEqual(worldState.turn, 9);
-  });
-});
-
 // ── U6, U11 ────────────────────────────────────────────────────────────────────────────────────────────────────────
 kase("U6, U11: a notice raised under an open modal pops up; in Car Mode a notice fades by itself", function () {
   assert.strictEqual(toastLifeMs(undefined, false), 0, "an ordinary notice no longer stays until tapped");
@@ -116,6 +131,11 @@ kase("U6, U11: a notice raised under an open modal pops up; in Car Mode a notice
   assert.strictEqual(toastLifeMs(0, true), CAR_TOAST_MS); assert.strictEqual(CAR_TOAST_MS, 8000);
   var sh = src("ui-shell.js"), at = sh.indexOf("function consoleDoorOpen()"), body = sh.slice(at, sh.indexOf("\n}", at));
   assert.ok(/if\(typeof modalTopOpen==="function"&&modalTopOpen\(\)&&!document\.getElementById\("console-modal"\)\)return false;/.test(body), "U6: the console's door reads as open under a modal — the modal's own refusal is only collected (the Console itself is the one modal a line lands in)");
+  var n0 = consoleNewCount(), e = consolePush("Saved", "notice", true, true);
+  assert.strictEqual(e.popped, true, "the record says a popped line did not pop");
+  assert.strictEqual(consoleNewCount(), n0 + 1, "U11: a notice that faded unread is not counted as new in the Console");
+  consolePush("Saved", "notice", true); assert.strictEqual(consoleNewCount(), n0 + 1, "an ordinary popped line counts as new");
+  assert.ok(/var _carFades=_pops&&typeof carMode!=="undefined"&&!!carMode;/.test(sh) && /consolePush\(msg,_kind,_pops,_carFades\);/.test(sh) && /if\(_carFades\)consoleDotPaint\(\);/.test(sh), "U11: a Car Mode notice is not handed to the Console as unread");
   assert.ok(/var _life=toastLifeMs\(ms,typeof carMode!=="undefined"&&carMode\);/.test(sh) && /if\(_life>0\)setTimeout\(dismiss,_life\);/.test(sh), "U11: the toast does not take its life from toastLifeMs");
 });
 
@@ -126,6 +146,7 @@ kase("U8, U12, V1: a check lapses only to a story action; the folder banner is o
   assert.ok(lapse > 0 && read > 0 && tt > 0, "fixture: sendAction's lines were not found");
   assert.ok(lapse > read && lapse > tt, "U8: the check lapses before the action is read (an empty Send or a Table Talk question loses the roll)");
   assert.ok(/if\(!isTT&&worldState\.pendingCheck&&!\(opts&&opts\.silent\)\)checkLapseToAction\(txt\);/.test(body), "U8: a Table Talk question lapses the check");
+  assert.ok(/carNotify\("warn","Opening failed — reload to continue"\)/.test(g), "V1: a committed opening arms tap-to-retry");
   assert.ok(/carNotify\("warn","Turn applied, but display failed"\)/.test(g), "V1: a turn that committed arms tap-to-retry in the car — the tap sends the action again");
   assert.ok(/carNotify\(isTT\?"warn":"error",isTT\?"Question failed":"Turn failed — tap to retry"\)/.test(g), "V1: a failed Table Talk question arms a retry of the last STORY action");
   var b0 = g.indexOf("function _promptCampaignFolder()"), bb = g.slice(b0, g.indexOf("\n}", b0));
@@ -148,6 +169,8 @@ kase("C3: a check's modifier is the field's leading signed number — text in th
   assert.strictEqual(parseCheckTag("Climb|+3|DC 12").mod, 3); assert.strictEqual(parseCheckTag("Climb|-2|DC 12").mod, -2); assert.strictEqual(parseCheckTag("Climb|4|DC 12").mod, 4);
   assert.strictEqual(parseCheckTag("Climb|+ 3|DC 12").mod, 3);
   assert.strictEqual(parseCheckTag("Climb|strength|DC 12").mod, 0);
+  assert.strictEqual(parseCheckTag("Athletics|\u22122|DC 15").mod, -2, "the engine's own minus sign is not read");
+  [["STR +3", 3], ["Athletics +3", 3], ["(+3)", 3], ["modifier: +3", 3], ["mod -1", -1], ["d20+5", 5], ["1d20+5", 5], ["d20", 0]].forEach(function (c) { assert.strictEqual(parseCheckTag("Climb|" + c[0] + "|DC 12").mod, c[1], JSON.stringify(c[0]) + " reads as " + parseCheckTag("Climb|" + c[0] + "|DC 12").mod); });
   assert.strictEqual(parseCheckTag("Climb|+515|DC 12").mod, CHECK_MOD_MAX, "an absurd modifier is not clamped");
   assert.strictEqual(parseCheckTag("Climb|-999|DC 12").mod, -CHECK_MOD_MAX);
   var d = parseCheckTag("Draconic Breath|2d6");

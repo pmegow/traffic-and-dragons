@@ -235,11 +235,18 @@ function checkStakeField(f,i){var s=String(f||"").trim();if(i<2||!s||parseDamage
    and glued what was left: "+5 vs DC 15" rolled d20+515, and "DC 14" in the modifier's place was a modifier of 14 (a
    natural 1 succeeded). A field that opens with DC, or with words, is no modifier; the number is kept within
    ±CHECK_MOD_MAX. */
+/* Review of a7236262 (finding 5): the first cut read only a LEADING number, so one-number fields that used to work rolled
+   +0 ("STR +3", "(+3)", "modifier: +3"), and the engine's own minus sign (U+2212, which resolveCheck writes) was not a
+   sign. Now: a field that opens with DC is no modifier; with dice in it, the number after the dice ("d20+5"); with ONE
+   number, that number; with several, the leading one ("+5 vs DC 15"). Every dash is a minus. */
 function checkModField(field){
-  var m=String(field==null?"":field).trim().match(/^([+-])?\s*(\d{1,6})(?!\d)/);
-  if(!m)return 0;
-  var v=parseInt(m[2],10)*(m[1]==="-"?-1:1);
-  return Math.max(-CHECK_MOD_MAX,Math.min(CHECK_MOD_MAX,v));
+  var s=String(field==null?"":field).replace(/[\u2212\u2013\u2014]/g,"-").trim(),m;
+  function val(sign,digits){var v=parseInt(digits,10)*(sign==="-"?-1:1);return isFinite(v)?Math.max(-CHECK_MOD_MAX,Math.min(CHECK_MOD_MAX,v)):0;}
+  if(!s||/^dc\b/i.test(s))return 0;
+  m=s.match(/\d*d\d+\s*(?:([+-])\s*(\d+))?/i);if(m)return m[2]?val(m[1],m[2]):0;
+  var nums=s.match(/\d+/g)||[];if(!nums.length)return 0;
+  if(nums.length===1){m=s.match(/([+-])?\s*(\d+)/);return val(m[1],m[2]);}
+  m=s.match(/^([+-])?\s*(\d+)/);return m?val(m[1],m[2]):0;
 }
 function parseCheckTag(body){var p=String(body||"").split("|"),label=(p[0]||"").trim(),dc=null,dmg=null,stake=null,i;if(!label)return null;var mod=parseDamageExpr(p[1])?0:checkModField(p[1]);for(i=1;i<p.length;i++){var sk=checkStakeField(p[i],i);if(sk){if(!stake)stake=sk;continue;}var m=String(p[i]).match(/DC\s*(\d+)/i);if(m)dc=parseInt(m[1],10);else if(!dmg)dmg=parseDamageExpr(p[i]);}return {label:label,mod:mod,dc:dc,dmg:dmg,stake:stake,dmgOnly:!!(dmg&&dc===null&&parseDamageExpr(p[1]))};}/* #754: dice where the modifier sits and no DC = no d20 at all, the player rolls the damage alone */
 /* #750: what the narration read aloud adds while a roll with a stake waits \u2014 the tag is stripped from the prose, so a
@@ -4509,11 +4516,11 @@ function toastKind(opts){var k=opts&&typeof opts==="object"?opts.kind:null;retur
 function toastPops(kind,doorOpen){var row=ownValue(TOAST_KINDS,kind);return !!(row&&row.pops)||!doorOpen;}
 var CONSOLE_CAP=300,_consoleLog=[],_consoleNew=0,_consoleDropped=0;
 /* Files one line. `popped` lines are on record too, but only a line that did NOT pop counts as new (the dot). */
-function consolePush(msg,kind,popped){
+function consolePush(msg,kind,popped,unread){/* unread (#777 U11 review): it popped where nobody may have read it — still new */
   var e={at:Date.now(),turn:(typeof worldState!=="undefined"&&worldState&&typeof worldState.turn==="number")?worldState.turn:null,msg:String(msg==null?"":msg),kind:String(kind||TOAST_KIND_DEFAULT),popped:!!popped};
   _consoleLog.push(e);
   if(_consoleLog.length>CONSOLE_CAP){_consoleDropped+=_consoleLog.length-CONSOLE_CAP;_consoleLog.splice(0,_consoleLog.length-CONSOLE_CAP);}
-  if(!e.popped)_consoleNew++;
+  if(!e.popped||unread)_consoleNew++;
   return e;
 }
 function consoleEntries(){return _consoleLog.slice();}

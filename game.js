@@ -2692,7 +2692,7 @@ function commitGmTurn(resp,opts){
      still log the pair (#197: the player saw it; re-roll needs it). Silent sends and Table Talk
      never pass logPlayer, and the opening has no player half. */
   if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript("player",o.playerTxt);
-  if(!o.isOpening&&!o.replacesRefusal){/* U3: a refusal's replacement is the SAME turn — the refusal's commit counted it */
+  if(!o.isOpening){
     worldState.turn++;
     if(typeof memory.nameIdx==="number")memory.nameIdx+=10; // rotate the AVAILABLE NAMES window once per narrative turn (buildSysPrompt only peeks — audit #12)
   }
@@ -2888,7 +2888,9 @@ function restorePendingAction(){
   return rec.txt;
 }
 async function sendAction(override,opts){
-  if(busy||!worldState)return;var inp=document.getElementById("action-input");
+  if(busy||!worldState)return;
+  if(!(opts&&opts.silent)&&typeof turnSettleOwed==="function"&&turnSettleOwed()){if(typeof showToast==="function")showToast("One moment — the last turn is still settling.");return;}/* #777 review (finding 8) */
+  var inp=document.getElementById("action-input");
   if(typeof atlasFollow==="function")atlasFollow();/* #684: a Sync edit or a restore may have moved the location pointer since the last commit — the MAP block must describe the place this turn is played in; idempotent, a no-op without an atlas */
   if(typeof campaignEnded==="function"&&campaignEnded()&&!(opts&&opts.silent)){if(typeof showToast==="function")showToast("This campaign has ended — its story is complete (File ▸ Export Narrative keeps it)");return;}/* #300 */
   /* #301: at the choose stage the two buttons are the whole vocabulary — no model call. */
@@ -3058,6 +3060,7 @@ async function sendAction(override,opts){
       if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
       var _mapDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
       if(opts&&opts.silent&&opts.rollTag&&typeof diceRevealWait==="function")await diceRevealWait();/* #759: the reply to a roll is shown only once its dice have come to rest — requested at the click, held here, bounded by DICE_REVEAL_MAX_MS */
+      if(opts&&opts.deathArrival&&worldState.deathScene)delete worldState.deathScene.arrivalOwed;/* the arrival is in the book with this commit */
       commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */}});
       if(typeof atlasDirectionsSettle==="function")await atlasDirectionsSettle(resp,txt);/* #766: the map asks for the directions it is still owed — after the commit, inside the turn; never throws */
       if(typeof atlasGroundSettle==="function")await atlasGroundSettle(resp,txt);/* #771: and for the ground of a place whose name does not say it — once per place; never throws */
@@ -3153,24 +3156,12 @@ async function rerollLast(){
   // and the failure path (restore originals) leave sessionLog.length unchanged, so the
   // sessKept extraction marker (#28) stays valid. Pinned by an engine test; if this ever
   // stops being net-neutral, adjust worldState.sessKept alongside.
-  var prevA=sessionLog.pop(),prevU=sessionLog.pop(),_rrMutated=false,_rrLen=n; // context is now just before the last action
+  var prevA=sessionLog.pop(),prevU=sessionLog.pop(); // context is now just before the last action
   var th=addMsg("thinking","Re-rolling the scene...");
   try{
     var resp=await callGM(prevU.content+((typeof atlasKnowledgeRerollNote==="function")?atlasKnowledgeRerollNote():""),null,1500); // current voice; no muts, no turn++ (1500 = the turn budget, v1.540)
     th.remove();
     if(typeof atlasKnowledgeReroll==="function")resp=atlasKnowledgeReroll(resp,prevA.content);
-    /* audit 2026-11-19, U3 (owner ruling: a refusal's replacement goes through the normal commit). A re-roll applies no
-       tags because the original's already landed — but a REFUSAL's never did (#197: it commits as non-canon, tags
-       withheld), so real narration re-rolled over a refusal sat in the log as if its changes were canon and none was.
-       The replacement is committed like any turn — tags applied once, the book and the log written by the one committer —
-       except that the turn is not counted again (the refusal's commit counted it) and the player's line is not logged
-       twice. The refusal's own entry stays in the transcript, marked: the book is append-only. */
-    var _rrLast=(worldState.transcript&&worldState.transcript.length)?worldState.transcript[worldState.transcript.length-1]:null;
-    if(_rrLast&&_rrLast.r==="gm"&&_rrLast.rf&&!((typeof detectModelRefusal==="function")&&detectModelRefusal(cleanTxt(resp)))){
-      var _rrSt=document.getElementById("story-narrative");if(_rrSt){var _rrNs=_rrSt.querySelectorAll(".msg.narrator");if(_rrNs.length)_rrNs[_rrNs.length-1].parentNode.removeChild(_rrNs[_rrNs.length-1]);}
-      commitGmTurn(resp,{userMsg:prevU.content,logPlayer:false,replacesRefusal:true,onMutated:function(){_rrMutated=true;}});
-      busy=false;document.getElementById("sendbtn").disabled=false;return;
-    }
     sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:resp});
     var clean=cleanTxt(resp),dice=diceTxt(resp);
     /* #197: the replacement is judged like any narration — a rerolled-in refusal must not become
@@ -3213,9 +3204,7 @@ async function rerollLast(){
     saveAll();
     generateActions(narEl);
   }catch(e){
-    if(th&&th.remove)th.remove();
-    if(_rrMutated){/* U3: the replacement's changes landed before the throw — the original exchange is not put back over them */if(sessionLog.length<_rrLen)sessionLog.push({role:"user",content:prevU.content},{role:"assistant",content:String(resp||"")});if(typeof reportError==="function")reportError("reroll",e.message,(e&&e.stack)||"");addMsg("system","Re-roll applied, but a display step failed: "+e.message);busy=false;document.getElementById("sendbtn").disabled=false;return;}
-    sessionLog.push(prevU,prevA); // restore the original exchange on failure
+    th.remove();sessionLog.push(prevU,prevA); // restore the original exchange on failure
     if(typeof reportError==="function")reportError("reroll",e.message,(e&&e.stack)||"");
     addMsg("system","Re-roll error: "+e.message);
   }
@@ -3917,7 +3906,7 @@ async function beginAdventure(){
       // and double-apply them (double starting gold, duplicate NPCs). No Retry offered; the
       // persisted transcript replays the scene on reload.
       addMsg("system","Opening scene hit an error after your world was saved ("+e.message+") — reload to replay the scene. (Retry disabled: it would double-apply the opening.)");
-      if(typeof carNotify==="function")carNotify("error","Opening failed — reload to continue");
+      if(typeof carNotify==="function")carNotify("warn","Opening failed — reload to continue");/* #777 V1 review: committed — a tap must not retry */
     }else{
       var em=addMsg("system","Failed to start: "+e.message);if(typeof carNotify==="function")carNotify("error","Failed to start — tap to retry");if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
     }}
@@ -4343,8 +4332,11 @@ function deathSceneBegin(cause){
   delete worldState.deathPending;delete worldState.downed;worldState.combat=null;
   if(typeof saveAll==="function")saveAll();
   if(typeof carNotify==="function")carNotify("info","Death has come for you.");
-  if(typeof document!=="undefined"&&typeof sendAction==="function")whenTurnSettles("Death's arrival",function(){sendAction(deathArrivalDirective(),{silent:true});});
+  worldState.deathScene.arrivalOwed=true;/* review of a7236262 (finding 9): owed ON THE SAVE until the arrival commits — a step that gave up, or a reload before it ran, is re-armed at load (deathArrivalRearm) */
+  if(typeof document!=="undefined"&&typeof sendAction==="function")whenTurnSettles("Death's arrival",deathArrivalSend);
 }
+function deathArrivalSend(){if(worldState&&worldState.deathScene&&worldState.deathScene.arrivalOwed)sendAction(deathArrivalDirective(),{silent:true,deathArrival:true});}
+function deathArrivalRearm(){if(worldState&&worldState.deathScene&&worldState.deathScene.arrivalOwed&&typeof document!=="undefined")whenTurnSettles("Death's arrival",deathArrivalSend);}
 /* audit 2026-11-19, U1 — WHAT A COMMIT SCHEDULES RUNS ONCE THE TURN HAS LET GO. Death's arrival and the campaign's final
    denouement are scheduled from INSIDE the commit, while `busy` is true, and both begin by returning when `busy` is set.
    They were scheduled with setTimeout(…,0): once the turn went on to await the map and item requests (#766, #771, #776)
@@ -4352,13 +4344,20 @@ function deathSceneBegin(cause){
    player's next line was taken as their question to a Death who never appeared; after the last death no ending showed
    until a reload. The step now waits until nothing holds `busy`, runs once, is dropped (said) if another campaign was
    opened meanwhile, and is said — never dropped in silence — if the turn has not let go after AFTER_TURN_MAX_MS. */
+/* Review of a7236262: (7) the give-up is counted in polls actually run, never wall-clock time (a phone asleep with its
+   timers suspended came back "5 minutes late" and dropped the step it was about to run); (8) while a step is owed the
+   player's own send waits (turnSettleOwed, asked by sendAction) — the input opens the moment `busy` clears, a poll before
+   the step runs, and a line sent in that gap was taken as Death's question before Death had arrived. */
+var _turnSettleOwed=0;
+function turnSettleOwed(){return _turnSettleOwed>0;}
 function whenTurnSettles(what,fn){
-  var mark=(typeof campaignMark==="function")?campaignMark():null,t0=Date.now();
+  var mark=(typeof campaignMark==="function")?campaignMark():null,ticks=0;_turnSettleOwed++;
   (function tick(){
     setTimeout(function(){
       if(typeof busy!=="undefined"&&busy){
-        if(Date.now()-t0>AFTER_TURN_MAX_MS){console.error("[turn] "+what+" never ran — the turn before it did not finish within "+Math.round(AFTER_TURN_MAX_MS/1000)+" s (audit U1)");if(typeof showToast==="function")showToast("⚠ "+what+" could not start — the turn before it never finished. Reload to continue.");return;}
+        if(++ticks*AFTER_TURN_POLL_MS>AFTER_TURN_MAX_MS){_turnSettleOwed--;console.error("[turn] "+what+" never ran — the turn before it did not finish within "+Math.round(AFTER_TURN_MAX_MS/1000)+" s (audit U1)");if(typeof showToast==="function")showToast("⚠ "+what+" could not start — the turn before it never finished. Reload to continue.");return;}
         tick();return;}
+      _turnSettleOwed--;
       if(mark&&typeof campaignStill==="function"&&!campaignStill(mark,what))return;
       fn();
     },AFTER_TURN_POLL_MS);

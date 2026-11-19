@@ -1,5 +1,5 @@
 {
-  "version": "v1.1466",
+  "version": "v1.1467",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -122,6 +122,7 @@
     "A companion's repeated wish is no longer announced as newly queued; restated facts still merge while distinct ones are kept.",
     "Death's arrival and the campaign ending no longer vanish after a turn; re-rolling a declined scene applies its changes; Rest waits for the turn.",
     "Car Mode beeps obey the mute button; saying \"I pause\" is taken as your action; interface sounds keep working after an audio interruption.",
-    "A place can no longer be merged into a place inside it; odd item fields survive a move between packs."
+    "A place can no longer be merged into a place inside it; odd item fields survive a move between packs.",
+    "Death's arrival survives a reload; a check's modifier is read from fields like \"STR +3\"; Car Mode notices show as new in the Console."
   ]
 }

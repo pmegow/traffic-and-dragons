@@ -61,7 +61,7 @@ test('the renderer shows each line once, oldest first, escaped, with its time an
 
 test('showToast routes before it draws anything, records every line, and the three inventory changes name their kind', () => {
   const shell = read('ui-shell.js'), fn = shell.slice(shell.indexOf('function showToast(msg,ms,opts){'), shell.indexOf('function showLoadingModal('));
-  const route = fn.indexOf('var _kind=toastKind(opts),_pops=toastPops(_kind,consoleDoorOpen());'), push = fn.indexOf('consolePush(msg,_kind,_pops);'), out = fn.indexOf('if(!_pops){'), draw = fn.indexOf('document.createElement("div")'), sound = fn.indexOf('Sound.playIfQuiet');
+  const route = fn.indexOf('var _kind=toastKind(opts),_pops=toastPops(_kind,consoleDoorOpen());'), push = fn.indexOf('consolePush(msg,_kind,_pops,_carFades);'), out = fn.indexOf('if(!_pops){'), draw = fn.indexOf('document.createElement("div")'), sound = fn.indexOf('Sound.playIfQuiet');
   assert.ok(route > 0 && push > route && out > push && draw > out && sound > out, 'kind, record, then the early return: a collected line draws no toast and plays no sound');
   assert.ok(fn.indexOf('consoleDotPaint();return;}') > out, 'a collected line paints the dot');
   assert.ok(!/_pops\s*=[^;]*(indexOf|test|match)\(/.test(fn), 'the route never reads the message');
