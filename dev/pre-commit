@@ -41,6 +41,18 @@ node "$(git rev-parse --show-toplevel)/dev/check-shell-markers.js" || {
   echo "Commit blocked: staged app-shell files require fresh APP_VERSION and CACHE markers (details above)." >&2
   exit 1
 }
+# DOCUMENTATION ONLY (owner ruling 2026-11-18): a commit that stages nothing a test reads skips the engine suite here.
+# dev/docs-only.js decides (TODO.md, DOC/ outside contracts/, audits/ — added or modified, named by no dev script);
+# any doubt is a "no". The checks above ran already; the doc link check still runs (an edited heading can break a
+# link into it). CI runs the whole suite on every push regardless.
+if node "$(git rev-parse --show-toplevel)/dev/docs-only.js"; then
+  node "$(git rev-parse --show-toplevel)/dev/check-doc-links.js" || {
+    echo "" >&2
+    echo "Commit blocked: a link in the live contract docs no longer lands (details above)." >&2
+    exit 1
+  }
+  exit 0
+fi
 node "$(git rev-parse --show-toplevel)/dev/run-tests.js" || {
   echo "" >&2
   echo "Commit blocked: engine tests failed. Open test.html in a browser for the red/green view." >&2

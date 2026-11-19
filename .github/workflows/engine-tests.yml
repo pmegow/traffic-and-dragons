@@ -73,6 +73,9 @@ jobs:
         run: node dev/ci-per-commit.js "$CI_RANGE" -- node dev/check-shell-markers.js --ci --range {parent}..{commit}
       - name: Run engine suite + source contracts
         run: node dev/run-tests.js
+      # The hook runs this alone for a documentation-only commit (dev/docs-only.js); here it is also part of run-tests above.
+      - name: Every relative link in the live contract docs lands
+        run: node dev/check-doc-links.js
       - name: Verify every retained sabotage target still applies
         run: node dev/check-sabotage-applicability.js
       - name: Replay v1238 against its committed end state

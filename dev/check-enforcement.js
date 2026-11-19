@@ -17,7 +17,10 @@ var path = require("path");
 // there for CI to verify, and installing it first in order to compare it would be a tautology.
 // A new entry here needs a reason of the same kind: "CI structurally cannot observe this".
 var HOOK_ONLY = {
-  "check-hook-parity.js": "local-only: it compares the INSTALLED .git hook, which a CI checkout does not have"
+  "check-hook-parity.js": "local-only: it compares the INSTALLED .git hook, which a CI checkout does not have",
+  /* 2026-11-18, owner ruling: it reads the STAGED set to let a documentation-only commit skip the engine suite at the desk. A CI
+     checkout has no staged set, and by the same ruling CI skips nothing — it runs the whole suite on every push. */
+  "docs-only.js": "local-only: it judges the staged set, which a CI checkout does not have; CI runs the whole suite on every push"
 };
 
 function orderedProblems(source, clauses, surface) {
