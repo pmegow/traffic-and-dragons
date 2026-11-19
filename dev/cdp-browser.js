@@ -26,6 +26,7 @@ const fs = require("fs"), path = require("path"), os = require("os"), cp = requi
 const DEBUG = !!process.env.TND_CDP_DEBUG;   // TND_CDP_DEBUG=1 traces requests, replies, page console and dialogs to stderr
 const TIMEOUT = 30000;         // Playwright's library default for actions, waits and navigation
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+const PORT_FILE_NOT_YET = ["EBUSY", "EPERM", "EACCES"];   // Windows sharing violations on a file another process is still writing or scanning
 
 // ── Chrome discovery ────────────────────────────────────────────────────────────────────────────
 function locateChrome() {
@@ -86,6 +87,30 @@ class Connection {
 }
 
 // ── Browser / context ─────────────────────────────────────────────────────────────────────────
+// readPortFile — the port Chrome wrote into DevToolsActivePort. The file EXISTS before it can be READ: on Windows Chrome
+// (or the virus scanner behind it) can still hold it without read sharing, and the read throws EBUSY. Seen 2026-11-18:
+// three full local runs of the 40 browser suites each lost one suite to it in 0.5 s, which blocked every push from the
+// machine. A locked file is "not yet", like an empty one, for the same 2.5 s; after that the lock is the error, said with
+// its own code. TND_CDP_LOCK_LOG=<file> appends one line per locked read (a passing suite's stderr is not kept by the runner).
+async function readPortFile(portFile) {
+  let port = "";
+  for (let i = 0; !port; i++) {
+    let locked = null;
+    try { port = fs.readFileSync(portFile, "utf8").split(/\r?\n/)[0].trim(); }
+    catch (e) {
+      if (PORT_FILE_NOT_YET.indexOf(e.code) < 0) throw e;
+      locked = e;
+      if (DEBUG) console.error("cdp-browser: DevToolsActivePort " + e.code + " on read " + i + " — waiting");
+      if (process.env.TND_CDP_LOCK_LOG) fs.appendFileSync(process.env.TND_CDP_LOCK_LOG, new Date().toISOString() + " " + e.code + " read " + i + " " + path.basename(process.argv[1] || "") + String.fromCharCode(10));
+    }
+    if (!port) {
+      if (i > 50) throw new Error("cdp-browser: " + (locked ? "DevToolsActivePort stayed locked for 2.5s (" + locked.code + "): " + locked.message : "empty DevToolsActivePort"));
+      await sleep(50);
+    }
+  }
+  return port;
+}
+
 async function launch(opts) {
   opts = opts || {};
   let exe = opts.executablePath && fs.existsSync(opts.executablePath) ? opts.executablePath : null;
@@ -111,8 +136,7 @@ async function launch(opts) {
       if (i > 300) throw new BrowserUnavailable("cdp-browser: Chrome did not open DevTools within 30s: " + stderr.trim().slice(0, 600));
       await sleep(100);
     }
-    let port = "";
-    for (let i = 0; !port; i++) { port = fs.readFileSync(portFile, "utf8").split(/\r?\n/)[0].trim(); if (!port) { if (i > 50) throw new Error("cdp-browser: empty DevToolsActivePort"); await sleep(50); } }
+    const port = await readPortFile(portFile);
     const version = await (await fetch("http://127.0.0.1:" + port + "/json/version")).json();
     return new Browser(child, profile, await Connection.open(version.webSocketDebuggerUrl));
   } catch (e) {
@@ -481,7 +505,7 @@ class Download {
 }
 Download.live = new Map();
 
-module.exports = { chromium: { launch: launch }, locateChrome: locateChrome, BrowserUnavailable: BrowserUnavailable };
+module.exports = { chromium: { launch: launch }, locateChrome: locateChrome, BrowserUnavailable: BrowserUnavailable, readPortFile: readPortFile };
 
 // node dev/cdp-browser.js --check — prove this machine's Chrome is found AND launches AND evaluates a page. Both CI
 // workflows run it before their sabotage steps: on a runner a missing or broken Chrome fails that step by name
