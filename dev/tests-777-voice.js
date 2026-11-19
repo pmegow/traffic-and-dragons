@@ -126,6 +126,30 @@ kase("V6: the narrator's beep goes out through the master gain — with the phon
 
 // ── runner ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 var argv = process.argv.slice(2), only = argv.indexOf("--only") >= 0 ? argv[argv.indexOf("--only") + 1] : "", passed = 0, failed = 0;
+// ── V1 (second ruling): a committed failure is spoken in the car, and arms no retry ────────────────────────────────
+function carFixture() {
+  var calls = [], els = {}, tts = { earcon: function (k) { calls.push("earcon:" + k); }, speak: function (t) { calls.push("speak:" + t); }, isOn: function () { return true; }, isPlaying: function () { return false; }, isPaused: function () { return false; } };
+  var c = { console: { warn: function () {}, info: function () {}, debug: function () {}, log: function () {}, error: function () {} }, navigator: {}, setTimeout: function () { return 1; }, clearTimeout: function () {},
+    document: { addEventListener: function () {}, removeEventListener: function () {}, getElementById: function (id) { return els[id] || (els[id] = { textContent: "", innerHTML: "", style: {}, classList: { add: function () {}, remove: function () {}, toggle: function () {} }, setAttribute: function () {} }); } } };
+  vm.createContext(c);
+  vm.runInContext(src("car-commands.js"), c, { filename: "car-commands.js" });
+  vm.runInContext(src("car-session.js"), c, { filename: "car-session.js" });
+  var host = {}; c.CAR_HOST_ROWS.forEach(function (r) { host[r.name] = function () { return null; }; });
+  host.voice = function () { return tts; }; host.busy = function () { return false; }; host.parked = function () { return ""; };
+  c.carSessionHost(host); c.carMode = true;
+  return { c: c, calls: calls, els: els };
+}
+kase("V1: a failure the game hands the car to SAY is read aloud with the failure sound, and arms no tap-to-retry", function () {
+  var f = carFixture();
+  f.c.carNotify("say", "The turn was applied, but it could not be shown.");
+  assert.deepStrictEqual(f.calls, ["earcon:fail", "speak:The turn was applied, but it could not be shown."], "the line was not spoken: " + JSON.stringify(f.calls));
+  assert.ok(/could not be shown/.test(f.els["car-status"].textContent), "the status line does not carry it");
+  assert.strictEqual(f.c._carRetryArmed, false, "a spoken failure armed the tap that sends the last action again");
+  f.c.carNotify("error", "Turn failed"); assert.strictEqual(f.c._carRetryArmed, true, "fixture: a real turn failure no longer arms the retry");
+  f.c.carNotify("say", "x"); assert.strictEqual(f.c._carRetryArmed, true, "a spoken notice disarmed a retry that was owed");
+  var g = src("game.js");
+  assert.ok(g.indexOf('carNotify("say","The turn was applied, but it could not be shown.")') >= 0 && g.indexOf('carNotify("say","The opening could not be shown. Reload to continue.")') >= 0, "the game does not hand the car its committed failures to say");
+});
 var todo = CASES.filter(function (c) { return !only || c.name.indexOf(only) >= 0; });
 if (!todo.length) { realErr.call(console, "--only \"" + only + "\" matched 0 tests — NOTHING ran"); process.exit(1); }
 function next(i) {

@@ -133,6 +133,14 @@ function carNotify(kind, text) {
     _carRetryArmed = true;
   } else if (kind === "warn") { // final-pass #32 — non-turn failure: same status text, never arms tap-to-retry
     _carSetStatus(CAR_STR.errorPrefix + text);
+  } else if (kind === "say") {
+    // #777 V1 (owner 2026-11-19): a failure the driver must HEAR that a tap must not retry — the turn (or the opening)
+    // already landed, so "error" would send it again and "warn" reaches nobody with eyes on the road. The failure
+    // earcon, the status line, the line read aloud; the retry arm is left as it was.
+    if (V && typeof V.earcon === "function") V.earcon("fail");
+    _carSetStatus(CAR_STR.errorPrefix + text);
+    if (V && typeof V.speak === "function") V.speak(text);
+    _carSyncBtn();
   } else if (kind === "info" || kind === "progress") {
     _carSetStatus(text);
   } else if (kind === "sent") {

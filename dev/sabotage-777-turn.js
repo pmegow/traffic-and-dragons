@@ -52,11 +52,11 @@ prove("game.js", [
   { label: "U8: a Table Talk question lapses a pending check",
     find: "  if(!isTT&&worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);", replace: "  if(worldState.pendingCheck&&!(opts&&opts.silent))checkLapseToAction(txt);", mustFail: ONLY + T.U8 },
   { label: "V1: a committed turn arms the car's tap-to-retry",
-    find: "carNotify(\"warn\",\"Turn applied, but display failed\");", replace: "carNotify(\"error\",\"Turn applied, but display failed\");", mustFail: ONLY + T.U8 },
+    find: "carNotify(\"say\",\"The turn was applied, but it could not be shown.\");", replace: "carNotify(\"error\",\"The turn was applied, but it could not be shown.\");", mustFail: ONLY + T.U8 },
   { label: "V1: a failed Table Talk question arms a retry of the last story action",
     find: "carNotify(isTT?\"warn\":\"error\",isTT?\"Question failed\":\"Turn failed — tap to retry\");", replace: "carNotify(\"error\",\"Turn failed — tap to retry\");", mustFail: ONLY + T.U8 },
   { label: "V1 review: a committed opening arms the car's tap-to-retry",
-    find: "carNotify(\"warn\",\"Opening failed — reload to continue\");", replace: "carNotify(\"error\",\"Opening failed — reload to continue\");", mustFail: ONLY + T.U8 },
+    find: "carNotify(\"say\",\"The opening could not be shown. Reload to continue.\");", replace: "carNotify(\"error\",\"The opening could not be shown. Reload to continue.\");", mustFail: ONLY + T.U8 },
   { label: "U12: the folder banner can be added twice",
     find: "  if(document.getElementById(\"folder-banner\"))return;", replace: "  ", mustFail: ONLY + T.U8 }
 ]);

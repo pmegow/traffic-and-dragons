@@ -3079,7 +3079,7 @@ async function sendAction(override,opts){
     if(typeof reportError==="function")reportError("turn",e.message,((e&&e.stack)||"")
       +"\n(turn: "+(isTT?"tabletalk":"story")+((opts&&opts.silent)?", silent engine send":"")+(_tSent?", "+(Date.now()-_tSent)+"ms in flight":", failed before send")+")"
       +(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
-    if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("warn","Turn applied, but display failed");}/* audit 2026-11-19, V1: "error" arms tap-to-retry in the car — the tap sent the same action again, over state that had already landed *//* no Retry — the mutation already landed (E82) */
+    if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("say","The turn was applied, but it could not be shown.");}/* audit 2026-11-19, V1: "error" arms tap-to-retry in the car — the tap sent the same action again, over state that had already landed; "say" (owner 2026-11-19) speaks it and arms nothing *//* no Retry — the mutation already landed (E82) */
     else{if(!_mpResolve&&!(opts&&opts.silent)){_restored=restoreFailedInput(inp,txt);if(!isTT)savePendingAction(txt);/* #14: survive a page kill too — story turns only (a TT question restored into the story box would cross channels) */}
       var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify(isTT?"warn":"error",isTT?"Question failed":"Turn failed — tap to retry");/* V1: a failed Table Talk question armed a retry of the last STORY action */if(_attachGMErrorUI(em,isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();},e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
@@ -3906,7 +3906,7 @@ async function beginAdventure(){
       // and double-apply them (double starting gold, duplicate NPCs). No Retry offered; the
       // persisted transcript replays the scene on reload.
       addMsg("system","Opening scene hit an error after your world was saved ("+e.message+") — reload to replay the scene. (Retry disabled: it would double-apply the opening.)");
-      if(typeof carNotify==="function")carNotify("warn","Opening failed — reload to continue");/* #777 V1 review: committed — a tap must not retry */
+      if(typeof carNotify==="function")carNotify("say","The opening could not be shown. Reload to continue.");/* #777 V1: committed — spoken, and a tap must not retry */
     }else{
       var em=addMsg("system","Failed to start: "+e.message);if(typeof carNotify==="function")carNotify("error","Failed to start — tap to retry");if(_attachGMErrorUI(em,beginAdventure,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}
     }}

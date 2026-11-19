@@ -146,8 +146,8 @@ kase("U8, U12, V1: a check lapses only to a story action; the folder banner is o
   assert.ok(lapse > 0 && read > 0 && tt > 0, "fixture: sendAction's lines were not found");
   assert.ok(lapse > read && lapse > tt, "U8: the check lapses before the action is read (an empty Send or a Table Talk question loses the roll)");
   assert.ok(/if\(!isTT&&worldState\.pendingCheck&&!\(opts&&opts\.silent\)\)checkLapseToAction\(txt\);/.test(body), "U8: a Table Talk question lapses the check");
-  assert.ok(/carNotify\("warn","Opening failed — reload to continue"\)/.test(g), "V1: a committed opening arms tap-to-retry");
-  assert.ok(/carNotify\("warn","Turn applied, but display failed"\)/.test(g), "V1: a turn that committed arms tap-to-retry in the car — the tap sends the action again");
+  assert.ok(/carNotify\("say","The opening could not be shown\. Reload to continue\."\)/.test(g), "V1: a committed opening arms tap-to-retry, or says nothing aloud");
+  assert.ok(/carNotify\("say","The turn was applied, but it could not be shown\."\)/.test(g), "V1: a turn that committed arms tap-to-retry in the car — the tap sends the action again");
   assert.ok(/carNotify\(isTT\?"warn":"error",isTT\?"Question failed":"Turn failed — tap to retry"\)/.test(g), "V1: a failed Table Talk question arms a retry of the last STORY action");
   var b0 = g.indexOf("function _promptCampaignFolder()"), bb = g.slice(b0, g.indexOf("\n}", b0));
   assert.ok(/if\(document\.getElementById\("folder-banner"\)\)return;/.test(bb) && /banner\.id="folder-banner";/.test(bb), "U12: the folder banner can be added twice");

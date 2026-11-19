@@ -11,7 +11,8 @@ var T = {
   "V9": "V9: every kind the game sends to Car Mode is one the loop handles",
   "V3A": "V3: after the audio context is rebuilt, a sound with reverb still plays",
   "V3B": "V3: a play that fails is said at warn level and leaves no node connected",
-  "V6": "V6: the narrator's beep goes out through the master gain"
+  "V6": "V6: the narrator's beep goes out through the master gain",
+  "V1": "V1: a failure the game hands the car to SAY is read aloud"
 };
 
 prove("car-commands.js", [
@@ -41,6 +42,20 @@ prove("sound.js", [
     find: "console.warn(\"[sound] '\" + id + \"' play failed: \" + (e && e.message));", replace: "console.debug(\"[sound] '\" + id + \"' play failed: \" + (e && e.message));", mustFail: ONLY + T.V3B },
   { label: "V3: a failed play leaves its bus connected",
     find: "      if (bus) { try { bus.disconnect(); } catch (e2) {} }", replace: "      if (false) { try { bus.disconnect(); } catch (e2) {} }", mustFail: ONLY + T.V3B }
+]);
+prove("car-session.js", [
+  { label: "V1: a committed failure is not read aloud",
+    find: "    if (V && typeof V.speak === \"function\") V.speak(text);\n    _carSyncBtn();\n  } else if (kind === \"info\"", replace: "    _carSyncBtn();\n  } else if (kind === \"info\"", mustFail: ONLY + T.V1 },
+  { label: "V1: a spoken failure arms the tap-to-retry",
+    find: "    _carSetStatus(CAR_STR.errorPrefix + text);\n    if (V && typeof V.speak === \"function\") V.speak(text);", replace: "    _carSetStatus(CAR_STR.errorPrefix + text); _carRetryArmed = true;\n    if (V && typeof V.speak === \"function\") V.speak(text);", mustFail: ONLY + T.V1 },
+  { label: "V1: the car has no way to say a failure (the kind falls through in silence)",
+    find: "  } else if (kind === \"say\") {", replace: "  } else if (kind === \"said\") {", mustFail: ONLY + T.V1 }
+]);
+prove("game.js", [
+  { label: "V1: a committed turn that could not be shown is silent in the car",
+    find: "carNotify(\"say\",\"The turn was applied, but it could not be shown.\");", replace: "carNotify(\"warn\",\"The turn was applied, but it could not be shown.\");", mustFail: ONLY + T.V1 },
+  { label: "V1: a committed opening that could not be shown is silent in the car",
+    find: "carNotify(\"say\",\"The opening could not be shown. Reload to continue.\");", replace: "carNotify(\"warn\",\"The opening could not be shown. Reload to continue.\");", mustFail: ONLY + T.V1 }
 ]);
 
 process.exit(failed ? 1 : 0);
