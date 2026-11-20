@@ -2395,6 +2395,11 @@ var TTS = (function() {
   var PIPER_HOST_PATH = "/piper-host.html";
   var PIPER_HOST_READY_MS = 30000;   // see the timeout below — sized for a throttled/frozen tab
   var _piperFrameFailed = false;     // fell back to the in-page engine; retried between reads
+  /* audit 2026-11-19, V10: every call into the frame has a deadline, because a call that never answers wedges the page's
+     Piper for good — _piperSerial runs one operation at a time, and only destroy() rejected a pending call. Generous on
+     purpose: one unit of speech or an engine boot that takes three minutes is as good as hung. A download is exempt (a
+     model is 60-115 MB on whatever connection the player has; it reports its own progress). */
+  var PIPER_CALL_DEADLINE_MS = 180000, PIPER_CALL_NO_DEADLINE = { download: true }, _piperHungToasted = false;
   var PIPER_RESPAWN_MB = 400;   // respawn once the frame's ORT memory crosses this. Deaths land at
                                 // ~1GB; a fresh realm is ~170MB, so 400 leaves generous headroom
                                 // even with a prewarmed replacement briefly alive alongside it.
@@ -2421,6 +2426,7 @@ var TTS = (function() {
           var p = pending[d.id];
           if (!p) return;
           delete pending[d.id]; delete progress[d.id];
+          if (p.timer) clearTimeout(p.timer);   /* V10: an answered call leaves no timer behind */
           if (d.ok) p.resolve(d.result); else p.reject(new Error(d.err || "piper host error"));
         }
       }
@@ -2430,10 +2436,21 @@ var TTS = (function() {
         if (dead) return Promise.reject(new Error("piper host was destroyed"));
         var id = ++_frameSeq;
         return new Promise(function (res, rej) {
-          pending[id] = { resolve: res, reject: rej };
+          var timer = PIPER_CALL_NO_DEADLINE[op] ? null : setTimeout(function () {   /* V10 */
+            if (!pending[id]) return;
+            delete pending[id]; delete progress[id];
+            console.warn("[tts piper] the synthesis frame did not answer \"" + op + "\" within " + (PIPER_CALL_DEADLINE_MS / 1000) + "s — destroying it; the next read builds a fresh one");
+            if (typeof erCrumb === "function") erCrumb("piper-call-timeout", op);
+            rej(new Error("piper host did not answer " + op + " within " + (PIPER_CALL_DEADLINE_MS / 1000) + "s"));
+            /* one thread: a call that never returns blocks every later one, so the realm is gone for good */
+            try { adapter.destroy(); } catch (e) {}
+            if (_piperFrame === adapter) { _piperFrame = null; _piperMod = null; }
+            if (!_piperHungToasted && typeof showToast === "function") { _piperHungToasted = true; showToast("The local voice stopped answering. It starts again with the next read."); }
+          }, PIPER_CALL_DEADLINE_MS);
+          pending[id] = { resolve: res, reject: rej, timer: timer };
           if (onProgress) progress[id] = onProgress;
           try { frame.contentWindow.postMessage({ tnd: "rpc", id: id, op: op, args: args || {} }, location.origin); }
-          catch (e) { delete pending[id]; delete progress[id]; rej(e); }
+          catch (e) { if (timer) clearTimeout(timer); delete pending[id]; delete progress[id]; rej(e); }
         });
       }
 
@@ -2475,6 +2492,7 @@ var TTS = (function() {
           // Reject anything still in flight — a destroyed realm will never answer, and a promise
           // that never settles would wedge the op mutex (_piperSerial) forever.
           Object.keys(pending).forEach(function (k) {
+            if (pending[k].timer) clearTimeout(pending[k].timer);   /* V10 */
             try { pending[k].reject(new Error("piper host destroyed mid-call")); } catch (e) {}
             delete pending[k]; delete progress[k];
           });
@@ -2553,8 +2571,9 @@ var TTS = (function() {
     if (_piperInitP) return _piperInitP;
     _piperInitP = (async function () {
     // Preferred path: the disposable realm.
+    var fr = null;
     try {
-      var fr = await _piperSpawnFrame();
+      fr = await _piperSpawnFrame();
       await fr.init();            // boots ORT+vits inside the frame; brings back patch rev + PATH_MAP
       _frameMem = await fr.mem();
       _piperFrame = fr;
@@ -2575,6 +2594,11 @@ var TTS = (function() {
       // the ratcheting engine — silently undoing the fix for exactly the hands-free Car Mode case
       // that motivated it. _piperMaybeRecycle retries between reads, where failure costs nothing.
       _piperFrameFailed = true;
+      /* audit 2026-11-19, V4: the frame was spawned and then its init() or mem() failed. It was left in the page — its
+         window listener and a half-booted engine with it — while the in-page engine loaded below: two engines, and one
+         more orphan per failed five-minute retry. The two sibling paths (_frameRetryUpgrade, _frameRespawnNow) destroy
+         theirs; so does this one. */
+      if (fr) { try { fr.destroy(); } catch (e2) { console.warn("[tts piper] the failed frame could not be destroyed:", e2 && e2.message); } }
       console.warn("[tts piper] synthesis iframe unavailable — falling back to the in-page engine (memory will ratchet, B9; will retry between reads):", e && e.message);
       if (typeof erCrumb === "function") erCrumb("piper-frame-fail", (e && e.message) || "?");
     }
@@ -2896,6 +2920,14 @@ var TTS = (function() {
     };
     return startAt + buf.duration + gap;
   }
+  /* audit 2026-11-19, V5: a source stopped by skip or stop never reaches the retire above — _stopCurrent nulls its onended
+     first, so the lane's bookkeeping does not run for a read that was cut. The two retention steps are run here instead:
+     without them every skip left up to PIPER_MAX_AHEAD_SEC of decoded audio connected to the master gain with its buffer
+     attached, which Safari keeps (the #718 note above). Whether that retention is what a device shows needs a soak. */
+  function _retireStopped(s) {
+    try { s.disconnect(); } catch (e) {}
+    try { s.buffer = null; } catch (e) {}
+  }
 
   async function _speakServer(text, voiceId, voices) {
     var myEpoch = ++_piperEpoch;
@@ -2949,7 +2981,10 @@ var TTS = (function() {
         var _remText = units.slice(i).map(function(ru) { return ru.text; }).join(" ");
         // #95 (S2): the remainder runs LOCALLY, where speaker ids don't exist — strip to the base
         // model here rather than handing the local loop something it would have to fix anyway.
-        if (_remText) _queue.unshift({ text: _remText, piper: true, voiceId: voiceBaseId(voiceId) });
+        /* audit 2026-11-19, V11: the cast voices of the unread units go with them, as on a cloud failure
+           (_cloudFallbackItem) — the local loop speaks each in its base model. The remainder used to be read in the
+           narrator's voice alone. */
+        if (_remText) _queue.unshift({ text: _remText, piper: true, voiceId: voiceBaseId(voiceId), voices: _unitVoicesFrom(units, i, voices) });
         handedOff = true;
         _serverTtsDegrade("unit " + (i + 1) + "/" + units.length + ": " + failReason);
         break;
@@ -3094,13 +3129,19 @@ var TTS = (function() {
     }
     return b64 ? { b64: b64, rate: rate } : { fail: failReason || "no audio" };
   }
-  function _cloudFallbackItem(units, groups, failed, voiceId, voices) {
-    var from = failed ? units.indexOf(groups[failed - 1].last) + 1 : 0, mapped = {}, hasVoices = false;
+  /* The per-unit speaker map of the units from `from` on, re-keyed to their new positions; null when none is cast.
+     ONE mapping for both mid-read handoffs (the cloud's and the server's — audit 2026-11-19, V11). */
+  function _unitVoicesFrom(units, from, voices) {
+    var mapped = {}, hasVoices = false;
     for (var i = from; i < units.length; i++) {
       if (voices && voices[i]) { mapped[i - from] = voices[i]; hasVoices = true; }
     }
+    return hasVoices ? mapped : null;
+  }
+  function _cloudFallbackItem(units, groups, failed, voiceId, voices) {
+    var from = failed ? units.indexOf(groups[failed - 1].last) + 1 : 0;
     return { text: units.slice(from).map(function(u) { return u.text || ""; }).join(" "), piper: true,
-      voiceId: voiceId, voices: hasVoices ? mapped : null };
+      voiceId: voiceId, voices: _unitVoicesFrom(units, from, voices) };
   }
   async function _speakGemini(text, voiceId, voices, forceVoice, dirOverride, cloud) {
     cloud = cloud || CLOUD_READERS.gemini;
@@ -3808,6 +3849,7 @@ var TTS = (function() {
     if (window.speechSynthesis) { try { window.speechSynthesis.cancel(); } catch(e) {} }
     for (var i = 0; i < _sources.length; i++) {
       try { _sources[i].onended = null; _sources[i].stop(); } catch(e) {}
+      _retireStopped(_sources[i]);   /* audit 2026-11-19, V5 */
     }
     _sources   = [];
     _nextStart = 0;
@@ -4568,6 +4610,8 @@ var TTS = (function() {
     // The two *Src() readers exist because the strip/pass-through rules live INSIDE async read
     // loops that need OPFS, a wasm engine and a live AudioContext — none of which the DOM-free
     // harness can provide — so the property is asserted against the function source instead.
+    /* audit 2026-11-19, V4 + V10: the frame's lifecycle, for the headless tests only (a fake iframe and a fake clock) */
+    _piperTest: { init: function() { return _piperInit(); }, spawn: function() { return _piperSpawnFrame(); }, frame: function() { return _piperFrame; }, deadlineMs: PIPER_CALL_DEADLINE_MS },
     _speakerTest: {
       assignedTo:      function(id) { return _voiceAssignedTo(id); },
       queued: function() { return _queue.map(function(item) { return { text: item.text, voiceId: item.voiceId, piper: !!item.piper, voices: item.voices ? JSON.parse(JSON.stringify(item.voices)) : null }; }); },
@@ -4579,6 +4623,7 @@ var TTS = (function() {
       speakGeminiSrc:  function() { return String(_speakGemini); },
       /* #418: the one schedule-and-retire, its source, and the live accounting it writes */
       scheduleDecoded:    _scheduleDecoded,
+      unitVoicesFrom:     _unitVoicesFrom,   /* audit 2026-11-19, V11 */
       scheduleDecodedSrc: function() { return String(_scheduleDecoded); },
       sources:            function() { return _sources.slice(); },
       ctxSynths:          function() { return _ctxSynths; }

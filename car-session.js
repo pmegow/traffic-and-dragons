@@ -207,6 +207,11 @@ function carVoiceCommand(text) {
   var menu = _carHost.options(), acts = menu || [], V = _carVoice(), M = _carMic();
   var cmd = parseCarCommand(text, acts.length, _carHost.commands());
   if (!cmd) return _carSpeech(text);
+  /* audit 2026-11-19, V12: a number that names no option is the player's words. Before, with a menu that was not ready
+     ([]) "Two" was swallowed with a warning, while "four" over three options was sent as an action (the grammar refuses a
+     number past the menu only when there IS a menu). One rule now, and it is decided BEFORE the field is cleared — the
+     game's host sends the words from the field. A host with no menu (null) was already speech (v1.1263). */
+  if (cmd.kind === "pick" && !acts[cmd.n - 1]) return _carSpeech(text);
   // Consumed: clear the field or _carTap's parked-utterance branch re-sends the command word
   // later as a free-form action.
   _carHost.clearParked();
@@ -232,11 +237,14 @@ function carVoiceCommand(text) {
   /* the host's own kinds (the game: wrap up, never mind, roll) */
   if (_carHost.onCommand(cmd)) return true;
   if (cmd.kind === "repeat") {
+    /* audit 2026-11-19, V12: a host with NO menu (a talk) has one thing to repeat — the line just said. "Say that again"
+       used to answer "No options to repeat yet". */
+    if (menu === null) { _carDoReplay(); return true; }
     if (!_carReadOptions()) { carNotify("warn", CAR_STR.noOptionsYet); }
     return true;
   }
   var pick = acts[cmd.n - 1];
-  if (!pick) { if (menu === null) return _carSpeech(text); /* v1.1263: a host with no menu never swallows a number word — it is speech */ carNotify("warn", CAR_STR.noOptionsYet); return true; }
+  if (!pick) return _carSpeech(text);   /* unreachable since the V12 rule above; kept as the refusal it always was */
   _carSetHeard(pick);   // #636: the option's words, not the number — that is what the turn answers
   if (_carBusy()) { carNotify("info", CAR_STR.heardTapToSend); _carHost.park(pick); return true; }
   carNotify("sent");
@@ -245,6 +253,9 @@ function carVoiceCommand(text) {
 }
 // Plain speech — the player's words. v1.1265 (#633): the host's to take (a talk host answers it; the game's host returns
 // false and stt.js sends the GM turn). #636: shown on the overlay either way, since either way it is what the reply answers.
+/* audit 2026-11-19, V13: THE repaint door for a state change. syncUI used to call the game's own painter directly, so the
+   hero's name, portrait and vitals were painted over an open talk; whichever host is installed paints its own fields. */
+function carPaint() { if (carMode && _carHost) _carHost.paint(); }
 function _carSpeech(text) {
   _carSetHeard(text);
   return !!_carHost.hear(text);

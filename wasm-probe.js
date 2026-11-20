@@ -36,7 +36,6 @@
 (function () {
   if (typeof WebAssembly === "undefined" || WebAssembly.__tndProbe) return;
   var seen = {};   // kind -> {mem, src, n}
-  var anon = 0;
 
   function kindOf(src) {
     var f = String(src || "").split("?")[0].split("/").pop().toLowerCase(), m;
@@ -46,7 +45,7 @@
     // ~10.6MB, piper_phonemize.wasm ~0.6MB — an order of magnitude apart, so 4MB is a safe split.
     m = /^bytes:(\d+)$/.exec(String(src || ""));
     if (m) return (+m[1] > 4194304) ? "ort" : "phon";
-    return "wasm" + (++anon);
+    return "anon";   /* audit 2026-11-19, V12: ONE kind for every unnamed instantiation — a kind each kept one memory each, for the realm's life (the probe becoming the leak); the count is still per instantiation */
   }
   // What the caller handed WebAssembly — a Response (URL) or a buffer (size). Used only to NAME
   // the module; a miss degrades to an indexed label, never to a wrong number.

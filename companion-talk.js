@@ -299,6 +299,8 @@ var TALK_HOST = {
 // ── the doors ───────────────────────────────────────────────────────────────
 function showTalk(name) {
   if (!worldState || !worldState.character) { showToast("Start a game first."); return; }
+  /* audit 2026-11-19, V13: a turn in flight lands inside the talk — its narration is read over the conversation. */
+  if (typeof busy !== "undefined" && busy) { showToast("Wait for the turn to finish, then talk."); return; }
   var partner = talkPartner(name);
   if (!partner) { showToast("No one by that name travels with you."); return; }
   if (typeof Conversation === "undefined" || !Conversation.create) { showToast("The conversation engine did not load."); return; }

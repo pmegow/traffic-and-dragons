@@ -120,7 +120,7 @@
     // is ~10.6MB, piper_phonemize.wasm ~0.6MB — an order of magnitude apart, so 4MB is safe.
     m = /^bytes:(\d+)$/.exec(String(src || ""));
     if (m) return (+m[1] > 4194304) ? "ort" : "phon";
-    return "wasm" + (++anon);
+    return "anon";   /* audit 2026-11-19, V12: as wasm-probe.js — one record for every unnamed instantiation */
   }
 
   // What the caller handed WebAssembly — a Response (URL), or a buffer (size). Used only to

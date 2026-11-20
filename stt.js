@@ -112,8 +112,15 @@ var STT = (function() {
     var inp = document.getElementById("action-input");
     if (!inp) return;
 
+    /* audit 2026-11-19, V7: stop() ends a listen at once on OUR side; the platform's end event arrives later. A recognizer
+       still ending when the next listen begins is let go here — aborted, so it cannot hold the microphone under the new
+       one — and from now on its events answer for nothing: every handler below checks it is still THE recognizer. Before,
+       its late end event released the capture session, cleared _rec and left the live recognizer unstoppable. */
+    if (_rec) { try { if (typeof _rec.abort === "function") _rec.abort(); else _rec.stop(); } catch (e0) {} _rec = null; }
+
+    var rec;
     try {
-      _rec = new _Rec();
+      _rec = rec = new _Rec();
     } catch(e) {
       if (typeof showToast === "function") showToast("Couldn't start voice input.");
       return;
@@ -141,6 +148,7 @@ var STT = (function() {
       ? sttNameRoster(worldState, (typeof memory !== "undefined") ? memory : null) : [];
 
     _rec.onresult = function(ev) {
+      if (_rec !== rec) return;   /* V7: a recognizer that was replaced writes nothing */
       var finalTxt = "", interimTxt = "";
       for (var i = ev.resultIndex; i < ev.results.length; i++) {
         var r = ev.results[i];
@@ -163,6 +171,7 @@ var STT = (function() {
     };
 
     _rec.onerror = function(ev) {
+      if (_rec !== rec) return;   /* V7 */
       var msg = ev && ev.error;
       _lastErrorWasNoSpeech = (msg === "no-speech");
       if (msg === "not-allowed" || msg === "service-not-allowed") {
@@ -183,6 +192,7 @@ var STT = (function() {
     };
 
     _rec.onend = function() {
+      if (_rec !== rec) { console.debug("[stt] a stopped recognizer ended after the next listen began — ignored (V7)"); return; }
       _capture(false);
       _listening = false;
       _rec = null;
@@ -256,6 +266,11 @@ var STT = (function() {
       _listening = false;
       _rec = null;
       _syncBtn();
+      /* audit 2026-11-19, V12: the overlay went back to idle with no reason — the constructor's failure above and the
+         cloud path's both said theirs. */
+      console.warn("[stt] the recognizer did not start:", e && e.message);
+      if (typeof showToast === "function") showToast("Couldn't start voice input.");
+      if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + ((e && e.message) || "the recognizer did not start"));
     }
   }
 
@@ -277,6 +292,7 @@ var STT = (function() {
     clearConfirm("cancel");   // audit F3 — cancel means discard, and a captured-but-unsent confirmation IS captured
     if (_cloudCancelAcquisition("cancel")) return;   // audit F2 — the mic is still being acquired: revoke it before it opens
     if (_cloudRec) { _cloudStopRecording(true); return; }
+    if (_cloudDiscardUpload("cancel")) return;   // audit 2026-11-19, V2 — the take is recorded and being transcribed: its text must never land
     if (_rec) {
       try {
         if (typeof _rec.abort === "function") _rec.abort();
@@ -519,6 +535,19 @@ var STT = (function() {
   // the ones that must not be heard. This holds the generation of the in-flight acquisition, 0
   // when none is pending; bumping _cloudGeneration is what makes the pending .then read stale.
   var _cloudAcquiring = 0;
+  /* audit 2026-11-19, V2 — the UPLOAD window: after the recorder stopped and until the transcriber answers there is no
+     recorder to stop either, so cancel() was a no-op there too — and the transcript then landed in the field and, in Car
+     Mode, was sent as a turn (leaving Car Mode, a replay and "read options" all cancel). This holds the generation whose
+     take is being transcribed, 0 when none; bumping _cloudGeneration is what makes the pending result read stale. */
+  var _cloudUploading = 0;
+  function _cloudDiscardUpload(why) {
+    if (!_cloudUploading) return false;
+    _cloudUploading = 0;
+    _cloudGeneration++;   // the pending result, failure and finalize all read stale and write nothing
+    console.info("[stt] the take being transcribed was discarded (" + why + ") — its text will not be written or sent");
+    return true;
+  }
+  function _cloudUploadSettled(generation) { if (_cloudUploading === generation) _cloudUploading = 0; }
 
   function _cloudBeginGeneration(baseText) {
     return { generation: ++_cloudGeneration, baseText: String(baseText || "") };
@@ -558,6 +587,19 @@ var STT = (function() {
   // recording ("tap when done" — there's no auto-endpoint like native) but CANCEL a native
   // listen (rank 4). This tells the overlay which semantics the active/next listen uses.
   function isCloudActive() { return !_Rec && _cloudAvailable(); }
+
+  /* audit 2026-11-19, V12 — what a refused getUserMedia means, by the error's own name: one row per meaning. Every failure
+     used to read "Microphone permission denied", a missing microphone and one busy on a phone call included. */
+  var MIC_FAILURES = [
+    { names: ["NotAllowedError", "SecurityError", "PermissionDeniedError"], say: "Microphone permission denied" },
+    { names: ["NotFoundError", "DevicesNotFoundError", "OverconstrainedError"], say: "No microphone was found" },
+    { names: ["NotReadableError", "TrackStartError", "AbortError"], say: "The microphone is in use or could not be opened" }
+  ];
+  function _micFailureText(e) {
+    var name = (e && e.name) || "", i;
+    for (i = 0; i < MIC_FAILURES.length; i++) if (MIC_FAILURES[i].names.indexOf(name) >= 0) return MIC_FAILURES[i].say;
+    return "The microphone could not be opened: " + ((e && (e.message || e.name)) || "unknown error");
+  }
 
   function _cloudStart() {
     if (_listening) return;
@@ -639,16 +681,31 @@ var STT = (function() {
       _cloudTimer = setTimeout(function() {
         if (_listening && _cloudRec) stop();
       }, STT_MAX_RECORD_MS);
-    }).catch(function(e) {
+    }, function(e) {   /* V12: the REFUSAL only — a throw inside the handler above is not a refused microphone (see the catch below) */
       if (_cloudToken.generation !== _cloudGeneration) {
         console.info("[stt] stale microphone failure ignored — generation " + _cloudToken.generation + " is behind " + _cloudGeneration);
         return;
       }
       _cloudAcquiring = 0;
-      if (typeof showToast === "function") showToast("Microphone permission denied.");
-      if (typeof carNotify === "function") carNotify("warn", "Microphone permission denied"); /* final-pass #32 */
+      var _mf = _micFailureText(e);
+      if (typeof showToast === "function") showToast(_mf + ".");
+      if (typeof carNotify === "function") carNotify("warn", _mf); /* final-pass #32 */
       _capture(false);
       console.warn("[stt] getUserMedia failed:", e);
+    })["catch"](function(e) {
+      /* audit 2026-11-19, V12: something threw AFTER the microphone opened (the handler above). It used to land in the
+         refusal branch: "permission denied", the capture session released, and the recorder and its tracks left live with
+         no timer to stop them. The take is abandoned here: recorder stopped without an upload, every track stopped. */
+      console.warn("[stt] the recording could not be set up:", e);
+      if (_cloudToken.generation !== _cloudGeneration) return;
+      _cloudAcquiring = 0;
+      var _dead = _cloudRec; _cloudRec = null; _cloudChunks = [];
+      if (_dead) { _dead.onstop = null; try { if (_dead.state !== "inactive") _dead.stop(); } catch (e2) {} }   /* onstop is what uploads: without it the take goes nowhere */
+      _cloudTeardownStream();
+      _listening = false;
+      _syncBtn();
+      if (typeof showToast === "function") showToast("Voice input failed: " + ((e && e.message) || "the recording could not be set up"));
+      try { if (typeof carNotify === "function") carNotify("warn", "Voice input failed: " + ((e && e.message) || "the recording could not be set up")); } catch (e3) { console.warn("[stt] the car could not be told:", e3 && e3.message); }
     });
   }
 
@@ -765,13 +822,14 @@ var STT = (function() {
       return Promise.resolve(false);
     }
     if (typeof carNotify === "function") carNotify("info", "Transcribing…");
+    _cloudUploading = generation;   /* V2: cancel() can discard from here on */
 
     var ext = (mime && mime.indexOf("mp4") >= 0) ? "mp4" : "webm";
     // §4b: primary model with ONE loud fallback retry — a model-id rot or a 4xx on the newer
     // endpoint must degrade to yesterday's behavior, never to a silently dead mic.
     // #625: an ACCOUNT refusal from the server (the daily cap, a lapsed subscription, an expired
     // sign-in) is terminal — retrying the fallback model would only pay a second refusal.
-    return _transcribeOnce(blob, ext, route, STT_CLOUD_MODEL, audioMs)
+    var _up = _transcribeOnce(blob, ext, route, STT_CLOUD_MODEL, audioMs)
       ["catch"](function(e) {
         if (generation !== _cloudGeneration) {
           console.info("[stt] stale transcription failure ignored for generation " + generation + " (current " + _cloudGeneration + ")");
@@ -803,6 +861,8 @@ var STT = (function() {
         if (el) el.focus();
         return false;
       });
+    _up.then(function() { _cloudUploadSettled(generation); }, function() { _cloudUploadSettled(generation); });   /* V2: answered, failed or stale — nothing is left for a later cancel to discard */
+    return _up;
   }
 
   // One transcription request. §4a: the prompt-bias field is the report's cheapest accuracy

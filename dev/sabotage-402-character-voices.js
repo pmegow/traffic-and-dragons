@@ -6,7 +6,7 @@ prove('tts.js',['dev/run-tests.js','Character primary and backup voices'],[
 ]);
 prove('tts.js',['dev/tests-402-character-voices.js'],[
  {label:'ignore sheet primary during actual synthesis',find:'if (pins && typeof pins[ix] === "string" && pins[ix]) return pins[ix];',replace:'',mustFail:'#402 actual Speechify requests honor sheet actors independently of shared backups and cast overrides'},
- {label:'drop per-speaker backup map on cloud failure',find:'voiceId: voiceId, voices: hasVoices ? mapped : null',replace:'voiceId: voiceId, voices: null',mustFail:'#402 real later cloud failure queues only unread text with each full backup id'},
+ {label:'drop per-speaker backup map on cloud failure',find:'voiceId: voiceId, voices: _unitVoicesFrom(units, from, voices) };',replace:'voiceId: voiceId, voices: null };',mustFail:'#402 real later cloud failure queues only unread text with each full backup id'},
  /* Fable review 2026-09-11 (Brief F, mutation IX1 survived the tree): the audition guard on the remainder hand-off */
  {label:'a failed audition hands its remainder to the read queue',find:'if (rem && !cloud.audition) _queue.unshift(_cloudFallbackItem(units, groups, i, voiceId, voices));',replace:'if (rem) _queue.unshift(_cloudFallbackItem(units, groups, i, voiceId, voices));',mustFail:'#402 a failed cloud audition never hands a fallback item to the read queue'}
 ]);

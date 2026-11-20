@@ -149,7 +149,9 @@ function createAccentController(driver, catalog, registry) {
   var key = "", sets = [], buffers = {}, failed = {}, st = null, timer = null, voice = null, loading = null, disposed = false;
   var entryTrack = createAudioEntryTracker(catalog, registry), entry = null, entryVoice = null;
   var env = {speaking: false, quietSince: -Infinity, raining: false}, snapshot = {};
-  function blocked(s) { return !s.enabled || !s.unlocked || !s.visible || s.held || s.paused || s.capturing || s.hidden; }
+  /* audit 2026-11-19, V12: volume 0 blocks too — the master mute hands the layer slider × 0 (ui-ambient.js), and the layer
+     kept loading, scheduling and playing accents at gain 0. A snapshot with no volume is not a muted one. */
+  function blocked(s) { return !s.enabled || !s.unlocked || !s.visible || s.held || s.paused || s.capturing || s.hidden || s.volume === 0; }
   function clearTimer() { if (timer) { driver.cancel(timer); timer = null; } }
   function hush(seconds) { entryVoice = null; if (voice) { driver.stop(voice, seconds); voice = null; } }
   function releaseAll() {
