@@ -2673,6 +2673,17 @@ function isBookkeepingResponse(raw,clean,dice){
   for(i=0;i<ms.length;i++){m=ms[i].match(/^\[([A-Z][A-Z_]{1,})/);if(m&&known[m[1]])return true;}
   return false;
 }
+/* audit 2026-11-19, U9: put back what a commit wrote before its tag pass — the player's line (only the ONE entry this commit
+   appended, and only if it is that line) and the turn count with the name window. Nothing else: the tag pass stages its
+   writes and a refusal writes none before this point. */
+function commitUndoHead(u){
+  var tr=worldState.transcript||[];   /* before the tags land the ONLY entry a commit appends is the player's line */
+  if(tr.length===u.len+1){tr.pop();if(typeof invalidateTranscriptMemo==="function")invalidateTranscriptMemo();}
+  else if(tr.length!==u.len&&typeof console!=="undefined")console.warn("[commit] a commit that threw left "+(tr.length-u.len)+" entry(ies) in the book that are not its player line — left in place (audit U9)");
+  worldState.turn=u.turn;
+  if(typeof u.idx==="number"&&typeof memory!=="undefined"&&memory)memory.nameIdx=u.idx;
+  if(typeof console!=="undefined")console.warn("[commit] the turn threw before its tags landed — the player's line and the turn count were put back (turn "+u.turn+"; audit U9)");
+}
 function commitGmTurn(resp,opts){
   var _mapExtraction=(typeof atlasDiscoveryAccept==="function")?atlasDiscoveryAccept(resp,opts&&opts.mapExtraction):null;
   audioCommitDepth++;
@@ -2696,6 +2707,13 @@ function commitGmTurn(resp,opts){
      reply answers a turn whose first reply was a refusal that applied nothing — the refusal's own commit logged the
      player's line and counted the turn, so neither happens again; everything else is the ordinary commit. */
   if(o.replacesRefusal)o.logPlayer=false;
+  /* audit 2026-11-19, U9: the player's line and the turn count are written BEFORE the tag pass. A throw between here and
+     the point where the caller is told state landed (onMutated) left both behind, and the Retry the caller then offered
+     logged the line and counted the turn a second time. The head is now undone when the commit throws before its tags
+     land (commitUndoHead); once they HAVE landed nothing is undone and the caller is told, so it offers no re-applying
+     Retry (the E82 rule). _u9.landed is set on the line the tags land. */
+  var _u9={len:(worldState.transcript||[]).length,turn:worldState.turn,idx:(typeof memory!=="undefined"&&memory)?memory.nameIdx:undefined,landed:false};
+  try{
   if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript("player",o.playerTxt);
   if(!o.isOpening&&!o.replacesRefusal){
     worldState.turn++;
@@ -2723,7 +2741,7 @@ function commitGmTurn(resp,opts){
     if(typeof showToast==="function")showToast("⚠ The model declined this scene — ask again or rephrase",6000);
     if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
   }else{
-  _audioMuts=applyMuts(resp,{deferSave:true});delete worldState.unappliedRefusal;/* U3: tags have landed for this turn (or a later one) — the mark is spent HERE, so a failure in any step below can never let a re-roll apply them twice *//* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
+  _audioMuts=applyMuts(resp,{deferSave:true});_u9.landed=true;delete worldState.unappliedRefusal;/* U3: tags have landed for this turn (or a later one) — the mark is spent HERE, so a failure in any step below can never let a re-roll apply them twice *//* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
   if(o.latchSnap&&typeof noteLogCommit==="function")noteLogCommit();else if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: the notes ring files only DELIVERED gameplay notes (latchSnap rides only on those turns) */
   /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
      a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
@@ -2731,6 +2749,7 @@ function commitGmTurn(resp,opts){
      provider call never reaches here, so the shot survives transport loss. */
   if(worldState.pendingLocState&&worldState.pendingLocState.fired)delete worldState.pendingLocState;
   }
+  }catch(eHead){if(_u9.landed){if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;}/* U9 */
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   if(!_refusal&&typeof atlasKnowledgeCommitResult==="function"){
     var _mapCommit=atlasKnowledgeCommitResult(resp,_audioMuts&&_audioMuts.mapReveals);/* Public discoveries and their narrated receipts must precede the camp snapshot. */
@@ -2887,11 +2906,47 @@ function savePendingAction(txt){
   catch(e){console.warn("[pending] could not persist the failed action:",e&&e.message);}
 }
 function clearPendingAction(){try{store.del(PENDING_ACT_K);}catch(e){}}
+/* audit 2026-11-19, U7: a ROLL whose send fails. The check is deleted and saved before the silent send (so a reload cannot
+   roll it twice), and a silent send was never kept as a pending action — after a reload the roll was simply gone, with
+   the limited ability it spent. The roll rides the SAME key as a failed action (one pending thing per device; a commit
+   clears it; campaign-stamped), marked as a roll and stamped with its turn: it is never put into the story box
+   (restorePendingAction refuses a roll record — its text is an engine note), and it is offered again only on the turn
+   it was made, while no newer check waits. */
+function savePendingRoll(txt,rollTag){
+  txt=String(txt||"").trim();rollTag=String(rollTag||"");if(!txt||!rollTag||!worldState)return;
+  var kept=JSON.stringify({camp:worldState.campId||null,txt:txt,roll:rollTag,turn:worldState.turn});
+  try{ store.set(PENDING_ACT_K,kept); }
+  catch(e){console.warn("[pending] could not persist the failed roll:",e&&e.message);}
+}
+function restorePendingRoll(){
+  var raw=null;try{raw=store.get(PENDING_ACT_K);}catch(e){return null;}
+  if(!raw||!worldState)return null;
+  var rec=null;try{rec=JSON.parse(raw);}catch(e){return null;/* restorePendingAction heals a corrupt record */}
+  if(!rec||!rec.roll||!rec.txt||!String(rec.txt).trim())return null;
+  if(rec.camp!==(worldState.campId||null))return null;
+  if(rec.turn!==worldState.turn||worldState.pendingCheck)return null;/* the story moved on, or the GM asked for a newer roll */
+  return {txt:String(rec.txt),rollTag:String(rec.roll)};
+}
+/* The load's offer: one line in the story with the button that sends the roll as the silent continuation it was. */
+function pendingRollOffer(){
+  if(!restorePendingRoll())return false;
+  addMsg("system","\uD83C\uDFB2 Your last roll was made, but it never reached the Game Master. <button class='qa' onclick='pendingRollSend(this)'>Send the roll</button>");
+  if(typeof showToast==="function")showToast("\u21A9 Unsent roll recovered");
+  return true;
+}
+function pendingRollSend(btn){
+  if(typeof busy!=="undefined"&&busy){if(typeof showToast==="function")showToast("Wait for the turn to finish",3000);return;}
+  var pr=restorePendingRoll();
+  if(!pr){if(typeof showToast==="function")showToast("That roll is no longer waiting.",3000);if(btn)btn.disabled=true;return;}
+  if(btn)btn.disabled=true;
+  sendAction(pr.txt,{mpBypass:true,silent:true,rollTag:pr.rollTag});
+}
 function restorePendingAction(){
   var raw=null;try{raw=store.get(PENDING_ACT_K);}catch(e){return null;}
   if(!raw)return null;
   var rec=null;try{rec=JSON.parse(raw);}catch(e){clearPendingAction();return null;/* corrupt record: self-heal, loudly pointless to keep */}
   if(!rec||!rec.txt||!String(rec.txt).trim())return null;
+  if(rec.roll)return null;/* U7: a kept roll is an engine note, never the player's words — restorePendingRoll owns it */
   if(rec.camp!==((worldState&&worldState.campId)||null))return null;
   return rec.txt;
 }
@@ -3100,6 +3155,7 @@ async function sendAction(override,opts){
       +(_committed?"\n(state committed; display step failed)":""));/* #16: the mobile console is invisible — mail the failure */
     if(_committed){addMsg("system","Turn applied, but a display step failed: "+e.message);if(typeof carNotify==="function")carNotify("say","The turn was applied, but it could not be shown.");}/* audit 2026-11-19, V1: "error" arms tap-to-retry in the car — the tap sent the same action again, over state that had already landed; "say" (owner 2026-11-19) speaks it and arms nothing *//* no Retry — the mutation already landed (E82) */
     else{if(!_mpResolve&&!(opts&&opts.silent)&&!_rfPair/* U3: the action is not put back to be sent as a NEW turn — the refused turn stands and can be re-rolled again */){_restored=restoreFailedInput(inp,txt);if(!isTT)savePendingAction(txt);/* #14: survive a page kill too — story turns only (a TT question restored into the story box would cross channels) */}
+      if(!isTT&&opts&&opts.silent&&opts.rollTag&&!_rfPair&&typeof savePendingRoll==="function")savePendingRoll(txt,opts.rollTag);/* audit 2026-11-19, U7: a roll that did not get through survives a reload too */
       var em=addMsg(isTT?"tabletalk":"system","GM error: "+e.message);if(typeof carNotify==="function")carNotify(isTT?"warn":"error",isTT?"Question failed":"Turn failed — tap to retry");/* V1: a failed Table Talk question armed a retry of the last STORY action */var _retryFn=isTT?function(){sendAction(txt,{ttRetry:true});}:function(){retryLast();};if(_rfPair)_retryFn=function(){rerollLast();};/* U3: a failed replacement is retried as the re-roll it was, never as a new turn */if(_attachGMErrorUI(em,_retryFn,e.message)){busy=false;document.getElementById("sendbtn").disabled=false;return;}}
   }
   busy=false;document.getElementById("sendbtn").disabled=false;if(typeof focusStoryBox==="function")focusStoryBox();/* #481 F3: yields while a dialog is open (ui-shell.js) */
@@ -4700,7 +4756,8 @@ function _itemDefProposalFor(resp,key){
 // then the EXISTING #81 confirm modal is surfaced — the player stays the gate.
 async function defineItemFromStory(rawItem,ev){
   if(ev&&ev.stopPropagation)ev.stopPropagation();
-  if(busy||!worldState)return;
+  if(!worldState)return;
+  if(busy){if(typeof showToast==="function")showToast("Wait for the turn to finish",3000);return;}/* audit 2026-11-19, U10: the sheet's \u270E did nothing and said nothing; the item card's Define said this */
   var key=typeof itemBaseName==="function"?itemBaseName(rawItem):"";
   // Already awaiting confirmation? Skip the call — just reopen the confirm modal (free).
   var pend=worldState.pendingItemDefs||[],pi;
@@ -4816,7 +4873,8 @@ function invDiffLines(before,after){
   return out;
 }
 async function syncCharSheet(){
-  if(busy||!worldState)return;
+  if(!worldState)return;
+  if(busy){if(typeof showToast==="function")showToast("Wait for the turn to finish",3000);return;}/* audit 2026-11-19, U10 */
   busy=true;
   if(typeof showToast==="function")showToast("Syncing sheet…");
   var companions=[];var pi,_syParty=livingPartyCompanions();/* user ruling 2026-07-16 (AUDIT_FABLE_07_16 #6): dead companions get NOTHING — the sheet audit no longer enumerates them */

@@ -189,4 +189,57 @@ prove("item-kinds.js", [
     find: "var _line=itemKindsSaidFiled(_said);if(_line&&", replace: "var _line=itemKindsSaid(owed,read.kinds);if(_line&&", mustFail: ONLY + T.C4 }
 ]);
 
+// ── batch 2 (2026-11-20): U7, U9, U10 ──────────────────────────────────────────────────────────────────────────────
+var T2 = {
+  U7: "U7: a roll whose send fails is kept across a reload",
+  U9: "U9: a commit that throws before its tags land leaves no half-turn",
+  U10: "U10: the sheet's Define and Sync say why they wait while a turn is in flight"
+};
+prove("game.js", [
+  { label: "U7: a roll whose send fails is not kept",
+    find: "if(!isTT&&opts&&opts.silent&&opts.rollTag&&!_rfPair&&typeof savePendingRoll===\"function\")savePendingRoll(txt,opts.rollTag);", replace: "", mustFail: ONLY + T2.U7 },
+  { label: "U7: a kept roll's engine note is put into the story box as an action",
+    find: "  if(rec.roll)return null;/* U7:", replace: "  if(false)return null;/* U7:", mustFail: ONLY + T2.U7 },
+  { label: "U7: another campaign is offered the roll",
+    find: "  if(rec.camp!==(worldState.campId||null))return null;\n", replace: "", mustFail: ONLY + T2.U7 },
+  { label: "U7: a roll is offered after the story moved on",
+    find: "if(rec.turn!==worldState.turn||worldState.pendingCheck)return null;", replace: "if(worldState.pendingCheck)return null;", mustFail: ONLY + T2.U7 },
+  { label: "U7: a roll is offered while a newer check waits",
+    find: "if(rec.turn!==worldState.turn||worldState.pendingCheck)return null;", replace: "if(rec.turn!==worldState.turn)return null;", mustFail: ONLY + T2.U7 },
+  { label: "U7: the kept roll is not stamped with its turn",
+    find: "roll:rollTag,turn:worldState.turn}", replace: "roll:rollTag}", mustFail: ONLY + T2.U7 },
+  { label: "U7: the offer has no button that sends the roll",
+    find: " onclick='pendingRollSend(this)'>Send the roll</button>", replace: ">Send the roll</button>", mustFail: ONLY + T2.U7 },
+  { label: "U7: the offered roll is sent into a running turn",
+    find: "  if(typeof busy!==\"undefined\"&&busy){if(typeof showToast===\"function\")showToast(\"Wait for the turn to finish\",3000);return;}\n  var pr=restorePendingRoll();", replace: "  var pr=restorePendingRoll();", mustFail: ONLY + T2.U7 },
+  { label: "U7: the offered roll is sent as a typed action",
+    find: "  sendAction(pr.txt,{mpBypass:true,silent:true,rollTag:pr.rollTag});", replace: "  sendAction(pr.txt,{mpBypass:true});", mustFail: ONLY + T2.U7 },
+  { label: "U7: a roll no longer waiting is refused without a word",
+    find: "if(!pr){if(typeof showToast===\"function\")showToast(\"That roll is no longer waiting.\",3000);if(btn)btn.disabled=true;return;}", replace: "if(!pr){if(btn)btn.disabled=true;return;}", mustFail: ONLY + T2.U7 },
+  { label: "U9: a commit that threw leaves the turn counted and the line in the book",
+    find: "if(_u9.landed){if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;", replace: "if(_u9.landed){if(o.onMutated)o.onMutated();}throw eHead;", mustFail: ONLY + T2.U9 },
+  { label: "U9: after the tags landed the caller is not told (it offers a re-applying Retry)",
+    find: "if(_u9.landed){if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;", replace: "if(_u9.landed){}else commitUndoHead(_u9);throw eHead;", mustFail: ONLY + T2.U9 },
+  { label: "U9: a turn whose tags landed is undone",
+    find: "_audioMuts=applyMuts(resp,{deferSave:true});_u9.landed=true;", replace: "_audioMuts=applyMuts(resp,{deferSave:true});", mustFail: ONLY + T2.U9 },
+  { label: "U9: the undo leaves the player's line in the book",
+    find: "  if(tr.length===u.len+1){tr.pop();", replace: "  if(tr.length===u.len+1){", mustFail: ONLY + T2.U9 },
+  { label: "U9: the undo takes an earlier entry out of the book",
+    find: "  if(tr.length===u.len+1){tr.pop();", replace: "  if(tr.length){tr.pop();", mustFail: ONLY + T2.U9 },
+  { label: "U9: the undo leaves the turn counted",
+    find: "  worldState.turn=u.turn;\n  if(typeof u.idx", replace: "  if(typeof u.idx", mustFail: ONLY + T2.U9 },
+  { label: "U9: the undo leaves the name window moved",
+    find: "  if(typeof u.idx===\"number\"&&typeof memory!==\"undefined\"&&memory)memory.nameIdx=u.idx;\n", replace: "", mustFail: ONLY + T2.U9 },
+  { label: "U10: the sheet's Define says nothing while a turn is in flight",
+    find: "if(busy){if(typeof showToast===\"function\")showToast(\"Wait for the turn to finish\",3000);return;}/* audit 2026-11-19, U10: the sheet", replace: "if(busy){return;}/* audit 2026-11-19, U10: the sheet", mustFail: ONLY + T2.U10 },
+  { label: "U10: the sheet's Sync says nothing while a turn is in flight",
+    find: "if(busy){if(typeof showToast===\"function\")showToast(\"Wait for the turn to finish\",3000);return;}/* audit 2026-11-19, U10 */", replace: "if(busy){return;}/* audit 2026-11-19, U10 */", mustFail: ONLY + T2.U10 },
+  { label: "U10: Sync runs its model call inside a running turn",
+    find: "showToast(\"Wait for the turn to finish\",3000);return;}/* audit 2026-11-19, U10 */", replace: "showToast(\"Wait for the turn to finish\",3000);}/* audit 2026-11-19, U10 */", mustFail: ONLY + T2.U10 }
+]);
+prove("ui-boot.js", [
+  { label: "U7: the load never offers the kept roll",
+    find: "    if(typeof pendingRollOffer===\"function\")pendingRollOffer();", replace: "", mustFail: ONLY + T2.U7 }
+]);
+
 process.exit(failed ? 1 : 0);

@@ -1,5 +1,5 @@
 {
-  "version": "v1.1475",
+  "version": "v1.1476",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -131,6 +131,7 @@
     "A campaign deleted on one device is removed from your other devices once the server update is live; unsent turns are asked about first.",
     "When the model declines a scene, the story offers \"Ask the GM again\"; a secret plan can no longer show in Table Talk.",
     "A deleted campaign is cleared from other devices only when the cloud held all of it; otherwise you are asked, Keep first.",
-    "Voice fixes: a cancelled dictation is discarded, mic failures are named, a hung local voice restarts, and a talk keeps its own overlay."
+    "Voice fixes: a cancelled dictation is discarded, mic failures are named, a hung local voice restarts, and a talk keeps its own overlay.",
+    "Turn fixes: a failed roll can be sent again after a reload, four pop-ups hold keyboard focus, Define and Sync say why they wait."
   ]
 }

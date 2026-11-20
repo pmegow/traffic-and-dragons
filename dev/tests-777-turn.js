@@ -472,6 +472,95 @@ kase("C4: an item with a very long name is filed under its own key — asked onc
   });
 });
 
+// ── batch 2 (2026-11-20): U7 a failed roll survives a reload · U9 a commit that throws leaves no half-turn · U10 the sheet's
+//    Define and Sync say why they wait ──────────────────────────────────────────────────────────────────────────────
+kase("U7: a roll whose send fails is kept across a reload — offered again as the roll it was, never put in the box as an action", function () {
+  u3World(); var ws = worldState, rec, sent = [];
+  ws.pendingCheck = { label: "Climb the wall", mod: 2, dc: 12 };
+  gmSays([function () { return Promise.reject(new Error("offline")); }]);
+  clearPendingAction();
+  rollPendingCheck();
+  return wait(80).then(function () {
+    assert.strictEqual(ws.pendingCheck, undefined, "fixture: the check was not rolled");
+    assert.strictEqual(busy, false, "fixture: the failed send never let go");
+    rec = restorePendingRoll();
+    assert.ok(rec && rec.txt && rec.rollTag, "a roll whose send failed is not kept anywhere a reload can find it: " + JSON.stringify(rec) + " / " + store.get(PENDING_ACT_K));
+    assert.ok(/\[DICE:/.test(rec.rollTag), "the kept roll has no dice record: " + rec.rollTag);
+    assert.strictEqual(restorePendingAction(), null, "the roll's engine note would be put back into the story box as the player's own action");
+    var id = ws.campId; ws.campId = "another-campaign";
+    assert.strictEqual(restorePendingRoll(), null, "another campaign is offered this campaign's roll"); ws.campId = id;
+    ws.turn++; assert.strictEqual(restorePendingRoll(), null, "a roll is offered again after the story moved on a turn"); ws.turn--;
+    ws.pendingCheck = { label: "x", mod: 0, dc: 10 }; assert.strictEqual(restorePendingRoll(), null, "a roll is offered while a newer check waits"); delete ws.pendingCheck;
+    // the reload: the page offers it
+    said.msgs.length = 0; said.toasts.length = 0;
+    sendAction = function (t, o) { sent.push({ t: t, o: o }); };
+    assert.strictEqual(pendingRollOffer(), true, "the load does not offer the roll");
+    assert.ok(said.msgs.some(function (m) { return /^system: /.test(m) && /roll/i.test(m) && /pendingRollSend\(/.test(m); }), "nothing on the page offers to send the roll: " + JSON.stringify(said.msgs));
+    busy = true; pendingRollSend(); busy = false;
+    assert.deepStrictEqual(sent, [], "the roll was sent into a running turn");
+    assert.ok(said.toasts.some(function (t) { return /turn/i.test(t); }), "nothing said why the roll waits");
+    pendingRollSend();
+    assert.strictEqual(sent.length, 1, "the offered roll was not sent");
+    assert.strictEqual(sent[0].t, rec.txt); assert.ok(sent[0].o && sent[0].o.silent === true && sent[0].o.rollTag === rec.rollTag && sent[0].o.mpBypass === true, "the roll was not sent as the silent continuation it was: " + JSON.stringify(sent[0].o));
+    // delivered: nothing is owed any more
+    sendAction = REAL.sendAction; gmSays(["You haul yourself over the wall."]);
+    return sendAction(rec.txt, { mpBypass: true, silent: true, rollTag: rec.rollTag });
+  }).then(function () {
+    assert.strictEqual(restorePendingRoll(), null, "a delivered roll is still offered");
+    assert.strictEqual(pendingRollOffer(), false);
+    said.toasts.length = 0; sent.length = 0; sendAction = function (t, o) { sent.push(t); }; pendingRollSend();
+    assert.deepStrictEqual(sent, [], "a roll that is no longer waiting was sent again"); assert.ok(said.toasts.length === 1, "nothing said the roll is no longer waiting");
+    // an ordinary failed action still comes back as before, and a typed action that fails replaces the roll
+    sendAction = REAL.sendAction; savePendingRoll("note", "[DICE:x|d20 = 4|fail]"); savePendingAction("I try the door instead");
+    assert.strictEqual(restorePendingAction(), "I try the door instead"); assert.strictEqual(restorePendingRoll(), null);
+    clearPendingAction();
+    var boot = src("ui-boot.js"), at = boot.indexOf("restorePendingAction()");
+    assert.ok(at >= 0 && boot.indexOf("pendingRollOffer()", at) > at && boot.indexOf("pendingRollOffer()", at) - at < 900, "the load never offers a kept roll (ui-boot.js does not call pendingRollOffer beside the pending action)");
+  });
+});
+kase("U9: a commit that throws before its tags land leaves no half-turn — the player's line and the turn count are put back, so Retry counts once", function () {
+  u3World(); var ws = worldState, realMuts = applyMuts, mutated = 0, idx;
+  if (typeof memory.nameIdx !== "number") memory.nameIdx = 0; idx = memory.nameIdx;
+  applyMuts = function () { throw new Error("the tag pass threw"); };
+  assert.throws(function () { commitGmTurn("The door opens. [GOLD:+3]", { playerTxt: "I open the door.", logPlayer: true, onMutated: function () { mutated++; } }); }, /the tag pass threw/);
+  applyMuts = realMuts;
+  assert.strictEqual(ws.turn, 9, "the turn was counted for a commit that applied nothing");
+  assert.strictEqual(ws.transcript.length, 0, "the player's line is in the book for a turn that never committed: " + JSON.stringify(ws.transcript));
+  assert.strictEqual(memory.nameIdx, idx, "the name window moved for a commit that applied nothing");
+  assert.strictEqual(mutated, 0, "the caller was told state had landed");
+  commitGmTurn("The door opens. [GOLD:+3]", { playerTxt: "I open the door.", logPlayer: true, onMutated: function () { mutated++; } });   // the Retry
+  assert.strictEqual(ws.turn, 10); assert.strictEqual(mutated, 1);
+  assert.deepStrictEqual(ws.transcript.map(function (e) { return e.r + "@" + e.t; }), ["player@9", "gm@10"], "the retried turn is not in the book exactly once");
+  assert.strictEqual(ws.character.coin, 1300);
+  // a silent commit (no player line) that throws: nothing of an earlier turn is taken out of the book
+  var before = ws.transcript.length; applyMuts = function () { throw new Error("the tag pass threw"); };
+  assert.throws(function () { commitGmTurn("x", { playerTxt: "note", logPlayer: false }); }, /the tag pass threw/);
+  applyMuts = realMuts;
+  assert.strictEqual(ws.transcript.length, before, "a commit that logged no player line took an entry out of the book"); assert.strictEqual(ws.turn, 10);
+  // a throw AFTER the tags landed: nothing is undone, and the caller is told state landed (no re-applying Retry)
+  var realCommit = noteLogCommit; mutated = 0;
+  noteLogCommit = function () { throw new Error("the notes ring threw"); };
+  assert.throws(function () { commitGmTurn("A purse. [GOLD:+2]", { playerTxt: "I look.", logPlayer: true, latchSnap: {}, onMutated: function () { mutated++; } }); }, /the notes ring threw/);
+  noteLogCommit = realCommit;
+  assert.strictEqual(ws.character.coin, 1500, "fixture: the second turn's tags did not land");
+  assert.strictEqual(ws.turn, 11, "a turn whose tags landed was un-counted");
+  assert.ok(ws.transcript.some(function (e) { return e.r === "player" && e.x === "I look."; }), "the player's line of a turn whose tags landed was taken out of the book");
+  assert.strictEqual(mutated, 1, "after the tags landed the caller was not told — it would offer a Retry that applies them twice");
+});
+kase("U10: the sheet's Define and Sync say why they wait while a turn is in flight", function () {
+  fresh(); busy = true; said.toasts.length = 0;
+  var called = 0, realGM = callGM; callGM = function () { called++; return Promise.resolve("{}"); };
+  return Promise.resolve(defineItemFromStory("a strange key")).then(function () {
+    assert.ok(said.toasts.some(function (t) { return /Wait for the turn to finish/.test(t); }), "Define did nothing and said nothing: " + JSON.stringify(said.toasts));
+    said.toasts.length = 0;
+    return syncCharSheet();
+  }).then(function () {
+    assert.ok(said.toasts.some(function (t) { return /Wait for the turn to finish/.test(t); }), "Sync did nothing and said nothing: " + JSON.stringify(said.toasts));
+    assert.strictEqual(called, 0, "a model call was made while a turn is in flight"); assert.strictEqual(busy, true);
+    callGM = realGM; busy = false;
+  });
+});
+
 // ── runner ─────────────────────────────────────────────────────────────────────────────────────────────────────────
 var argv = process.argv.slice(2), only = argv.indexOf("--only") >= 0 ? argv[argv.indexOf("--only") + 1] : "", passed = 0, failed = 0;
 var todo = CASES.filter(function (c) { return !only || c.name.indexOf(only) >= 0; });

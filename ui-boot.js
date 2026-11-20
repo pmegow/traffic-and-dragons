@@ -459,6 +459,7 @@ function initState(saved){
     if(_pa){var _pi=document.getElementById("action-input");
       if(_pi&&restoreFailedInput(_pi,_pa)){addMsg("system","↩ Your last action didn't get through — it's back in the box. Press Send to retry.");if(typeof showToast==="function")showToast("↩ Unsent action recovered");}
     }
+    if(typeof pendingRollOffer==="function")pendingRollOffer();/* audit 2026-11-19, U7: a roll made but never delivered is offered again — as a roll, never as text in the box */
     /* #81: unanswered item-canon proposals ride the save — resurface them on boot so closing
        the tab can never silently strand a proposal (the confirm modal is the only path to canon). */
     if(worldState.pendingItemDefs&&worldState.pendingItemDefs.length&&typeof showItemDefConfirmModal==="function")showItemDefConfirmModal();if(worldState.pendingRewardClaims&&worldState.pendingRewardClaims.length&&typeof showRewardClaimModal==="function")showRewardClaimModal();/* #215: an unanswered claim survives the tab closing */

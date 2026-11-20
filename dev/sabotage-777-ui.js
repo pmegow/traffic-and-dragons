@@ -1,0 +1,34 @@
+// sabotage-777-ui.js — retained proof for audit 2026-11-19 (TODO #777), the DOM shells judged over a fake page:
+//   ui-modals.js, ui-shell.js   U5 the four hand-built modals are dialogs on modalShell, looking as they did
+// Each clause runs ONE named case of dev/tests-777-ui.js (the suite's own --only).
+var sabotage = require("./sabotage.js");
+var CMD = ["node", ["dev/tests-777-ui.js"]], ONLY = "FAIL #777 ";
+var failed = 0;
+function prove(file, cases) { failed += sabotage.prove({ file: file, command: CMD, only: ONLY, cases: cases }); }
+var T = {
+  RESPAWN: "U5: respawn-modal is a dialog",
+  ONWARD: "U5: onward-modal is a dialog",
+  HEALTH: "U5: health-modal is a dialog",
+  WORK: "U5: the modals' own buttons still do their work",
+  DERIVED: "U5 derived: every modal the game builds by hand is a dialog"
+};
+prove("ui-shell.js", [
+  { label: "U5: a modal on the shell is not a dialog to the focus contract",
+    find: "modal.setAttribute(\"aria-modal\",\"true\");", replace: "", mustFail: ONLY + T.RESPAWN }
+]);
+prove("ui-modals.js", [
+  { label: "U5: Escape answers the forced choice at Death's door",
+    find: "{wireClose:false/* a forced choice", replace: "{wireClose:true/* a forced choice", mustFail: ONLY + T.ONWARD },
+  { label: "U5: the health modal opens with focus on Submit report",
+    find: "  document.getElementById(\"hm-ok\").focus();/* U5:", replace: "  /* U5:", mustFail: ONLY + T.HEALTH },
+  { label: "U5: the health modal's close mark does nothing",
+    find: "{closeId:\"hm-close\",outside:true,", replace: "{outside:true,", mustFail: ONLY + T.WORK },
+  { label: "U5: the respawn modal's overlay changed",
+    find: "{overlayCss:\"position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:320;", replace: "{overlayCss:\"position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:300;", mustFail: ONLY + T.RESPAWN },
+  { label: "U5: the health modal's box changed",
+    find: "max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;\"});", replace: "max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:20px;\"});", mustFail: ONLY + T.HEALTH },
+  { label: "U5: a hand-built modal loses its aria-modal and nothing notices",
+    find: "m.setAttribute(\"role\",\"dialog\");m.setAttribute(\"aria-modal\",\"true\");m.setAttribute(\"aria-labelledby\",\"firstturn-title\");", replace: "m.setAttribute(\"role\",\"dialog\");m.setAttribute(\"aria-labelledby\",\"firstturn-title\");", mustFail: ONLY + T.DERIVED }
+]);
+
+process.exit(failed ? 1 : 0);

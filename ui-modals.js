@@ -1102,26 +1102,26 @@ function showFirstTurnOverlay(){
   m.onkeydown=function(e){if(e.key==="Escape"){e.preventDefault();ok.click();}else if(e.key==="Tab"){e.preventDefault();ok.focus();}};
   ok.focus();
 }
+/* audit 2026-11-19, U5: Respawn, Onward, Campaign ended and Health were built by hand with no aria-modal, so they were not
+   dialogs to the focus contract (#442, #481 F3): focusStoryBox focused the story box behind them and Enter sent a turn.
+   They are on modalShell now — focus moves into the dialog and stays there — with their own overlay and box styles
+   passed through whole, so nothing about their look changed. */
 function showRespawnModal(r,cause){
-  closeAllMenus();var old=document.getElementById("respawn-modal");if(old)old.remove();
-  var m=document.createElement("div");m.id="respawn-modal";
-  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
-  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
-    +"<div style='font-size:20px;margin-bottom:8px;'>☠ You died</div>"
+  closeAllMenus();
+  var m=modalShell("respawn-modal",
+    "<div style='font-size:20px;margin-bottom:8px;'>☠ You died</div>"
     +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+escHtml(cause||"slain")+".<br><br>You wake again at <b>"+escHtml(r.camp||"camp")+"</b>. Everything since that camp is a road not taken — it stays in the book, but the world never saw it.<br><br>Respawn "+r.respawn+" of "+RESPAWNS_PER_CAMPAIGN+"."+(r.respawn>=RESPAWNS_PER_CAMPAIGN?" <b>The next death is the last.</b>":"")+"</div>"
-    +"<div style='margin-top:16px;text-align:right;'><button id='respawn-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Wake</button></div></div>";
-  document.body.appendChild(m);
+    +"<div style='margin-top:16px;text-align:right;'><button id='respawn-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Wake</button></div>",
+    {overlayCss:"position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;",boxCss:"background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);"});
   document.getElementById("respawn-ok").onclick=function(){m.remove();};
 }
 function showOnwardConfirmModal(){
-  closeAllMenus();var old=document.getElementById("onward-modal");if(old)old.remove();
-  var m=document.createElement("div");m.id="onward-modal";
-  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
-  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
-    +"<div style='font-size:20px;margin-bottom:8px;'>Go onward?</div>"
+  closeAllMenus();
+  var m=modalShell("onward-modal",
+    "<div style='font-size:20px;margin-bottom:8px;'>Go onward?</div>"
     +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>Walking onward with Death ENDS this campaign. There is no camp past this point and no way back; the Game Master will write its final chapter. The book stays, dead branches and all.</div>"
-    +"<div style='margin-top:16px;display:flex;gap:8px;justify-content:flex-end;'><button id='onward-no' style='padding:8px 16px;font-family:var(--font);background:var(--bg3);color:var(--t0);border:1px solid var(--brd);border-radius:6px;cursor:pointer;'>Walk back instead</button><button id='onward-yes' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Go onward — end the campaign</button></div></div>";
-  document.body.appendChild(m);
+    +"<div style='margin-top:16px;display:flex;gap:8px;justify-content:flex-end;'><button id='onward-no' style='padding:8px 16px;font-family:var(--font);background:var(--bg3);color:var(--t0);border:1px solid var(--brd);border-radius:6px;cursor:pointer;'>Walk back instead</button><button id='onward-yes' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Go onward — end the campaign</button></div>",
+    {wireClose:false/* a forced choice: Escape and a click outside answer nothing */,overlayCss:"position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;",boxCss:"background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);"});
   document.getElementById("onward-no").onclick=function(){m.remove();deathSceneChoose("back");};
   document.getElementById("onward-yes").onclick=function(){m.remove();deathSceneOnwardConfirm();};
 }
@@ -1141,24 +1141,19 @@ function showEndingOfferModal(){
   document.getElementById("ending-write").onclick=function(){m.remove();endingDecide("write");};
 }
 function showCampaignEndedModal(cause){
-  closeAllMenus();var old=document.getElementById("ended-modal");if(old)old.remove();
-  var m=document.createElement("div");m.id="ended-modal";
-  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;";
-  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);'>"
-    +"<div style='font-size:20px;margin-bottom:8px;'>The story is complete</div>"
+  closeAllMenus();
+  var m=modalShell("ended-modal",
+    "<div style='font-size:20px;margin-bottom:8px;'>The story is complete</div>"
     +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>"+((worldState&&worldState.ended&&worldState.ended.spine)?("The tale of "+escHtml((worldState&&worldState.campName)||"this campaign")+" is told, and "+escHtml((worldState&&worldState.character&&worldState.character.name)||"the hero")+" lives to see its ending."):(escHtml((worldState&&worldState.character&&worldState.character.name)||"The hero")+" has died for the last time — "+escHtml(cause||"slain")+"."))+"<br><br>This campaign is now read-only. File ▸ Export Narrative keeps the whole book, dead branches and all.</div>"
-    +"<div style='margin-top:16px;text-align:right;'><button id='ended-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Close</button></div></div>";
-  document.body.appendChild(m);
+    +"<div style='margin-top:16px;text-align:right;'><button id='ended-ok' style='padding:8px 16px;font-family:var(--font);background:var(--acc);color:var(--on-acc);border:0;border-radius:6px;cursor:pointer;'>Close</button></div>",
+    {overlayCss:"position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:320;display:flex;align-items:center;justify-content:center;padding:16px;",boxCss:"background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:480px;width:100%;padding:22px;font-family:var(--font);color:var(--t0);"});
   document.getElementById("ended-ok").onclick=function(){m.remove();};
 }
 function showHealthModal(){
   closeAllMenus();
-  var old=document.getElementById("health-modal");if(old)old.remove();
   var h=(typeof healthIndicators==="function"&&worldState)?healthIndicators(worldState,(typeof memory!=="undefined"?memory:null),true):{overall:"na",items:[],growth:[]};
   function col(lv){return lv==="bad"?"var(--red)":lv==="warn"?"var(--acc)":lv==="ok"?"var(--grn)":"var(--t2)";}
   function word(lv){return lv==="bad"?"PROBLEM":lv==="warn"?"WATCH":lv==="ok"?"HEALTHY":"N/A";}
-  var m=document.createElement("div");m.id="health-modal";
-  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;";
   var rows="",i;
   for(i=0;i<h.items.length;i++){var it=h.items[i];
     rows+="<div style='display:flex;gap:8px;align-items:flex-start;padding:7px 2px;border-bottom:1px solid var(--brd);'>"
@@ -1175,8 +1170,8 @@ function showHealthModal(){
       +"<span>"+escHtml(gr.label)+" — "+gr.count.toLocaleString()+" "+escHtml(grUnit)+"</span>"
       +"<span style='white-space:nowrap;color:var(--t1);'>"+growthSize(gr.bytes)+"</span></div>";
   }
-  m.innerHTML="<div style='background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;'>"
-    +"<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><b style='color:var(--t0);'>Drift health</b><span id='hm-close' style='cursor:pointer;color:var(--t2);font-size:18px;padding:0 4px;'>&times;</span></div>"
+  var m=modalShell("health-modal",
+    "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;'><b style='color:var(--t0);'>Drift health</b><span id='hm-close' style='cursor:pointer;color:var(--t2);font-size:18px;padding:0 4px;'>&times;</span></div>"
     +"<div style='font-size:11px;color:var(--t2);margin-bottom:8px;'>Leading indicators computed from this save's own rings — green means the anti-drift stack looks alive, not that the story is good. Overall: <span style='color:"+col(h.overall)+";font-weight:bold;'>"+word(h.overall)+"</span></div>"
       +rows
       +"<div style='font-size:12px;color:var(--t0);margin-top:12px;padding-top:9px;border-top:1px solid var(--brd);'>Growth telemetry</div>"
@@ -1184,11 +1179,10 @@ function showHealthModal(){
       +growthRows
     +"<div style='display:flex;gap:8px;margin-top:12px;justify-content:flex-end;'>"
     +"<button id='hm-report' style='padding:7px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>&#9888; Submit report</button>"
-    +"<button id='hm-ok' style='padding:7px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Close</button></div></div>";
-  document.body.appendChild(m);
-  m.addEventListener("click",function(ev){if(ev.target===m)m.remove();});
-  document.getElementById("hm-close").onclick=function(){m.remove();};
+    +"<button id='hm-ok' style='padding:7px 12px;font-size:12px;font-family:var(--font);background:var(--bg2);color:var(--t1);border:1px solid var(--brd2);border-radius:var(--r);cursor:pointer;'>Close</button></div>",
+    {closeId:"hm-close",outside:true,overlayCss:"position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;",boxCss:"background:var(--modal-bg);border:1px solid var(--acc);border-radius:12px;max-width:460px;width:100%;max-height:85vh;overflow-y:auto;padding:16px;"});
   document.getElementById("hm-ok").onclick=function(){m.remove();};
+  document.getElementById("hm-ok").focus();/* U5: the shell focuses the first control, which here is Submit report — Enter must close, never send a report */
   document.getElementById("hm-report").onclick=function(){
     var btn=this;btn.disabled=true;btn.textContent="Sending…";
       var lines=["HEALTH REPORT (user-initiated from the drift-health modal)","Overall: "+h.overall],j;
