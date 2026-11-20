@@ -384,11 +384,15 @@ function voiceControl(id){return (typeof AUTHOR_CONTROLS!=="undefined"&&AUTHOR_C
     var statEl=document.getElementById(outSel+"-stat-"+id);
     busyRow=id;setButtons(id,true);
     txtEl.className="txt";txtEl.textContent="…";statEl.className="stat";statEl.textContent="calling "+model+" …";
+    /* audit 2026-11-19, D5: the wait counts its seconds (the house rule for every in-flight status); stopped before either outcome is written */
+    var _t0=Date.now(),_tick=setInterval(function(){statEl.textContent="calling "+model+" … "+Math.round((Date.now()-_t0)/1000)+"s";},1000);
     transport(prompt,model).then(function(r){
+      clearInterval(_tick);
       txtEl.textContent=r.text;
       statEl.textContent=r.usage?("in "+(r.usage.in||"?")+" tok · out "+(r.usage.out||"?")+" tok"):"done";
       busyRow=null;setButtons(id,false);
     }).catch(function(e){
+      clearInterval(_tick);
       txtEl.className="txt empty";txtEl.textContent="(no output)";
       statEl.className="stat err";statEl.textContent="✗ "+e.message;
       busyRow=null;setButtons(id,false);

@@ -164,7 +164,7 @@
   var CUR=null;      // {ws, mem, label, live}
   var MODEL=null;    // the compiled model (see buildModel)
   var DOCHTML=null;  // the finished export document
-  var BUSY=false;
+  var BUSY=false,RUN=0;/* audit 2026-11-19, D2: RUN names the compile in flight — a load ends it */
 
   // ── options ──────────────────────────────────────────────────────────────────
   function readOpts(){
@@ -211,6 +211,10 @@
     if(!(ws.transcript&&ws.transcript.length)){setSrc("that campaign has no recorded story yet ("+label+")",true);return false;}
     CUR={ws:ws,mem:mem||{},label:label,live:!!live};
     MODEL=null;DOCHTML=null;
+    /* audit 2026-11-19, D2: a campaign loaded while a compile was weaving its chapters cleared MODEL under it; the next
+       slice threw inside its timer, BUSY stayed set, and Compile stayed dead until a reload, with nothing shown. The
+       load now ends the compile in flight (its slices see RUN moved on and stop) and says so. */
+    RUN++;if(BUSY){BUSY=false;progress("Compile stopped: another campaign was loaded. Press Compile for this one.",0);}
     var el=$("empty");if(el)el.style.display="none";
     setSrc(label+" — "+num(ws.transcript.length)+" passages, turn "+((ws.turn!=null)?ws.turn:"?")
       +(inf.note?" · "+inf.note:""),false,!!live);
@@ -606,32 +610,35 @@
   function compileUI(){
     if(!CUR||BUSY)return;
     BUSY=true;enable("compile",false);enable("export",false);
-    var opts=readOpts(),t0=(new Date()).getTime();
+    var opts=readOpts(),t0=(new Date()).getTime(),run=++RUN,cur=CUR;
+    function failed(e){if(run!==RUN)return;BUSY=false;enable("compile",true);enable("export",false);progress("Compile failed: "+((e&&e.message)||e),0);warn("compile failed: "+((e&&e.message)||e));}
     progress("Reading the transcript…",2);
     // Yield once so the progress line paints before the (synchronous) model build.
-    setTimeout(function(){
-      MODEL=buildModel(CUR,opts);
-      var chapters=MODEL.chapters,html=[],i=0;
-      function slice(){
+    setTimeout(function(){try{
+      if(run!==RUN)return;/* D2 */
+      var model=buildModel(cur,opts);MODEL=model;
+      var chapters=model.chapters,html=[],i=0;
+      function slice(){try{
+        if(run!==RUN)return;/* D2: a load ended this compile */
         var end=Math.min(chapters.length,i+8),n;
         for(n=i;n<end;n++)html.push(renderChapter(chapters[n],opts));
         i=end;
         progress("Weaving chapter "+i+" of "+chapters.length+"…",chapters.length?(i/chapters.length)*96:96);
         if(i<chapters.length){setTimeout(slice,0);return;}
-        DOCHTML=buildDoc(MODEL,html,opts,false);
-        renderStats(MODEL);
-        paintPreview(MODEL,html,opts);
+        DOCHTML=buildDoc(model,html,opts,false);
+        renderStats(model);
+        paintPreview(model,html,opts);
         var ms=(new Date()).getTime()-t0;
-        progress("Compiled "+num(MODEL.stats.chapters)+" chapters · "+num(MODEL.stats.used)+" passages · "+ms+" ms",100);
+        progress("Compiled "+num(model.stats.chapters)+" chapters · "+num(model.stats.used)+" passages · "+ms+" ms",100);
         BUSY=false;enable("compile",true);enable("export",true);
-      }
+      }catch(e){failed(e);}}
       if(!chapters.length){
-        DOCHTML=buildDoc(MODEL,[],opts,false);renderStats(MODEL);paintPreview(MODEL,[],opts);
+        DOCHTML=buildDoc(model,[],opts,false);renderStats(model);paintPreview(model,[],opts);
         progress("Nothing to compile — this campaign has no printable passages.",100);
         BUSY=false;enable("compile",true);enable("export",true);return;
       }
       slice();
-    },0);
+    }catch(e){failed(e);}},0);
   }
   function safeName(s){return String(s||"story").replace(/[^A-Za-z0-9._-]+/g,"_").replace(/^_+|_+$/g,"").slice(0,80)||"story";}
   function exportDoc(){
@@ -655,6 +662,7 @@
     load:function(d,label){return normalize(d,label||"seam",false);},
     loadLive:function(){return tryLocalStorage();},
     compile:function(o){return compileSync(o||readOpts());},
+    compileUI:compileUI,busy:function(){return BUSY;},/* audit 2026-11-19, D2: the button's own chunked path */
     model:function(){return MODEL;},
     doc:function(){return DOCHTML;},
     renderChapter:renderChapter,

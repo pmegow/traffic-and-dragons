@@ -179,6 +179,7 @@ select{background:var(--bg2);color:var(--fg);border:1px solid var(--brd);border-
       a.href=URL.createObjectURL(blob);
       a.download=TNDNAME.replace(/\.tnd$/i,"")+"_REPAIRED.tnd";
       a.click();
+      setTimeout(function(){try{URL.revokeObjectURL(a.href);}catch(e){}},1000);/* audit 2026-11-19, D5: the export's object URL held the whole save for the page's life */
       status("applyStatus","APPLIED — repaired save downloaded ("+a.download+")","ok");
     }
     GROUPS=[];renderGroups();

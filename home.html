@@ -174,7 +174,8 @@ a.link:hover{text-decoration:underline;}
     var w=$("who");
     if(!signedIn()){w.innerHTML="Not signed in — <a href='index.html'>sign in from the game</a> to see your library and play on your account.";return;}
     w.innerHTML="Signed in.";
-    storageAdapter.fetchAccount(function(err,a){if(err||!a)return;w.innerHTML="Signed in as <b>"+esc(a.username||"?")+"</b>"+(a.entitled?" · "+esc(a.tierLabel||a.tier)+" ("+esc(a.turnsUsed)+" of "+esc(a.turnsCap)+" turns this month)":" · no active subscription");});
+    /* audit 2026-11-19, D5: a failed account check left "Signed in." standing — an expired session read as a healthy one */
+    storageAdapter.fetchAccount(function(err,a){if(err||!a){w.innerHTML=String(err||"").indexOf("401")>=0?"Your session has expired — <a href='index.html'>sign in again from the game</a>.":"Signed in, but your account could not be read"+(err?": "+esc(err):"")+".";w.className=(w.className?w.className+" ":"")+"err";console.warn("[home] account check failed",err);return;}w.innerHTML="Signed in as <b>"+esc(a.username||"?")+"</b>"+(a.entitled?" · "+esc(a.tierLabel||a.tier)+" ("+esc(a.turnsUsed)+" of "+esc(a.turnsCap)+" turns this month)":" · no active subscription");});
   }
   $("go-play").addEventListener("click",function(){location.href="index.html";});
   $("go-new").addEventListener("click",function(){location.href="index.html?campaign=new";});

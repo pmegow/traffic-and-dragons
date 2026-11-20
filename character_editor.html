@@ -106,7 +106,7 @@ table.list td.x button:hover{color:var(--dng);}
 <script src="storage-adapter.js"></script>
 <script>
 (function(){
-  var CE_VERSION="v0.3", CE_DRAFT_K="tnd_ce_draft_v1";
+  var CE_VERSION="v0.4", CE_DRAFT_K="tnd_ce_draft_v1";
   var ch=null, dirty=false, _draftT=null;
   function $(id){return document.getElementById(id);}
   function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");}/* audit 2026-11-19, H4: every attribute on this page is single-quoted — without the apostrophe a loaded file ended one (and "O'Brien" was cut to "O") */
@@ -357,9 +357,13 @@ table.list td.x button:hover{color:var(--dng);}
     });
   }
   function closeModal(){$("modal").style.display="none";}
-  function saveDraft(){if(_draftT)clearTimeout(_draftT);_draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(CE_DRAFT_K,JSON.stringify({ch:ch,dirty:dirty,at:Date.now()}));}catch(e){}},400);}
+  /* audit 2026-11-19, D3: a draft that could not be stored failed in silence (a full or blocked store), and a draft from a
+     NEWER build left the page with no sheet behind working buttons. A failed save is said once; a newer draft is HELD —
+     the page opens a blank sheet, never writes over or removes the stored draft, and says so. */
+  var _draftHeld=false,_draftFailSaid=false;
+  function saveDraft(){if(_draftHeld)return;if(_draftT)clearTimeout(_draftT);_draftT=setTimeout(function(){_draftT=null;try{localStorage.setItem(CE_DRAFT_K,JSON.stringify({ch:ch,dirty:dirty,at:Date.now()}));}catch(e){if(!_draftFailSaid){_draftFailSaid=true;setStatus("This sheet could not be kept as a draft on this device ("+((e&&e.message)||e)+"). Use Save to keep your work.","err");console.warn("[editor] draft save failed:",e);}}},400);}
 
-  $("b-new").addEventListener("click",function(){if(dirty&&!confirm("Discard unsaved changes?"))return;ch=blankChar();dirty=false;try{localStorage.removeItem(CE_DRAFT_K);}catch(e){}render();setStatus("New character","");});
+  $("b-new").addEventListener("click",function(){if(dirty&&!confirm("Discard unsaved changes?"))return;ch=blankChar();dirty=false;if(!_draftHeld){try{localStorage.removeItem(CE_DRAFT_K);}catch(e){}}render();setStatus("New character"+(_draftHeld?" — the newer draft stored on this device is kept; this sheet is not saved as a draft":""),"");});
   $("f-load").addEventListener("change",function(ev){var file=ev.target.files[0];if(!file)return;if(dirty&&!confirm("Discard unsaved changes?")){ev.target.value="";return;}var rd=new FileReader();rd.onload=function(re){try{loadObject(JSON.parse(re.target.result),file.name);}catch(e){setStatus("Failed to read file: "+e.message,"err");}};rd.readAsText(file);ev.target.value="";});
   $("b-save").addEventListener("click",saveFile);
   $("b-libsave").addEventListener("click",saveLibrary);
@@ -370,7 +374,7 @@ table.list td.x button:hover{color:var(--dng);}
   // Boot: restore the working draft, else a blank sheet.
   var d=null;try{d=JSON.parse(localStorage.getItem(CE_DRAFT_K)||"null");}catch(e){}
   if(d&&d.ch){var _dv=charFileVersionIssue({character:d.ch});/* #599 (a), review R5: a draft from a newer build is kept, never healed into this one */
-    if(_dv)setStatus("Draft not restored: "+_dv+" — update the game first.","err");
+    if(_dv){_draftHeld=true;ch=blankChar();render();setStatus("Draft not restored: "+_dv+" — update the game first. It is kept untouched; this blank sheet is not saved as a draft.","err");}
     else{ch=healChar(d.ch);dirty=!!d.dirty;render();setStatus((ch.name||"Untitled")+" — restored from draft"+(dirty?" (unsaved changes)":""),"");}}
   else{ch=blankChar();render();}
   // #476: probe the account once so a dead session shows before the first click (home.html / mementos.html do the same).
