@@ -1519,6 +1519,7 @@ function forgetCampaignSyncMarkers(id){
   if(storageAdapter.clearFlushDirty)storageAdapter.clearFlushDirty(id);
   if(storageAdapter.clearSyncSizeWarn)storageAdapter.clearSyncSizeWarn(id);
   if(storageAdapter.slotUnsentClear)storageAdapter.slotUnsentClear(id);/* S12: the mark dies with the copy */
+  if(storageAdapter.forgetDeletedElsewhere)storageAdapter.forgetDeletedElsewhere(id);/* S12 live: so does a deleted-elsewhere question that stood for it — left behind it switched the look off for every campaign */
 }
 /* Audit 2026-11-19, S11: the campaign's last camp leaves the device with it. The IndexedDB copy (ui-files.js; absent in the
    headless engine) holds a whole world per campaign and nothing ever deleted one. Called where a campaign is deleted or its

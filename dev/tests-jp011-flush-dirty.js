@@ -172,15 +172,22 @@ tAsync("a marked campaign PUSHES before the reconcile GET is even issued", funct
       return ok({ worldState: { turn: 999, campId: CAMP, character: { name: "Korrag" }, npcs: [] }, campaignId: CAMP });
     };
     storageAdapter.load(function () {});
-    // #377: the AUTHORITATIVE turn probe (GET /api/campaigns/:id/turn, turn only) may precede the push; nothing else may. It adopts nothing.
-    if (calls.length !== 1) return "expected the turn probe alone in flight, got " + calls.length + " request(s)";
-    if (calls[0].method !== "GET" || calls[0].url !== "https://unit.test/api/campaigns/" + CAMP + "/turn") return "first request was " + calls[0].method + " " + calls[0].url + " — only the turn probe may precede the push";
+    // #377: the AUTHORITATIVE turn probe (GET /api/campaigns/:id/turn, turn only) may precede the push. Since S12 live (v1.1482)
+    // so may ONE read of the deletion records (GET /api/campaign-deletions): a campaign the server records as deleted is asked
+    // about, never pushed back up. Neither adopts anything; nothing else may precede the push.
+    function harmless(c) { return c.method === "GET" && (c.url === "https://unit.test/api/campaigns/" + CAMP + "/turn" || c.url === "https://unit.test/api/campaign-deletions"); }
+    if (calls.length !== 1) return "expected one request in flight (the deletion-records read, or the turn probe), got " + calls.length + " request(s)";
+    if (!harmless(calls[0])) return "first request was " + calls[0].method + " " + calls[0].url + " — only the turn probe and the deletion-records read may precede the push";
     if (worldState.turn !== 412) return "the probe touched worldState";
     return settle().then(function () {
       if (!postSeen) return "no push fired";
       var stateGetBeforePost = false, seenPost = false, q;
       for (q = 0; q < calls.length; q++) { if (calls[q].method === "POST") seenPost = true; else if (!seenPost && isReconcileGet(calls[q])) stateGetBeforePost = true; }
       if (stateGetBeforePost) return "a reconcile GET ran before the push — the adopt path outran the dirty turns";
+      var early = [], records = 0, e;
+      for (e = 0; e < calls.length && calls[e].method !== "POST"; e++) { if (!harmless(calls[e])) early.push(calls[e].method + " " + calls[e].url); if (/campaign-deletions$/.test(calls[e].url)) records++; }
+      if (early.length) return "before the push: " + early.join(", ") + " — only the turn probe and the deletion-records read may precede it";
+      if (records > 1) return "the deletion records were read " + records + " times before the push";
       var getAt = -1, k;
       for (k = 0; k < calls.length; k++) { if (isReconcileGet(calls[k])) { getAt = k; break; } }
       if (getAt < 0) return "the reconcile never ran after the push";

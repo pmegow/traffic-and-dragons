@@ -21,7 +21,7 @@ prove("storage-adapter.js", [
     find: "    var p = _delElsewhere(); if (!p || p.id !== id) return false;\n    _delElsewhereSet(null);", replace: "    var p = _delElsewhere(); if (!p || p.id !== id) return false;",
     mustFail: "Keep re-uploads it" },
   { label: "the list road prunes the campaign on screen without asking",
-    find: "      if (_was && !merged.some(function (m) { return m && m.id === _act; }) && !_delElsewhere()) {", replace: "      if (false) {",
+    find: "      if (_was && !merged.some(function (m) { return m && m.id === _act; }) && !_delElsewhereFor(_act)) {", replace: "      if (false) {",
     mustFail: "the list road" },
   { label: "a stale answer after a campaign switch is blamed on the server",
     find: "      if (_rcId && _nowActive && _nowActive !== _rcId) {", replace: "      if (false) {",

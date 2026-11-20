@@ -290,28 +290,29 @@ sync("state.js", [
 ]);
 
 /* S12 live (owner 2026-11-20): the campaign ON SCREEN deleted on another device during a session — an ordinary save, the
-   boot push and a return to the page read the deletion records first; a record pauses the upload and raises the F9 question. */
+   boot push and a return to the page read the deletion records first; a record pauses the upload and raises the F9 question.
+   The "review" clauses guard what the independent review of the first build found. */
 sync("storage-adapter.js", [
   { label: "S12 live: an ordinary save uploads without reading the records",
     find: "_deletedElsewhereLook(function () { _syncNow(); }); }, SYNC_DEBOUNCE_MS);", replace: "_syncNow(); }, SYNC_DEBOUNCE_MS);", mustFail: "FAIL #777 S12 live: a save of the campaign on screen reads the records first" },
   { label: "S12 live: a record for the campaign on screen records no question",
-    find: "      if (hit && _activeCampNow() === id && _deletedElsewhereDue(id)) {", replace: "      if (false) {", mustFail: "FAIL #777 S12 live: a save of the campaign on screen reads the records first" },
+    find: "        if (hit && _activeCampNow() === id && _deletedElsewhereDue(id)) {", replace: "        if (false) {", mustFail: "FAIL #777 S12 live: a save of the campaign on screen reads the records first" },
   { label: "S12 live: the question is recorded but never raised",
-    find: "        if (!quiet) askDeletedElsewhere();\n      }", replace: "      }", mustFail: "FAIL #777 S12 live: a save of the campaign on screen reads the records first" },
+    find: "          if (!quiet) askDeletedElsewhere();\n        }", replace: "        }", mustFail: "FAIL #777 S12 live: a save of the campaign on screen reads the records first" },
   { label: "S12 live: the question is raised again at every save while it stands",
     find: "    if (_delAskedId === id && !again) return false;\n", replace: "", mustFail: "FAIL #777 S12 live: a save of the campaign on screen reads the records first" },
   { label: "S12 live: an answered question is remembered as the next one's",
     find: "    if (!rec) { _delAskedId = null; _delCarSaid = null; }\n", replace: "", mustFail: "FAIL #777 S12 live: a save of the campaign on screen reads the records first" },
-  { label: "S12 live: a look reads the records but a later look reads them again while the question stands",
-    find: "    if (p && id && p.id === id) { if (!quiet) askDeletedElsewhere(); then(); return; }\n    if (!_deletedElsewhereDue(id)) { then(); return; }", replace: "    if (p && id && p.id === id) { if (!quiet) askDeletedElsewhere(); }\n    if (!id) { then(); return; }", mustFail: "FAIL #777 S12 live: coming back to the page" },
+  { label: "S12 live: a later look reads the records again while the question stands",
+    find: "    if (_delElsewhereFor(id)) { if (!quiet) askDeletedElsewhere(); then(); return; }\n    if (!_deletedElsewhereDue(id)) { then(); return; }", replace: "    if (_delElsewhereFor(id)) { if (!quiet) askDeletedElsewhere(); }\n    if (!id) { then(); return; }", mustFail: "FAIL #777 S12 live: coming back to the page" },
   { label: "S12 live: a campaign that is this device's own is looked up",
-    find: "    var row = _campRow(id); return !!(row && row.onServer);", replace: "    var row = _campRow(id); return !!row;", mustFail: "FAIL #777 S12 live: a campaign this device lists as its own" },
+    find: "return !!((row && row.onServer) || _delHeld[id] === true);", replace: "return !!(row || _delHeld[id] === true);", mustFail: "FAIL #777 S12 live: a campaign this device lists as its own" },
   { label: "S12 live: a failed read of the records blocks the save",
-    find: "      for (i = 0; i < waiting.length; i++) {\n        try { waiting[i](); }", replace: "      if (!err) for (i = 0; i < waiting.length; i++) {\n        try { waiting[i](); }", mustFail: "FAIL #777 S12 live: with no record for it" },
+    find: "      } catch (e) { console.error(\"[storage] reading the deletion records failed:\", e); }\n      release();", replace: "      } catch (e) { console.error(\"[storage] reading the deletion records failed:\", e); }\n      if (!err) release();", mustFail: "FAIL #777 S12 live: with no record for it" },
   { label: "S12 live: a failed read of the records is not said",
-    find: "      if (err) console.warn(\"[storage] the deletion records could not be read before this save (\" + err + \") — the save goes up without them\");", replace: "      if (err) void 0;", mustFail: "FAIL #777 S12 live: with no record for it" },
+    find: "        if (err) console.warn(\"[storage] the deletion records could not be read before this save (\" + err + \") — the save goes up without them\");", replace: "        if (err) void 0;", mustFail: "FAIL #777 S12 live: with no record for it" },
   { label: "S12 live: a server that keeps no records is asked at every save",
-    find: "      else if (!recs) _delRecordsOff = true;", replace: "      else if (!recs) void 0;", mustFail: "FAIL #777 S12 live: with no record for it" },
+    find: "        else if (!recs) _delRecordsOff = true;", replace: "        else if (!recs) void 0;", mustFail: "FAIL #777 S12 live: with no record for it" },
   { label: "S12 live: a direct flush waits on the records",
     find: "    _syncNow(beacon);\n  }", replace: "    _deletedElsewhereLook(function () { _syncNow(beacon); });\n  }", mustFail: "FAIL #777 S12 live: a direct flush" },
   { label: "S12 live: the question opens under the car screen",
@@ -321,24 +322,45 @@ sync("storage-adapter.js", [
   { label: "S12 live: two reads of the records run side by side",
     find: "    if (_delLooking) return;\n    _delLooking = true;", replace: "    _delLooking = true;", mustFail: "FAIL #777 S12 live: a save that arrives while a look is in flight" },
   { label: "S12 live: a save that arrives during a read is dropped",
-    find: "    _delWaiting.push(then);\n    if (_delLooking) return;", replace: "    if (_delLooking) return;\n    _delWaiting.push(then);", mustFail: "FAIL #777 S12 live: a save that arrives while a look is in flight" },
+    find: "    _delWaiting.push({ then: then, quiet: quiet });\n    if (_delLooking) return;", replace: "    if (_delLooking) return;\n    _delWaiting.push({ then: then, quiet: quiet });", mustFail: "FAIL #777 S12 live: a save that arrives while a look is in flight" },
   { label: "S12 live: a record is acted on for a campaign this device has left",
-    find: "      if (hit && _activeCampNow() === id && _deletedElsewhereDue(id)) {", replace: "      if (hit && _deletedElsewhereDue(id)) {", mustFail: "FAIL #777 S12 live: a record that answers after this device switched" },
+    find: "        if (hit && _activeCampNow() === id && _deletedElsewhereDue(id)) {", replace: "        if (hit && _deletedElsewhereDue(id)) {", mustFail: "FAIL #777 S12 live: a record that answers after this device switched" },
   { label: "S12 live: the boot push of unsent turns does not read the records",
     find: "    _deletedElsewhereLook(function () {   /* S12 live: a campaign the server records as deleted is never pushed back up by the boot */", replace: "    (function (f) { f(); })(function () {   /* S12 live: a campaign the server records as deleted is never pushed back up by the boot */", mustFail: "FAIL #777 S12 live: the boot push of unsent turns" },
   { label: "S12 live: the boot raises the question twice (the look and the reconcile)",
     find: "    }, true);/* S12 live look */", replace: "    }, false);/* S12 live look */", mustFail: "FAIL #777 S12 live: the boot push of unsent turns" },
   { label: "S12 live: another campaign's question is raised over the one on screen",
     find: "    if (!p || !id || p.id !== id) return false;\n    if (_delAskedId === id && !again) return false;", replace: "    if (!p || !id) return false;\n    if (_delAskedId === id && !again) return false;", mustFail: "FAIL #777 S12 live: a question standing for another campaign" },
-  { label: "S12 live: the records are read while another campaign's question stands",
-    find: "|| _delRecordsOff || _delElsewhere()) return false;", replace: "|| _delRecordsOff) return false;", mustFail: "FAIL #777 S12 live: a question standing for another campaign" }
-]);
-
-sync("storage-adapter.js", [
+  { label: "S12 live review: a question standing for another campaign switches the look off",
+    find: "|| _delRecordsOff || _delElsewhereFor(id)) return false;", replace: "|| _delRecordsOff || _delElsewhere()) return false;", mustFail: "FAIL #777 S12 live: a question standing for another campaign" },
   { label: "S12 live: a return to the page with nothing to save reads nothing",
     find: "syncToServer(); else lookDeletedElsewhere(); }", replace: "syncToServer(); }", mustFail: "FAIL #777 S12 live: a return to the page reads the records" },
   { label: "S12 live: a return to the page with unsent turns saves nothing",
-    find: "if (syncStatus().unsynced > 0) syncToServer(); else lookDeletedElsewhere(); }", replace: "lookDeletedElsewhere(); }", mustFail: "FAIL #777 S12 live: a return to the page reads the records" }
+    find: "if (syncStatus().unsynced > 0) syncToServer(); else lookDeletedElsewhere(); }", replace: "lookDeletedElsewhere(); }", mustFail: "FAIL #777 S12 live: a return to the page reads the records" },
+  { label: "S12 live review: the look has no bound of its own",
+    find: "      release();\n    }, DEL_LOOK_MS);", replace: "    }, DEL_LOOK_MS);", mustFail: "FAIL #777 S12 live review: a records answer whose body never arrives" },
+  { label: "S12 live review: a given-up read is not said",
+    find: "      console.warn(\"[storage] the deletion records did not answer in \" + Math.round(DEL_LOOK_MS / 1000) + \" s — the save goes up without them\");", replace: "      void 0;", mustFail: "FAIL #777 S12 live review: a records answer whose body never arrives" },
+  { label: "S12 live review: an acknowledged save does not mark the campaign as held by the cloud",
+    find: "    if (campId) _delHeld[campId] = true;", replace: "    if (campId) void 0;", mustFail: "FAIL #777 S12 live review: a campaign first uploaded on this page" },
+  { label: "S12 live review: a kept campaign stays marked as held — its own upload reads the record it clears",
+    find: "    delete _delHeld[id];   /* S12 live: the record the Keep is about to clear", replace: "    void 0;   /* S12 live: the record the Keep is about to clear", mustFail: "FAIL #777 S12 live review: a campaign first uploaded on this page" },
+  { label: "S12 live review: a waiter for another campaign rides the read it joined",
+    find: "        try { if (_activeCampNow() !== id) _deletedElsewhereLook(w.then, w.quiet); else w.then(); }", replace: "        try { w.then(); }", mustFail: "FAIL #777 S12 live review: a save that joins another campaign's read" },
+  { label: "S12 live review: a question that failed to show is marked as asked",
+    find: "      return false;\n    }\n    _delAskedId = id;\n    return true;", replace: "      _delAskedId = id; return false;\n    }\n    _delAskedId = id;\n    return true;", mustFail: "FAIL #777 S12 live review: a question that cannot be shown" },
+  { label: "S12 live review: a hook that throws escapes the door",
+    find: "    try {\n      if (typeof onCampaignDeletedElsewhere === \"function\") onCampaignDeletedElsewhere(id, nm);", replace: "    if (typeof onCampaignDeletedElsewhere === \"function\") onCampaignDeletedElsewhere(id, nm);\n    try {\n      void 0;", mustFail: "FAIL #777 S12 live review: a question that cannot be shown" },
+  { label: "S12 live review: a Keep that lands during the read is recorded again",
+    find: "        if (hit && _activeCampNow() === id && _deletedElsewhereDue(id)) {", replace: "        if (hit && _activeCampNow() === id) {", mustFail: "FAIL #777 S12 live review: a Keep that lands while the records are being read" },
+  { label: "S12 live review: a removed campaign's question stays",
+    find: "if (_delElsewhereFor(id)) _delElsewhereSet(null); }", replace: "}", mustFail: "FAIL #777 S12 live review: a campaign that leaves this device" },
+  { label: "S12 live review: a page with no world reads the records",
+    find: "    if (typeof worldState === \"undefined\" || !worldState) return false;\n    var row = _campRow(id);", replace: "    var row = _campRow(id);", mustFail: "FAIL #777 S12 live review: with no world on the page" }
+]);
+sync("state.js", [
+  { label: "S12 live review: a campaign's removal does not reach its question",
+    find: "  if(storageAdapter.forgetDeletedElsewhere)storageAdapter.forgetDeletedElsewhere(id);", replace: "  ", mustFail: "FAIL #777 S12 live review: a campaign that leaves this device" }
 ]);
 sync("ui-carmode.js", [
   { label: "S12 live: closing Car Mode raises no owed question",

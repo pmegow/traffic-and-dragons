@@ -181,7 +181,10 @@ tAsync("the question itself (ui-campaigns.js): a forced choice, Keep first; Keep
     ui(A, "The Gate road"); shown.length = 0; el("de-remove").onclick();
     if (getActiveCampId() || store.get(WSK)) return "Remove left the campaign on this device";
     if (shown.indexOf("picker") < 0 || shown.indexOf("wizard") < 0) return "after Remove the wizard and the picker must open: " + JSON.stringify(shown);
-    return store.get("tnd_deleted_elsewhere_v1") ? "the question was left pending after Remove" : true;
+    if (store.get("tnd_deleted_elsewhere_v1")) return "the question was left pending after Remove";
+    /* S12 live (v1.1483): the removal itself now clears the question (forgetCampaignSyncMarkers), so the pending key no longer tells
+       whether the player's answer went through its door. The door says the choice on the console; that is what is read here. */
+    return infos.some(function (m) { return /removal from this device chosen/.test(m); }) ? true : "the question was left pending after Remove — the answer did not go through resolveDeletedElsewhere (its choice is not on the console): " + JSON.stringify(infos);
   });
 });
 chain.then(function () {
