@@ -1149,6 +1149,11 @@ function setActiveCampId(id){
   var prev=store.get(ACTIVE_CAMP_K)||null;
   if((id||null)!==prev){if(typeof checkpointClear==="function")checkpointClear();if(typeof TTS!=="undefined"&&TTS&&typeof TTS.stop==="function"&&((TTS.isPlaying&&TTS.isPlaying())||(TTS.isPaused&&TTS.isPaused())))TTS.stop();}/* #481 E4: the ONE campaign-activation boundary — another campaign's narration stops here (a cloud voice kept fetching and billing) */
   if(id)store.set(ACTIVE_CAMP_K,id);else store.del(ACTIVE_CAMP_K);
+  /* audit 2026-11-19, S12 (review): the campaign that was on screen is now only its slot. If the cloud has not acknowledged
+     the turn that slot holds, the slot is marked — a later deletion record never removes a marked copy unasked. Here, at
+     the identity change itself, and not in the slot snapshot: a switch that fails and is rolled back (#337) never reaches
+     this line, so it leaves no mark. The sync state is still the old campaign's (loadState resets it after). */
+  if(prev&&(id||null)!==prev&&typeof storageAdapter!=="undefined"&&storageAdapter&&storageAdapter.slotUnsentNote&&store.get(campSlotKey(prev,"ws")))storageAdapter.slotUnsentNote(prev,campLocalTurn(prev));
 }
 function newCampaignId(){return"camp_"+Date.now()+"_"+Math.floor(Math.random()*9000+1000);}
 /* E13b (owner field report 2026-09-13): is this id already a campaign? The campaign list knows it, or a slot holds state
@@ -1286,6 +1291,10 @@ function _importInstall(data,ws){
   // Resolve the campaign slot (#423): the file's own id only when this device owns it; a foreign id is re-minted.
   var plan=resolveImportedCampaignId(ws.campId);
   setActiveCampId(plan.id);worldState.campId=plan.id;
+  /* audit 2026-11-19, S12 (review): a file imported over an id this device already holds is the player putting that
+     campaign back. Its row is this device's own until a list sync says the server lists it — a row still flagged
+     onServer would let a deletion record remove the import once another campaign is on screen. */
+  if(!plan.reminted&&plan.fileId){var _im=getCampMeta(),_ii,_ic=false;for(_ii=0;_ii<_im.length;_ii++)if(_im[_ii]&&_im[_ii].id===plan.id&&_im[_ii].onServer){delete _im[_ii].onServer;_ic=true;}if(_ic){try{setCampMeta(_im);}catch(_ie){console.warn("[import] the list row of "+plan.id+" could not be re-marked as this device's own ("+((_ie&&_ie.message)||_ie)+")");}}}
   /* #509: a re-minted import takes its own stamped moments with it, or they read as "an earlier adventure" */
   if(plan.reminted&&typeof campRestampId==="function"){var _rn=campRestampId(worldState,plan.fileId,plan.id);if(_rn)console.info("[import] "+_rn+" stamped record(s) follow the campaign to "+plan.id+" (#509)");}
   sessionLog=Array.isArray(data.sessionLog)?data.sessionLog:[];
@@ -1509,6 +1518,7 @@ function forgetCampaignSyncMarkers(id){
   if(!id||typeof storageAdapter==="undefined"||!storageAdapter)return;
   if(storageAdapter.clearFlushDirty)storageAdapter.clearFlushDirty(id);
   if(storageAdapter.clearSyncSizeWarn)storageAdapter.clearSyncSizeWarn(id);
+  if(storageAdapter.slotUnsentClear)storageAdapter.slotUnsentClear(id);/* S12: the mark dies with the copy */
 }
 /* Audit 2026-11-19, S11: the campaign's last camp leaves the device with it. The IndexedDB copy (ui-files.js; absent in the
    headless engine) holds a whole world per campaign and nothing ever deleted one. Called where a campaign is deleted or its

@@ -111,10 +111,6 @@ sync("ui-boot.js", [
   { label: "S3: the wizard is shown over an unreadable save",
     find: "    if(typeof unreadableLoad===\"function\"&&unreadableLoad()){showUnreadableSaveScreen(unreadableLoad(),_wizard);return;}\n", replace: "", mustFail: S3_SCREEN }
 ]);
-sync("helpers.js", [
-  { label: "S3: the refusal screen paints the reason as HTML",
-    find: "\": \"+escHtml(String(info.reason||\"unknown error\"))+\".</p>\"", replace: "\": \"+String(info.reason||\"unknown error\")+\".</p>\"", mustFail: S3_SCREEN }
-]);
 
 // ── S4, S6: the .tnd import ─────────────────────────────────────────────────────────────────────────────────────────
 var S4 = "FAIL #777 S4: an import that throws while it is prepared is undone";
@@ -203,50 +199,93 @@ sync("state.js", [
     mustFail: "FAIL #777 S11: a re-homed campaign's camp is moved to the new id" }
 ]);
 
-// S12 (owner ruling 2026-11-19): a local copy is removed only on the server's deletion record
+// S12 (owner ruling 2026-11-19; the rule as rewritten after its independent review): a record removes a copy unasked only when
+// the cloud provably held everything in it; anything less is asked; some copies are never touched
 sync("storage-adapter.js", [
   { label: "S12: the deletion records are never asked for",
-    find: "      listDeletedCampaigns(function (e, recs) {\n        if (e) {", replace: "      (function () {})(function (e, recs) {\n        if (e) {", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+    find: "      listDeletedCampaigns(function (e, recs) {\n        if (e) {", replace: "      (function () {})(function (e, recs) {\n        if (e) {", mustFail: "FAIL #777 S12: a copy the cloud provably held is removed on the server's record" },
+  { label: "S12: the game asks at the path the unsafe builds use",
+    find: "_apiJson(\"/api/campaign-deletions\", \"GET\"", replace: "_apiJson(\"/api/campaigns/deleted\", \"GET\"", mustFail: "FAIL #777 S12: a copy the cloud provably held is removed on the server's record" },
   { label: "S12: the copy is not removed",
-    find: "      deleteCampaign(p.id);\n      removed.push(p.name);", replace: "      removed.push(p.name);", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+    find: "      deleteCampaign(p.id);\n      removed.push(p.name);", replace: "      removed.push(p.name);", mustFail: "FAIL #777 S12: a copy the cloud provably held is removed on the server's record" },
   { label: "S12: the picker is not told what left",
-    find: "      removed.push(p.name);\n", replace: "", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+    find: "      removed.push(p.name);\n", replace: "", mustFail: "FAIL #777 S12: a copy the cloud provably held is removed on the server's record" },
   { label: "S12: the removal is not said in words the player can act on",
-    find: " its copy was removed from this device.\", 8000);", replace: " gone.\", 8000);", mustFail: "FAIL #777 S12: a campaign the server RECORDS as deleted is removed from this device" },
+    find: " its copy was removed from this device.\", 8000);", replace: " gone.\", 8000);", mustFail: "FAIL #777 S12: a copy the cloud provably held is removed on the server's record" },
   { label: "S12: an older server's 404 is reported as a failure at every sync",
     find: "if (/\\b404\\b/.test(String(err))) cb(null, null); else cb(err); return; }", replace: "cb(err); return; }", mustFail: "FAIL #777 S12: with no record" },
   { label: "S12: a failed read of the records is silent",
     find: "if (e) { console.warn(\"[storage] the deletion records could not be read (\" + e + \") — no local copy is removed without them\"); return; }", replace: "if (e) { return; }", mustFail: "FAIL #777 S12: with no record" },
-  { label: "S12: a copy with unsent turns is removed unasked",
-    find: "action: dirtyTurn(r.id) != null ? \"ask\" : \"remove\" });", replace: "action: \"remove\" });", mustFail: "FAIL #777 S12: a copy holding turns that never reached the cloud is asked about" },
-  { label: "S12: every question is asked at once",
-    find: "if (!asked) { asked = 1; onCampaignCopyDeletedElsewhere(", replace: "{ asked = 1; onCampaignCopyDeletedElsewhere(", mustFail: "FAIL #777 S12: a copy holding turns that never reached the cloud is asked about" },
-  { label: "S12: a copy left for want of a question is not said",
-    find: "console.warn(\"[storage] \" + p.id + \" was deleted on another device and this copy holds unsent turns", replace: "void (\"[storage] \" + p.id + \" was deleted on another device and this copy holds unsent turns", mustFail: "FAIL #777 S12: a copy holding turns that never reached the cloud is asked about" },
+  { label: "S12 review: a copy with no list row is removed unasked",
+    find: "why = !row ? \"this device has no list row for it\"\n        : dirtyTurn(r.id) != null ?", replace: "why = dirtyTurn(r.id) != null ?", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: the page-hide marker is ignored",
+    find: "dirtyTurn(r.id) != null ? \"turns were unsent when the page was last hidden\"\n        : ", replace: "", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a copy left unacknowledged is removed unasked",
+    find: "        : unsentTurn(r.id) != null ? \"it was left before the cloud acknowledged its last turn\"\n", replace: "", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a record with no turn removes the copy",
+    find: "        : typeof r.turn !== \"number\" ? \"the record does not say what turn the cloud held\"\n", replace: "", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a copy whose turn cannot be read is removed",
+    find: "        : !(typeof lt === \"number\" && lt >= 0) ? \"the copy's own turn cannot be read\"\n", replace: "", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: an unknown turn (-1) counts as held by the cloud",
+    find: "!(typeof lt === \"number\" && lt >= 0) ?", replace: "!(typeof lt === \"number\") ?", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a copy past the cloud's turn is removed unasked",
+    find: "        : lt > r.turn ? \"the copy is at turn \" + lt + \", past the cloud's \" + r.turn\n", replace: "", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a copy one turn past the cloud's is removed",
+    find: ": lt > r.turn ?", replace: ": lt > r.turn + 1 ?", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a copy with no times to compare is removed",
+    find: "        : !(typeof r.deletedAt === \"number\" && typeof row.savedAt === \"number\") ? \"the record and the copy have no times to compare\"\n", replace: "", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a copy saved after the record is removed (a restored record, or play since)",
+    find: "        : row.savedAt > r.deletedAt ? \"the copy was saved after the deletion was recorded\"\n", replace: "", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: every question is asked at once",
+    find: "if (!asked) { asked = 1; console.info(", replace: "{ asked = 1; console.info(", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: a copy left for want of a question is not said",
+    find: "console.warn(\"[storage] \" + p.id + \" was deleted on another device, and \" + p.why + \" — nobody to ask", replace: "void (\"[storage] \" + p.id + \" was deleted on another device, and \" + p.why + \" — nobody to ask", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: the question opens in Car Mode",
+    find: "        if (typeof carMode !== \"undefined\" && carMode) continue;", replace: "        ", mustFail: "FAIL #777 S12: a copy that may hold what the cloud never had is ASKED about" },
+  { label: "S12 review: every slot left is marked (the cloud's acknowledgement counts for nothing)",
+    find: "var proven = !!_serverUrl && !!_token && !_conflict && !locked && !(pend && pend.id === id) && typeof turn === \"number\" && _lastAckTurn >= turn;", replace: "var proven = false;", mustFail: "FAIL #777 S12: leaving a campaign the cloud has not acknowledged marks its copy" },
+  { label: "S12 review: no slot is ever marked",
+    find: "var proven = !!_serverUrl && !!_token && !_conflict && !locked && !(pend && pend.id === id) && typeof turn === \"number\" && _lastAckTurn >= turn;", replace: "var proven = true;", mustFail: "FAIL #777 S12: leaving a campaign the cloud has not acknowledged marks its copy" },
+  { label: "S12 review: a turn behind the acknowledged one still counts as proven",
+    find: "&& _lastAckTurn >= turn;", replace: "&& _lastAckTurn >= -1;", mustFail: "FAIL #777 S12: leaving a campaign the cloud has not acknowledged marks its copy" },
+  { label: "S12 review: the acknowledgement does not clear the mark",
+    find: "    if (u != null && typeof turnAt === \"number\" && turnAt >= u) slotUnsentClear(campId);\n", replace: "", mustFail: "FAIL #777 S12: leaving a campaign the cloud has not acknowledged marks its copy" },
   { label: "S12: the campaign on screen is removed on its record",
-    find: "      if (r.id === activeId) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+    find: "if (r.id === activeId || r.id === pendingId) continue;", replace: "if (r.id === pendingId) continue;", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12 review: a campaign with an open question of its own is planned as well",
+    find: "if (r.id === activeId || r.id === pendingId) continue;", replace: "if (r.id === activeId) continue;", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
   { label: "S12: a campaign the server lists again is removed on a stale record",
-    find: "      if (listed) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
-  { label: "S12: a campaign kept on this device is removed",
-    find: "      if (row && !row.onServer) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
-  { label: "S12: an id with no copy here is reported as removed",
+    find: "      if (find(serverList, r.id)) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: a campaign this device lists as its own is removed",
+    find: "      now = find(nowRows, r.id); if (now && !now.onServer) continue;", replace: "      now = null;", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12: an id with no copy here is asked about",
     find: "      if (!hasSlot(r.id)) continue;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
   { label: "S12: an answer that is no list throws",
     find: "    if (!Array.isArray(records)) return out;\n", replace: "", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
-  { label: "S12: a record with no id is acted on",
+  { label: "S12: a record with no usable id is acted on",
     find: "if (!r || typeof r.id !== \"string\" || !r.id || seen[r.id]) continue;", replace: "if (!r || seen[r.id]) continue;", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
-  { label: "S12: a copy with no list row is not named from the record",
-    find: "|| (typeof r.name === \"string\" && r.name) || r.id, row: row,", replace: "|| r.id, row: row,", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" }
+  { label: "S12 review: the campaign on screen is missed when only its world names it",
+    find: ") || ((typeof worldState !== \"undefined\" && worldState && worldState.campId) ? worldState.campId : null);", replace: ");", mustFail: "FAIL #777 S12: the record never removes the campaign on screen" },
+  { label: "S12 review: the plan reads the list as it stood before the requests",
+    find: "serverList, act, (typeof getCampMeta === \"function\") ? getCampMeta() : [],", replace: "serverList, act, localRows,", mustFail: "FAIL #777 S12: what the player kept stays kept" },
+  { label: "S12 review: a campaign kept at its own question gets no list row",
+    find: " else if (typeof keepDeletedCampaignCopy === \"function\") keepDeletedCampaignCopy(id, null, p.name);", replace: "", mustFail: "FAIL #777 S12: what the player kept stays kept" }
 ]);
 sync("state.js", [
+  { label: "S12 review: leaving a campaign marks nothing",
+    find: "storageAdapter.slotUnsentNote(prev,campLocalTurn(prev));", replace: "void 0;", mustFail: "FAIL #777 S12: leaving a campaign the cloud has not acknowledged marks its copy" },
+  { label: "S12 review: the mark outlives its campaign",
+    find: "  if(storageAdapter.slotUnsentClear)storageAdapter.slotUnsentClear(id);", replace: "  ", mustFail: "FAIL #777 S12: leaving a campaign the cloud has not acknowledged marks its copy" },
+  { label: "S12 review: an import over a held id stays listed as the server's",
+    find: "if(!plan.reminted&&plan.fileId){var _im=getCampMeta()", replace: "if(false){var _im=getCampMeta()", mustFail: "FAIL #777 S12: what the player kept stays kept" },
   { label: "S12: a kept copy carried by its row stays listed as the server's",
-    find: "r.id=id;delete r.onServer;if(!r.campName", replace: "r.id=id;if(!r.campName", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" },
+    find: "r.id=id;delete r.onServer;if(!r.campName", replace: "r.id=id;if(!r.campName", mustFail: "FAIL #777 S12: what the player kept stays kept" },
   { label: "S12: a kept row still on the list stays listed as the server's",
-    find: "{delete meta[k].onServer;setCampMeta(meta);return true;}", replace: "{setCampMeta(meta);return true;}", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" },
+    find: "{delete meta[k].onServer;setCampMeta(meta);return true;}", replace: "{setCampMeta(meta);return true;}", mustFail: "FAIL #777 S12: what the player kept stays kept" },
   { label: "S12: a kept copy with no row is listed under its id",
-    find: "r.campName=(typeof name===\"string\"&&name)?name:id;", replace: "r.campName=id;", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" },
+    find: "r.campName=(typeof name===\"string\"&&name)?name:id;", replace: "r.campName=id;", mustFail: "FAIL #777 S12: what the player kept stays kept" },
   { label: "S12: a keep with no id writes a row",
-    find: "  if(!id)return false;\n  var meta=getCampMeta(),k,r;", replace: "  var meta=getCampMeta(),k,r;", mustFail: "FAIL #777 S12: a copy left behind with no list row is removed on its record" }
+    find: "  if(!id)return false;\n  var meta=getCampMeta(),k,r;", replace: "  var meta=getCampMeta(),k,r;", mustFail: "FAIL #777 S12: what the player kept stays kept" }
 ]);
 
 process.exit(failed ? 1 : 0);

@@ -108,6 +108,8 @@ var storageAdapter = (function() {
   // campId (audit 2026-11-19, S1) names the campaign whose push landed: the answer can arrive after this device has
   // switched to another campaign, and the marker it clears is the POSTED campaign's, never the one now open.
   function _flushAcked(turnAt, campId) {
+    var u = campId ? slotUnsentTurn(campId) : null;   /* audit S12: the "left unacknowledged" mark of the POSTED campaign goes with the acknowledgement of its turn */
+    if (u != null && typeof turnAt === "number" && turnAt >= u) slotUnsentClear(campId);
     var t = flushDirtyTurn(campId);
     if (t == null) return;
     if (typeof turnAt === "number" && turnAt >= t) clearFlushDirty(campId);
@@ -851,53 +853,103 @@ var storageAdapter = (function() {
   // mergeCampaignLists prunes the picker row of a campaign the server no longer lists and leaves its local copy where it is —
   // on purpose (UA20): "absent from the list" is also what this device sees after a server data loss or a restore from an
   // older backup, and removing copies on that signal would delete every survivor. Since server 1.16.0 a deletion leaves a
-  // RECORD (GET /api/campaigns/deleted), and only that record removes a copy. Left alone whatever the record says: the
-  // campaign on screen (its own question, #481 F9), one the server lists again, one this device lists as its own (no
-  // onServer: created here, or kept by the player), and an id with no copy here. A copy holding turns that never reached
-  // the cloud (the JP0-11 marker) is asked about, one question a sync.
-  // PURE: [{id, name, row, action:"remove"|"ask"}].
-  function planDeletedElsewhere(records, localRows, serverList, activeId, hasSlot, dirtyTurn) {
-    var out = [], seen = Object.create(null), i, j, r, row, listed;
+  // RECORD (GET /api/campaign-deletions → [{id, name, turn, deletedAt}]), and only a record can remove a copy.
+  //
+  // THE RULE (rewritten after the independent review of the first build, which removed copies with unsent turns unasked —
+  // its one signal, the JP0-11 page-hide marker, is written in a single narrow case). A record removes a copy UNASKED only
+  // when the cloud PROVABLY held everything in it:
+  //   • the list row this device had for it is the server's (onServer) and carries a save time no later than the record's
+  //     (a row saved after the deletion means the campaign was played or put back since — or the record is a restored one);
+  //   • the record carries the turn the cloud held, and the copy's own turn is readable and not past it;
+  //   • nothing marks the copy unsent: no JP0-11 marker, and no "left unacknowledged" mark (slotUnsentNote, below).
+  // Anything less is ASKED (onCampaignCopyDeletedElsewhere, Keep first, one question a sync, never in Car Mode).
+  // NEVER touched, whatever the record says: the campaign on screen (the F9 question owns it), one whose own F9 question is
+  // still open, one the server lists again, one this device lists as its own (no onServer, read as the list stands when the
+  // records ARRIVE: the player may have kept or imported it since the sync began), and an id with no copy here.
+  // PURE: [{id, name, row, action:"remove"|"ask", why}].
+  function planDeletedElsewhere(records, localRows, serverList, activeId, nowRows, hasSlot, localTurn, dirtyTurn, unsentTurn, pendingId) {
+    var out = [], seen = Object.create(null), i, r, row, now, lt, why;
+    function find(list, id) { var j; for (j = 0; j < (list || []).length; j++) if (list[j] && list[j].id === id) return list[j]; return null; }
     if (!Array.isArray(records)) return out;
     for (i = 0; i < records.length; i++) {
       r = records[i];
       if (!r || typeof r.id !== "string" || !r.id || seen[r.id]) continue;
       seen[r.id] = true;
-      if (r.id === activeId) continue;
-      listed = false; for (j = 0; j < (serverList || []).length; j++) if (serverList[j] && serverList[j].id === r.id) { listed = true; break; }
-      if (listed) continue;
-      row = null; for (j = 0; j < (localRows || []).length; j++) if (localRows[j] && localRows[j].id === r.id) { row = localRows[j]; break; }
-      if (row && !row.onServer) continue;
+      if (r.id === activeId || r.id === pendingId) continue;
+      if (find(serverList, r.id)) continue;
+      now = find(nowRows, r.id); if (now && !now.onServer) continue;   /* a row that was this device's own when the sync began still is: the merge keeps it */
+      row = find(localRows, r.id);
       if (!hasSlot(r.id)) continue;
-      out.push({ id: r.id, name: (row && (row.campName || row.name)) || (typeof r.name === "string" && r.name) || r.id, row: row, action: dirtyTurn(r.id) != null ? "ask" : "remove" });
+      lt = localTurn(r.id);
+      why = !row ? "this device has no list row for it"
+        : dirtyTurn(r.id) != null ? "turns were unsent when the page was last hidden"
+        : unsentTurn(r.id) != null ? "it was left before the cloud acknowledged its last turn"
+        : typeof r.turn !== "number" ? "the record does not say what turn the cloud held"
+        : !(typeof lt === "number" && lt >= 0) ? "the copy's own turn cannot be read"
+        : lt > r.turn ? "the copy is at turn " + lt + ", past the cloud's " + r.turn
+        : !(typeof r.deletedAt === "number" && typeof row.savedAt === "number") ? "the record and the copy have no times to compare"
+        : row.savedAt > r.deletedAt ? "the copy was saved after the deletion was recorded"
+        : null;
+      out.push({ id: r.id, name: (row && (row.campName || row.name)) || (typeof r.name === "string" && r.name) || r.id, row: row, action: why ? "ask" : "remove", why: why });
     }
     return out;
   }
-  // cb(err) on a failure; cb(null, null) when the server keeps no records (404: older than 1.16.0) or answers no list.
+  // cb(err) on a failure; cb(null, null) when the server keeps no records (404: older than 1.16.0, or switched off).
+  // NOT /api/campaigns/deleted: builds v1.1472–v1.1473 ask there and act on the first rule; the server answers them 404.
   function listDeletedCampaigns(cb) {
-    _apiJson("/api/campaigns/deleted", "GET", null, function (err, data) {
+    _apiJson("/api/campaign-deletions", "GET", null, function (err, data) {
       if (err) { if (/\b404\b/.test(String(err))) cb(null, null); else cb(err); return; }
       cb(null, data || null);   /* what is not a list plans nothing (planDeletedElsewhere) */
     });
   }
-  // Acts on the plan, reading the campaign on screen NOW (the answer may land after a switch). → {removed:[names], asked}
+  // Acts on the plan with everything read NOW (the answer may land after a switch, a keep or an import). → {removed, asked}
   function applyDeletedElsewhere(records, localRows, serverList) {
-    var act = (typeof getActiveCampId === "function") ? getActiveCampId() : null, removed = [], asked = 0, i, p;
-    var plan = planDeletedElsewhere(records, localRows, serverList, act,
-      function (id) { return !!store.get(campSlotKey(id, "ws")); }, flushDirtyTurn);
+    var act = ((typeof getActiveCampId === "function") ? getActiveCampId() : null) || ((typeof worldState !== "undefined" && worldState && worldState.campId) ? worldState.campId : null);
+    var pend = _delElsewhere(), removed = [], asked = 0, i, p;
+    var plan = planDeletedElsewhere(records, localRows, serverList, act, (typeof getCampMeta === "function") ? getCampMeta() : [],
+      function (id) { return !!store.get(campSlotKey(id, "ws")); },
+      function (id) { return (typeof campLocalTurn === "function") ? campLocalTurn(id) : null; },
+      flushDirtyTurn, slotUnsentTurn, pend ? pend.id : null);
     for (i = 0; i < plan.length; i++) {
       p = plan[i];
       if (p.action === "ask") {
-        if (typeof onCampaignCopyDeletedElsewhere !== "function") { console.warn("[storage] " + p.id + " was deleted on another device and this copy holds unsent turns — nobody to ask, so it stays on this device"); continue; }
-        if (!asked) { asked = 1; onCampaignCopyDeletedElsewhere(p.id, p.name, p.row); }
+        if (typeof carMode !== "undefined" && carMode) continue;   /* the question would open under the car screen; the next sync asks */
+        if (typeof onCampaignCopyDeletedElsewhere !== "function") { console.warn("[storage] " + p.id + " was deleted on another device, and " + p.why + " — nobody to ask, so the copy stays on this device"); continue; }
+        if (!asked) { asked = 1; console.info("[storage] " + p.id + " was deleted on another device; asking before removing the copy: " + p.why); onCampaignCopyDeletedElsewhere(p.id, p.name, p.row); }
         continue;
       }
       deleteCampaign(p.id);
       removed.push(p.name);
-      console.warn("[storage] " + p.id + " (" + p.name + ") was deleted on another device — the server holds the record, so this device's copy was removed (audit S12)");
-      if (typeof showToast === "function") showToast("\u2601 " + p.name + " was deleted on another device \u2014 its copy was removed from this device.", 8000);
+      console.warn("[storage] " + p.id + " (" + p.name + ") was deleted on another device — the server holds the record and the cloud held this copy in full, so it was removed from this device (audit S12)");
+      if (typeof showToast === "function") showToast("\u2601 " + p.name + " was deleted on another device \u2014 its copy was removed from this device.", 8000);   /* during play this is a Console line with the green dot (the #772 ruling: only inventory changes pop); in the picker, under a modal and in Car Mode it pops */
     }
     return { removed: removed, asked: asked };
+  }
+  // "Left unacknowledged": the mark the review asked for. When the campaign on screen is written to its slot (a switch, a
+  // new game, an import, the page going away) and this device cannot PROVE the cloud holds that turn — not connected, a
+  // conflict pause, a version lock, a pending deleted-elsewhere question, or simply no acknowledgement yet — the slot is
+  // marked with the turn. The acknowledgement of that turn clears it (_flushAcked, which is told which campaign was
+  // posted), and so does the campaign's removal. One entry a campaign; entries whose copy is gone are dropped as it is written.
+  var SLOT_UNSENT_K = "tnd_slot_unsent_v1";
+  function _unsentRead() {
+    try { var raw = (typeof store !== "undefined") ? store.get(SLOT_UNSENT_K) : null, o = raw ? JSON.parse(raw) : null; return (o && typeof o === "object" && Object.prototype.toString.call(o) !== "[object Array]") ? o : {}; }
+    catch (e) { console.warn("[storage] the unsent-slot marks could not be read (" + ((e && e.message) || e) + ") — a copy is asked about, never removed, for want of them only if another signal says so"); return {}; }
+  }
+  function _unsentWrite(map) {
+    try { if (typeof store === "undefined") return; if (Object.keys(map).length) store.set(SLOT_UNSENT_K, JSON.stringify(map)); else store.del(SLOT_UNSENT_K); }
+    catch (e) { console.warn("[storage] could not persist the unsent-slot mark (" + ((e && e.message) || e) + ")"); }
+  }
+  function slotUnsentTurn(id) { var v = _unsentRead()[id]; return (typeof v === "number") ? v : null; }
+  function slotUnsentClear(id) { var map = _unsentRead(); if (!Object.prototype.hasOwnProperty.call(map, id)) return; delete map[id]; _unsentWrite(map); }
+  function slotUnsentNote(id, turn) {
+    if (!id) return;
+    var pend = _delElsewhere(), locked = (typeof versionLockFor === "function") ? versionLockFor(id) : null;
+    var proven = !!_serverUrl && !!_token && !_conflict && !locked && !(pend && pend.id === id) && typeof turn === "number" && _lastAckTurn >= turn;
+    var map = _unsentRead(), had = Object.prototype.hasOwnProperty.call(map, id), k;
+    if (proven) { if (!had) return; delete map[id]; }
+    else map[id] = (typeof turn === "number") ? turn : -1;
+    for (k in map) if (Object.prototype.hasOwnProperty.call(map, k) && k !== id && !store.get(campSlotKey(k, "ws"))) delete map[k];
+    _unsentWrite(map);
   }
 
   // ── Load ────────────────────────────────────────────────────────────────
@@ -1006,7 +1058,7 @@ var storageAdapter = (function() {
     var p = _delElsewhere(); if (!p || p.id !== id) return false;
     _delElsewhereSet(null);
     if (keep) {   /* the local copy is the only copy now: it is local-only until its upload lands, then the list marks it again */
-      try { var meta = getCampMeta(), i; for (i = 0; i < meta.length; i++) if (meta[i] && meta[i].id === id) delete meta[i].onServer; setCampMeta(meta); }
+      try { var meta = getCampMeta(), i, _had = false; for (i = 0; i < meta.length; i++) if (meta[i] && meta[i].id === id) { delete meta[i].onServer; _had = true; } if (_had) setCampMeta(meta); else if (typeof keepDeletedCampaignCopy === "function") keepDeletedCampaignCopy(id, null, p.name);/* S12 review: the list sync had already pruned the row — a kept campaign with no row was removed by the next record */ }
       catch (e) { console.warn("[storage] could not clear the stale onServer flag for " + id + ": " + ((e && e.message) || e)); }
       console.info("[storage] " + id + " kept after a delete on another device — uploading it again");
       syncToServer();
@@ -1485,6 +1537,9 @@ var storageAdapter = (function() {
     syncCampaignList:      syncCampaignList,
     mergeCampaignLists:    mergeCampaignLists, // exposed for the engine tests (UA20)
     planDeletedElsewhere:  planDeletedElsewhere, // audit S12: the pure plan (exposed for the engine tests)
+    slotUnsentNote:        slotUnsentNote,       // audit S12: mark a slot left before the cloud acknowledged it
+    slotUnsentTurn:        slotUnsentTurn,
+    slotUnsentClear:       slotUnsentClear,
     listDeletedCampaigns:  listDeletedCampaigns, // audit S12: the server's deletion records
     resolveCas409:         resolveCas409,      // exposed for the engine tests (CAS self-heal)
     adoptServerTurn:       adoptServerTurn,    // #424: a confirmed cloud rewind LOWERS the ack base to the adopted turn

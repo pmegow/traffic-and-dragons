@@ -511,21 +511,23 @@ function onCampaignDeletedElsewhere(id,name){
    record — and this device's copy has turns that never reached the cloud. Removal is the ruled default; it is asked first. */
 function onCampaignCopyDeletedElsewhere(id,name,row){
   var nm=name||id;
-  if(typeof modalShell!=="function"){showToast("\u2601 "+nm+" was deleted on another device \u2014 this device still holds its unsent turns.",8000);return;}
+  if(typeof modalShell!=="function"){showToast("\u2601 "+nm+" was deleted on another device \u2014 this device still holds a copy.",8000);return;}
+  /* Keep is FIRST and takes the focus (review): the modal arrives on its own, takes the keyboard from the story box, and the
+     next Space or Enter meant for the story must never be "Remove" — the same reason the on-screen question puts Keep first. */
   var m=modalShell("deleted-copy-modal",
     "<div style='font-size:16px;color:var(--t0);font-weight:bold;margin-bottom:8px;'>"+escHtml(nm)+" was deleted on another device</div>"
-    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>This device still has a copy, with turns that never reached the cloud. Remove it from this device too? Removing it cannot be undone.</div>"
-    +"<div style='display:flex;gap:10px;margin-top:18px;'><button id='dc-remove' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Remove from this device</button>"
-    +"<button id='dc-keep' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Keep on this device</button></div>",
+    +"<div style='font-size:13px;color:var(--t1);line-height:1.5;'>This device still has a copy, and it may hold progress the cloud never had. Keep it here, or remove it from this device too? Removing it cannot be undone.</div>"
+    +"<div style='display:flex;gap:10px;margin-top:18px;'><button id='dc-keep' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--acc);border:none;border-radius:var(--r);color:var(--on-acc);font-weight:bold;cursor:pointer;'>Keep on this device</button>"
+    +"<button id='dc-remove' type='button' style='flex:1;padding:10px;font-family:var(--font);background:var(--bg2);border:1px solid var(--brd);border-radius:var(--r);color:var(--t1);cursor:pointer;'>Remove from this device</button></div>",
     {maxWidth:460,wireClose:false});
-  document.getElementById("dc-remove").onclick=function(){
-    m.remove();
-    if(getActiveCampId()===id){showToast("That campaign is open now \u2014 nothing was removed.");return;}/* opened while the question stood */
-    deleteCampaign(id);showToast("Removed "+nm+" from this device.");onCampaignCopiesRemoved([nm]);
-  };
   document.getElementById("dc-keep").onclick=function(){
     m.remove();keepDeletedCampaignCopy(id,row,nm);
     showToast("\u2601 Kept \u2014 "+nm+" stays on this device and uploads again when you next play it.");onCampaignCopiesRemoved([]);
+  };
+  document.getElementById("dc-remove").onclick=function(){
+    m.remove();
+    if(getActiveCampId()===id||(typeof worldState!=="undefined"&&worldState&&worldState.campId===id)){showToast("That campaign is open now \u2014 nothing was removed.");return;}/* opened while the question stood */
+    deleteCampaign(id);showToast("Removed "+nm+" from this device.");onCampaignCopiesRemoved([nm]);
   };
 }
 /* the picker, if it is open, shows the list as it now stands */

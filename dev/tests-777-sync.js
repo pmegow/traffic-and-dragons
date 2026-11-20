@@ -19,7 +19,7 @@ function boot() {
   console.warn = function () { said.warns.push([].join.call(arguments, " ")); };
   console.info = function () { said.infos.push([].join.call(arguments, " ")); };
   console.error = function () { said.errors.push([].join.call(arguments, " ")); };
-  syncUI = function () {}; addMsg = function () { return {}; };
+  syncUI = function () {}; addMsg = function () { return {}; }; carMode = false;
   return { L: L, said: said };
 }
 // two campaigns on this device: A (turn 2000) active and live, B (turn 10) in its slot; a server that answers when told to
@@ -547,129 +547,202 @@ kase("S13: a push of a campaign whose saved world cannot be read says so, with o
 
 // ── runner ──────────────────────────────────────────────────────────────────────────────────────────────────────────
 // ── S12: a campaign deleted on another device ──────────────────────────────────────────────────────────────────────
-// A active (never touched), B and C in their slots and listed as held by the server; the server's list now names only A.
+// THE RULE after the independent review: a record removes a copy UNASKED only when the cloud provably held everything in
+// it — the list row is the server's and no newer than the record, the record carries the cloud's turn and the copy is not
+// past it, and nothing marks the copy as unsent. Anything less is ASKED (Keep first), and a few things are never touched.
+// A active, B (turn 10) and C (turn 4) in their slots, all listed as the server's with a cloud save at time 1000.
+var DEL = /\/api\/campaign-deletions$/, OLD = /\/api\/campaigns\/deleted$/;
+function rows3() { return [{ id: "campA", campName: "A", onServer: true, savedAt: 1000 }, { id: "campB", campName: "B", onServer: true, savedAt: 1000 }, { id: "campC", campName: "C", onServer: true, savedAt: 1000 }]; }
 function deletedElsewhere(E, opts) {
   var net = twoCampaigns(E), C = E.L.makeTestWorld({ campId: "campC", campName: "C", turn: 4 }), o = opts || {};
   store.set(campSlotKey("campC", "ws"), serializeWorldState(C)); store.set(campSlotKey("campC", "sl"), "[]"); store.set(campSlotKey("campC", "mem"), JSON.stringify(blankMemory()));
-  setCampMeta(o.meta || [{ id: "campA", campName: "A", onServer: true }, { id: "campB", campName: "B", onServer: true }, { id: "campC", campName: "C", onServer: true }]);
+  setCampMeta(o.meta || rows3());
   net.asked = []; onCampaignCopyDeletedElsewhere = function (id, name, row) { net.asked.push({ id: id, name: name, row: row }); };
   net.removed = []; onCampaignCopiesRemoved = function (names) { net.removed.push(names); };
+  net.kinds = []; var st = showToast; showToast = function (m, ms, o2) { net.kinds.push(o2 && o2.kind); return st(m, ms, o2); };
   return net;
 }
+function rec(id, turn, over) { var r = { id: id, name: id.replace("camp", ""), turn: turn, deletedAt: 2000 }, k; for (k in (over || {})) r[k] = over[k]; return r; }
 function answer(net, re, status, body) {
   var p = net.pending.filter(function (x) { return re.test(x.call.url) && !x.done; })[0];
   assert.ok(p, "no request for " + re + " is waiting; seen: " + net.calls.map(function (c) { return c.method + " " + c.url; }).join(", "));
   p.done = true; p.answer(reply(status, body));
 }
-function listSync(net, serverList, records) {   // records: an array, a status number, or "fail" for a network error
+function listSync(net, serverList, records, between) {   // records: an array, a status number, or "fail"; between(): runs after the list landed, before the records do
   var out = { merged: undefined };
   storageAdapter.syncCampaignList(function (m) { out.merged = m; });
   return tick().then(function () { answer(net, /\/api\/campaigns$/, 200, serverList); return tick(); }).then(function () {
-    if (records === "fail") { var p = net.pending.filter(function (x) { return /\/api\/campaigns\/deleted$/.test(x.call.url) && !x.done; })[0]; assert.ok(p, "the deletion records were never asked for"); p.done = true; p.fail(new Error("offline")); }
-    else if (typeof records === "number") answer(net, /\/api\/campaigns\/deleted$/, records, { error: "x" });
-    else answer(net, /\/api\/campaigns\/deleted$/, 200, records);
+    if (between) between();
+    if (records === "fail") { var p = net.pending.filter(function (x) { return DEL.test(x.call.url) && !x.done; })[0]; assert.ok(p, "the deletion records were never asked for"); p.done = true; p.fail(new Error("offline")); }
+    else if (typeof records === "number") answer(net, DEL, records, { error: "x" });
+    else answer(net, DEL, 200, records);
     return tick();
   }).then(function () { return tick(); }).then(function () { return out; });
 }
 function held(id) { return !!store.get(campSlotKey(id, "ws")); }
-kase("S12: a campaign the server RECORDS as deleted is removed from this device, and the device says so", function (E) {
+var ONLY_A = [{ id: "campA", campName: "A", savedAt: 1000 }];
+kase("S12: a copy the cloud provably held is removed on the server's record, and the device says so", function (E) {
   var net = deletedElsewhere(E);
-  return listSync(net, [{ id: "campA", campName: "A" }], [{ id: "campB", name: "B (cloud)", deletedAt: 1 }]).then(function (out) {
+  return listSync(net, ONLY_A, [rec("campB", 10, { name: "B (cloud)" })]).then(function (out) {
     assert.ok(Array.isArray(out.merged), "the list sync did not finish");
-    assert.strictEqual(held("campB"), false, "the copy of a campaign the server records as deleted is still on this device");
+    assert.strictEqual(held("campB"), false, "a copy the cloud held in full, recorded as deleted, is still on this device");
     assert.ok(!store.get(campSlotKey("campB", "sl")) && !store.get(campSlotKey("campB", "mem")), "part of the copy stayed behind");
     assert.strictEqual(held("campC"), true, "a campaign with NO deletion record was removed (absent from the list is not proof of deletion)");
     assert.ok(store.get(WSK), "the campaign on screen lost its state");
-    assert.ok(E.said.toasts.some(function (t) { return /\bB\b/.test(t) && /deleted on another device/.test(t) && /removed from this device/.test(t); }), "the device did not say what it removed: " + JSON.stringify(E.said.toasts));
+    var at = -1; E.said.toasts.forEach(function (t, i) { if (/\bB\b/.test(t) && /deleted on another device/.test(t) && /removed from this device/.test(t)) at = i; });
+    assert.ok(at >= 0, "the device did not say what it removed: " + JSON.stringify(E.said.toasts));
     assert.deepStrictEqual(net.removed, [["B"]], "the picker was not told what left");
     assert.deepStrictEqual(net.asked, []);
-    assert.ok(!getCampMeta().some(function (c) { return c.id === "campB"; }), "the removed campaign is still listed");
+    assert.ok(!net.calls.some(function (c) { return OLD.test(c.url); }), "the game still asks at the path the unsafe builds use");
   });
 });
-kase("S12: with no record — an empty list, an older server (404), a failed request — every local copy stays", function (E) {
+kase("S12: with no record — an empty list, an older server (404), a failed request, an answer that is no list — every copy stays", function (E) {
   var net = deletedElsewhere(E);
-  return listSync(net, [{ id: "campA", campName: "A" }], []).then(function () {
+  return listSync(net, ONLY_A, []).then(function () {
     assert.ok(held("campB") && held("campC"), "a copy was removed with no record of its deletion");
-    setCampMeta([{ id: "campA", campName: "A", onServer: true }, { id: "campB", campName: "B", onServer: true }, { id: "campC", campName: "C", onServer: true }]);
-    return listSync(net, [{ id: "campA", campName: "A" }], 404);
+    setCampMeta(rows3()); return listSync(net, ONLY_A, 404);
   }).then(function () {
     assert.ok(held("campB") && held("campC"), "a server that keeps no records cost this device a copy");
     assert.ok(!E.said.warns.some(function (w) { return /deletion records/.test(w); }), "an older server is reported as a failure at every sync");
-    return listSync(net, [{ id: "campA", campName: "A" }], 500);
+    setCampMeta(rows3()); return listSync(net, ONLY_A, 500);
   }).then(function () {
     assert.ok(held("campB") && held("campC"));
     assert.ok(E.said.warns.some(function (w) { return /deletion records could not be read/.test(w); }), "a failed read of the records was not said");
-    return listSync(net, [{ id: "campA", campName: "A" }], "fail");
+    setCampMeta(rows3()); return listSync(net, ONLY_A, "fail");
   }).then(function () {
     assert.ok(held("campB") && held("campC"));
-    return listSync(net, [{ id: "campA", campName: "A" }], { not: "an array" });
+    setCampMeta(rows3()); return listSync(net, ONLY_A, { not: "an array" });
   }).then(function () {
     assert.ok(held("campB") && held("campC"), "a malformed answer removed a copy");
     assert.deepStrictEqual(net.removed, []); assert.deepStrictEqual(net.asked, []);
   });
 });
-kase("S12: a copy holding turns that never reached the cloud is asked about, never removed unasked", function (E) {
-  var net = deletedElsewhere(E);
-  storageAdapter.markFlushDirty("campB", 12); storageAdapter.markFlushDirty("campC", 5);
-  return listSync(net, [{ id: "campA", campName: "A" }], [{ id: "campB", name: "B", deletedAt: 1 }, { id: "campC", name: "C", deletedAt: 2 }]).then(function () {
-    assert.ok(held("campB") && held("campC"), "a copy with unsent turns was removed without asking");
+kase("S12: a copy that may hold what the cloud never had is ASKED about, never removed — each way the proof can be missing", function (E) {
+  var net = deletedElsewhere(E), n = 0;
+  function no() { return null; }
+  function plan(r, row, extra) { var x = extra || {}; return storageAdapter.planDeletedElsewhere([r], row ? [row] : [], [], "campA", x.now === undefined ? [] : x.now, function () { return true; }, x.turn || function () { return 10; }, x.dirty || no, x.unsent || no, x.pending || null); }
+  var row = { id: "campB", campName: "B", onServer: true, savedAt: 1000 };
+  assert.strictEqual(plan(rec("campB", 10), row)[0].action, "remove", "fixture: the fully-proven case is not a removal");
+  var cases = [
+    ["the copy is further on than the cloud was", rec("campB", 9), row, {}],
+    ["the record carries no turn (the cloud's turn is unknown)", rec("campB", null), row, {}],
+    ["the record's turn is not a number", rec("campB", "10"), row, {}],
+    ["the copy's own turn cannot be read", rec("campB", 10), row, { turn: function () { return null; } }],
+    ["the copy's turn is unknown (-1)", rec("campB", 10), row, { turn: function () { return -1; } }],
+    ["the page-hide marker says turns were unsent", rec("campB", 10), row, { dirty: function () { return 10; } }],
+    ["the copy was left while the cloud had not acknowledged it", rec("campB", 10), row, { unsent: function () { return 8; } }],
+    ["the list row is newer than the record (a save after the deletion — a restored record, or play since)", rec("campB", 10), { id: "campB", campName: "B", onServer: true, savedAt: 2001 }, {}],
+    ["the record has no time", rec("campB", 10, { deletedAt: undefined }), row, {}],
+    ["the row has no save time", rec("campB", 10), { id: "campB", campName: "B", onServer: true }, {}],
+    ["the copy has no list row at all (an earlier prune)", rec("campB", 10), null, {}]
+  ];
+  cases.forEach(function (c) { var p = plan(c[1], c[2], c[3]); assert.ok(p.length === 1 && p[0].action === "ask", "removed unasked although " + c[0] + ": " + JSON.stringify(p)); });
+  // through the real adapter: B is two turns past what the cloud held, C one turn
+  return listSync(net, ONLY_A, [rec("campB", 8), rec("campC", 3)]).then(function () {
+    assert.strictEqual(held("campB"), true, "a copy two turns past the cloud's was removed unasked");
     assert.strictEqual(net.asked.length, 1, "the player was asked " + net.asked.length + " questions at once (one a sync)");
     assert.strictEqual(net.asked[0].id, "campB"); assert.strictEqual(net.asked[0].name, "B");
     assert.ok(net.asked[0].row && net.asked[0].row.id === "campB", "the question does not carry the list row to put back");
-    assert.deepStrictEqual(net.removed, []);
-    // with nobody to ask, nothing is removed and it is said
-    onCampaignCopyDeletedElsewhere = undefined; E.said.warns.length = 0;
-    setCampMeta([{ id: "campA", campName: "A", onServer: true }, { id: "campB", campName: "B", onServer: true }, { id: "campC", campName: "C", onServer: true }]);
-    return listSync(net, [{ id: "campA", campName: "A" }], [{ id: "campB", name: "B", deletedAt: 1 }]);
+    assert.strictEqual(held("campC"), true, "the second copy that needs a question was removed instead of waiting for the next sync");
+    // with nobody to ask, nothing is removed and it is said; and never in Car Mode, where the question would open under the car screen
+    onCampaignCopyDeletedElsewhere = undefined; E.said.warns.length = 0; setCampMeta(rows3());
+    return listSync(net, ONLY_A, [rec("campB", 8)]);
   }).then(function () {
     assert.ok(held("campB"), "with nobody to ask, the copy was removed");
-    assert.ok(E.said.warns.some(function (w) { return /campB/.test(w) && /unsent/.test(w); }), "a copy left in place for want of a question was not said");
+    assert.ok(E.said.warns.some(function (w) { return /campB/.test(w) && /nobody to ask/.test(w); }), "a copy left in place for want of a question was not said");
+    onCampaignCopyDeletedElsewhere = function (id) { n++; }; carMode = true; setCampMeta(rows3());
+    return listSync(net, ONLY_A, [rec("campB", 8)]);
+  }).then(function () {
+    carMode = false;
+    assert.strictEqual(n, 0, "the question was opened in Car Mode"); assert.ok(held("campB"));
   });
 });
-kase("S12: the record never removes the campaign on screen, one the server lists again, one kept on this device, or one with no copy here", function (E) {
-  var net = deletedElsewhere(E, { meta: [{ id: "campA", campName: "A", onServer: true }, { id: "campB", campName: "B" }, { id: "campC", campName: "C", onServer: true }] });
-  var recs = [{ id: "campA", name: "A", deletedAt: 1 }, { id: "campB", name: "B", deletedAt: 1 }, { id: "campC", name: "C", deletedAt: 1 }, { id: "campZ", name: "Z", deletedAt: 1 }, null, { name: "no id" }, { id: 7 }];
-  store.set(campSlotKey(7, "ws"), "a copy filed under a number");   // a record whose id is not a string names nothing: this must stay
-  store.set(campSlotKey("campA", "ws"), store.get(WSK));   // the campaign on screen also has a slot copy (left by a switch), and the server no longer lists it
+kase("S12: leaving a campaign the cloud has not acknowledged marks its copy — and the acknowledgement clears the mark", function (E) {
+  var net = twoCampaigns(E);
+  assert.strictEqual(storageAdapter.slotUnsentTurn("campA"), null);
+  assert.strictEqual(switchToCampaign("campB"), true);
+  assert.strictEqual(storageAdapter.slotUnsentTurn("campA"), 2000, "a campaign left at a turn the cloud never acknowledged carries no mark: " + storageAdapter.slotUnsentTurn("campA"));
+  var post = net.pending.filter(function (p) { return p.call.method === "POST" && /\/api\/state$/.test(p.call.url); })[0];
+  assert.ok(post && post.call.body.campaignId === "campA", "fixture: the switch did not flush campaign A");
+  post.answer(reply(200, { ok: true, campaignId: "campA" }));
+  return tick().then(function () { return tick(); }).then(function () {
+    assert.strictEqual(storageAdapter.slotUnsentTurn("campA"), null, "the cloud acknowledged the turn and the copy is still marked unsent");
+    // a mark dies with its campaign, and a copy the cloud provably holds is not marked when it is left
+    storageAdapter.slotUnsentNote("campQ", 3); deleteCampaign("campQ");
+    assert.strictEqual(storageAdapter.slotUnsentTurn("campQ"), null, "a deleted campaign left its mark behind");
+    // a copy the cloud provably holds is NOT marked when it is left: B is synced (acknowledged at its turn), then left for A
+    storageAdapter.syncNow(); return tick();
+  }).then(function () {
+    var p2 = net.pending.filter(function (p) { return p.call.method === "POST" && /\/api\/state$/.test(p.call.url) && p.call.body.campaignId === "campB" && !p.done; })[0];
+    assert.ok(p2, "fixture: campaign B was not posted"); p2.done = true; p2.answer(reply(200, { ok: true, campaignId: "campB" }));
+    return tick().then(function () { return tick(); });
+  }).then(function () {
+    assert.strictEqual(storageAdapter.syncStatus().lastAckTurn, 10, "fixture: B's turn was not acknowledged");
+    assert.strictEqual(switchToCampaign("campA"), true);
+    assert.strictEqual(storageAdapter.slotUnsentTurn("campB"), null, "a copy the cloud acknowledged in full is marked unsent — every deletion of it would be asked about");
+  });
+});
+kase("S12: the record never removes the campaign on screen, one the server lists again, one this device keeps as its own, one being asked about, or one with no copy here", function (E) {
+  var meta = [{ id: "campA", campName: "A", onServer: true, savedAt: 1000 }, { id: "campB", campName: "B", savedAt: 1000 }, { id: "campC", campName: "C", onServer: true, savedAt: 1000 }];
+  var net = deletedElsewhere(E, { meta: meta });
+  var recs = [rec("campA", 9999), rec("campB", 10), rec("campC", 4), rec("campZ", 1), null, { name: "no id" }, { id: 7, turn: 99, deletedAt: 2000 }];
+  store.set(campSlotKey(7, "ws"), "a copy filed under a number");
+  store.set(campSlotKey("campA", "ws"), store.get(WSK));   // the campaign on screen also has a slot copy, and the server no longer lists it
   function no() { return null; }
-  [null, undefined, "x", 7, { id: "campB" }].forEach(function (bad) { assert.deepStrictEqual(storageAdapter.planDeletedElsewhere(bad, [], [], null, no, no), [], "an answer that is no list planned something: " + JSON.stringify(bad)); });
-  return listSync(net, [{ id: "campC", campName: "C" }], recs).then(function () {
+  [null, undefined, "x", 7, { id: "campB" }].forEach(function (bad) { assert.deepStrictEqual(storageAdapter.planDeletedElsewhere(bad, [], [], null, [], no, no, no, no, null), [], "an answer that is no list planned something: " + JSON.stringify(bad)); });
+  return listSync(net, [{ id: "campC", campName: "C", savedAt: 1000 }], recs).then(function () {
     assert.ok(store.get(WSK) && held("campA"), "the campaign on screen was removed on its record (its own question owns that)");
-    assert.strictEqual(held("campB"), true, "a campaign kept on this device (never listed as the server's) was removed");
+    assert.strictEqual(held("campB"), true, "a campaign this device lists as its own was removed");
     assert.strictEqual(held("campC"), true, "a campaign the server lists AGAIN was removed on a stale record");
     assert.strictEqual(held(7), true, "a record with an id that is not a string removed a copy");
     assert.deepStrictEqual(net.removed, []); assert.deepStrictEqual(net.asked, []);
-    assert.strictEqual(getActiveCampId(), "campA");
+    // the campaign on screen known only by the world's own id (the active-id key is empty)
+    var p = storageAdapter.planDeletedElsewhere([rec("campB", 10)], rows3(), [], null, rows3(), function () { return true; }, function () { return 10; }, no, no, null);
+    assert.strictEqual(p.length, 1, "fixture");
+    setCampMeta(rows3()); setActiveCampId(""); worldState = E.L.makeTestWorld({ campId: "campB", campName: "B", turn: 10 });
+    return listSync(net, ONLY_A, [rec("campB", 10)]);
+  }).then(function () {
+    assert.strictEqual(held("campB"), true, "the campaign on screen, known only by its world's id, was removed");
+    // a campaign whose own deleted-elsewhere question is still open is left to that question
+    var p = storageAdapter.planDeletedElsewhere([rec("campB", 10)], rows3(), [], "campA", rows3(), function () { return true; }, function () { return 10; }, no, no, "campB");
+    assert.deepStrictEqual(p, [], "a campaign with an open question of its own was planned as well");
   });
 });
-kase("S12: a copy left behind with no list row is removed on its record, named as the server named it; kept, it is not asked about again", function (E) {
-  var net = deletedElsewhere(E, { meta: [{ id: "campA", campName: "A", onServer: true }, { id: "campC", campName: "C", onServer: true }] });
-  return listSync(net, [{ id: "campA", campName: "A" }], [{ id: "campB", name: "Brinewood", deletedAt: 1 }]).then(function () {
-    assert.strictEqual(held("campB"), false, "a copy with no list row (left by an earlier prune) was not removed on its record");
-    assert.ok(E.said.toasts.some(function (t) { return /Brinewood/.test(t); }), "the copy was not named: " + JSON.stringify(E.said.toasts));
-    // C holds unsent turns; the player answers Keep: it is listed again as this device's own and the record is not acted on again
-    storageAdapter.markFlushDirty("campC", 5);
-    return listSync(net, [{ id: "campA", campName: "A" }], [{ id: "campC", name: "C", deletedAt: 2 }]);
+kase("S12: what the player kept stays kept — a keep that lands while the records are in flight, an import over the same id, a second question", function (E) {
+  var net = deletedElsewhere(E);
+  // (a) the list as it stands WHEN THE RECORDS ARRIVE decides: the player kept B (its row is this device's own again) in between
+  return listSync(net, ONLY_A, [rec("campB", 10)], function () { keepDeletedCampaignCopy("campB", { id: "campB", campName: "B", onServer: true, savedAt: 1000 }, "B"); }).then(function () {
+    assert.strictEqual(held("campB"), true, "a copy the player kept while the records were in flight was removed on the list as it stood before");
+    assert.deepStrictEqual(net.asked, []);
+    var row = getCampMeta().filter(function (c) { return c.id === "campB"; })[0];
+    assert.ok(row && row.campName === "B" && !("onServer" in row), "a kept copy is not listed as this device's own: " + JSON.stringify(row));
+    return listSync(net, ONLY_A, [rec("campB", 10)]);
   }).then(function () {
-    assert.strictEqual(net.asked.length, 1);
-    assert.strictEqual(net.asked[0].row, null, "fixture: the earlier sync should have pruned this row (the copy has none to put back)");
-    assert.strictEqual(keepDeletedCampaignCopy("campC", net.asked[0].row, net.asked[0].name), true);
-    var row = getCampMeta().filter(function (c) { return c.id === "campC"; })[0];
-    assert.ok(row && row.campName === "C" && !row.onServer, "a kept copy is not listed as this device's own: " + JSON.stringify(row));
-    return listSync(net, [{ id: "campA", campName: "A" }], [{ id: "campC", name: "C", deletedAt: 2 }]);
-  }).then(function () {
-    assert.strictEqual(net.asked.length, 1, "a copy the player chose to keep was asked about again");
-    assert.strictEqual(held("campC"), true);
-    assert.ok(getCampMeta().some(function (c) { return c.id === "campC"; }), "the kept copy lost its list row at the next sync");
-    // the two other shapes of a keep: the question carried a row; the list still has the row
-    keepDeletedCampaignCopy("campQ", { id: "campQ", campName: "Q", level: 3, onServer: true }, "ignored");
-    var q = getCampMeta().filter(function (c) { return c.id === "campQ"; });
-    assert.ok(q.length === 1 && q[0].campName === "Q" && q[0].level === 3 && !("onServer" in q[0]), "a kept row is still listed as the server's, or lost its fields: " + JSON.stringify(q));
+    assert.strictEqual(held("campB"), true, "a kept copy was removed at the next sync"); assert.deepStrictEqual(net.asked, [], "a kept copy was asked about again");
+    // (b) the three shapes of a keep
     setCampMeta(getCampMeta().concat([{ id: "campR", campName: "R", onServer: true }]));
-    keepDeletedCampaignCopy("campR", null, "ignored");
-    var r = getCampMeta().filter(function (c) { return c.id === "campR"; });
+    keepDeletedCampaignCopy("campR", null, "ignored"); keepDeletedCampaignCopy("campQ", { id: "campQ", campName: "Q", level: 3, onServer: true }, "ignored"); keepDeletedCampaignCopy("campN", null, "Named by the record");
+    var m = getCampMeta(), r = m.filter(function (c) { return c.id === "campR"; }), q = m.filter(function (c) { return c.id === "campQ"; }), nn = m.filter(function (c) { return c.id === "campN"; });
     assert.ok(r.length === 1 && r[0].campName === "R" && !("onServer" in r[0]), "a row still on the list was doubled, or is still listed as the server's: " + JSON.stringify(r));
+    assert.ok(q.length === 1 && q[0].campName === "Q" && q[0].level === 3 && !("onServer" in q[0]), "a kept row lost its fields or kept the server's flag: " + JSON.stringify(q));
+    assert.ok(nn.length === 1 && nn[0].campName === "Named by the record", "a copy with no row is not listed under the record's name: " + JSON.stringify(nn));
     assert.strictEqual(keepDeletedCampaignCopy("", null, "x"), false);
+    // (c) an export imported over an id this device still holds is the player putting the campaign back: the row is this device's own
+    setCampMeta(rows3());
+    var C = E.L.makeTestWorld({ campId: "campC", campName: "C", turn: 4 });
+    importSaveData({ worldState: JSON.parse(serializeWorldState(C)), sessionLog: [], memory: blankMemory() });
+    var c = getCampMeta().filter(function (x) { return x.id === "campC"; })[0];
+    assert.strictEqual(getActiveCampId(), "campC", "fixture: the import did not reuse the id this device holds");
+    assert.ok(c && !c.onServer, "an imported campaign is still listed as the server's — its record would remove it once another campaign is on screen: " + JSON.stringify(c));
+    // (d) the campaign ON SCREEN is deleted elsewhere, the list sync prunes its row, the player answers Keep: it has a row again at once
+    setCampMeta([{ id: "campC", campName: "C", onServer: true, savedAt: 1000 }]);
+    storageAdapter.syncCampaignList(function () {});
+    return tick().then(function () { answer(net, /\/api\/campaigns$/, 200, []); return tick(); }).then(function () { answer(net, DEL, 200, []); return tick(); });
+  }).then(function () {
+    assert.ok(!getCampMeta().some(function (x) { return x.id === "campC"; }), "fixture: the list sync did not prune the on-screen campaign's row");
+    assert.strictEqual(storageAdapter.resolveDeletedElsewhere("campC", true), true, "fixture: no deleted-elsewhere question was pending for the campaign on screen");
+    var k = getCampMeta().filter(function (x) { return x.id === "campC"; })[0];
+    assert.ok(k && !k.onServer, "a campaign kept at its own question has no list row — the next record would find a copy with no row of its own: " + JSON.stringify(getCampMeta()));
   });
 });
 
