@@ -37,5 +37,56 @@ designer([
     find: "  if(!obj||typeof obj!==\"object\"||Array.isArray(obj))throw new Error(\"not a blueprint\");\n", replace: "", mustFail: "FAIL #777 designer browser D1: a blueprint with unreadable entries opens without them" }
 ]);
 
+// ── batch 2 (2026-11-20): C9, C10, C12, C16 ────────────────────────────────────────────────────────────────────────
+var T2 = { C10: "C10: the item-section store is bounded", C12: "C12: the coin scan stays fast on a long run of number words", PLACE: "C16: a button may not name a blueprint place the story has not shown",
+  PAINT: "C16: the painter is never told the hero is", COPY: "C16: a blueprint is applied from a copy", DEATH: "C16: the prompt of Death's arrival says Death has just arrived" };
+prove("item-kinds.js", [
+  { label: "C10: the store is never trimmed",
+    find: "  keys=Object.keys(store);over=keys.length-ITEM_KIND_STORE_CAP;if(over<=0)return 0;", replace: "  return 0;", mustFail: ONLY + T2.C10 },
+  { label: "C10: the record of a carried thing is let go",
+    find: "cand=keys.filter(function(k){return !carried[k];})", replace: "cand=keys.filter(function(k){return true;})", mustFail: ONLY + T2.C10 },
+  { label: "C10: the newest records are let go first",
+    find: "return (((store[a]&&store[a].turn)||0)-((store[b]&&store[b].turn)||0))||", replace: "return (((store[b]&&store[b].turn)||0)-((store[a]&&store[a].turn)||0))||", mustFail: ONLY + T2.C10 },
+  { label: "C10: letting records go is not said",
+    find: "  if(dropped&&typeof console!==\"undefined\")console.warn(\"[items] #776 \"+dropped+\" item-section record\"+(dropped===1?\"\":\"s\")+\" of things nobody carries", replace: "  if(false)console.warn(\"[items] #776 \"+dropped+\" item-section record\"+(dropped===1?\"\":\"s\")+\" of things nobody carries", mustFail: ONLY + T2.C10 },
+  { label: "C10: the load does not hold the store at its bound",
+    find: "  itemKindsTrim(ws);/* C10: the load holds the store at its bound */\n", replace: "", mustFail: ONLY + T2.C10 },
+  { label: "C10: a turn that files answers never trims",
+    find: "    itemKindsTrim(ws);/* C10 */\n", replace: "", mustFail: ONLY + T2.C10 }
+]);
+prove("helpers.js", [
+  { label: "C12: the scan is unbounded again",
+    find: "clean=clean.slice(0,COIN_NARRATION_SCAN_MAX);}", replace: "}", mustFail: ONLY + T2.C12 },
+  { label: "C12: a reply cut for the scan is not said",
+    find: "if(typeof console!==\"undefined\")console.info(\"[coin] the reply is \"", replace: "if(false)console.info(\"[coin] the reply is \"", mustFail: ONLY + T2.C12 }
+]);
+prove("game.js", [
+  { label: "C16: a button names a place only the outline knows",
+    find: "      return {rule:\"unintroduced-place\",", replace: "      continue;return {rule:\"unintroduced-place\",", mustFail: ONLY + T2.PLACE },
+  { label: "C16: a place the story has named is still held back",
+    find: "      if(bpKnown[(typeof locResolve===\"function\")?locResolve(bpKeys[bpi]):bpKeys[bpi]])continue;\n", replace: "", mustFail: ONLY + T2.PLACE },
+  { label: "C16: a visited place is held back",
+    find: "if(!bpN||!bpN.blueprintSeeded||bpN.visits>0||bpN.parent)continue;", replace: "if(!bpN||!bpN.blueprintSeeded||bpN.parent)continue;", mustFail: ONLY + T2.PLACE },
+  { label: "C16: a common word is read as the outline's place",
+    find: "if(bpLeaf.length<4||t.indexOf(bpLeaf)<0)continue;", replace: "if(bpLeaf.length<4||t.toLowerCase().indexOf(bpLeaf.toLowerCase().split(\" \").pop())<0)continue;", mustFail: ONLY + T2.PLACE },
+  { label: "C16: a hero with no age is \"undefined\" to the painter",
+    find: "+(c.age?\" \"+c.age:\"\")+", replace: "+\" \"+c.age+", mustFail: ONLY + T2.PAINT },
+  { label: "C16: a hero with no look is \"undefined\" to the painter",
+    find: "+(c.appear?\", \"+c.appear:\"\")", replace: "+\", \"+c.appear", mustFail: ONLY + T2.PAINT },
+  { label: "C16: statuses are stamped into the file's own acts",
+    find: "acts:JSON.parse(JSON.stringify(bp.acts))}", replace: "acts:bp.acts}", mustFail: ONLY + T2.COPY },
+  { label: "C16: the campaign shares the file's creature list",
+    find: "worldState.bestiary=JSON.parse(JSON.stringify(bp.creatures));", replace: "worldState.bestiary=bp.creatures;", mustFail: ONLY + T2.COPY }
+]);
+prove("api.js", [
+  { label: "C16: the arrival's own prompt lacks its arrival line",
+    find: "(ds.stage===\"arrive\"||ds.arrivalOwed/*", replace: "(ds.stage===\"arrive\"/*", mustFail: ONLY + T2.DEATH }
+]);
+/* C9 lives in the engine suite (it needs the #504 fixtures): run-tests names SECTIONS, the clause names the test */
+failed += sabotage.prove({ file: "identity.js", command: ["node", ["dev/run-tests.js", "#504 fixes"]], cases: [
+  { label: "C9: the name-path death gate compares a stored negative by raw string",
+    find: "if(_sceneRefEntitySame(ng[k].entity,canon)&&ng[k].mode===\"explicit\"&&!ng[k].resolved)return null;}", replace: "if(ng[k].entity===canon&&ng[k].mode===\"explicit\"&&!ng[k].resolved)return null;}", mustFail: "#777 C9 the name-path death gate reads a stored scene negative through the exact resolver" }
+] });
+
 if (!chrome.path && !failed) { verdict.reportSkip("sabotage-777-small.js", browserClauses, chrome.why); process.exit(verdict.SKIP_EXIT); }
 process.exit(failed ? 1 : 0);

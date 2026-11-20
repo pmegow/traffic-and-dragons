@@ -583,10 +583,22 @@ function _charExportPick(idx){
 // Campaign setup for an imported character — replaces the old direct startGame() jump
 // that skipped tone, campaign name, and starting location entirely. The character is
 // played as-is (level, gear, abilities untouched); only world choices are asked here.
+/* audit 2026-11-19, C5: an import writes the imported character's name, ancestry (a display name, not an id) and class into
+   the wizard state and jumps to the review. Back cleared the import and went to step 5 — and Next from there started a
+   fresh hero whose identity, class and attribute steps were never checked (ancestry "Unknown", every stat 8). The
+   wizard state is kept as it was before the import, and Back puts it back and returns to the step the player was on. */
+var pendingImportPrev=null;
+function wizardReviewBack(){
+  var prev=pendingImportPrev,was=pendingImportChar,at,to;
+  pendingImportChar=null;pendingImportPrev=null;
+  if(was&&prev){at=cs.step;to=prev.step;cs=prev;cs.step=at;goStep(to>=1&&to<6?to:5);return;}
+  goStep(5);
+}
 function _importCharToReview(char){
   if(!cs.tone){showToast("Pick a world tone first (Step 1).");return;}
   var bm=document.getElementById("char-browser-modal");if(bm)bm.remove();
   var pr=document.getElementById("char-import-preview");if(pr)pr.remove();
+  if(!pendingImportChar)pendingImportPrev=JSON.parse(JSON.stringify(cs));/* C5: the wizard as the player left it (a second import keeps the first snapshot) */
   pendingImportChar=char;
   cs.name=char.name||"";cs.gender=char.gender||"M";cs.age=char.age||"early twenties";
   cs.portrait=char.portrait||null;cs.portraitOffset=char.portraitOffset||null;

@@ -1,5 +1,5 @@
 {
-  "version": "v1.1479",
+  "version": "v1.1480",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -135,6 +135,7 @@
     "Turn fixes: a failed roll can be sent again after a reload, four pop-ups hold keyboard focus, Define and Sync say why they wait.",
     "A turn whose changes landed can no longer be applied twice by Retry; the kept roll's button works; rolls ignore the Table Talk tab.",
     "Map fixes: notes on ways and inner places show again, an old name clash no longer freezes a place's map, extra ways are listed.",
-    "Map notes survive a place merge, a pin past sixteen ways is kept, and the map still follows you home at its place limit."
+    "Map notes survive a place merge, a pin past sixteen ways is kept, and the map still follows you home at its place limit.",
+    "Fixes: an unreadable picture is refused, Back from an imported character restores the wizard, and buttons no longer name unseen blueprint places."
   ]
 }

@@ -176,10 +176,10 @@ function wireButtons(){if(typeof wireSummaryNpcLinks==="function")wireSummaryNpc
   document.getElementById("ft-back").addEventListener("click",function(){goStep(4);});
   document.getElementById("ft-next").addEventListener("click",function(){if(wizardCommit(5))goStep(6);});
   document.getElementById("ft-upload").addEventListener("click",function(){document.getElementById("ft-portrait-file").click();});
-  document.getElementById("ft-portrait-file").addEventListener("change",function(){var file=this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){compressPortrait(e.target.result,function(compressed){cs.portrait=compressed;refreshFtPortrait();});};reader.readAsDataURL(file);this.value="";});
+  document.getElementById("ft-portrait-file").addEventListener("change",function(){var file=this.files[0];if(!file)return;var reader=new FileReader();reader.onload=function(e){compressPortrait(e.target.result,function(compressed){if(!compressed)return;cs.portrait=compressed;refreshFtPortrait();});};reader.readAsDataURL(file);this.value="";});
   document.getElementById("ft-render").addEventListener("click",function(){ftRenderPortrait();});
   document.getElementById("ft-derive").addEventListener("click",function(){ftDeriveAppearance();});
-  document.getElementById("rv-back").addEventListener("click",function(){pendingImportChar=null;goStep(5);});
+  document.getElementById("rv-back").addEventListener("click",function(){wizardReviewBack();});/* audit 2026-11-19, C5 */
   document.getElementById("rv-card").addEventListener("click",function(e){if(e.target&&e.target.closest&&e.target.closest("#rv-portrait-btn"))ftRenderPortrait(document.getElementById("rv-portrait-status"));});/* #380: delegated — the card is rebuilt on every change */
   document.getElementById("rv-go").addEventListener("click",confirmChar);
   injectSparkleButtons();

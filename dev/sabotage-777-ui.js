@@ -31,4 +31,47 @@ prove("ui-modals.js", [
     find: "m.setAttribute(\"role\",\"dialog\");m.setAttribute(\"aria-modal\",\"true\");m.setAttribute(\"aria-labelledby\",\"firstturn-title\");", replace: "m.setAttribute(\"role\",\"dialog\");m.setAttribute(\"aria-labelledby\",\"firstturn-title\");", mustFail: ONLY + T.DERIVED }
 ]);
 
+// ── C5, C6 (2026-11-20) ────────────────────────────────────────────────────────────────────────────────────────────
+var T5 = "C5: Back from an imported character puts the wizard back as it was", T6 = "C6: a file the browser cannot read as an image is refused and said";
+prove("ui-browsers.js", [
+  { label: "C5: Back leaves the import's fields in the wizard",
+    find: "  if(was&&prev){at=cs.step;to=prev.step;cs=prev;cs.step=at;goStep(to>=1&&to<6?to:5);return;}\n", replace: "", mustFail: ONLY + T5 },
+  { label: "C5: the wizard is not kept before an import",
+    find: "  if(!pendingImportChar)pendingImportPrev=JSON.parse(JSON.stringify(cs));", replace: "  ", mustFail: ONLY + T5 },
+  { label: "C5: a second import replaces the snapshot of the player's own wizard",
+    find: "  if(!pendingImportChar)pendingImportPrev=", replace: "  pendingImportPrev=", mustFail: ONLY + T5 },
+  { label: "C5: Back leaves the import pending",
+    find: "  pendingImportChar=null;pendingImportPrev=null;\n  if(was&&prev)", replace: "  pendingImportPrev=null;\n  if(was&&prev)", mustFail: ONLY + T5 }
+]);
+prove("ui-boot.js", [
+  { label: "C5: the review's Back button is not wired to the restore",
+    find: "addEventListener(\"click\",function(){wizardReviewBack();});", replace: "addEventListener(\"click\",function(){pendingImportChar=null;goStep(5);});", mustFail: ONLY + T5 },
+  { label: "C6: the wizard's upload stores a refused picture",
+    find: "function(compressed){if(!compressed)return;cs.portrait=compressed;refreshFtPortrait();}", replace: "function(compressed){cs.portrait=compressed;refreshFtPortrait();}", mustFail: ONLY + T6 }
+]);
+prove("ui-portrait.js", [
+  { label: "C6: an undecodable file is stored as it is",
+    find: "  img.onerror=function(){portraitUnreadable();cb(null);};", replace: "  img.onerror=function(){cb(dataUrl);};", mustFail: ONLY + T6 },
+  { label: "C6: the refusal is not said",
+    find: "  img.onerror=function(){portraitUnreadable();cb(null);};", replace: "  img.onerror=function(){cb(null);};", mustFail: ONLY + T6 },
+  { label: "C6: the modal's upload shows a refused picture",
+    find: "function(compressed){if(!compressed)return;showResult(compressed,false,null);}", replace: "function(compressed){showResult(compressed,false,null);}", mustFail: ONLY + T6 },
+  { label: "C6: the modal's Apply stores a refused picture",
+    find: "function(compressed){if(!compressed){useBtn.disabled=false;useBtn.textContent=\"Apply\";return;}setPort(compressed);", replace: "function(compressed){setPort(compressed);", mustFail: ONLY + T6 },
+  { label: "C6: a failed image request is read as the picture (the modal)",
+    find: "if(r.ok===false)throw new Error(\"the image could not be fetched (HTTP \"+r.status+\")\");/* C6 */", replace: "", mustFail: ONLY + T6 }
+]);
+prove("char-creation.js", [
+  { label: "C6: a failed image request is read as the picture (the wizard)",
+    find: "if(resp.ok===false)throw new Error(\"the image could not be fetched (HTTP \"+resp.status+\")\");/* audit 2026-11-19, C6 */", replace: "", mustFail: ONLY + T6 },
+  { label: "C6: the wizard stores a refused generated picture",
+    find: "        if(!compressed){status.innerHTML=\"<span style='color:var(--red);'>The generated picture could not be read as an image.</span>\";return;}\n", replace: "", mustFail: ONLY + T6 }
+]);
+prove("game.js", [
+  { label: "C6: the render's portrait stores a refused picture",
+    find: "          if(!compressed)return;/* C6: refused and said by compressPortrait */\n", replace: "", mustFail: ONLY + T6 },
+  { label: "C6: a failed image request is read as the picture (the render)",
+    find: "if(r.ok===false)throw new Error(\"the image could not be fetched (HTTP \"+r.status+\")\");/* audit 2026-11-19, C6 */", replace: "", mustFail: ONLY + T6 }
+]);
+
 process.exit(failed ? 1 : 0);

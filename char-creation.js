@@ -140,10 +140,11 @@ async function ftRenderPortrait(statusEl){/* #380: the review page's quill calls
     // index.html, but ftRenderPortrait only runs on user action (wizard step 5) long after
     // all scripts have loaded, so the call-time reference is safe.
     var imgUrl=await generatePortraitImage(prompt,null);
-    var resp=await fetch(imgUrl);var blob=await resp.blob();
+    var resp=await fetch(imgUrl);if(resp.ok===false)throw new Error("the image could not be fetched (HTTP "+resp.status+")");/* audit 2026-11-19, C6 */var blob=await resp.blob();
     var reader=new FileReader();
     reader.onload=function(e){
       compressPortrait(e.target.result,function(compressed){
+        if(!compressed){status.innerHTML="<span style='color:var(--red);'>The generated picture could not be read as an image.</span>";return;}
         cs.portrait=compressed;refreshFtPortrait();
         if(cs.step===6&&typeof buildReview==="function"){buildReview();status=document.getElementById(status.id)||status;}/* #380: the review card re-renders with the new portrait; its status line is re-found after the rebuild */
         status.innerHTML="<span style='color:var(--grn);'>Portrait generated in "+_pt.seconds()+"s.</span>";

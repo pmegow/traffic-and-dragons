@@ -1,4 +1,5 @@
 // dev/tests-777-ui.js — audit 2026-11-19 (TODO #777), the DOM shells judged over a fake page.
+//   C5  Back from an imported character restores the wizard · C6 an undecodable picture is refused, never stored
 //   U5  the four hand-built modals (Respawn, Onward, Campaign ended, Health) are dialogs to the focus contract: built by
 //       modalShell, so the story box behind them cannot take focus and Enter cannot send a turn; their look is the old one.
 // The fake DOM is the #481 F3 suite's (focus, tabbables, keydown, aria-modal queries, a microtask MutationObserver). It
@@ -142,6 +143,55 @@ kase("U5 derived: every modal the game builds by hand is a dialog to the focus c
   Object.keys(EXEMPT).forEach(function (k) { assert.ok(seen.indexOf(k) >= 0, "the exemption for " + k + " names a modal that is gone"); });
 });
 
+// ── C5, C6 (2026-11-20): the wizard's import and the portrait upload, over the same fake page ──────────────────────
+kase("C5: Back from an imported character puts the wizard back as it was — a fresh hero never starts on the import's leftovers", function () {
+  geval(src("ui-browsers.js"));
+  var went = [], realGo = (typeof goStep === "function") ? goStep : null;
+  goStep = function (n) { went.push(n); cs.step = n; if (n > (cs.reached || 0)) cs.reached = n; };
+  rvSyncXp = function () {};
+  cs = blankWizardState(); cs.tone = "grim"; cs.step = 1; cs.reached = 1; pendingImportChar = null;
+  _importCharToReview({ name: "Kael", gender: "M", age: "thirties", ancestry: "Elf", cls: "Rogue", level: 3 });
+  assert.strictEqual(cs.step, 6, "fixture: the import did not go to the review"); assert.strictEqual(cs.ancestry, "Elf");
+  wizardReviewBack();
+  assert.strictEqual(pendingImportChar, null, "the import is still pending after Back");
+  assert.strictEqual(cs.ancestry, null, "the imported ancestry (a display name, not an id) is left in the fresh hero's wizard");
+  assert.strictEqual(cs.cls, null, "the imported class is left in the wizard"); assert.strictEqual(cs.name, "", "the imported name is left in the wizard");
+  assert.strictEqual(cs.tone, "grim", "the player's own choice was lost");
+  assert.strictEqual(cs.step, 1, "Back did not return to the step the player was on (it went to " + cs.step + ")");
+  assert.strictEqual(cs.reached, 1, "the progress bar still links ahead to steps the player never did: reached " + cs.reached);
+  // a second import before Back keeps the FIRST snapshot
+  cs.step = 3; cs.reached = 3; cs.cls = "Wizard";
+  _importCharToReview({ name: "A", ancestry: "Elf", cls: "Rogue" }); _importCharToReview({ name: "B", ancestry: "Dwarf", cls: "Cleric" });
+  wizardReviewBack();
+  assert.strictEqual(cs.cls, "Wizard", "a second import replaced the snapshot of the player's own wizard: " + cs.cls); assert.strictEqual(cs.step, 3);
+  // no import: Back from the review is the ordinary step back
+  cs.step = 6; went.length = 0; wizardReviewBack();
+  assert.deepStrictEqual(went, [5], "without an import, Back from the review no longer goes to step 5");
+  assert.ok(/getElementById\("rv-back"\)\.addEventListener\("click",function\(\)\{wizardReviewBack\(\);\}\)/.test(src("ui-boot.js")), "the review's Back button is not wired to it");
+  if (realGo) goStep = realGo;
+});
+kase("C6: a file the browser cannot read as an image is refused and said — it is never stored as the portrait", function () {
+  geval(src("ui-portrait.js"));
+  var toasts = [], got = "unset";
+  showToast = function (m) { toasts.push(String(m)); };
+  global.Image = function () { var self = this; Object.defineProperty(this, "src", { set: function () { setImmediate(function () { if (self.onerror) self.onerror(); }); } }); };
+  compressPortrait("data:image/heic;base64,AAAA", function (v) { got = v; });
+  return settle().then(settle).then(function () {
+    assert.strictEqual(got, null, "an undecodable file was handed on as the portrait: " + String(got).slice(0, 40));
+    assert.ok(toasts.some(function (t) { return /could not be read as an image/.test(t); }), "the player is not told why the picture never shows: " + JSON.stringify(toasts));
+    // every caller refuses a null — none stores it
+    var bad = [];
+    ["char-creation.js", "game.js", "ui-boot.js", "ui-portrait.js"].forEach(function (f) {
+      var s = src(f), re = /compressPortrait\(([^,()]+(?:\.[a-zA-Z.]+)?),function\((\w+)\)\{\s*([^\n]{0,160})/g, m, tail;
+      while ((m = re.exec(s))) { tail = s.slice(m.index, m.index + 420); if (!new RegExp("if\\(!" + m[2] + "\\)").test(tail)) bad.push(f + ": " + tail.slice(0, 90)); }
+    });
+    var calls = ["char-creation.js", "game.js", "ui-boot.js", "ui-portrait.js"].reduce(function (n, f) { return n + (src(f).match(/compressPortrait\(/g) || []).length; }, 0);
+    assert.ok(calls >= 6, "fixture: the callers were not found (" + calls + ")");
+    assert.deepStrictEqual(bad, [], "a caller stores whatever it is handed, a refused picture included");
+    // a link that answers with an error page is not read as a picture
+    ["ui-portrait.js", "char-creation.js", "game.js"].forEach(function (f) { var s = src(f), n = (s.match(/the image could not be fetched \(HTTP /g) || []).length; assert.ok(n >= 1, f + " reads the body of a failed image request as the picture"); });
+  });
+});
 var argv = process.argv.slice(2), only = argv.indexOf("--only") >= 0 ? argv[argv.indexOf("--only") + 1] : "", passed = 0, failed = 0;
 var todo = CASES.filter(function (c) { return !only || c.name.indexOf(only) >= 0; });
 if (!todo.length) { realErr.call(console, "--only \"" + only + "\" matched 0 tests — NOTHING ran"); process.exit(1); }

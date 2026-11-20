@@ -16,6 +16,26 @@
 var ITEM_KIND_USAGE="item-kind";/* its own usage row: never "turn" (no allowance spent) */
 var ITEM_KIND_UNCLEAR="unclear";/* the name does not say: the row stays Unclassified and is not asked again */
 var ITEM_KIND_ASK_MAX=40,ITEM_KIND_NAME_MAX=80,ITEM_KIND_TOKENS=400,ITEM_KIND_REPLY_MAX=1600;
+/* audit 2026-11-19, C10: the store is bounded. A record was kept for every item name ever owed — dropped, sold and renamed
+   ones included — for the life of the campaign. Past ITEM_KIND_STORE_CAP the oldest records of things NO sheet carries
+   are let go (said on the console); such an item is simply asked again if it comes back. What is carried is never let
+   go, so it is never asked twice.
+   ACCEPTED, not built (the same audit row): the reply is one word per name, in order, and carries no echo of the names —
+   a reply of the right length with its words in the wrong order is filed and cannot be told from a right one. Echoing
+   each name would triple what this call returns and give it a new way to be refused (and asked again, and billed) on
+   a spelling difference. A wrong section is corrected by the player through Define: canon always decides first. */
+var ITEM_KIND_STORE_CAP=600;
+function itemKindsTrim(ws){
+  var store=ws&&ws.itemKinds,keys,over,carried=keyedDict(),sheets,i,j,es,cand,dropped=0;
+  if(!store||typeof store!=="object"||Array.isArray(store))return 0;
+  keys=Object.keys(store);over=keys.length-ITEM_KIND_STORE_CAP;if(over<=0)return 0;
+  sheets=worldSheetsOf(ws);
+  for(i=0;i<sheets.length;i++){es=invEntries(sheets[i].sheet.inventory||[]);for(j=0;j<es.length;j++)carried[itemBaseName(es[j].name)]=1;}
+  cand=keys.filter(function(k){return !carried[k];}).sort(function(a,b){return (((store[a]&&store[a].turn)||0)-((store[b]&&store[b].turn)||0))||(a<b?-1:a>b?1:0);});
+  for(i=0;i<cand.length&&dropped<over;i++){delete store[cand[i]];dropped++;}
+  if(dropped&&typeof console!=="undefined")console.warn("[items] #776 "+dropped+" item-section record"+(dropped===1?"":"s")+" of things nobody carries "+(dropped===1?"was":"were")+" let go (the store holds "+ITEM_KIND_STORE_CAP+"); such an item is asked again if it comes back");
+  return dropped;
+}
 /* What each section holds, in the words the request is given: one row per id of INVENTORY_CATEGORY_REGISTRY (a section
    added there without a row here fails the #776 suite). */
 var ITEM_KIND_SAYS={
@@ -99,6 +119,7 @@ function itemKindsHeal(ws){
   if(!ws.itemKinds||typeof ws.itemKinds!=="object"||Array.isArray(ws.itemKinds)){delete ws.itemKinds;dropped=1;}
   else{keys=Object.keys(ws.itemKinds);for(i=0;i<keys.length;i++)if(!itemKindStored(ws,keys[i])){delete ws.itemKinds[keys[i]];dropped++;}}
   if(dropped&&typeof console!=="undefined")console.warn("[items] #776 "+dropped+" item-section record"+(dropped===1?"":"s")+" could not be read and "+(dropped===1?"was":"were")+" dropped — the items are asked again");
+  itemKindsTrim(ws);/* C10: the load holds the store at its bound */
   return dropped;
 }
 /* What the player is told, in one line (the console): what was filed where, and what stays unclassified. */
@@ -125,6 +146,7 @@ async function itemKindsSettle(){
     read=itemKindsRead(text,options.finish,owed.length);if(!read.ok)throw new Error(read.reason);
     var _said=[];
     for(i=0;i<owed.length;i++){r=itemKindFile(ws,owed[i].name,read.kinds[i],ws.turn,owed[i].key);if(r.ok){filed.push({key:r.key,kind:r.kind});_said.push({name:owed[i].name,kind:r.kind});}}
+    itemKindsTrim(ws);/* C10 */
     if(typeof saveAll==="function")saveAll();
     var _line=itemKindsSaidFiled(_said);if(_line&&typeof showToast==="function")showToast(_line,8000);/* C4: said from what was FILED, not from what was asked */
     return filed;

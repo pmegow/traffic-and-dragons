@@ -30596,6 +30596,17 @@ t("genderLabel: F→Female, NB→Non-binary, else Male (incl. unset)",function()
     }
     return true;
   });
+  t("#777 C9 the name-path death gate reads a stored scene negative through the exact resolver: a negative a merge stranded on the folded key (a save from before the 2026-10-12 re-key) still stops a bare named death",function(){
+    liveSceneA12();worldState.turn=86;quiet(function(){applyMuts("[SCENE_NOT:hooded one|Queen Underbough|explicit]");applyMuts("[NPC_MERGE:Wilhelmina Underbough|Queen Underbough]");});
+    var n=wsNpcByName(WA12);if(!n||memory.npcs[KA12])return "fixture: the SAME answer";
+    n.introduced=50;worldState.transcript.push({t:87,r:"gm",x:WA12+" speaks.",sp:{n:1,s:{0:WA12}}});worldState.turn=90;
+    var ng=(worldState.sceneRefs.active.negatives||[]).filter(function(x){return w2HandleKey(x.handle)==="hooded one";})[0];if(!ng)return "fixture: the negative";
+    if(ng.entity!==WA12)return "fixture: the negative was not re-keyed to the survivor: "+ng.entity;
+    if(w2NamedPresenceEvidence(WA12))return "an explicit negative on the survivor's own key does not stop a bare named death (control)";
+    ng.resolved=true;if(!w2NamedPresenceEvidence(WA12))return "fixture: with the negative resolved the named death has its evidence";
+    ng.resolved=false;ng.entity=KA12;/* the pre-fix shape: the negative still names the folded key, now her alias */
+    return w2NamedPresenceEvidence(WA12)?"a negative stranded on the folded key no longer guards her: a bare [NPC:…|dead] passes the gate":true;
+  });
   t("#530 fix a scene handle a merge stranded on the folded key (a save from before the 2026-10-12 re-key) still binds the survivor through the exact resolver — binding it again is no conflict, a witnessed death through it lands, a stranded explicit negative still guards her — while a stranded name that is nobody's key or alias ('Underbough', which consolidation alone would give her) binds nobody",function(){
     liveSceneA12();worldState.turn=86;quiet(function(){applyMuts("[NPC_MERGE:Wilhelmina Underbough|Queen Underbough]");});
     var a=_sceneRefActor("queen");if(!a||memory.npcs[KA12])return "fixture: the SAME answer and the handle";

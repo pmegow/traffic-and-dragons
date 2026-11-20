@@ -69,6 +69,7 @@ function wirePortraitDrag(img,getOff,setOff){
 // Portraits should be portrait-oriented (3:4), not the landscape aspect the render models
 // bake in for scene renders. Override the aspect field on the built request body.
 function portraitRenderBody(cfg,prompt){var b=cfg.body(prompt);if(b.image_size)b.image_size="portrait_4_3";if(b.aspect_ratio)b.aspect_ratio="3:4";return b;}
+function portraitUnreadable(){if(typeof console!=="undefined")console.warn("[portrait] the file could not be read as an image — not stored");if(typeof showToast==="function")showToast("That file could not be read as an image. Use a PNG, JPEG, GIF or WebP picture.",7000);}
 function compressPortrait(dataUrl,cb){
   var img=new Image();
   img.onload=function(){
@@ -78,7 +79,10 @@ function compressPortrait(dataUrl,cb){
     canvas.getContext("2d").drawImage(img,0,0,cw,ch);
     cb(canvas.toDataURL("image/jpeg",0.8));
   };
-  img.onerror=function(){cb(dataUrl);}; // fallback: store as-is if canvas fails
+  /* audit 2026-11-19, C6: an image the browser cannot decode (a HEIC photo, a file that is no image, the HTML of an expired
+     link) used to be stored as the portrait anyway — raw, megabytes, synced — and every paint then refused it without a
+     word. It is refused here, said, and the caller is handed null. */
+  img.onerror=function(){portraitUnreadable();cb(null);};
   img.src=dataUrl;
 }
 // UA21 ②: the ONE fal.ai portrait-generation fetch — formerly triplicated byte-identically in
@@ -285,11 +289,11 @@ async function showPortraitModal(refreshFn,opts){
       // Uploaded images are already a compressed data: URL — commit directly (no double-compress).
       // fal.ai results are http(s) URLs — fetch, then compress before storing.
       if(imgUrl.indexOf("data:")===0){setPort(imgUrl);_pmDirty=true;if(refreshFn)refreshFn();pmClose();return;}
-      fetch(imgUrl).then(function(r){return r.blob();}).then(function(blob){
+      fetch(imgUrl).then(function(r){if(r.ok===false)throw new Error("the image could not be fetched (HTTP "+r.status+")");/* C6 */return r.blob();}).then(function(blob){
         var fr=new FileReader();
-        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){setPort(compressed);_pmDirty=true;if(refreshFn)refreshFn();pmClose();});};
+        fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){if(!compressed){useBtn.disabled=false;useBtn.textContent="Apply";return;}setPort(compressed);_pmDirty=true;if(refreshFn)refreshFn();pmClose();});};
         fr.readAsDataURL(blob);
-      }).catch(function(){useBtn.disabled=false;useBtn.textContent="Apply";});
+      }).catch(function(e){useBtn.disabled=false;useBtn.textContent="Apply";console.warn("[portrait] apply failed:",e&&e.message);if(typeof showToast==="function")showToast("The portrait could not be applied: "+((e&&e.message)||"the image could not be fetched")+".",6000);});
     });
     editBtn.addEventListener("click",function(){
       var open=editArea.style.display!=="none";
@@ -381,7 +385,7 @@ async function showPortraitModal(refreshFn,opts){
     var reader=new FileReader();
     // Preview the chosen image with an explicit Apply (no genPrompt → no "Edit Prompt"); nothing is
     // saved until Apply, so picking a file can't silently set or fail to set the portrait.
-    reader.onload=function(e){compressPortrait(e.target.result,function(compressed){showResult(compressed,false,null);});};
+    reader.onload=function(e){compressPortrait(e.target.result,function(compressed){if(!compressed)return;showResult(compressed,false,null);});};
     reader.readAsDataURL(file);this.value="";
   });
 

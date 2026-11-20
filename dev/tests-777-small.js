@@ -11,6 +11,7 @@ var ROOT = path.join(__dirname, "..");
 var CASES = [];
 function kase(name, fn) { CASES.push({ name: name, fn: fn }); }
 function fresh() { var ws = LE.makeTestWorld({}); migrateWorldState(ws); worldState = ws; warns.length = 0; return ws; }
+function src(f) { return fs.readFileSync(path.join(ROOT, f), "utf8"); }
 
 kase("C11: a lookup table answers only for its own words — an inherited name is no entry", function () {
   assert.strictEqual(sayMoodSteer("constructor"), "", "an inherited property name passed the mood allow-list");
@@ -66,6 +67,84 @@ kase("D4: the designer's review merge knows only its own section names — an in
 });
 
 // ── runner ─────────────────────────────────────────────────────────────────────────────────────────────────────────
+// ── batch 2 (2026-11-20): C10 the item-section store is bounded · C12 the coin scan is bounded · C16 four small items ──
+kase("C10: the item-section store is bounded — the oldest records of things nobody carries are let go, and what is carried is never asked again", function () {
+  var ws = fresh(), i, cap = ITEM_KIND_STORE_CAP;
+  assert.ok(cap >= 100, "no bound is declared");
+  ws.itemKinds = keyedDict();
+  for (i = 0; i < cap + 50; i++) ws.itemKinds["old thing " + i] = { kind: "mundane", turn: i };
+  ws.character.inventory = invRows(["old thing 0", "old thing 1"]).rows || ws.character.inventory;
+  invHealSheet(ws.character);
+  assert.ok(invHolds(ws.character.inventory, "old thing 0"), "fixture: the hero does not carry the oldest thing");
+  var dropped = itemKindsTrim(ws);
+  assert.strictEqual(Object.keys(ws.itemKinds).length, cap, "the store is not held at its bound: " + Object.keys(ws.itemKinds).length);
+  assert.strictEqual(dropped, 50);
+  assert.ok(ws.itemKinds["old thing 0"] && ws.itemKinds["old thing 1"], "a record of something the hero carries was dropped — it would be asked (and billed) again");
+  assert.ok(!ws.itemKinds["old thing 2"] && ws.itemKinds["old thing " + (cap + 49)], "the oldest records were not the ones let go");
+  assert.ok(warns.some(function (w) { return /item-section record/.test(w) && /50/.test(w); }), "letting records go is not said: " + JSON.stringify(warns));
+  assert.strictEqual(itemKindsTrim(ws), 0, "a store at its bound was trimmed again");
+  // the two doors: the load, and the turn that files a new answer
+  ws.itemKinds["one more"] = { kind: "tool", turn: 9999 }; migrateWorldState(ws);
+  assert.strictEqual(Object.keys(ws.itemKinds).length, cap, "the load does not hold the store at its bound");
+  var s = src("item-kinds.js"), at = s.indexOf("async function itemKindsSettle"), body = s.slice(at, s.indexOf("\n}", at));
+  assert.ok(/itemKindsTrim\(ws\)/.test(body), "a turn that files answers never trims the store");
+});
+kase("C12: the coin scan stays fast on a long run of number words, and still reads the amounts of an ordinary reply", function () {
+  var run = new Array(9144).join("twenty "), t0 = Date.now(), r = coinNarrationAmounts(run), ms = Date.now() - t0;
+  assert.ok(ms < 1500, "64 KB of number words took " + ms + " ms (the scan runs on every reply)");
+  assert.deepStrictEqual(r.amounts, []);
+  r = coinNarrationAmounts("You count out twenty gold pieces and pocket 5 sp.");
+  assert.deepStrictEqual(r.amounts.map(function (a) { return a.text; }), ["20 gp", "5 sp"], "an ordinary reply is read differently: " + JSON.stringify(r.amounts));
+  var long = new Array(COIN_NARRATION_SCAN_MAX + 200).join("x") + " You hand over 30 gold.";
+  warns.length = 0; console.info = function () { warns.push([].join.call(arguments, " ")); };
+  r = coinNarrationAmounts(long); console.info = function () {};
+  assert.deepStrictEqual(r.amounts, [], "text past the bound was scanned");
+  assert.ok(warns.some(function (w) { return /coin/.test(w) && /not scanned|only the first/.test(w); }), "a reply cut for the scan is not said: " + JSON.stringify(warns));
+});
+kase("C16: a button may not name a blueprint place the story has not shown; one the story has named passes", function () {
+  var ws = fresh();
+  memory.map.nodes["The Drowned Archive"] = newMapNode(null, null, { description: "a flooded library", blueprintSeeded: true });
+  var man = buildSceneManifest();
+  var v = validateSuggestion("Seek the Drowned Archive.", man);
+  assert.ok(v && v.rule === "unintroduced-place", "a button naming a place only the outline knows passed: " + JSON.stringify(v));
+  var v2 = validateSuggestion("Search the archive shelves.", man);
+  assert.ok(!(v2 && v2.rule === "unintroduced-place"), "a common word was read as the outline's place: " + JSON.stringify(v2));
+  ws.transcript.push({ t: ws.turn, r: "gm", x: "The ferryman speaks of the Drowned Archive, beyond the weir." });
+  if (typeof invalidateTranscriptMemo === "function") invalidateTranscriptMemo();
+  v = validateSuggestion("Seek the Drowned Archive.", man);
+  assert.ok(!(v && v.rule === "unintroduced-place"), "a place the story has named is still held back: " + JSON.stringify(v));
+  memory.map.nodes["The Salt Stair"] = newMapNode(3, null, { blueprintSeeded: true }); memory.map.nodes["The Salt Stair"].visits = 1;
+  v = validateSuggestion("Climb the Salt Stair.", man);
+  assert.ok(!(v && v.rule === "unintroduced-place"), "a visited place is held back");
+});
+kase("C16: the painter is never told the hero is \"undefined\"", function () {
+  var ws = fresh(), c = ws.character; delete c.age; delete c.appear;
+  var req = buildSceneRenderRequest(c, [], ws.world, {}), text = JSON.stringify(req);
+  assert.ok(text.indexOf("undefined") < 0, "the render request says undefined: " + text.slice(0, 400));
+  assert.ok(text.indexOf(c.name) >= 0, "fixture: the hero is not in the request");
+  c.age = "early twenties"; c.appear = "a scar across the brow";
+  text = JSON.stringify(buildSceneRenderRequest(c, [], ws.world, {}));
+  assert.ok(/early twenties/.test(text) && /a scar across the brow/.test(text), "a hero with an age and a look lost them");
+});
+kase("C16: a blueprint is applied from a copy — the file's own acts and creatures are not written into or shared", function () {
+  var ws = fresh(), bp = { name: "Test", premise: "A test.", acts: [{ title: "Act One", arcs: [{ title: "Arc A" }] }, { title: "Act Two", arcs: [{ title: "Arc B" }] }], creatures: [{ name: "Marsh Wight", description: "pale" }] };
+  var before = JSON.stringify(bp);
+  applyBlueprint(bp);
+  assert.strictEqual(JSON.stringify(bp), before, "applying a blueprint wrote into the file's own object: " + JSON.stringify(bp).slice(0, 300));
+  assert.ok(worldState.skeleton && worldState.skeleton.acts[0].status === "active", "fixture: the skeleton was not installed");
+  assert.notStrictEqual(worldState.skeleton.acts, bp.acts, "the campaign shares the file's act list");
+  assert.notStrictEqual(worldState.bestiary, bp.creatures, "the campaign shares the file's creature list");
+  worldState.bestiary[0].name = "changed in play";
+  assert.strictEqual(bp.creatures[0].name, "Marsh Wight", "a change in play reached the file's own creature");
+});
+kase("C16: the prompt of Death's arrival says Death has just arrived — until the arrival is in the book", function () {
+  var ws = fresh();
+  ws.deathScene = { walk: 1, cause: "slain", stage: "question", arrivalOwed: true };
+  assert.ok(/Death has just arrived/.test(buildDeathSceneBlock()), "the arrival's own prompt lacks its arrival line (the stage has already moved on when it is built)");
+  delete ws.deathScene.arrivalOwed;
+  assert.ok(!/Death has just arrived/.test(buildDeathSceneBlock()), "the arrival line is sent after the arrival");
+});
+
 var argv = process.argv.slice(2), only = argv.indexOf("--only") >= 0 ? argv[argv.indexOf("--only") + 1] : "", passed = 0, failed = 0;
 var todo = CASES.filter(function (c) { return !only || c.name.indexOf(only) >= 0; });
 if (!todo.length) { realErr.call(console, "--only \"" + only + "\" matched 0 tests — NOTHING ran"); process.exit(1); }

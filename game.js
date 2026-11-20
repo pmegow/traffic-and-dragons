@@ -736,6 +736,23 @@ function validateSuggestion(text,man){
     if(cbFound){cbN.introduced=cbFound;continue;}/* lazy backfill — scan once, stamped forever */
     return {rule:"unintroduced-entity",detail:cbN.name+" has never been introduced in the story — outline material may not surface in a button before the narration says the name"};
   }
+  /* audit 2026-11-19, C16: ⑥ for PLACES. The suggestion call sees the whole outline, and only NPC names were held back —
+     a button could name a place the blueprint seeded and the story has never shown ("Seek the Drowned Archive"). A
+     seeded, unvisited world place is fair game once the story knows it (blueprintKnownPlaces, the same evidence the
+     memory listing uses); until then a button that writes its proper name is refused. The name is matched as written,
+     capitals and all, so a common word in a sentence is never read as the outline's place. */
+  if(typeof blueprintKnownPlaces==="function"&&typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes){
+    var bpKeys=Object.keys(memory.map.nodes),bpKnown=null,bpi;
+    for(bpi=0;bpi<bpKeys.length;bpi++){
+      var bpN=memory.map.nodes[bpKeys[bpi]];
+      if(!bpN||!bpN.blueprintSeeded||bpN.visits>0||bpN.parent)continue;
+      var bpLeaf=String((typeof locDisplayLeaf==="function")?locDisplayLeaf(bpKeys[bpi]):bpKeys[bpi]).replace(/^the\s+/i,"");
+      if(bpLeaf.length<4||t.indexOf(bpLeaf)<0)continue;
+      if(!bpKnown)bpKnown=blueprintKnownPlaces();
+      if(bpKnown[(typeof locResolve==="function")?locResolve(bpKeys[bpi]):bpKeys[bpi]])continue;
+      return {rule:"unintroduced-place",detail:bpLeaf+" has never been shown in the story — outline material may not surface in a button before the narration says the name"};
+    }
+  }
   // Fuzzy class: off-scene NPC named with no capability involved — legal fiction (letters,
   // asking a companion about them). LOG ONLY; telemetry decides if it ever graduates.
   for(j=0;j<npcs.length;j++){
@@ -3712,7 +3729,7 @@ function applyBlueprint(bp){
   if(bp.availableClasses&&bp.availableClasses.length)worldState.availableClasses=bp.availableClasses.slice();
   // Skeleton — stamp act/arc status
   if(bp.acts&&bp.acts.length){
-    var skel={premise:bp.premise||"",acts:bp.acts},i,j;
+    var skel={premise:bp.premise||"",acts:JSON.parse(JSON.stringify(bp.acts))},i,j;/* audit 2026-11-19, C16: a copy, as the class roster is — the statuses below were stamped into the file's own acts */
     for(i=0;i<skel.acts.length;i++){
       skel.acts[i].status=i===0?"active":"pending";
       var isP=!!skel.acts[i].parallel;
@@ -3762,7 +3779,7 @@ function applyBlueprint(bp){
   if(worldState._seedCommons){var _sc=worldState._seedCommons;delete worldState._seedCommons;if(typeof villageCommonsSeed==="function")villageCommonsSeed(typeof _sc==="string"?_sc:null);}/* #6 E11: the commons are pre-minted at creation, signed in or not */
   // Creatures — campaign bestiary; buildSysPrompt injects it into the STABLE prompt half
   // (campaign-constant: set once here, never mutated per turn, so it caches).
-  if(bp.creatures&&bp.creatures.length)worldState.bestiary=bp.creatures;
+  if(bp.creatures&&bp.creatures.length)worldState.bestiary=JSON.parse(JSON.stringify(bp.creatures));/* C16: a copy — play never writes into the file's own list */
   // P8: split mechanical stat blocks out of blueprint NPC bios — narrative stays as
   // memory knowledge, mechanics join the bestiary (single home, STABLE half so it caches).
   // Runs AFTER the creatures seed so an author-provided bestiary entry wins: if the name
@@ -4069,7 +4086,7 @@ function partyForRender(ctx){
 }
 function buildSceneRenderRequest(c,party,w,opts){
   var gw=genderWord(c.gender);/* #11③: shared mapping (local renamed — the old `var genderWord` would shadow the helper) */
-  var charDesc=c.name+", a "+gw+" "+c.age+" "+c.ancestry+" "+c.cls+", "+c.appear+(c.mark?", "+c.mark:"")+(typeof attireRenderText==="function"&&attireRenderText(c)?", "+attireRenderText(c):"");/* #388: the sheet's attire reaches the painter (a robe, bare, in full scale) */
+  var charDesc=c.name+", a "+gw+(c.age?" "+c.age:"")+(c.ancestry?" "+c.ancestry:"")+(c.cls?" "+c.cls:"")+(c.appear?", "+c.appear:"")/* audit 2026-11-19, C16: a hero with no age or look was described to the painter as "undefined" */+(c.mark?", "+c.mark:"")+(typeof attireRenderText==="function"&&attireRenderText(c)?", "+attireRenderText(c):"");/* #388: the sheet's attire reaches the painter (a robe, bare, in full scale) */
   var compDescs=[],pi;
   for(pi=0;pi<party.length;pi++){
     var pcs=party[pi].charSheet;
@@ -4266,10 +4283,11 @@ async function doRender(rOpts){
       if(!_renderJobLive(_job)){showToast("This scene belongs to "+(_job.campName||"another campaign")+", which is no longer loaded — the portrait was not changed.");return;}/* #440 */
       var portraitTarget=worldState.character;
       portraitBtn.textContent="Saving…";portraitBtn.disabled=true;
-      fetch(imageUrl).then(function(r){return r.blob();}).then(function(blob){
+      fetch(imageUrl).then(function(r){if(r.ok===false)throw new Error("the image could not be fetched (HTTP "+r.status+")");/* audit 2026-11-19, C6 */return r.blob();}).then(function(blob){
         var fr=new FileReader();
         fr.onload=function(e2){compressPortrait(e2.target.result,function(compressed){
           portraitBtn.textContent="⧉ Portrait";portraitBtn.disabled=false;
+          if(!compressed)return;/* C6: refused and said by compressPortrait */
           if(!_renderJobLive(_job)||worldState.character!==portraitTarget){var why="The campaign or selected character changed — the portrait was not changed.";console.warn("[render] "+why);showToast(why);return;}
           portraitTarget.portrait=compressed;storageAdapter.markPortraitDirty();saveAll();showToast("Portrait updated!");
         });};

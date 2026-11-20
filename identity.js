@@ -1488,7 +1488,7 @@ function w2NamedPresenceEvidence(name,sourceTurn){
   // roster paperwork (the t1667 scholar/Mokmurian shape, arriving without its handle).
   var fs=_sceneRefFrames(),i,k;
   for(i=0;i<fs.length;i++){var ng=fs[i].negatives||[];
-    for(k=0;k<ng.length;k++)if(ng[k].entity===canon&&ng[k].mode==="explicit"&&!ng[k].resolved)return null;}
+    for(k=0;k<ng.length;k++)if(_sceneRefEntitySame(ng[k].entity,canon)&&ng[k].mode==="explicit"&&!ng[k].resolved)return null;}/* audit 2026-11-19, C9: read through the exact resolver, as every comparison of a stored scene entity is (#530) — a negative a merge stranded on the folded key (a save from before the re-key) no longer lets a bare named death past */
   // Gate 3 — turn-stamped presence facts (#194, panel-designed, owner-ruled 2026-08-17).
   // WITNESSED limbs first (party / speech / observed / truthful-writer records) so a witnessed
   // fact always wins the citation. Pre-presenceEpoch stamps (the mention-fed era) authorize
