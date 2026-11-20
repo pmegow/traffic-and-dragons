@@ -2673,14 +2673,14 @@ function isBookkeepingResponse(raw,clean,dice){
   for(i=0;i<ms.length;i++){m=ms[i].match(/^\[([A-Z][A-Z_]{1,})/);if(m&&known[m[1]])return true;}
   return false;
 }
-/* audit 2026-11-19, U9: put back what a commit wrote before its tag pass — the player's line (only the ONE entry this commit
-   appended, and only if it is that line) and the turn count with the name window. Nothing else: the tag pass stages its
-   writes and a refusal writes none before this point. */
+/* audit 2026-11-19, U9: put back what a commit wrote before its tag pass began to write — the player's line (the ONE entry
+   the commit appended), the turn count with the name window, and the refusal mark of the turn that is being un-counted. */
 function commitUndoHead(u){
   var tr=worldState.transcript||[];   /* before the tags land the ONLY entry a commit appends is the player's line */
   if(tr.length===u.len+1){tr.pop();if(typeof invalidateTranscriptMemo==="function")invalidateTranscriptMemo();}
   else if(tr.length!==u.len&&typeof console!=="undefined")console.warn("[commit] a commit that threw left "+(tr.length-u.len)+" entry(ies) in the book that are not its player line — left in place (audit U9)");
   worldState.turn=u.turn;
+  if(worldState.unappliedRefusal&&worldState.unappliedRefusal.turn>u.turn)delete worldState.unappliedRefusal;/* a mark for a turn that no longer exists */
   if(typeof u.idx==="number"&&typeof memory!=="undefined"&&memory)memory.nameIdx=u.idx;
   if(typeof console!=="undefined")console.warn("[commit] the turn threw before its tags landed — the player's line and the turn count were put back (turn "+u.turn+"; audit U9)");
 }
@@ -2711,8 +2711,10 @@ function commitGmTurn(resp,opts){
      the point where the caller is told state landed (onMutated) left both behind, and the Retry the caller then offered
      logged the line and counted the turn a second time. The head is now undone when the commit throws before its tags
      land (commitUndoHead); once they HAVE landed nothing is undone and the caller is told, so it offers no re-applying
-     Retry (the E82 rule). _u9.landed is set on the line the tags land. */
-  var _u9={len:(worldState.transcript||[]).length,turn:worldState.turn,idx:(typeof memory!=="undefined"&&memory)?memory.nameIdx:undefined,landed:false};
+     Retry (the E82 rule). "Landed" is read from applyMutsLiveSeq (api.js): the tag pass writes live state handler by
+     handler, so a throw from INSIDE it may come after some of them wrote (the review of this change reproduced a
+     second application through Retry when "landed" meant "applyMuts returned"). */
+  var _u9={len:(worldState.transcript||[]).length,turn:worldState.turn,idx:(typeof memory!=="undefined"&&memory)?memory.nameIdx:undefined,seq:(typeof applyMutsLiveSeq==="number")?applyMutsLiveSeq:0};
   try{
   if(o.logPlayer&&o.playerTxt!=null&&!o.isOpening)logTranscript("player",o.playerTxt);
   if(!o.isOpening&&!o.replacesRefusal){
@@ -2741,7 +2743,7 @@ function commitGmTurn(resp,opts){
     if(typeof showToast==="function")showToast("⚠ The model declined this scene — ask again or rephrase",6000);
     if(typeof erCrumb==="function")erCrumb("turn-refused",{t:worldState.turn,ch:String(resp||"").length});
   }else{
-  _audioMuts=applyMuts(resp,{deferSave:true});_u9.landed=true;delete worldState.unappliedRefusal;/* U3: tags have landed for this turn (or a later one) — the mark is spent HERE, so a failure in any step below can never let a re-roll apply them twice *//* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
+  _audioMuts=applyMuts(resp,{deferSave:true});delete worldState.unappliedRefusal;/* U3: tags have landed for this turn (or a later one) — the mark is spent HERE, so a failure in any step below can never let a re-roll apply them twice *//* #272 D1: the commit save below is THE turn's one save — applyMuts' trailing save was LZ pass 1 of three */
   if(o.latchSnap&&typeof noteLogCommit==="function")noteLogCommit();else if(typeof noteLogDiscard==="function")noteLogDiscard();/* #309: the notes ring files only DELIVERED gameplay notes (latchSnap rides only on those turns) */
   /* #149: a FIRED aftermath nudge is consumed by the turn that commits — whether the GM filed
      a [LOCATION_STATE:] or stayed silent, the one shot is spent. A pending stamped by THIS
@@ -2749,7 +2751,7 @@ function commitGmTurn(resp,opts){
      provider call never reaches here, so the shot survives transport loss. */
   if(worldState.pendingLocState&&worldState.pendingLocState.fired)delete worldState.pendingLocState;
   }
-  }catch(eHead){if(_u9.landed){if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;}/* U9 */
+  }catch(eHead){if(typeof applyMutsLiveSeq==="number"&&applyMutsLiveSeq!==_u9.seq){delete worldState.unappliedRefusal;/* its tags are in: the mark is spent, as on the line above */if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;}/* U9 */
   if(o.onMutated)o.onMutated();/* state is now mutated — callers that offer Retry must latch here (E82) */
   if(!_refusal&&typeof atlasKnowledgeCommitResult==="function"){
     var _mapCommit=atlasKnowledgeCommitResult(resp,_audioMuts&&_audioMuts.mapReveals);/* Public discoveries and their narrated receipts must precede the camp snapshot. */
@@ -2930,7 +2932,7 @@ function restorePendingRoll(){
 /* The load's offer: one line in the story with the button that sends the roll as the silent continuation it was. */
 function pendingRollOffer(){
   if(!restorePendingRoll())return false;
-  addMsg("system","\uD83C\uDFB2 Your last roll was made, but it never reached the Game Master. <button class='qa' onclick='pendingRollSend(this)'>Send the roll</button>");
+  addMsg("system","\uD83C\uDFB2 Your last roll was made, but it never reached the Game Master. <button class='qa' onclick='pendingRollSend(this)'>Send the roll</button>",{html:true});/* the engine's own markup: a system line is painted as text unless it says so (audit H1) — the review found the button printed as text */
   if(typeof showToast==="function")showToast("\u21A9 Unsent roll recovered");
   return true;
 }
@@ -2992,6 +2994,7 @@ async function sendAction(override,opts){
   // opts.ttRetry forces the Table Talk path regardless of the current tab — a failed TT question
   // must retry AS Table Talk even if the player switched to Story while it was in flight (#76).
   var isTT=(opts&&opts.ttRetry)?true:(activeChatTab==="tabletalk");
+  if(isTT&&opts&&opts.silent&&!opts.ttRetry)isTT=false;/* audit 2026-11-19, U7 review: a silent send is the engine's own story continuation (a roll, Death's arrival) — with the Table Talk tab showing, a roll was consumed and asked as a Table Talk question */
   /* #329: a typed action while a roll is pending lets the check lapse — the story moves on without it. B47: the lapse arms the
      CHECK ANSWERED note for THIS prompt. audit 2026-11-19, U8: it sat above the line that reads the action, so an empty Send
      and a Table Talk question lapsed the roll with no turn sent (reachable mainly in Car Mode). */
@@ -3188,6 +3191,7 @@ function rollPendingCheck(){
   function paint(){if(holder)holder.innerHTML=diceRevealCardHtml(r.diceTag,rev.stage);}
   if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){holder=document.createElement("div");holder.className="dice-reveal";el.parentNode.replaceChild(holder,el);paint();}}
   if(typeof Sound!=="undefined")Sound.play("click_glass");
+  if(typeof savePendingRoll==="function")savePendingRoll(r.note,r.diceTag);/* audit 2026-11-19, U7: kept BEFORE the send — a page closed while the request is in flight has the roll too; the commit clears it */
   if(typeof saveAll==="function")saveAll();
   diceRevealWait().then(function(){preRollReveal();});/* #767: the prose the roll held is shown when the dice have come to rest (at once on a page with no dice); asked before the send so the #759 send-then-return pair stays as it was */
   sendAction(r.note,{silent:true,rollTag:r.diceTag});

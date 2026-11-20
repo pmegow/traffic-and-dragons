@@ -9,7 +9,7 @@
 var assert = require("assert"), fs = require("fs"), path = require("path");
 var LE = require("./load-engine.js");
 var realLog = console.log, realErr = console.error;
-var said = { warns: [], toasts: [], errors: [], msgs: [] };
+var said = { warns: [], toasts: [], errors: [], msgs: [], opts: [] };
 console.warn = function () { said.warns.push([].join.call(arguments, " ")); };
 console.info = function () {}; console.log = function () {}; console.debug = function () {};
 LE.loadEngine();
@@ -17,7 +17,7 @@ console.error = function () { said.errors.push([].join.call(arguments, " ")); };
 var ROOT = path.join(__dirname, "..");
 function el() { return { style: {}, className: "", innerHTML: "", textContent: "", value: "", disabled: false, children: [], parentNode: null, appendChild: function (c) { c.parentNode = this; this.children.push(c); return c; }, removeChild: function () {}, remove: function () {}, addEventListener: function () {}, setAttribute: function () {}, getAttribute: function () { return null; }, querySelector: function () { return null; }, querySelectorAll: function () { return []; }, focus: function () {}, insertAdjacentHTML: function () {} }; }
 global.document = { getElementById: function () { return el(); }, querySelector: function () { return null; }, querySelectorAll: function () { return []; }, createElement: function () { return el(); }, body: el(), addEventListener: function () {}, hidden: false };
-addMsg = function (type, html) { said.msgs.push(type + ": " + String(html)); return el(); };
+addMsg = function (type, html, opts) { said.msgs.push(type + ": " + String(html)); said.opts.push(opts || null); return el(); };
 showToast = function (m) { said.toasts.push(String(m)); };
 syncUI = function () {}; updateAbPanel = function () {}; updateSpPanel = function () {}; reportError = function () {};
 saveAll = function () { return true; }; saveCore = function () { return true; }; saveMem = function () { return true; }; saveLocal = function () { return true; };
@@ -29,7 +29,7 @@ function src(f) { return fs.readFileSync(path.join(ROOT, f), "utf8"); }
 function fresh(o) {
   var ws = LE.makeTestWorld(o || {}); migrateWorldState(ws); worldState = ws; busy = false;
   sendAction = REAL.sendAction; restSpells = REAL.restSpells; AFTER_TURN_MAX_MS = REAL.maxMs;
-  said.warns.length = 0; said.toasts.length = 0; said.errors.length = 0; said.msgs.length = 0;
+  said.warns.length = 0; said.toasts.length = 0; said.errors.length = 0; said.msgs.length = 0; said.opts.length = 0;
   return ws;
 }
 function wait(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
@@ -559,6 +559,101 @@ kase("U10: the sheet's Define and Sync say why they wait while a turn is in flig
     assert.strictEqual(called, 0, "a model call was made while a turn is in flight"); assert.strictEqual(busy, true);
     callGM = realGM; busy = false;
   });
+});
+
+// ── the independent review of batch 2 (2026-11-20): what it reproduced, as cases ───────────────────────────────────
+kase("U7 review: the offer is a real button on the page; the roll is kept before its send, and again when its commit is undone", function () {
+  u3World(); var ws = worldState;
+  ws.pendingCheck = { label: "Climb the wall", mod: 2, dc: 12 };
+  gmSays([function () { return new Promise(function () {}); }]);       // the request never comes back: the page is closed while it is in flight
+  clearPendingAction(); rollPendingCheck();
+  var rec = restorePendingRoll();
+  assert.ok(rec && rec.rollTag, "a roll whose request is still in flight is kept nowhere — closing the page loses it");
+  busy = false; said.msgs.length = 0; said.opts.length = 0;
+  assert.strictEqual(pendingRollOffer(), true);
+  var at = -1; said.msgs.forEach(function (m, i) { if (/pendingRollSend\(/.test(m)) at = i; });
+  assert.ok(at >= 0, "fixture: the offer was not painted");
+  var painted = systemMsgHtml(said.msgs[at].replace(/^system: /, ""), said.opts[at]);
+  assert.ok(/<button class='qa' onclick='pendingRollSend\(this\)'>Send the roll<\/button>/.test(painted), "the page shows the button's markup as text — there is nothing to press: " + painted);
+  // the roll's reply arrives but its commit throws before any tag is written: the head is undone, and the roll is kept again
+  var realMuts = applyMuts; applyMuts = function () { throw new Error("the tag pass threw"); };
+  gmSays(["You haul yourself up. [GOLD:+1]"]);
+  return sendAction(rec.txt, { mpBypass: true, silent: true, rollTag: rec.rollTag }).then(function () {
+    applyMuts = realMuts;
+    assert.strictEqual(ws.turn, 9, "fixture: the head was not undone");
+    assert.ok(restorePendingRoll(), "a roll whose commit was undone is gone (the commit's first line cleared it and nothing kept it again)");
+  }, function (e) { applyMuts = realMuts; throw e; });
+});
+kase("U7 review: a roll made while the Table Talk tab is showing is still the story's — it is committed, never asked as a question", function () {
+  u3World(); var ws = worldState, kinds = [];
+  ws.pendingCheck = { label: "Climb the wall", mod: 2, dc: 12 };
+  activeChatTab = "tabletalk";
+  callGM = function (msg, sys, max, model, o) { kinds.push((o && o.kind) || "turn"); return Promise.resolve("You haul yourself over the wall."); };
+  rollPendingCheck();
+  return wait(120).then(function () {
+    activeChatTab = "story";
+    assert.ok(kinds.indexOf("tabletalk") < 0, "the roll was sent as a Table Talk question: " + JSON.stringify(kinds));
+    assert.ok(ws.transcript.some(function (e) { return e.r === "gm" && /haul yourself/.test(e.x); }), "the roll's reply was never committed to the story");
+    assert.strictEqual(ws.turn, 10);
+  }, function (e) { activeChatTab = "story"; throw e; });
+});
+kase("U9 review: a throw from INSIDE the tag pass after a handler wrote is 'landed' — nothing is undone and no Retry can apply it twice", function () {
+  u3World(); var ws = worldState, realTable = applyMutsTable, mutated = 0;
+  applyMutsTable = function () { var r = realTable.apply(this, arguments); throw new Error("after the handlers wrote"); };
+  ws.unappliedRefusal = { turn: 9, txt: "an earlier refused action", silent: false, rollTag: null };
+  assert.throws(function () { commitGmTurn("A purse. [GOLD:+3]", { playerTxt: "I look.", logPlayer: true, onMutated: function () { mutated++; } }); }, /after the handlers wrote/);
+  applyMutsTable = realTable;
+  assert.strictEqual(ws.unappliedRefusal, undefined, "tags were written and the refusal mark is still set — a re-roll would apply a reply over them");
+  assert.strictEqual(ws.character.coin, 1300, "fixture: the handler did not write before the throw");
+  assert.strictEqual(mutated, 1, "state landed and the caller was not told — it offers a Retry that applies the reply again");
+  assert.strictEqual(ws.turn, 10, "a turn whose tags were (partly) written was un-counted");
+  assert.ok(ws.transcript.some(function (e) { return e.r === "player" && e.x === "I look."; }), "the player's line of a turn that wrote state was taken out of the book");
+  // through the real send: no Retry is armed, and nothing is kept to send again
+  u3World(); ws = worldState;
+  applyMutsTable = function () { var r = realTable.apply(this, arguments); throw new Error("after the handlers wrote"); };
+  gmSays(["A purse. [GOLD:+3]"]); clearPendingAction();
+  return sendAction("I look.").then(function () {
+    applyMutsTable = realTable;
+    assert.strictEqual(ws.character.coin, 1300);
+    assert.ok(said.msgs.some(function (m) { return /Turn applied, but a display step failed/.test(m); }), "the failure was offered as a retryable GM error: " + JSON.stringify(said.msgs));
+    assert.ok(!store.get(PENDING_ACT_K), "the action was kept to be sent again after a reload — over state that already landed");
+  }, function (e) { applyMutsTable = realTable; throw e; });
+});
+kase("U9 review: a painter that throws at the end of the tag pass does not abort the turn — it commits whole, once, and the failure is reported", function () {
+  u3World(); var ws = worldState, realSync = syncUI, threw = 0, reports = [], realReport = reportError;
+  syncUI = function () { if (!threw) { threw++; throw new Error("a panel painter threw"); } };
+  reportError = function (ctx, msg) { reports.push(ctx + ": " + msg); };
+  gmSays(["A purse lies on the sill. [GOLD:+3]"]);
+  return sendAction("I open the door.").then(function () {
+    syncUI = realSync; reportError = realReport;
+    assert.strictEqual(threw, 1, "fixture: the painter never threw");
+    assert.strictEqual(ws.character.coin, 1300);
+    assert.deepStrictEqual(ws.transcript.map(function (e) { return e.r + "@" + e.t; }), ["player@9", "gm@10"], "the turn is not in the book whole: " + JSON.stringify(ws.transcript.map(function (e) { return e.r + "@" + e.t; })));
+    assert.ok(!said.msgs.some(function (m) { return /GM error/.test(m); }), "a Retry was offered for a turn whose tags landed: " + JSON.stringify(said.msgs));
+    assert.ok(reports.some(function (r) { return /^display: /.test(r) && /a panel painter threw/.test(r); }), "the painter's failure was swallowed without a report: " + JSON.stringify(reports));
+    assert.ok(!store.get(PENDING_ACT_K), "the action was kept to be sent again");
+  }, function (e) { syncUI = realSync; reportError = realReport; throw e; });
+});
+kase("U9 review: the summary line failing to paint does not abort the turn either", function () {
+  u3World(); var ws = worldState, realEmit = mutsSummaryEmit, threw = 0, realReport = reportError, reports = [];
+  mutsSummaryEmit = function () { threw++; throw new Error("the summary line threw"); };
+  reportError = function (ctx, msg) { reports.push(ctx + ": " + msg); };
+  gmSays(["A purse lies on the sill. [GOLD:+3]"]);
+  return sendAction("I open the door.").then(function () {
+    mutsSummaryEmit = realEmit; reportError = realReport;
+    assert.ok(threw >= 1, "fixture: the summary line never threw");
+    assert.strictEqual(ws.character.coin, 1300);
+    assert.deepStrictEqual(ws.transcript.map(function (e) { return e.r + "@" + e.t; }), ["player@9", "gm@10"], "the turn is not in the book whole");
+    assert.ok(reports.some(function (r) { return /the summary line threw/.test(r); }), "the failure was swallowed without a report");
+  }, function (e) { mutsSummaryEmit = realEmit; reportError = realReport; throw e; });
+});
+kase("U9 review: a refusal whose commit throws leaves no mark for a turn that was un-counted", function () {
+  u3World(); var ws = worldState, realToast = showToast;
+  showToast = function (m) { if (/declined this scene/.test(String(m))) throw new Error("the toast threw"); return realToast(m); };
+  assert.throws(function () { commitGmTurn(REFUSED, { playerTxt: "I open the door.", logPlayer: true, resend: { txt: "I open the door.", silent: false, rollTag: null } }); }, /the toast threw/);
+  showToast = realToast;
+  assert.strictEqual(ws.turn, 9, "fixture: the head was not undone");
+  assert.strictEqual(ws.unappliedRefusal, undefined, "a refusal mark is left for a turn that does not exist: " + JSON.stringify(ws.unappliedRefusal));
 });
 
 // ── runner ─────────────────────────────────────────────────────────────────────────────────────────────────────────

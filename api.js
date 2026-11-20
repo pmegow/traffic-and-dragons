@@ -3498,6 +3498,19 @@ function _w2CopyWorldStateDetached(ws){
   }
   return clone;
 }
+/* audit 2026-11-19, U9 (its independent review): applyMuts is NOT all-or-nothing — its handlers write live state one by
+   one. applyMutsLiveSeq counts the calls that reached the point where live writes begin, so a caller whose applyMuts
+   THREW can tell "nothing was written" (the count did not move) from "some or all of it landed" (it did). And the two
+   display steps at the tail no longer abort the call: every tag has landed by then, and a painter that threw there
+   made the caller offer a Retry that applied the reply a second time (reproduced: +3 gp twice). */
+var applyMutsLiveSeq=0;
+function applyMutsShow(what,fn){
+  try{fn();}catch(e){
+    if(typeof console!=="undefined")console.warn("[tags] "+what+" could not be shown after the state changes landed: "+((e&&e.message)||e));
+    if(typeof reportError==="function")reportError("display","applyMuts "+what+": "+((e&&e.message)||e),(e&&e.stack)?String(e.stack).slice(0,600):"");
+  }
+}
+function applyMutsPaint(){applyMutsShow("the panels",function(){syncUI();});}
 function applyMuts(text,opts){
   var _mapSourceRaw=text;/* #733: preserve the narrated bytes before marker repair, whitelist filtering, and W2 partition. */
   text=tagRestoreBareMarkers(text);/* #491: before EVERYTHING (the #264 whitelist, W2 preparation, the table) — a bare CANON_TXN_BEGIN/END line gets its brackets back, so the envelope is one transaction instead of a refused death with its loot withheld. Text with no bare marker passes through byte-identical. */
@@ -3529,6 +3542,7 @@ function applyMuts(text,opts){
      the table (every handler resolves through it, whatever the table order), over the text the whitelist left; restored
      at the single return below, so nothing a finished reply said can steer a later resolve. */
   var _mapMovementProblem=(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&/\[(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)(?::|\])/.test(String(text||"")))?atlasKnowledgeMovementProblem(_mapSourceRaw):"";
+  applyMutsLiveSeq++;/* U9: from here on this call writes live state */
   if(_mapMovementProblem){
     if(typeof console!=="undefined")console.warn("[map source] GM state changes withheld: "+_mapMovementProblem);
     /* audit 2026-11-19, P10: this early return wrote no provenance entry, so the one turn whose tags were ALL dropped was
@@ -3634,13 +3648,13 @@ function applyMuts(text,opts){
     worldState.tagLog.push(_tlEntry);
     if(worldState.tagLog.length>TAG_LOG_CAP)worldState.tagLog=worldState.tagLog.slice(worldState.tagLog.length-TAG_LOG_CAP);
   }catch(_tle){if(typeof console!=="undefined")console.warn("[tags] provenance ring write failed:",_tle&&_tle.message);}
-  mutsSummaryEmit(R);/* #431: the one writer of the turn's summary line (tag_table.js) — appends the HERE readout */
+  applyMutsShow("the summary line",function(){mutsSummaryEmit(R);/* #431: the one writer of the turn's summary line (tag_table.js) — appends the HERE readout */});
   /* #272 D1: opts.deferSave — passed ONLY by commitGmTurn, which owns the turn's SINGLE save
      after the transcript pair and the speaker stamp land (three full-transcript LZ passes per
      turn collapse to one; the f70 mechanism). Every other caller keeps the immediate save. UA6
      is intact either way: the commit save still runs before any display step. */
   if(typeof npcEndResponse==="function")npcEndResponse(_npcSaidPrev);/* #503: the reply is over — what it stated is forgotten */
-  syncUI();if(!(opts&&opts.deferSave))saveAll();
+  applyMutsPaint();if(!(opts&&opts.deferSave))saveAll();
   return R;
 }
 // ── TODO #1 P4 (D8): soft misroute tripwire ──────────────────────────────────

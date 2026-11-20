@@ -28,8 +28,8 @@ rc |= sabotage.prove({
   cases: [
     { label: "applyMuts ignores deferSave — the turn pays a second save/LZ pass again (#272 D1)",
       mustFail: "cloud-arming saveAll calls",
-      find: "  syncUI();if(!(opts&&opts.deferSave))saveAll();",
-      replace: "  syncUI();saveAll();" },
+      find: "  applyMutsPaint();if(!(opts&&opts.deferSave))saveAll();",
+      replace: "  applyMutsPaint();saveAll();" },
 
     { label: "the envelope clone reverts to the full JSON round-trip — the tripwire itself catches it (every envelope's transcript is now a foreign array) (#272 D4)",
       mustFail: "transaction touched the story transcript",

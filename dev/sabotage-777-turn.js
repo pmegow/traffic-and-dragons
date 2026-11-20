@@ -193,11 +193,23 @@ prove("item-kinds.js", [
 var T2 = {
   U7: "U7: a roll whose send fails is kept across a reload",
   U9: "U9: a commit that throws before its tags land leaves no half-turn",
-  U10: "U10: the sheet's Define and Sync say why they wait while a turn is in flight"
+  U10: "U10: the sheet's Define and Sync say why they wait while a turn is in flight",
+  U7R: "U7 review: the offer is a real button on the page",
+  U7TT: "U7 review: a roll made while the Table Talk tab is showing is still the story's",
+  U9IN: "U9 review: a throw from INSIDE the tag pass after a handler wrote is 'landed'",
+  U9PAINT: "U9 review: a painter that throws at the end of the tag pass does not abort the turn",
+  U9SUM: "U9 review: the summary line failing to paint does not abort the turn either",
+  U9RF: "U9 review: a refusal whose commit throws leaves no mark"
 };
 prove("game.js", [
-  { label: "U7: a roll whose send fails is not kept",
-    find: "if(!isTT&&opts&&opts.silent&&opts.rollTag&&!_rfPair&&typeof savePendingRoll===\"function\")savePendingRoll(txt,opts.rollTag);", replace: "", mustFail: ONLY + T2.U7 },
+  { label: "U7: a roll whose commit was undone is not kept again",
+    find: "if(!isTT&&opts&&opts.silent&&opts.rollTag&&!_rfPair&&typeof savePendingRoll===\"function\")savePendingRoll(txt,opts.rollTag);", replace: "", mustFail: ONLY + T2.U7R },
+  { label: "U7: a roll is not kept before its send (a page closed in flight loses it)",
+    find: "  if(typeof savePendingRoll===\"function\")savePendingRoll(r.note,r.diceTag);", replace: "  ", mustFail: ONLY + T2.U7R },
+  { label: "U7: the offer is painted as text (no button to press)",
+    find: ">Send the roll</button>\",{html:true});", replace: ">Send the roll</button>\");", mustFail: ONLY + T2.U7R },
+  { label: "U7: a roll made on the Table Talk tab is asked as a question",
+    find: "  if(isTT&&opts&&opts.silent&&!opts.ttRetry)isTT=false;", replace: "  ", mustFail: ONLY + T2.U7TT },
   { label: "U7: a kept roll's engine note is put into the story box as an action",
     find: "  if(rec.roll)return null;/* U7:", replace: "  if(false)return null;/* U7:", mustFail: ONLY + T2.U7 },
   { label: "U7: another campaign is offered the roll",
@@ -217,17 +229,21 @@ prove("game.js", [
   { label: "U7: a roll no longer waiting is refused without a word",
     find: "if(!pr){if(typeof showToast===\"function\")showToast(\"That roll is no longer waiting.\",3000);if(btn)btn.disabled=true;return;}", replace: "if(!pr){if(btn)btn.disabled=true;return;}", mustFail: ONLY + T2.U7 },
   { label: "U9: a commit that threw leaves the turn counted and the line in the book",
-    find: "if(_u9.landed){if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;", replace: "if(_u9.landed){if(o.onMutated)o.onMutated();}throw eHead;", mustFail: ONLY + T2.U9 },
+    find: "if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;}/* U9 */", replace: "if(o.onMutated)o.onMutated();}throw eHead;}/* U9 */", mustFail: ONLY + T2.U9 },
   { label: "U9: after the tags landed the caller is not told (it offers a re-applying Retry)",
-    find: "if(_u9.landed){if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);throw eHead;", replace: "if(_u9.landed){}else commitUndoHead(_u9);throw eHead;", mustFail: ONLY + T2.U9 },
-  { label: "U9: a turn whose tags landed is undone",
-    find: "_audioMuts=applyMuts(resp,{deferSave:true});_u9.landed=true;", replace: "_audioMuts=applyMuts(resp,{deferSave:true});", mustFail: ONLY + T2.U9 },
+    find: "as on the line above */if(o.onMutated)o.onMutated();}else commitUndoHead(_u9);", replace: "as on the line above */}else commitUndoHead(_u9);", mustFail: ONLY + T2.U9 },
+  { label: "U9: tags were written and the refusal mark is left set",
+    find: "{delete worldState.unappliedRefusal;/* its tags are in:", replace: "{/* its tags are in:", mustFail: ONLY + T2.U9IN },
+  { label: "U9: a throw from inside the tag pass is read as \"nothing landed\"",
+    find: "if(typeof applyMutsLiveSeq===\"number\"&&applyMutsLiveSeq!==_u9.seq){", replace: "if(false){", mustFail: ONLY + T2.U9IN },
+  { label: "U9: a refusal mark is left for a turn that was un-counted",
+    find: "  if(worldState.unappliedRefusal&&worldState.unappliedRefusal.turn>u.turn)delete worldState.unappliedRefusal;/* a mark for a turn that no longer exists */\n", replace: "", mustFail: ONLY + T2.U9RF },
   { label: "U9: the undo leaves the player's line in the book",
     find: "  if(tr.length===u.len+1){tr.pop();", replace: "  if(tr.length===u.len+1){", mustFail: ONLY + T2.U9 },
   { label: "U9: the undo takes an earlier entry out of the book",
     find: "  if(tr.length===u.len+1){tr.pop();", replace: "  if(tr.length){tr.pop();", mustFail: ONLY + T2.U9 },
   { label: "U9: the undo leaves the turn counted",
-    find: "  worldState.turn=u.turn;\n  if(typeof u.idx", replace: "  if(typeof u.idx", mustFail: ONLY + T2.U9 },
+    find: "  worldState.turn=u.turn;\n  if(worldState.unappliedRefusal", replace: "  if(worldState.unappliedRefusal", mustFail: ONLY + T2.U9 },
   { label: "U9: the undo leaves the name window moved",
     find: "  if(typeof u.idx===\"number\"&&typeof memory!==\"undefined\"&&memory)memory.nameIdx=u.idx;\n", replace: "", mustFail: ONLY + T2.U9 },
   { label: "U10: the sheet's Define says nothing while a turn is in flight",
@@ -236,6 +252,16 @@ prove("game.js", [
     find: "if(busy){if(typeof showToast===\"function\")showToast(\"Wait for the turn to finish\",3000);return;}/* audit 2026-11-19, U10 */", replace: "if(busy){return;}/* audit 2026-11-19, U10 */", mustFail: ONLY + T2.U10 },
   { label: "U10: Sync runs its model call inside a running turn",
     find: "showToast(\"Wait for the turn to finish\",3000);return;}/* audit 2026-11-19, U10 */", replace: "showToast(\"Wait for the turn to finish\",3000);}/* audit 2026-11-19, U10 */", mustFail: ONLY + T2.U10 }
+]);
+prove("api.js", [
+  { label: "U9: the tag pass never says where its live writes begin",
+    find: "  applyMutsLiveSeq++;/* U9: from here on this call writes live state */\n", replace: "", mustFail: ONLY + T2.U9IN },
+  { label: "U9: a painter that throws aborts the tag pass after every tag landed",
+    find: "function applyMutsPaint(){applyMutsShow(\"the panels\",function(){syncUI();});}", replace: "function applyMutsPaint(){syncUI();}", mustFail: ONLY + T2.U9PAINT },
+  { label: "U9: a painter's failure is swallowed without a report",
+    find: "    if(typeof reportError===\"function\")reportError(\"display\",\"applyMuts \"+what+\": \"+((e&&e.message)||e),(e&&e.stack)?String(e.stack).slice(0,600):\"\");\n", replace: "", mustFail: ONLY + T2.U9PAINT },
+  { label: "U9: the summary line failing aborts the tag pass",
+    find: "  applyMutsShow(\"the summary line\",function(){mutsSummaryEmit(R);", replace: "  (function(f){f();})(function(){mutsSummaryEmit(R);", mustFail: ONLY + T2.U9SUM }
 ]);
 prove("ui-boot.js", [
   { label: "U7: the load never offers the kept roll",
