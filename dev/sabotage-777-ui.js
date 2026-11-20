@@ -35,11 +35,13 @@ prove("ui-modals.js", [
 var T5 = "C5: Back from an imported character puts the wizard back as it was", T6 = "C6: a file the browser cannot read as an image is refused and said";
 prove("ui-browsers.js", [
   { label: "C5: Back leaves the import's fields in the wizard",
-    find: "  if(was&&prev){at=cs.step;to=prev.step;cs=prev;cs.step=at;goStep(to>=1&&to<6?to:5);return;}\n", replace: "", mustFail: ONLY + T5 },
+    find: "    at=cs.step;to=prev.cs.step;cs=prev.cs;cs.step=at;\n", replace: "    to=5;\n", mustFail: ONLY + T5 },
   { label: "C5: the wizard is not kept before an import",
-    find: "  if(!pendingImportChar)pendingImportPrev=JSON.parse(JSON.stringify(cs));", replace: "  ", mustFail: ONLY + T5 },
+    find: "  if(!pendingImportChar)pendingImportPrev={cs:JSON.parse(JSON.stringify(cs)),fields:wizardImportFields()};", replace: "  ", mustFail: ONLY + T5 },
   { label: "C5: a second import replaces the snapshot of the player's own wizard",
     find: "  if(!pendingImportChar)pendingImportPrev=", replace: "  pendingImportPrev=", mustFail: ONLY + T5 },
+  { label: "C5: Back leaves the imported name, level and XP in the page's fields",
+    find: "el.value=prev.fields[WIZARD_IMPORT_FIELDS[i]];}", replace: "void 0;}", mustFail: ONLY + T5 },
   { label: "C5: Back leaves the import pending",
     find: "  pendingImportChar=null;pendingImportPrev=null;\n  if(was&&prev)", replace: "  pendingImportPrev=null;\n  if(was&&prev)", mustFail: ONLY + T5 }
 ]);

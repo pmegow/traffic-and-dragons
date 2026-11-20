@@ -150,7 +150,10 @@ kase("C5: Back from an imported character puts the wizard back as it was — a f
   goStep = function (n) { went.push(n); cs.step = n; if (n > (cs.reached || 0)) cs.reached = n; };
   rvSyncXp = function () {};
   cs = blankWizardState(); cs.tone = "grim"; cs.step = 1; cs.reached = 1; pendingImportChar = null;
-  _importCharToReview({ name: "Kael", gender: "M", age: "thirties", ancestry: "Elf", cls: "Rogue", level: 3 });
+  var fields = {}; ["char-name", "rv-camp-name", "rv-start-level", "rv-start-xp"].forEach(function (id) { var e = new El("input", { id: id }); e.value = ""; body.appendChild(e); fields[id] = e; });
+  fields["char-name"].value = "Mira"; fields["rv-start-level"].value = "1"; fields["rv-start-xp"].value = "0";
+  _importCharToReview({ name: "Kael", gender: "M", age: "thirties", ancestry: "Elf", cls: "Rogue", level: 9, xp: 48000 });
+  assert.strictEqual(fields["char-name"].value, "Kael", "fixture: the import did not write the page fields"); assert.strictEqual(String(fields["rv-start-level"].value), "9");
   assert.strictEqual(cs.step, 6, "fixture: the import did not go to the review"); assert.strictEqual(cs.ancestry, "Elf");
   wizardReviewBack();
   assert.strictEqual(pendingImportChar, null, "the import is still pending after Back");
@@ -159,6 +162,9 @@ kase("C5: Back from an imported character puts the wizard back as it was — a f
   assert.strictEqual(cs.tone, "grim", "the player's own choice was lost");
   assert.strictEqual(cs.step, 1, "Back did not return to the step the player was on (it went to " + cs.step + ")");
   assert.strictEqual(cs.reached, 1, "the progress bar still links ahead to steps the player never did: reached " + cs.reached);
+  assert.strictEqual(fields["char-name"].value, "Mira", "the name field still holds the imported name — the fresh hero would begin under it");
+  assert.strictEqual(fields["rv-camp-name"].value, "", "the campaign name still holds the imported name");
+  assert.strictEqual(String(fields["rv-start-level"].value), "1", "the fresh hero would begin at the imported level"); assert.strictEqual(String(fields["rv-start-xp"].value), "0", "the fresh hero would begin with the imported XP");
   // a second import before Back keeps the FIRST snapshot
   cs.step = 3; cs.reached = 3; cs.cls = "Wizard";
   _importCharToReview({ name: "A", ancestry: "Elf", cls: "Rogue" }); _importCharToReview({ name: "B", ancestry: "Dwarf", cls: "Cleric" });

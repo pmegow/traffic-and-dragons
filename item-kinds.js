@@ -119,7 +119,7 @@ function itemKindsHeal(ws){
   if(!ws.itemKinds||typeof ws.itemKinds!=="object"||Array.isArray(ws.itemKinds)){delete ws.itemKinds;dropped=1;}
   else{keys=Object.keys(ws.itemKinds);for(i=0;i<keys.length;i++)if(!itemKindStored(ws,keys[i])){delete ws.itemKinds[keys[i]];dropped++;}}
   if(dropped&&typeof console!=="undefined")console.warn("[items] #776 "+dropped+" item-section record"+(dropped===1?"":"s")+" could not be read and "+(dropped===1?"was":"were")+" dropped — the items are asked again");
-  itemKindsTrim(ws);/* C10: the load holds the store at its bound */
+  dropped+=itemKindsTrim(ws);/* C10: the load holds the store at its bound — counted, so the caller saves the trimmed store */
   return dropped;
 }
 /* What the player is told, in one line (the console): what was filed where, and what stays unclassified. */

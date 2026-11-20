@@ -84,7 +84,8 @@ kase("C10: the item-section store is bounded — the oldest records of things no
   assert.ok(warns.some(function (w) { return /item-section record/.test(w) && /50/.test(w); }), "letting records go is not said: " + JSON.stringify(warns));
   assert.strictEqual(itemKindsTrim(ws), 0, "a store at its bound was trimmed again");
   // the two doors: the load, and the turn that files a new answer
-  ws.itemKinds["one more"] = { kind: "tool", turn: 9999 }; migrateWorldState(ws);
+  ws.itemKinds["one more"] = { kind: "tool", turn: 9999 };
+  assert.strictEqual(itemKindsHeal(ws), 1, "the load door does not report what it let go — the trimmed store is never saved and is trimmed again at every load");
   assert.strictEqual(Object.keys(ws.itemKinds).length, cap, "the load does not hold the store at its bound");
   var s = src("item-kinds.js"), at = s.indexOf("async function itemKindsSettle"), body = s.slice(at, s.indexOf("\n}", at));
   assert.ok(/itemKindsTrim\(ws\)/.test(body), "a turn that files answers never trims the store");
@@ -95,27 +96,13 @@ kase("C12: the coin scan stays fast on a long run of number words, and still rea
   assert.deepStrictEqual(r.amounts, []);
   r = coinNarrationAmounts("You count out twenty gold pieces and pocket 5 sp.");
   assert.deepStrictEqual(r.amounts.map(function (a) { return a.text; }), ["20 gp", "5 sp"], "an ordinary reply is read differently: " + JSON.stringify(r.amounts));
-  var long = new Array(COIN_NARRATION_SCAN_MAX + 200).join("x") + " You hand over 30 gold.";
+  var long = "You pocket 3 gold pieces. " + new Array(COIN_NARRATION_SCAN_MAX + 200).join("x") + " You pocket 2 gold pieces more. [GOLD:+5]";
   warns.length = 0; console.info = function () { warns.push([].join.call(arguments, " ")); };
-  r = coinNarrationAmounts(long); console.info = function () {};
-  assert.deepStrictEqual(r.amounts, [], "text past the bound was scanned");
-  assert.ok(warns.some(function (w) { return /coin/.test(w) && /not scanned|only the first/.test(w); }), "a reply cut for the scan is not said: " + JSON.stringify(warns));
-});
-kase("C16: a button may not name a blueprint place the story has not shown; one the story has named passes", function () {
-  var ws = fresh();
-  memory.map.nodes["The Drowned Archive"] = newMapNode(null, null, { description: "a flooded library", blueprintSeeded: true });
-  var man = buildSceneManifest();
-  var v = validateSuggestion("Seek the Drowned Archive.", man);
-  assert.ok(v && v.rule === "unintroduced-place", "a button naming a place only the outline knows passed: " + JSON.stringify(v));
-  var v2 = validateSuggestion("Search the archive shelves.", man);
-  assert.ok(!(v2 && v2.rule === "unintroduced-place"), "a common word was read as the outline's place: " + JSON.stringify(v2));
-  ws.transcript.push({ t: ws.turn, r: "gm", x: "The ferryman speaks of the Drowned Archive, beyond the weir." });
-  if (typeof invalidateTranscriptMemo === "function") invalidateTranscriptMemo();
-  v = validateSuggestion("Seek the Drowned Archive.", man);
-  assert.ok(!(v && v.rule === "unintroduced-place"), "a place the story has named is still held back: " + JSON.stringify(v));
-  memory.map.nodes["The Salt Stair"] = newMapNode(3, null, { blueprintSeeded: true }); memory.map.nodes["The Salt Stair"].visits = 1;
-  v = validateSuggestion("Climb the Salt Stair.", man);
-  assert.ok(!(v && v.rule === "unintroduced-place"), "a visited place is held back");
+  r = coinNarrationAmounts(long); var chk = coinNarrationCheck(long, long); console.info = function () {};
+  assert.deepStrictEqual(r.amounts, [], "a reply past the bound was scanned in part");
+  assert.strictEqual(chk, null, "amounts from the head of a long reply were set against tags from all of it — a false coin warning: " + JSON.stringify(chk));
+  assert.ok(warns.some(function (w) { return /coin/.test(w) && /not scanned/.test(w); }), "a reply left unscanned is not said: " + JSON.stringify(warns));
+  assert.ok(coinNarrationCheck("You pocket 3 gold pieces. [GOLD:+5]", "You pocket 3 gold pieces. [GOLD:+5]"), "fixture: the same mismatch in a short reply is no longer flagged");
 });
 kase("C16: the painter is never told the hero is \"undefined\"", function () {
   var ws = fresh(), c = ws.character; delete c.age; delete c.appear;
@@ -141,6 +128,14 @@ kase("C16: the prompt of Death's arrival says Death has just arrived — until t
   var ws = fresh();
   ws.deathScene = { walk: 1, cause: "slain", stage: "question", arrivalOwed: true };
   assert.ok(/Death has just arrived/.test(buildDeathSceneBlock()), "the arrival's own prompt lacks its arrival line (the stage has already moved on when it is built)");
+  ws.deathScene.stage = "choose";
+  assert.ok(!/Death has just arrived/.test(buildDeathSceneBlock()), "the arrival line rides a prompt after the question is spent");
+  var sent = 0, realSettle = whenTurnSettles; whenTurnSettles = function () { sent++; };
+  global.document = global.document || {}; deathArrivalRearm();
+  assert.strictEqual(sent, 0, "a reload with the question already spent sends Death's arrival into the middle of the walk");
+  assert.strictEqual(ws.deathScene.arrivalOwed, undefined, "the stale arrival stays owed");
+  ws.deathScene.stage = "question"; ws.deathScene.arrivalOwed = true; deathArrivalRearm(); whenTurnSettles = realSettle;
+  assert.strictEqual(sent, 1, "an arrival still owed before the question is no longer re-armed at load");
   delete ws.deathScene.arrivalOwed;
   assert.ok(!/Death has just arrived/.test(buildDeathSceneBlock()), "the arrival line is sent after the arrival");
 });

@@ -736,23 +736,6 @@ function validateSuggestion(text,man){
     if(cbFound){cbN.introduced=cbFound;continue;}/* lazy backfill — scan once, stamped forever */
     return {rule:"unintroduced-entity",detail:cbN.name+" has never been introduced in the story — outline material may not surface in a button before the narration says the name"};
   }
-  /* audit 2026-11-19, C16: ⑥ for PLACES. The suggestion call sees the whole outline, and only NPC names were held back —
-     a button could name a place the blueprint seeded and the story has never shown ("Seek the Drowned Archive"). A
-     seeded, unvisited world place is fair game once the story knows it (blueprintKnownPlaces, the same evidence the
-     memory listing uses); until then a button that writes its proper name is refused. The name is matched as written,
-     capitals and all, so a common word in a sentence is never read as the outline's place. */
-  if(typeof blueprintKnownPlaces==="function"&&typeof memory!=="undefined"&&memory&&memory.map&&memory.map.nodes){
-    var bpKeys=Object.keys(memory.map.nodes),bpKnown=null,bpi;
-    for(bpi=0;bpi<bpKeys.length;bpi++){
-      var bpN=memory.map.nodes[bpKeys[bpi]];
-      if(!bpN||!bpN.blueprintSeeded||bpN.visits>0||bpN.parent)continue;
-      var bpLeaf=String((typeof locDisplayLeaf==="function")?locDisplayLeaf(bpKeys[bpi]):bpKeys[bpi]).replace(/^the\s+/i,"");
-      if(bpLeaf.length<4||t.indexOf(bpLeaf)<0)continue;
-      if(!bpKnown)bpKnown=blueprintKnownPlaces();
-      if(bpKnown[(typeof locResolve==="function")?locResolve(bpKeys[bpi]):bpKeys[bpi]])continue;
-      return {rule:"unintroduced-place",detail:bpLeaf+" has never been shown in the story — outline material may not surface in a button before the narration says the name"};
-    }
-  }
   // Fuzzy class: off-scene NPC named with no capability involved — legal fiction (letters,
   // asking a companion about them). LOG ONLY; telemetry decides if it ever graduates.
   for(j=0;j<npcs.length;j++){
@@ -4466,7 +4449,9 @@ function deathSceneBegin(cause){
   if(typeof document!=="undefined"&&typeof sendAction==="function")whenTurnSettles("Death's arrival",deathArrivalSend);
 }
 function deathArrivalSend(){if(worldState&&worldState.deathScene&&worldState.deathScene.arrivalOwed)sendAction(deathArrivalDirective(),{silent:true,deathArrival:true});}
-function deathArrivalRearm(){if(worldState&&worldState.deathScene&&worldState.deathScene.arrivalOwed&&typeof document!=="undefined")whenTurnSettles("Death's arrival",deathArrivalSend);}
+function deathArrivalRearm(){var ds=worldState&&worldState.deathScene;if(!ds||!ds.arrivalOwed)return;
+  if(ds.stage!=="arrive"&&ds.stage!=="question"){delete ds.arrivalOwed;return;}/* audit 2026-11-19, C16 (its review): the walk has moved past the arrival (the question is asked or spent) — a reload must not send Death's arrival into the middle of it */
+  if(typeof document!=="undefined")whenTurnSettles("Death's arrival",deathArrivalSend);}
 /* audit 2026-11-19, U1 — WHAT A COMMIT SCHEDULES RUNS ONCE THE TURN HAS LET GO. Death's arrival and the campaign's final
    denouement are scheduled from INSIDE the commit, while `busy` is true, and both begin by returning when `busy` is set.
    They were scheduled with setTimeout(…,0): once the turn went on to await the map and item requests (#766, #771, #776)

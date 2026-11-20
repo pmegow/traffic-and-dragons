@@ -2371,12 +2371,13 @@ function coinWordsValue(s){
 }
 /* the amounts a prose passage names: [{cp, text, at}] — text as written in its own unit ("20 sp"), for the toast */
 /* audit 2026-11-19, C12: the scan is bounded. The amount pattern backtracks on a long run of number words (3.7 s on 64 KB of
-   "twenty twenty …"), and it runs on every reply. No narration is this long; a reply that is has its tail left unscanned,
-   and that is said. */
+   "twenty twenty …"), and it runs on every reply. No narration is this long; a reply that is, is not scanned at all, and
+   that is said — scanning only its head would set amounts from part of the prose against tags from all of it (the
+   review of the first build got a false "narrated 3 gp, tagged +5 gp" that way). */
 var COIN_NARRATION_SCAN_MAX=16000;
 function coinNarrationAmounts(clean){
   clean=String(clean==null?"":clean);
-  if(clean.length>COIN_NARRATION_SCAN_MAX){if(typeof console!=="undefined")console.info("[coin] the reply is "+clean.length+" characters; only the first "+COIN_NARRATION_SCAN_MAX+" are scanned for coin amounts (audit C12)");clean=clean.slice(0,COIN_NARRATION_SCAN_MAX);}
+  if(clean.length>COIN_NARRATION_SCAN_MAX){if(typeof console!=="undefined")console.info("[coin] the reply is "+clean.length+" characters; replies past "+COIN_NARRATION_SCAN_MAX+" are not scanned for coin amounts (audit C12)");return {amounts:[],text:"",cut:true};}
   var s=String(clean==null?"":clean).toLowerCase().replace(/"[^"\n]*"/g,function(m){return new Array(m.length+1).join(" ");}).replace(/\u201c[^\u201d\n]*\u201d/g,function(m){return new Array(m.length+1).join(" ");});
   var out=[],m,re=new RegExp(COIN_NARRATION_RE.source,"g");
   while((m=re.exec(s))){var n=coinWordsValue(m[1]),u=COIN_UNIT_WORD[m[3]];if(!n||!u)continue;var key=u===100?"gp":u===10?"sp":"cp";out.push({cp:n*u,text:n+" "+key,at:m.index+m[0].length-m[0].replace(/^[^a-z0-9]/,"").length});}

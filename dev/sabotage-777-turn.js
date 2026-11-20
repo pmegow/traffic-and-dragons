@@ -36,7 +36,7 @@ prove("game.js", [
   { label: "U1 review: the arrival is not owed on the save",
     find: "  worldState.deathScene.arrivalOwed=true;", replace: "  ", mustFail: ONLY + T.U1A },
   { label: "U1 review: a load re-arms an arrival that is already in the book",
-    find: "function deathArrivalRearm(){if(worldState&&worldState.deathScene&&worldState.deathScene.arrivalOwed&&typeof document", replace: "function deathArrivalRearm(){if(worldState&&worldState.deathScene&&typeof document", mustFail: ONLY + T.U1A },
+    find: "var ds=worldState&&worldState.deathScene;if(!ds||!ds.arrivalOwed)return;", replace: "var ds=worldState&&worldState.deathScene;if(!ds)return;", mustFail: ONLY + T.U1A },
   { label: "U1 review: a second armed step sends the arrival again",
     find: "function deathArrivalSend(){if(worldState&&worldState.deathScene&&worldState.deathScene.arrivalOwed)sendAction(", replace: "function deathArrivalSend(){sendAction(", mustFail: ONLY + T.U1A },
   { label: "U1 review: the arrival's commit leaves it owed",

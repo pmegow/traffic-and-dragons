@@ -588,17 +588,25 @@ function _charExportPick(idx){
    fresh hero whose identity, class and attribute steps were never checked (ancestry "Unknown", every stat 8). The
    wizard state is kept as it was before the import, and Back puts it back and returns to the step the player was on. */
 var pendingImportPrev=null;
+/* the page fields an import writes besides the wizard state — confirmChar reads them live, so they are put back too (the
+   review of the first build: the fresh hero began under the imported name, at its level, with its XP) */
+var WIZARD_IMPORT_FIELDS=["char-name","rv-camp-name","rv-start-level","rv-start-xp"];
+function wizardImportFields(){var out={},i,el;for(i=0;i<WIZARD_IMPORT_FIELDS.length;i++){el=document.getElementById(WIZARD_IMPORT_FIELDS[i]);if(el)out[WIZARD_IMPORT_FIELDS[i]]=el.value;}return out;}
 function wizardReviewBack(){
-  var prev=pendingImportPrev,was=pendingImportChar,at,to;
+  var prev=pendingImportPrev,was=pendingImportChar,at,to,i,el;
   pendingImportChar=null;pendingImportPrev=null;
-  if(was&&prev){at=cs.step;to=prev.step;cs=prev;cs.step=at;goStep(to>=1&&to<6?to:5);return;}
+  if(was&&prev){
+    at=cs.step;to=prev.cs.step;cs=prev.cs;cs.step=at;
+    for(i=0;i<WIZARD_IMPORT_FIELDS.length;i++){el=document.getElementById(WIZARD_IMPORT_FIELDS[i]);if(el&&Object.prototype.hasOwnProperty.call(prev.fields,WIZARD_IMPORT_FIELDS[i]))el.value=prev.fields[WIZARD_IMPORT_FIELDS[i]];}
+    goStep(to>=1&&to<6?to:5);return;
+  }
   goStep(5);
 }
 function _importCharToReview(char){
   if(!cs.tone){showToast("Pick a world tone first (Step 1).");return;}
   var bm=document.getElementById("char-browser-modal");if(bm)bm.remove();
   var pr=document.getElementById("char-import-preview");if(pr)pr.remove();
-  if(!pendingImportChar)pendingImportPrev=JSON.parse(JSON.stringify(cs));/* C5: the wizard as the player left it (a second import keeps the first snapshot) */
+  if(!pendingImportChar)pendingImportPrev={cs:JSON.parse(JSON.stringify(cs)),fields:wizardImportFields()};/* C5: the wizard as the player left it (a second import keeps the first snapshot) */
   pendingImportChar=char;
   cs.name=char.name||"";cs.gender=char.gender||"M";cs.age=char.age||"early twenties";
   cs.portrait=char.portrait||null;cs.portraitOffset=char.portraitOffset||null;

@@ -1076,7 +1076,7 @@ function buildDeathSceneBlock(){
   var ds=worldState&&worldState.deathScene;if(!ds)return"";
   var c=worldState.character;
   return "DEATH SCENE (engine-authored, walk "+ds.walk+" of "+RESPAWNS_PER_CAMPAIGN+"): "+c.name+" has died ("+(ds.cause||"slain")+"). "+DEATH_VOICE+" The world is paused; no NPC acts, no clock moves, no tags but the ones the engine asks for. "
-    +(ds.stage==="arrive"||ds.arrivalOwed/* audit 2026-11-19, C16: the stage has already left "arrive" when the arrival's own prompt is built — the line could never be sent; the arrival is owed until its commit */?"Death has just arrived to walk "+c.name+" back to the last camp or onward. ":"")
+    +(ds.stage==="arrive"||(ds.arrivalOwed&&ds.stage==="question")/* audit 2026-11-19, C16: the stage has already left "arrive" when the arrival's own prompt is built — the line could never be sent. It rides the arrival that is still owed, and only before the question is spent */?"Death has just arrived to walk "+c.name+" back to the last camp or onward. ":"")
     +"The player has ONE question on the walk. Death answers only from what this world already contains — filed lore, the map, what NPCs know, the campaign's premise — and NEVER spends the skeleton's unrevealed turning points or an NPC's secret before its reveal (a kind in-character refusal instead). A question about fate gets the gentle no: that chapter is yet to be written. Whatever Death answers becomes CANON the GM must honour ever after. "
     +(ds.stage==="choose"?"The question is spent. Death waits for the choice: back to camp, or onward. ":"")
     +"\n\n";
