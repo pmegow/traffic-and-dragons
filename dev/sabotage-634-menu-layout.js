@@ -86,16 +86,19 @@ rc|=sabotage.prove({file:"index.html",command:GATE,cases:[
    replace:'  --acc:#9ab0c9;--on-acc:#000;--acc-bg:#141c24;'},
   {label:"the head script stops reading the stored theme (every load would paint dark)",
    mustFail:"head no longer applies the stored theme",
+   /* #777 (CI red at 3dccd923): the old mutation removed the key's only use in index.html, and the storage-keys contract — which reads
+      that page since the audit's gates batch — went red before the theme pin could. The stored value is still never honoured. */
    find:'if(localStorage.getItem("tnd_theme_v1")==="light")t="light";',
-   replace:'t="dark";'},
+   replace:'if(localStorage.getItem("tnd_theme_v1")==="lit")t="light";'},
   {label:"the dark color-scheme declaration is dropped (form controls would stay light-styled)",
    mustFail:"lost a color-scheme declaration",
    find:':root[data-theme="dark"]{color-scheme:dark}\n',
    replace:''},
   {label:"the head script's key diverges from the toggle's (a light-mode player would flash dark every load)",
    mustFail:"head no longer applies the stored theme (tnd_theme_v1",
+   /* #777: the key still diverges at run time (…_v2), built from the literal the storage-keys table reads, so that contract stays quiet */
    find:'localStorage.getItem("tnd_theme_v1")==="light"',
-   replace:'localStorage.getItem("tnd_theme_v2")==="light"'}
+   replace:'localStorage.getItem("tnd_theme_v1".slice(0,-1)+"2")==="light"'}
 ]});
 
 /* The toggle's side of the key: a literal rename here trips the storage-key census (#523) before the theme
