@@ -186,7 +186,7 @@ function atlasSheetInside(A,place,features){
   for(i=0;i<rows.length;i++){
     r=rows[i];if(atlasSheetParent(r.container)!==place.container)continue;/* its own children only: what lies two steps down is its child's */
     leaf=atlasSheetLeaf(r.container);named=false;for(j=0;j<features.length&&!named;j++)if(atlasKnowledgeFold(features[j].label)===atlasKnowledgeFold(leaf))named=true;
-    if(!named)out.push({id:"in-"+(out.length+1),name:leaf,to:r.id});
+    if(!named)out.push({id:"in-"+(out.length+1),name:leaf,to:r.id,key:r.container});/* key: the place itself, for the note the player wrote on it (audit A1) */
   }
   return out;
 }
@@ -210,7 +210,9 @@ function atlasSheetRecipe(place,features,ways,inside){
   sorted=features.slice().sort(function(a,b){var ta=a.source&&a.source.turn||0,tb=b.source&&b.source.turn||0;return (ta-tb)||(a.id<b.id?-1:a.id>b.id?1:0);});
   for(i=0;i<sorted.length;i++){k=atlasKnowledgeFold(sorted[i].label);if(k&&!byName[k])byName[k]=sorted[i];}
   /* a feature that names the place a way leads to IS that way: one thing on the sheet, under the feature's own id — so its card, and a note the player wrote on it, stay with it */
-  ways=ways.map(function(x){var named=byName[atlasKnowledgeFold(x.name)];if(named)isWay[named.id]=true;return {id:named?named.id:x.id,key:x.key,name:x.name,bearing:x.bearing,lean:x.lean,to:x.to,feature:named?named.id:null};});
+  /* audit 2026-11-19, A7 (its review): a feature is "the way" only where the way is DRAWN. Past the sixteenth exit the way has
+     no edge of its own, so a feature that names it keeps its pin (and its card still opens where the way leads). */
+  ways=ways.map(function(x,wi){var named=byName[atlasKnowledgeFold(x.name)];if(named&&wi<ATLAS_SHEET_EXIT_CAP)isWay[named.id]=true;return {id:named?named.id:x.id,key:x.key,name:x.name,bearing:x.bearing,lean:x.lean,to:x.to,feature:named?named.id:null};});
   if(draw.site){/* #771 P2: a site (a cave) — its own params from the same sorted record */
     params=draw.params(place,sorted,ways,inside,isWay,kind);
     return params?{draws:kind.draws,generator:draw.generator,terrain:null,ways:ways,inside:inside,params:params}:null;
@@ -224,7 +226,7 @@ function atlasSheetRecipe(place,features,ways,inside){
      later, a dotted way that came after it may take the edge it frees — nothing is stored to say where it was drawn. */
   for(i=0;i<ways.length;i++){
     w=ways[i];
-    if(exits.length>=ATLAS_SHEET_EXIT_CAP){atlasSheetListAdd(list,{id:w.id,name:atlasSheetCut("The way to "+w.name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});continue;}/* A7: the sheet draws sixteen ways; a later one is listed */
+    if(exits.length>=ATLAS_SHEET_EXIT_CAP){if(!w.feature)atlasSheetListAdd(list,{id:w.id,name:atlasSheetCut("The way to "+w.name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});continue;}/* A7: the sheet draws sixteen ways; a later one is listed */
     e={id:w.id,name:atlasSheetCut(w.name,ATLAS_SHEET_WAY_MAX),sure:!!w.bearing,bearing:w.bearing};
     if(!e.bearing&&w.lean&&!used[w.lean])e.bearing=w.lean;/* an unstated way is laid DOWN the sheet: onward is south, the way back north, so both ends of one way agree */
     if(!e.bearing){for(j=0;j<ATLAS_JOURNEY_UNSURE_ORDER.length&&!e.bearing;j++)if(!used[ATLAS_JOURNEY_UNSURE_ORDER[j]])e.bearing=ATLAS_JOURNEY_UNSURE_ORDER[j];if(!e.bearing)e.bearing=ATLAS_JOURNEY_UNSURE_ORDER[0];}
@@ -256,7 +258,7 @@ function atlasSheetSiteStory(draws,sorted,ways,inside,isWay){
   var first=ways[0],b,story=[],list={rows:[],cut:0},i,f;
   if(!first)return null;
   b=first.bearing||first.lean||"S";
-  for(i=1;i<ways.length;i++)atlasSheetListAdd(list,{id:ways[i].id,name:atlasSheetCut("The way to "+ways[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
+  for(i=1;i<ways.length;i++){if(i>=ATLAS_SHEET_EXIT_CAP&&ways[i].feature)continue;/* A7: past the cap the feature says it */atlasSheetListAdd(list,{id:ways[i].id,name:atlasSheetCut("The way to "+ways[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});}
   for(i=0;i<sorted.length;i++){
     f=sorted[i];if(isWay[f.id])continue;
     if(atlasSheetIsSite(draws,f.label))continue;/* "cave" in a cave, "inn" in an inn: the site is drawn, not named */

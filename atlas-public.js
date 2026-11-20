@@ -33,7 +33,7 @@ function atlasPublicFollow(){
   }catch(e){
     /* audit 2026-11-19, A8: at the place limit every follow — every turn, every pane open — raised a toast and mailed an
        error report. The limit is an answer: said once a session for the campaign, never reported. */
-    if(e&&e.atlasLimit){if(atlasOnce(atlasLive(),"place-limit"))atlasSay("warn",e.message);return null;}
+    if(e&&e.atlasLimit){atlasPublicLimitSay(atlasLive(),e);return null;}
     atlasProblem("following the public map",e);return null;
   }
 }
@@ -49,24 +49,49 @@ function atlasPublicChildSheet(A,place,label){
 }
 /* audit 2026-11-19, A1 (owner ruling: notes are kept by sheet). The keys a note on a public sheet's thing is read under,
    the first being where it is written. A way out and a place inside bear positional ids (way-1, in-1) that every sheet
-   repeats and that shift as the record grows, so their notes are keyed by the SHEET and by what the thing leads to:
-   zone|way|<the place it leads to>, zone|in|<the sheet inside>. A feature keeps its own id (unique in the campaign), so
-   notes saved before this build stay where they are; a feature that IS a way also reads the note the way had. The bare
-   positional id comes last: what the old build stored, shown until it is saved again (the save moves it). */
+   repeats and that shift as the record grows, so their notes are filed under a REFERENCE to what they are:
+   ["way", <this place>, <the place it leads to>] and ["in", <this place>, <the place inside>], as a JSON key. Places are
+   named by their filing keys and RESOLVED AT THE READ (atlasPublicNoteStored): a note written before a place was merged
+   is found under the name it was written with — the rule the map's own records follow (the review of the first build
+   keyed by sheet id and unresolved name, and a merge left the note unreachable). A FEATURE keeps its own id (unique in
+   the campaign), so notes saved before this build stay where they are; a feature that IS a way, or that names a place
+   inside, also reads the note that thing had. The bare positional id comes last: what builds before v1.1478 stored,
+   shared by every sheet — shown where a thing has no note of its own, and never removed by saving another note. */
+function atlasPublicNoteStored(ref){
+  var A=atlasLive(),notes=A&&A.publicNotes,canon=JSON.stringify(ref),out=[canon],ks,i,p;
+  if(!notes||typeof notes!=="object")return out;
+  ks=Object.keys(notes);
+  for(i=0;i<ks.length;i++){
+    if(ks[i]===canon||ks[i].charAt(0)!=="[")continue;
+    try{p=JSON.parse(ks[i]);}catch(e){continue;}
+    if(Array.isArray(p)&&p.length===3&&typeof p[1]==="string"&&typeof p[2]==="string"&&atlasPublicPlaceKey(p[1])===ref[1]&&atlasPublicPlaceKey(p[2])===ref[2])out.push(ks[i]);
+  }
+  return out;
+}
+/* the visited place inside this one that bears the label, as its filing key, or null */
+function atlasPublicChildContainer(A,place,label){
+  var rows=atlasPublicPlacesList(A),want=atlasKnowledgeFold(label),i,r;
+  if(!want)return null;
+  for(i=0;i<rows.length;i++){r=rows[i];if(atlasSheetParent(r.container)===place.container&&atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.container;}
+  return null;
+}
 function atlasPublicNoteKeys(zoneId,id){
-  var A=atlasLive(),place,doc,sheet,i,w;
+  var A=atlasLive(),place,doc,sheet,feats,i,w,child,here;
   id=String(id);
   try{
     if(!A||atlasPublicRegionIs(A,zoneId))return [id];
     place=atlasPublicPlace(A,zoneId);if(!place)return [id];
     doc=atlasPublicDoc(zoneId);if(!atlasSheetDrawn(doc))return [id];
-    sheet=atlasSheetOf(A,place,atlasKnowledgeShown(place.container,atlasKnowledgeProjection(place.container).features));if(!sheet)return [id];
+    feats=atlasKnowledgeShown(place.container,atlasKnowledgeProjection(place.container).features);
+    sheet=atlasSheetOf(A,place,feats);if(!sheet)return [id];
+    here=atlasPublicPlaceKey(place.container);
     for(i=0;i<sheet.ways.length;i++){
       w=sheet.ways[i];
-      if(w.feature===id)return [id,zoneId+"|way|"+w.key];
-      if(w.id===id)return [zoneId+"|way|"+w.key,id];
+      if(w.feature===id)return [id].concat(atlasPublicNoteStored(["way",here,atlasPublicPlaceKey(w.key)]));
+      if(w.id===id)return atlasPublicNoteStored(["way",here,atlasPublicPlaceKey(w.key)]).concat([id]);
     }
-    for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===id)return [zoneId+"|in|"+sheet.inside[i].to,id];
+    for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===id)return atlasPublicNoteStored(["in",here,atlasPublicPlaceKey(sheet.inside[i].key)]).concat([id]);
+    for(i=0;i<feats.length;i++)if(feats[i].id===id){child=atlasPublicChildContainer(A,place,feats[i].label);if(child)return [id].concat(atlasPublicNoteStored(["in",here,atlasPublicPlaceKey(child)]));}
   }catch(e){if(typeof console!=="undefined")console.warn("[atlas] the note keys of "+id+" could not be read: "+((e&&e.message)||e));}
   return [id];
 }

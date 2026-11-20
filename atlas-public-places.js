@@ -20,6 +20,9 @@ function atlasPublicPlacesProblem(A,store){
   }
   return "";
 }
+/* audit 2026-11-19, A8: THE one line for the place limit — once a session for the campaign, never a report. Both doors that
+   meet the limit say it here: the follow of a new place, and the recovery of a place that was never given a sheet. */
+function atlasPublicLimitSay(A,e){if(atlasOnce(A,"place-limit"))atlasSay("warn",e.message);}
 function atlasPublicPlacesAdd(A,store,key,turn){
   var resolved=atlasPublicPlaceKey(key),ids=Object.keys(store.places),i,id;
   for(i=0;i<ids.length;i++)if(atlasPublicPlaceKey(store.places[ids[i]].container)===resolved)return ids[i];
@@ -68,7 +71,13 @@ function atlasPublicPlace(A,id){
 }
 function atlasPublicPlacesFollow(A){
   var store=JSON.parse(JSON.stringify(atlasPublicPlacesRead(A))),id,why;
-  id=atlasPublicPlacesAdd(A,store,atlasKnowledgeContext(),atlasTurn());atlasPublicPlacesRecover(A,store);
+  var had=Object.keys(store.places).length,isNew;
+  id=atlasPublicPlacesAdd(A,store,atlasKnowledgeContext(),atlasTurn());isNew=Object.keys(store.places).length!==had;
+  /* audit 2026-11-19, A8 (its review): at the limit, recovering a place that was never given a sheet threw on every follow —
+     so the party could not be followed back to a place that HAS a sheet. When the place the party stands in already has
+     its sheet, the follow answers with it and installs nothing (the registry is extended whole or not at all, #744); a
+     NEW arrival that cannot be completed is still refused whole. */
+  try{atlasPublicPlacesRecover(A,store);}catch(e){if(e&&e.atlasLimit&&!isNew){atlasPublicLimitSay(A,e);return id;}throw e;}
   why=atlasPublicPlacesProblem(A,store);if(why)throw new Error(why);
   A.publicPlaces=store;return id;
 }

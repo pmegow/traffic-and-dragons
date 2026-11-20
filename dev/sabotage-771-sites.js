@@ -31,7 +31,7 @@ var sheet = [
   { label: "the mouth ignores where the way back leads", find: 'b=first.bearing||first.lean||"S";', replace: 'b="S";', mustFail: T3 },
   { label: "a building's door ignores where the way back leads", find: 'b=first.bearing||first.lean||"S";', replace: 'b="S";', mustFail: B3 },
   { label: "the rock runs toward its own mouth", find: "heading:ATLAS_JOURNEY_OPPOSITE[s.b],", replace: "heading:s.b,", mustFail: T3 },
-  { label: "a later way is dropped, not listed", find: "for(i=1;i<ways.length;i++)atlasSheetListAdd(list,", replace: "for(i=1;i<0;i++)atlasSheetListAdd(list,", mustFail: T7 },
+  { label: "a later way is dropped, not listed", find: "for(i=1;i<ways.length;i++){if(i>=ATLAS_SHEET_EXIT_CAP&&ways[i].feature)continue;", replace: "for(i=1;i<0;i++){if(i>=ATLAS_SHEET_EXIT_CAP&&ways[i].feature)continue;", mustFail: T7 },
   { label: "a thing with no direction is dropped from a cave", find: 'if(f.bearing==="unknown"||story.length>=ATLAS_SHEET_STORY_CAP){atlasSheetListAdd(list,', replace: 'if(f.bearing==="unknown"||story.length>=ATLAS_SHEET_STORY_CAP){(function(){})(list,', mustFail: T4 },
   { label: "\"cave\" in a cave is named as a thing", find: '    if(atlasSheetIsSite(draws,f.label))continue;/* "cave" in a cave, "inn" in an inn: the site is drawn, not named */\n', replace: "", mustFail: T4 },
   { label: "the place the mouth leads to is also a chamber", find: "    f=sorted[i];if(isWay[f.id])continue;\n    if(atlasSheetIsSite(", replace: "    f=sorted[i];\n    if(atlasSheetIsSite(", mustFail: T5 },
@@ -80,7 +80,7 @@ var atlas = [
   { label: "a leave steps out one in every campaign", find: 'function atlasPlaceLeave(sub){return (typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()&&sub!=null)?atlasPublicLeave(sub):null;}', replace: "function atlasPlaceLeave(sub){return sub!=null?atlasPublicLeave(sub):null;}", mustFail: T10 },
   { label: "a cave's things are not the story's", find: "(d.rooms||[]).concat(d.features||[],", replace: "(d.rooms||[]).concat([],", mustFail: T4 },
   { label: "a building's things are not the story's", find: "  interior:atlasStoryThings,", replace: "  interior:function(d){return d.rooms||[];},", mustFail: B4 },
-  { label: "what found no chamber is no thing of the sheet", find: "(d.unplaced||[]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0]", replace: "([]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0]", mustFail: T4 }
+  { label: "what found no chamber is no thing of the sheet", find: "atlasListed(d.unplaced).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0]", replace: "([]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0]", mustFail: T4 }
 ];
 var identity = [
   { label: "the place timeline never asks where a leave lands", find: 'sub=(sub!=null&&typeof atlasPlaceLeave==="function")?atlasPlaceLeave(sub):null;', replace: "sub=null;", mustFail: T9 }

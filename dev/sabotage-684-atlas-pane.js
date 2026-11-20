@@ -167,8 +167,8 @@ rc |= sabotage.prove({ file: "ui-atlas.js", command: BROWSER, cases: [
 
 rc |= sabotage.prove({ file: "atlas.js", command: BROWSER, cases: [
   { label: "an emptied note is kept as an empty string instead of removed",
-    find: "  if(!text){delete notes[k];return {ok:true,text:\"\",removed:true};}",
-    replace: "  if(!text){notes[k]=\"\";return {ok:true,text:\"\",removed:true};}",
+    find: "if(keys[i]!==legacy&&notes[keys[i]]!==undefined){delete notes[keys[i]];own=true;}",
+    replace: "if(keys[i]!==legacy&&notes[keys[i]]!==undefined){notes[keys[i]]=\"\";own=true;}",
     mustFail: "FAIL ③ a real click on a town shows its card" },
   { label: "the trail is the SHOWN sheet's chain, not the party's: going up loses the town",
     find: "chain=atlasTrail(A.at||A.seed);if(!chain.length)chain=[A.seed];for(i=0;i<chain.length;i++)out.push({key:chain[i],text:(A.zones[chain[i]]&&A.zones[chain[i]].name)||chain[i],current:chain[i]===shownZone});return out;}",

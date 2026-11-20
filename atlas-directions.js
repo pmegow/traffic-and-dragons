@@ -117,7 +117,10 @@ async function atlasDirectionsSettle(resp,playerTxt){
     if(gone.length)atlasKnowledgeSay("no direction could be settled for "+gone.map(function(x){return x.label;}).join(", ")+" after "+ATLAS_DIRECTIONS_TRIES+" asks; "+(gone.length>1?"they stay":"it stays")+" listed, and the map stops asking");
     return filed.placed;
   }catch(e){
-    atlasKnowledgeSay("directions could not be settled: "+((e&&e.message)||e)+". The features stay listed and are asked again next turn.");
+    /* A5 (its review): an answer that cannot be used is a paid try too. When it was the last one, say that the map stops
+       asking — the line used to promise another ask that would never come. */
+    gone=(tried||[]).filter(function(x){return _atlasDirectionsAsked[x.key]>=ATLAS_DIRECTIONS_TRIES;});
+    atlasKnowledgeSay("directions could not be settled: "+((e&&e.message)||e)+(gone.length&&gone.length===(tried||[]).length?". After "+ATLAS_DIRECTIONS_TRIES+" asks the map stops asking for "+gone.map(function(x){return x.label;}).join(", ")+"; "+(gone.length>1?"they stay":"it stays")+" listed.":". The features stay listed and are asked again next turn."+(gone.length?" The map stops asking for "+gone.map(function(x){return x.label;}).join(", ")+" (asked "+ATLAS_DIRECTIONS_TRIES+" times).":"")));
     return null;
   }finally{if(th&&typeof th.remove==="function")th.remove();}
 }

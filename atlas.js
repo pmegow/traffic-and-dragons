@@ -56,13 +56,15 @@ var ATLAS_BUILDERS={
 };
 /* the NAMED THINGS of a document, per generator, beside its portals (which every document carries) */
 /* The things of a sheet of rooms: its rooms, and on a story sheet the story's things and what found no room (listed: it stands where the party is drawn). */
-function atlasStoryThings(d){return (d.rooms||[]).concat(d.features||[],(d.unplaced||[]).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0],y:d.story.at[1],unplaced:true};}));}
+/* audit 2026-11-19, A7: the row that says how many a cut list leaves out is no thing — it has no card, and as a stop of the keyboard walk it sent the walk back to its start */
+function atlasListed(rows){return (rows||[]).filter(function(u){return typeof ATLAS_SHEET_MORE_ID==="undefined"||u.id!==ATLAS_SHEET_MORE_ID;});}
+function atlasStoryThings(d){return (d.rooms||[]).concat(d.features||[],atlasListed(d.unplaced).map(function(u){return {id:u.id,name:u.name,x:d.story.at[0],y:d.story.at[1],unplaced:true};}));}
 var ATLAS_THINGS={
   region:function(d){return d.story?(d.places||[]).slice()/* #771 P3: the story's region names nothing of its own — its things are the story's places */:[].concat(d.places||[],d.caves||[],d.features||[]);},
   town:function(d){return [].concat(d.establishments||[],d.landmarks||[]);},
   dungeon:atlasStoryThings,/* #771 P2: a story cave's chambers are nameless; its things are the story's (features), and what found no chamber is listed */
   interior:atlasStoryThings,/* #771 P2: a story building's rooms are nameless too */
-  wild:function(d){return (d.features||[]).concat(((d.site&&d.site.unplaced)||[]).map(function(u){return {id:u.id,name:u.name,x:d.frame.width/2,y:d.frame.height/2,unplaced:true};}));},/* #771: a story sheet's listed things — known without a position, so never a camera target */
+  wild:function(d){return (d.features||[]).concat(atlasListed(d.site&&d.site.unplaced).map(function(u){return {id:u.id,name:u.name,x:d.frame.width/2,y:d.frame.height/2,unplaced:true};}));},/* #771: a story sheet's listed things — known without a position, so never a camera target */
   schematic:function(d){return d.features||[];}
 };
 /* a portal of one of these ways leads back to the zone this one hangs from */
@@ -1379,7 +1381,7 @@ function atlasNoteKeys(zoneId,id){return atlasNoteBucket()==="publicNotes"?atlas
 function atlasNoteKey(zoneId,id){return atlasNoteKeys(zoneId,id)[0];}
 function atlasNote(zoneId,id){var A=atlasLive(),notes=A&&A[atlasNoteBucket()],keys,i,n;if(!notes||id==null)return "";keys=atlasNoteKeys(zoneId,id);for(i=0;i<keys.length;i++){n=notes[keys[i]];if(typeof n==="string"&&n)return n;}return "";}
 function atlasNoteSet(zoneId,id,text){
-  var A=atlasLive(),k,bucket=atlasNoteBucket(),notes,keys,i;
+  var A=atlasLive(),k,bucket=atlasNoteBucket(),notes,keys,i,legacy,own;
   if(!A)return {ok:false,reason:"this campaign has no drawn map"};
   if(!atlasZoneKnown(A,zoneId))return {ok:false,reason:"that sheet is not in the atlas"};
   if(id==null||!(bucket==="publicNotes"?atlasCard(zoneId,{id:id}):atlasThingById(atlasDoc(zoneId),id)))return {ok:false,reason:"that thing is not on the sheet"};/* A1: on a public sheet a thing is what has a card — a way, a place inside, a feature */
@@ -1387,8 +1389,13 @@ function atlasNoteSet(zoneId,id,text){
   text=String(text==null?"":text).replace(/\r\n?/g,"\n").trim();
   if(text.length>ATLAS_NOTE_MAX)return {ok:false,reason:"a note is at most "+ATLAS_NOTE_MAX+" characters ("+text.length+" given)"};
   keys=atlasNoteKeys(zoneId,id);k=keys[0];
-  for(i=1;i<keys.length;i++)delete notes[keys[i]];/* A1: the note lives in ONE place — an older key it was read from is let go */
-  if(!text){delete notes[k];return {ok:true,text:"",removed:true};}
+  /* A1: the note lives in ONE place. The bare positional id of an older build is shared by every sheet's way-N, so a
+     save never removes it (another sheet may show nothing else); it goes only when the player empties a card that was
+     showing it. Every other key the note was read from — an older spelling of a merged place, the way a feature has
+     since become — is let go. */
+  legacy=bucket==="publicNotes"&&/^(?:way|in)-\d+$/.test(String(id))?String(id):null;
+  if(!text){own=false;for(i=0;i<keys.length;i++)if(keys[i]!==legacy&&notes[keys[i]]!==undefined){delete notes[keys[i]];own=true;}if(!own&&legacy)delete notes[legacy];return {ok:true,text:"",removed:true};}
+  for(i=1;i<keys.length;i++)if(keys[i]!==legacy)delete notes[keys[i]];
   notes[k]=text;return {ok:true,text:text};
 }
 

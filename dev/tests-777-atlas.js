@@ -67,7 +67,7 @@ kase("A1: a note on a way out is kept by ITS sheet and shown on its card — nev
   assert.strictEqual(Object.keys(A.publicNotes).length, 1, "the old note was left behind beside the new one: " + JSON.stringify(A.publicNotes));
   r = atlasNoteSet(wood, f.id, ""); assert.ok(r.ok && r.removed); assert.strictEqual(Object.keys(A.publicNotes).length, 0, "an emptied note is still stored: " + JSON.stringify(A.publicNotes));
 });
-kase("A1: a note on a place inside is kept and shown; a note saved before this build is shown once and moves when saved; a thing not on the sheet is refused", function () {
+kase("A1: a note on a place inside is kept and shown; a note saved before this build is shown until it is emptied; a thing not on the sheet is refused", function () {
   var mire = start(MIRE), A = worldState.atlas, c, r;
   worldState.turn++; worldState.world.sublocation = "Sunken Hut"; memory.map.nodes[MIRE + "|Sunken Hut"] = newMapNode(worldState.turn, MIRE); memory.map.nodes[MIRE + "|Sunken Hut"].visits = 1; atlasFollow();
   worldState.turn++; worldState.world.sublocation = null; atlasFollow();
@@ -82,10 +82,16 @@ kase("A1: a note on a place inside is kept and shown; a note saved before this b
   var wood = go(WOOD);
   A.publicNotes["way-1"] = "an old note";
   assert.strictEqual(atlasCard(wood, { id: "way-1" }).note, "an old note", "a note saved before this build can still not be seen");
+  assert.strictEqual(atlasCard(mire, { id: "way-1" }).note, "an old note", "fixture: the other sheet's way-1 does not show the shared old note");
   r = atlasNoteSet(wood, "way-1", "an old note, kept here"); assert.ok(r.ok);
-  assert.ok(!Object.prototype.hasOwnProperty.call(A.publicNotes, "way-1"), "the old bare note was left beside the moved one");
   assert.strictEqual(atlasCard(wood, { id: "way-1" }).note, "an old note, kept here");
-  assert.strictEqual(atlasCard(mire, { id: "way-1" }).note || "", "", "the moved note still shows on the other sheet");
+  assert.strictEqual(atlasCard(mire, { id: "way-1" }).note, "an old note", "saving a note on one sheet removed the old note from another sheet, where it was the only copy");
+  assert.ok(atlasNoteSet(wood, "way-1", "").removed);
+  assert.strictEqual(A.publicNotes["way-1"], "an old note", "emptying a thing's own note removed the shared old note too");
+  assert.ok(atlasNoteSet(wood, "way-1", "an old note, kept here").ok);
+  assert.ok(atlasNoteSet(mire, "way-1", "").removed, "fixture");
+  assert.ok(!Object.prototype.hasOwnProperty.call(A.publicNotes, "way-1"), "emptying the card that showed the old note did not remove it");
+  assert.strictEqual(atlasCard(wood, { id: "way-1" }).note, "an old note, kept here", "emptying the old note removed another sheet's own note");
   // a feature's note keeps its place (its id is the campaign's own)
   turn("A dead oak. [MAP_REVEAL:new|dead oak|E|observed]");
   var f = atlasKnowledgeProjection(atlasPublicPlace(A, wood).container).features.filter(function (x) { return x.label === "dead oak"; })[0];
@@ -218,7 +224,9 @@ kase("A8: at the place limit the map says so once and mails nothing; the sheets 
   ATLAS_PUBLIC_PLACE_CAP = 2;
   try {
     said.toasts.length = 0; said.reports.length = 0;
-    go(FIELDS); go(MIRE); go(FIELDS); atlasFollow(); atlasFollow();
+    go(FIELDS);
+    assert.strictEqual(said.toasts.filter(function (t) { return /place limit/.test(t); }).length, 1, "the follow that meets the limit does not say so: " + JSON.stringify(said.toasts));
+    go(MIRE); go(FIELDS); atlasFollow(); atlasFollow();
     assert.deepStrictEqual(said.reports, [], "the limit is mailed as an error: " + JSON.stringify(said.reports));
     var caps = said.toasts.filter(function (t) { return /place limit/.test(t); });
     assert.strictEqual(caps.length, 1, "the limit is said " + caps.length + " times (every follow): " + JSON.stringify(said.toasts));
@@ -228,6 +236,100 @@ kase("A8: at the place limit the map says so once and mails nothing; the sheets 
     var realFollow = atlasPublicPlacesFollow; atlasPublicPlacesFollow = function () { throw new Error("something else broke"); };
     atlasFollow(); atlasPublicPlacesFollow = realFollow;
     assert.strictEqual(said.reports.length, 1, "an unexpected failure of the follow is no longer reported");
+  } finally { ATLAS_PUBLIC_PLACE_CAP = realCap; }
+});
+
+// ── the independent review of the map batch (2026-11-20): what it reproduced, as cases ─────────────────────────────
+function mergeInto(dup, canon) { memory.map.identity = memory.map.identity || { entries: keyedDict() }; memory.map.identity.entries = memory.map.identity.entries || keyedDict(); memory.map.identity.entries[dup] = { mergedInto: canon }; atlasForget(); }
+kase("A1 review: a note on a place inside stays with it when a feature comes to name that place", function () {
+  var mire = start(MIRE), A = worldState.atlas, f;
+  worldState.turn++; worldState.world.sublocation = "Sunken Hut"; memory.map.nodes[MIRE + "|Sunken Hut"] = newMapNode(worldState.turn, MIRE); memory.map.nodes[MIRE + "|Sunken Hut"].visits = 1; atlasFollow();
+  worldState.turn++; worldState.world.sublocation = null; atlasFollow();
+  assert.ok(atlasNoteSet(mire, "in-1", "Rotten floor.").ok);
+  assert.ok(!turn("The hut squats to the north. [MAP_REVEAL:new|Sunken Hut|N|observed]").refusal);
+  f = atlasKnowledgeProjection(MIRE).features.filter(function (x) { return x.label === "Sunken Hut"; })[0];
+  assert.strictEqual(atlasCard(mire, { id: "in-1" }), null, "fixture: the place inside is still listed beside the feature that names it");
+  assert.strictEqual(atlasCard(mire, { id: f.id }).note, "Rotten floor.", "the note was lost when a feature took the place's place on the sheet: " + JSON.stringify(A.publicNotes));
+  assert.ok(atlasNoteSet(mire, f.id, "Rotten floor, mind the well.").ok);
+  assert.strictEqual(Object.keys(A.publicNotes).length, 1, "the old note was left beside the new one: " + JSON.stringify(A.publicNotes));
+});
+kase("A1 review: a way's note survives a merge of the place it leads to, and a merge of the place it was written in", function () {
+  var wood = start(WOOD), fen = go("Mire Fen"), A; go(WOOD); A = worldState.atlas;
+  assert.ok(atlasNoteSet(wood, "way-1", "The fen road floods.").ok, "fixture");
+  assert.strictEqual(atlasCard(wood, { id: "way-1" }).note, "The fen road floods.");
+  memory.map.nodes["Mirefen"] = newMapNode(1, null); mergeInto("Mire Fen", "Mirefen");
+  var c = atlasCard(wood, { id: "way-1" });
+  assert.ok(c && /Mirefen/.test(c.title), "fixture: the way does not lead to the merged place: " + JSON.stringify(c && c.title));
+  assert.strictEqual(c.note, "The fen road floods.", "the note became unreachable when the place the way leads to was merged: " + JSON.stringify(A.publicNotes));
+  assert.ok(atlasNoteSet(wood, "way-1", "The fen road floods in spring.").ok);
+  assert.strictEqual(Object.keys(A.publicNotes).length, 1, "the note is now stored twice, once under each name: " + JSON.stringify(A.publicNotes));
+  // the place the note was written IN is folded into another
+  var black = start("Black Fen"), w2 = go(WOOD); go("Black Fen"); A = worldState.atlas;
+  assert.ok(atlasNoteSet(black, "way-1", "Wolves on this road.").ok, "fixture");
+  go("Dark Fen"); go(WOOD); mergeInto("Black Fen", "Dark Fen"); atlasFollow();
+  var rows = atlasPublicPlacesList(A).filter(function (r) { return r.container === "Dark Fen"; });
+  assert.strictEqual(rows.length, 1, "fixture: the two fens are not one place");
+  var ways = [1, 2, 3].map(function (n) { return atlasCard(rows[0].id, { id: "way-" + n }); }).filter(function (x) { return x && /Gloomwood/.test(x.title); });
+  assert.ok(ways.length === 1, "fixture: the surviving sheet has no way to the wood");
+  assert.strictEqual(ways[0].note, "Wolves on this road.", "the note became unreachable when the place it was written in was merged: " + JSON.stringify(A.publicNotes));
+});
+kase("A5 review: three answers that cannot be used end the asking too — and the map says so instead of promising another ask", function () {
+  start(MIRE); var calls = 0, realGM = callGM;
+  assert.ok(!turn("A frozen trail somewhere. [MAP_REVEAL:new|frozen trail|unknown|observed]").refusal);
+  callGM = function () { calls++; return Promise.resolve("I cannot tell."); };
+  function ask() { worldState.turn++; return atlasDirectionsSettle("You look about.", "I look."); }
+  var p = Promise.resolve(), i; for (i = 0; i < ATLAS_DIRECTIONS_TRIES + 2; i++) p = p.then(ask);
+  return p.then(function () {
+    callGM = realGM;
+    assert.strictEqual(calls, ATLAS_DIRECTIONS_TRIES, "an answer that cannot be read is asked for again every turn: " + calls);
+    var last = said.toasts.filter(function (t) { return /directions could not be settled/.test(t); });
+    assert.strictEqual(last.length, ATLAS_DIRECTIONS_TRIES);
+    assert.ok(/asked again next turn/.test(last[0]) && !/stops asking/.test(last[0]), "the first failure does not say it will be asked again: " + last[0]);
+    assert.ok(/stops asking for frozen trail/.test(last[last.length - 1]) && !/asked again next turn/.test(last[last.length - 1]), "the last failure promises an ask that never comes: " + last[last.length - 1]);
+  }, function (e) { callGM = realGM; throw e; });
+});
+kase("A7 review: past the sixteenth way a feature that names the way keeps its pin; the row that only counts is no thing", function () {
+  var hub = start(MIRE), i, names = [], d, f;
+  for (i = 0; i < 18; i++) { names.push("Stonefield " + (i + 1)); go(names[i]); go(MIRE); }
+  assert.ok(!turn("Stonefield 17 lies to the north-east. [MAP_REVEAL:new|Stonefield 17|NE|observed]").refusal);
+  assert.ok(!turn("Stonefield 2 lies west. [MAP_REVEAL:new|Stonefield 2|W|observed]").refusal);
+  d = atlasDoc(hub);
+  f = atlasKnowledgeProjection(MIRE).features.filter(function (x) { return x.label === "Stonefield 17"; })[0];
+  assert.ok((d.features || []).some(function (x) { return x.id === f.id; }), "a feature with a stated direction lost its pin because it names a way past the sixteenth");
+  assert.ok(!(d.site.unplaced || []).some(function (u) { return u.id === f.id; }), "it is drawn AND listed");
+  var c = atlasCard(hub, { id: f.id }); assert.ok(c && c.opens, "its card no longer opens where the way leads");
+  var f2 = atlasKnowledgeProjection(MIRE).features.filter(function (x) { return x.label === "Stonefield 2"; })[0];
+  assert.ok((d.portals || []).some(function (x) { return x.id === f2.id; }) && !(d.features || []).some(function (x) { return x.id === f2.id; }), "a feature that names a DRAWN way is no longer that way");
+  var cave = start("Echo Caverns"), seen;
+  for (i = 0; i < 18; i++) { go(names[i]); go("Echo Caverns"); }
+  assert.ok(!turn("A passage toward Stonefield 17. [MAP_REVEAL:new|Stonefield 17|NE|observed]").refusal);
+  d = atlasDoc(cave);
+  assert.ok(atlasSheetDrawn(d) && d.generator.name !== "wild", "fixture: the caverns are not drawn as a site (" + (d.generator && d.generator.name) + ")");
+  f = atlasKnowledgeProjection("Echo Caverns").features.filter(function (x) { return x.label === "Stonefield 17"; })[0];
+  seen = (d.features || []).concat(d.unplaced || []).filter(function (x) { return x.id === f.id; }).length;
+  assert.strictEqual(seen, 1, "on a site, a feature that names a way past the sixteenth is on the sheet " + seen + " times");
+  hub = start(MIRE); for (i = 0; i < 18; i++) { go(names[i]); go(MIRE); }
+  var text = ""; for (i = 0; i < 80; i++) text += " [MAP_REVEAL:new|rumoured cairn " + (i + 1) + "|unknown|reported]";
+  for (i = 0; i < 5; i++) assert.ok(!turn("Talk." + text.split(" [MAP").slice(1 + i * 16, 17 + i * 16).map(function (x) { return " [MAP" + x; }).join("")).refusal);
+  d = atlasDoc(hub);
+  assert.ok((d.site.unplaced || []).some(function (u) { return u.id === ATLAS_SHEET_MORE_ID; }), "fixture: the list is not cut");
+  assert.ok(atlasThings(d).length > 60, "fixture: the sheet's things were not read");
+  assert.ok(!atlasThings(d).some(function (t) { return t.id === ATLAS_SHEET_MORE_ID; }), "the row that only counts is handed out as a thing (a stop of the keyboard walk with no card)");
+});
+kase("A8 review: at the place limit the party is still followed back to a place that has a sheet", function () {
+  var realCap = ATLAS_PUBLIC_PLACE_CAP, first = start(MIRE), second, A;
+  second = go(WOOD); A = worldState.atlas; ATLAS_PUBLIC_PLACE_CAP = 2;
+  try {
+    memory.map.nodes["Old Vale"] = newMapNode(1, null); memory.map.nodes["Old Vale"].visits = 1;   // visited once, never given a sheet
+    said.toasts.length = 0; atlasFollow();
+    assert.strictEqual(A.at, second, "a place that cannot be recovered stopped the follow of the place the party stands in");
+    assert.strictEqual(said.toasts.filter(function (t) { return /place limit/.test(t); }).length, 1, "the limit, first met while recovering a place, is not said: " + JSON.stringify(said.toasts));
+    go(FIELDS); assert.strictEqual(A.at, second, "fixture: the party was not left where the limit stopped it");
+    said.reports.length = 0;
+    go(MIRE);
+    assert.strictEqual(A.at, first, "back in a place that HAS a sheet, the map still shows the party elsewhere");
+    go(WOOD); assert.strictEqual(A.at, second);
+    assert.deepStrictEqual(said.reports, []); assert.ok(said.toasts.filter(function (t) { return /place limit/.test(t); }).length <= 1, "the limit is said on every follow");
   } finally { ATLAS_PUBLIC_PLACE_CAP = realCap; }
 });
 
