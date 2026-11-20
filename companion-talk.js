@@ -261,7 +261,7 @@ var TALK_HOST = {
   mic: function() { return (typeof STT !== "undefined") ? STT : null; },
   busy: function() { return !!(_talk && _talk.busy); },
   opened: function() { closeAllMenus(); if (_talk) _talkLine("—", "Talking with " + _talk.name + ", " + TALK_FRAMES[_talk.frame].label + " (not saved; " + TALK_FRAMES[_talk.frame].hint + ")"); },   // never the Car Mode reload flag: a reload must not boot into a talk
-  closed: function() { var t = _talk; _talk = null; if (t && t.engine) t.engine.reset(); carSessionHost(CAR_HOST); },
+  closed: function() { var t = _talk; _talk = null; if (t && t.engine) t.engine.reset(); carSessionHost(CAR_HOST); if (typeof carOwedQuestions === "function") carOwedQuestions(); },
   paint: function() {
     var t = _talk; if (!t) return;
     var nameEl = document.getElementById("car-name"); if (nameEl) nameEl.textContent = t.name;

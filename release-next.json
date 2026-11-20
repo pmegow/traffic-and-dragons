@@ -1,5 +1,5 @@
 {
-  "version": "v1.1481",
+  "version": "v1.1482",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -137,6 +137,7 @@
     "Map fixes: notes on ways and inner places show again, an old name clash no longer freezes a place's map, extra ways are listed.",
     "Map notes survive a place merge, a pin past sixteen ways is kept, and the map still follows you home at its place limit.",
     "Fixes: an unreadable picture is refused, Back from an imported character restores the wizard, and buttons no longer name unseen blueprint places.",
-    "Corrections: Back from an import also restores the name and level fields; a very long reply skips the coin check instead of misreporting."
+    "Corrections: Back from an import also restores the name and level fields; a very long reply skips the coin check instead of misreporting.",
+    "A campaign open on this device when another device deletes it now asks to keep or remove it before saving again."
   ]
 }

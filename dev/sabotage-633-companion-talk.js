@@ -45,8 +45,8 @@ rc |= sabotage.prove({ file: "companion-talk.js", command: SUITE, cases: [
     replace: "    t.voice.speak(answer);   // AFTER the read starts",
     mustFail: "the head unit reads PLAYING while the character speaks (the reply)" },
   { label: "close keeps the talk host installed (Car Mode would run on the talk's rows afterwards)",
-    find: "  closed: function() { var t = _talk; _talk = null; if (t && t.engine) t.engine.reset(); carSessionHost(CAR_HOST); },",
-    replace: "  closed: function() { var t = _talk; _talk = null; if (t && t.engine) t.engine.reset(); },",
+    find: "  closed: function() { var t = _talk; _talk = null; if (t && t.engine) t.engine.reset(); carSessionHost(CAR_HOST); if (typeof carOwedQuestions === \"function\") carOwedQuestions(); },",
+    replace: "  closed: function() { var t = _talk; _talk = null; if (t && t.engine) t.engine.reset(); if (typeof carOwedQuestions === \"function\") carOwedQuestions(); },",
     mustFail: "close restores the game's host" }
 ]});
 

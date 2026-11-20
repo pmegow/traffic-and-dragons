@@ -746,6 +746,211 @@ kase("S12: what the player kept stays kept — a keep that lands while the recor
   });
 });
 
+// ── S12, the campaign ON SCREEN (owner 2026-11-20: "if the current campaign is remotely deleted, definitely raise a pop
+// locally offering the same option of 'keep local copy'"). Before this, a delete on another device during a session was
+// undone without a word: the next save re-created the cloud row. An ordinary (debounced) save now reads the deletion
+// records first; a record for the campaign on screen pauses its uploads and raises the F9 question (Keep first).
+function liveDeleted(E, opts) { var net = deletedElsewhere(E, opts); net.live = []; onCampaignDeletedElsewhere = function (id, name) { net.live.push({ id: id, name: name }); }; return net; }
+function statePosts(net) { return net.calls.filter(function (x) { return x.method === "POST" && /\/api\/state$/.test(x.url); }); }
+function delAsks(net) { return net.calls.filter(function (x) { return DEL.test(x.url); }); }
+function pendingQuestion() { var raw = store.get("tnd_deleted_elsewhere_v1"); return raw ? JSON.parse(raw) : null; }
+var DEBOUNCE = 1650;   /* SYNC_DEBOUNCE_MS is 1500 */
+kase("S12 live: a save of the campaign on screen reads the records first — a record pauses the upload and raises the question, and Keep uploads it again unasked", function (E) {
+  var net = liveDeleted(E);
+  storageAdapter.syncToServer();
+  return tick(DEBOUNCE).then(function () {
+    assert.strictEqual(delAsks(net).length, 1, "the save did not read the deletion records before uploading");
+    assert.strictEqual(statePosts(net).length, 0, "the campaign was uploaded before the records answered");
+    answer(net, DEL, 200, [rec("campA", 2000, { name: "A (cloud)" })]); return tick();
+  }).then(function () {
+    assert.strictEqual(statePosts(net).length, 0, "a campaign deleted on another device was uploaded again without a word");
+    assert.deepStrictEqual(net.live, [{ id: "campA", name: "A" }], "the question was not raised for the campaign on screen");
+    assert.ok(pendingQuestion() && pendingQuestion().id === "campA", "no pending question was recorded — a reload would upload it again");
+    assert.ok(store.get(WSK), "the campaign on screen lost its state");
+    storageAdapter.syncToServer(); return tick(DEBOUNCE);
+  }).then(function () {
+    assert.strictEqual(statePosts(net).length, 0, "a later save uploaded it while the question stood");
+    assert.strictEqual(delAsks(net).length, 1, "the records were read again while the question stood");
+    assert.strictEqual(net.live.length, 1, "the question was raised a second time while it stood");
+    assert.strictEqual(storageAdapter.resolveDeletedElsewhere("campA", true), true);
+    return tick(DEBOUNCE);
+  }).then(function () {
+    var posts = statePosts(net);
+    assert.strictEqual(posts.length, 1, "Keep did not upload the campaign again");
+    assert.strictEqual(posts[0].body.campaignId, "campA");
+    assert.strictEqual(delAsks(net).length, 1, "a kept campaign (this device's own now) was held back by the record its own upload is about to clear");
+    assert.strictEqual(net.live.length, 1, "the question came back after Keep");
+    answer(net, /\/api\/state$/, 200, { ok: true }); return tick();
+  }).then(function () {
+    setCampMeta(rows3());   /* the next list sync marks the kept campaign as the server's again; then it is deleted elsewhere a second time */
+    storageAdapter.syncToServer(); return tick(DEBOUNCE);
+  }).then(function () {
+    assert.strictEqual(delAsks(net).length, 2, "a campaign the server holds again was not looked up");
+    answer(net, DEL, 200, [rec("campA", 2000)]); return tick();
+  }).then(function () {
+    assert.strictEqual(net.live.length, 2, "a second deletion of a campaign once kept was not asked about — the first answer was remembered as this one's");
+    assert.strictEqual(statePosts(net).length, 1);
+  });
+});
+kase("S12 live: with no record for it — an empty list, a failed request, an older server — the save goes up, and an older server is not asked twice", function (E) {
+  var net = liveDeleted(E);
+  storageAdapter.syncToServer();
+  return tick(DEBOUNCE).then(function () { answer(net, DEL, 200, [rec("campB", 10)]); return tick(); }).then(function () {
+    assert.strictEqual(statePosts(net).length, 1, "a record for ANOTHER campaign held the save back");
+    assert.deepStrictEqual(net.live, []);
+    answer(net, /\/api\/state$/, 200, { ok: true }); return tick();
+  }).then(function () { storageAdapter.syncToServer(); return tick(DEBOUNCE); }).then(function () {
+    assert.strictEqual(delAsks(net).length, 2, "the second save did not read the records");
+    var p = net.pending.filter(function (x) { return DEL.test(x.call.url) && !x.done; })[0]; p.done = true; p.fail(new Error("offline")); return tick();
+  }).then(function () {
+    assert.strictEqual(statePosts(net).length, 2, "a failed records request blocked the save — a save must never wait on it");
+    assert.ok(E.said.warns.some(function (w) { return /deletion records/.test(w) && /offline/.test(w); }), "the failed records request was not said: " + JSON.stringify(E.said.warns));
+    answer(net, /\/api\/state$/, 200, { ok: true }); return tick();
+  }).then(function () { storageAdapter.syncToServer(); return tick(DEBOUNCE); }).then(function () {
+    answer(net, DEL, 404, { error: "not found" }); return tick();
+  }).then(function () {
+    assert.strictEqual(statePosts(net).length, 3, "an older server (404) blocked the save");
+    answer(net, /\/api\/state$/, 200, { ok: true }); return tick();
+  }).then(function () { storageAdapter.syncToServer(); return tick(DEBOUNCE); }).then(function () {
+    assert.strictEqual(delAsks(net).length, 3, "a server that keeps no records was asked again on the next save");
+    assert.strictEqual(statePosts(net).length, 4);
+    assert.deepStrictEqual(net.live, []);
+  });
+});
+kase("S12 live: a campaign this device lists as its own is uploaded without reading the records", function (E) {
+  var net = liveDeleted(E, { meta: [{ id: "campA", campName: "A" }, { id: "campB", campName: "B", onServer: true, savedAt: 1000 }] });
+  storageAdapter.syncToServer();
+  return tick(DEBOUNCE).then(function () {
+    assert.strictEqual(delAsks(net).length, 0, "the records were read for a campaign the server never listed here");
+    assert.strictEqual(statePosts(net).length, 1);
+  });
+});
+kase("S12 live: a direct flush (a switch, a new game, the page going away) never waits on the records", function (E) {
+  var net = liveDeleted(E);
+  storageAdapter.syncNow();
+  assert.strictEqual(statePosts(net).length, 1, "the flush did not post at once — the switch builds the old campaign's payload before the world is swapped");
+  assert.strictEqual(delAsks(net).length, 0);
+});
+kase("S12 live: in Car Mode the upload is paused and said, and the question is raised when the drive ends", function (E) {
+  var net = liveDeleted(E);
+  carMode = true;
+  storageAdapter.syncToServer();
+  return tick(DEBOUNCE).then(function () { answer(net, DEL, 200, [rec("campA", 2000)]); return tick(); }).then(function () {
+    assert.strictEqual(statePosts(net).length, 0, "uploaded again from the car");
+    assert.deepStrictEqual(net.live, [], "the question opened under the car screen");
+    assert.ok(pendingQuestion() && pendingQuestion().id === "campA");
+    assert.ok(E.said.toasts.some(function (m) { return /deleted on another device/.test(m) && /paused/.test(m); }), "the pause was not said in the car: " + JSON.stringify(E.said.toasts));
+    assert.strictEqual(storageAdapter.askDeletedElsewhere(), false, "asked while the car screen is still up");
+    carMode = false;
+    assert.strictEqual(storageAdapter.askDeletedElsewhere(), true, "the question owed from the drive was not raised");
+    assert.deepStrictEqual(net.live, [{ id: "campA", name: "A" }]);
+    assert.strictEqual(storageAdapter.askDeletedElsewhere(), false, "the question was raised twice");
+  });
+});
+kase("S12 live: coming back to the page reads the records with nothing to save, and raises the question", function (E) {
+  var net = liveDeleted(E);
+  storageAdapter.lookDeletedElsewhere();
+  return tick().then(function () {
+    assert.strictEqual(delAsks(net).length, 1, "the look did not read the records");
+    answer(net, DEL, 200, [rec("campA", 2000)]); return tick();
+  }).then(function () {
+    assert.deepStrictEqual(net.live, [{ id: "campA", name: "A" }]);
+    assert.strictEqual(statePosts(net).length, 0, "a look uploaded the campaign");
+    storageAdapter.lookDeletedElsewhere(); return tick();
+  }).then(function () { assert.strictEqual(delAsks(net).length, 1, "a second look read the records while the question stood"); });
+});
+kase("S12 live: a save that arrives while a look is in flight is not lost", function (E) {
+  var net = liveDeleted(E);
+  storageAdapter.lookDeletedElsewhere();
+  storageAdapter.syncToServer();
+  return tick(DEBOUNCE).then(function () {
+    assert.strictEqual(delAsks(net).length, 1, "two reads of the records ran side by side");
+    assert.strictEqual(statePosts(net).length, 0);
+    answer(net, DEL, 200, []); return tick();
+  }).then(function () { assert.strictEqual(statePosts(net).length, 1, "the save that waited on the look was dropped"); });
+});
+kase("S12 live: a record that answers after this device switched campaigns raises nothing for the campaign now on screen", function (E) {
+  var net = liveDeleted(E);
+  storageAdapter.syncToServer();
+  return tick(DEBOUNCE).then(function () {
+    assert.strictEqual(delAsks(net).length, 1);
+    assert.strictEqual(switchToCampaign("campB"), true, "fixture: the switch failed");
+    answer(net, DEL, 200, [rec("campA", 2000)]); return tick();
+  }).then(function () {
+    assert.deepStrictEqual(net.live, [], "the on-screen question was raised for a campaign this device had left");
+    assert.strictEqual(pendingQuestion(), null, "a question for the campaign left behind paused it as if it were on screen");
+    assert.strictEqual(held("campA"), true, "the copy left behind was removed");
+  });
+});
+kase("S12 live: the boot push of unsent turns reads the records first — a deleted campaign is asked about, never uploaded", function (E) {
+  var net = liveDeleted(E);
+  storageAdapter.markFlushDirty("campA", 2000);
+  storageAdapter.load(function () {});
+  return tick().then(function () {
+    assert.strictEqual(delAsks(net).length, 1, "the boot push did not read the records first; seen: " + net.calls.map(function (c) { return c.method + " " + c.url; }).join(", "));
+    assert.strictEqual(statePosts(net).length, 0);
+    answer(net, DEL, 200, [rec("campA", 2000)]); return tick();
+  }).then(function () {
+    var probe = net.pending.filter(function (x) { return !x.done && /\/api\/campaigns/.test(x.call.url) && !DEL.test(x.call.url); })[0];
+    if (probe) { probe.done = true; probe.answer(reply(404, { error: "not found" })); }
+    return tick();
+  }).then(function () {
+    var rc = net.pending.filter(function (x) { return !x.done && /\/api\/campaigns\/campA$/.test(x.call.url); })[0];
+    if (rc) { rc.done = true; rc.answer(reply(404, { error: "not found" })); }
+    return tick();
+  }).then(function () {
+    assert.strictEqual(statePosts(net).length, 0, "the boot push uploaded a campaign the server records as deleted");
+    assert.strictEqual(net.live.length, 1, "the question was raised " + net.live.length + " times at boot; calls: " + net.calls.map(function (c) { return c.method + " " + c.url; }).join(", "));
+    assert.strictEqual(storageAdapter.flushDirtyTurn("campA"), 2000, "the unsent marker was cleared though nothing was uploaded");
+  });
+});
+kase("S12 live: a question standing for another campaign is never raised over the one on screen, and never replaced", function (E) {
+  var net = liveDeleted(E);
+  store.set("tnd_deleted_elsewhere_v1", JSON.stringify({ id: "campB", name: "B", at: 1 }));
+  assert.strictEqual(storageAdapter.askDeletedElsewhere(), false, "campaign B's question was raised while A is on screen");
+  assert.deepStrictEqual(net.live, []);
+  storageAdapter.syncToServer();
+  return tick(DEBOUNCE).then(function () {
+    assert.strictEqual(delAsks(net).length, 0, "the records were read while another campaign's question stood — a record would have replaced it");
+    assert.strictEqual(statePosts(net).length, 1, "campaign A's save was held back by campaign B's question");
+    assert.strictEqual(pendingQuestion().id, "campB");
+  });
+});
+kase("S12 live: a return to the page reads the records — on its own when nothing is unsent, through the save when turns are", function (E) {
+  var net = liveDeleted(E);
+  assert.strictEqual(storageAdapter.syncStatus().unsynced, 0, "fixture: nothing should be unsent at the start");
+  storageAdapter.pageVisible();
+  return tick().then(function () {
+    assert.strictEqual(delAsks(net).length, 1, "with nothing to save, a return to the page did not read the records");
+    assert.strictEqual(statePosts(net).length, 0, "a return to the page with nothing to save uploaded anyway");
+    answer(net, DEL, 200, []); return tick();
+  }).then(function () {
+    storageAdapter.syncNow(); return tick();
+  }).then(function () { answer(net, /\/api\/state$/, 200, { ok: true }); return tick(); }).then(function () {
+    worldState.turn = (worldState.turn || 0) + 1;
+    assert.strictEqual(storageAdapter.syncStatus().unsynced, 1, "fixture: one turn should be unsent now");
+    storageAdapter.pageVisible(); return tick(DEBOUNCE);
+  }).then(function () {
+    assert.strictEqual(delAsks(net).length, 2, "the save a return to the page starts did not read the records");
+    answer(net, DEL, 200, []); return tick();
+  }).then(function () {
+    assert.strictEqual(statePosts(net).length, 2, "a return to the page with a turn unsent did not save it");
+    assert.deepStrictEqual(net.live, []);
+  });
+});
+kase("S12 live: a question owed from a drive is raised when either car host closes", function (E) {
+  var net = liveDeleted(E);
+  shell(E, "car-commands.js"); shell(E, "car-session.js"); shell(E, "ui-carmode.js"); shell(E, "companion-talk.js");
+  store.set("tnd_deleted_elsewhere_v1", JSON.stringify({ id: "campA", name: "A", at: 1 }));
+  carMode = false;
+  CAR_HOST.closed();
+  assert.deepStrictEqual(net.live, [{ id: "campA", name: "A" }], "closing Car Mode did not raise the question owed from the drive");
+  assert.strictEqual(storageAdapter.resolveDeletedElsewhere("campA", false), true);
+  store.set("tnd_deleted_elsewhere_v1", JSON.stringify({ id: "campA", name: "A", at: 2 }));
+  TALK_HOST.closed();
+  assert.strictEqual(net.live.length, 2, "closing a talk did not raise the question owed from it");
+});
+
 var argv = process.argv.slice(2), at = argv.indexOf("--case");
 if (at >= 0) {
   var one = CASES.filter(function (c) { return c.name === argv[at + 1]; })[0];

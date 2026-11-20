@@ -568,7 +568,7 @@ var storageAdapter = (function() {
   function syncToServer() {
     if (!_serverUrl || typeof worldState === "undefined" || !worldState) return;
     if (_syncTimer) clearTimeout(_syncTimer);
-    _syncTimer = setTimeout(function() { _syncTimer = null; _syncNow(); }, SYNC_DEBOUNCE_MS);
+    _syncTimer = setTimeout(function() { _syncTimer = null; _deletedElsewhereLook(function () { _syncNow(); }); }, SYNC_DEBOUNCE_MS);   /* S12 live: an ordinary save reads the deletion records first; the direct flushes (syncNow) never wait */
   }
 
   // beacon=true is the page-unload / page-hide flush (audit E34): a plain fetch is abandoned by the
@@ -829,8 +829,7 @@ var storageAdapter = (function() {
       if (_was && !merged.some(function (m) { return m && m.id === _act; }) && !_delElsewhere()) {
         _delElsewhereSet({ id: _act, name: _was.name || _act, at: Date.now() });
         console.warn("[storage] campaign list: " + _act + " (on screen) is no longer on the server (deleted on another device?) — its uploads are paused until you answer");
-        if (typeof onCampaignDeletedElsewhere === "function") onCampaignDeletedElsewhere(_act, _was.name || _act);
-        else if (typeof showToast === "function") showToast("&#9729; This campaign was deleted on another device — its uploads are paused.", 8000);
+        askDeletedElsewhere(true);
       }
       try { if (typeof setCampMeta === "function") setCampMeta(merged); }
       catch (e) { console.error("[storage] the merged campaign list could not be persisted (storage full?) — the picker shows it this session only:", e); }
@@ -1021,6 +1020,7 @@ var storageAdapter = (function() {
        any /api/state GET, and a server that IS ahead leaves the base at -1 so the 409/conflict path runs exactly as before.
        JP0-11's intent (dirty local turns reach the server before its copy can be adopted) is preserved and re-pinned. */
     var _dirtyCamp = (typeof getActiveCampId === "function") ? getActiveCampId() : null;
+    _deletedElsewhereLook(function () {   /* S12 live: a campaign the server records as deleted is never pushed back up by the boot */
     getServerStateTurn(_dirtyCamp, function (st) {
       var _localTurn = (typeof worldState !== "undefined" && worldState) ? (worldState.turn || 0) : 0;
       if (typeof st === "number" && st <= _localTurn && _lastAckTurn < 0) _lastAckTurn = st;/* the server is not ahead: this is the base the 409 heal would have found. null (404 before deploy) leaves base -1 and the 409/heal path runs exactly as it did pre-probe */
@@ -1035,6 +1035,7 @@ var storageAdapter = (function() {
       _reconcileFromServer(localOk);
     });
     });/* #377 probe */
+    }, true);/* S12 live look */
   }
 
   // #481 F9 (audit 2026-09-29, Fable-approved): a campaign deleted on ANOTHER device. Its row answers 404 here, and #449's
@@ -1045,6 +1046,7 @@ var storageAdapter = (function() {
   var DELETED_ELSEWHERE_K = "tnd_deleted_elsewhere_v1";   /* through state.js's store: a quota-full device keeps it in memory for the page */
   function _delElsewhere() { try { var r = JSON.parse(store.get(DELETED_ELSEWHERE_K) || "null"); return (r && typeof r.id === "string") ? r : null; } catch (e) { console.warn("[storage] the deleted-elsewhere record is unreadable — ignored: " + ((e && e.message) || e)); return null; } }
   function _delElsewhereSet(rec) {
+    if (!rec) { _delAskedId = null; _delCarSaid = null; }
     try { if (rec) store.set(DELETED_ELSEWHERE_K, JSON.stringify(rec)); else store.del(DELETED_ELSEWHERE_K); }
     catch (e) { console.warn("[storage] could not persist the deleted-elsewhere question (" + ((e && e.message) || e) + ") — it holds for this page only"); }
   }
@@ -1065,6 +1067,78 @@ var storageAdapter = (function() {
     } else console.info("[storage] " + id + " — removal from this device chosen after a delete on another device");
     return true;
   }
+
+  // ── the campaign ON SCREEN, deleted on another device DURING a session (S12 live; owner 2026-11-20: "if the current
+  // campaign is remotely deleted, definitely raise a pop locally offering the same option of 'keep local copy'") ─────────
+  // F9 above learns of the delete only from a 404 at the boot reconcile or from the picker's list sync. In between, the
+  // next save re-created the cloud row and erased the server's record: the delete undone without a word (F9's own "not
+  // covered" line — the server kept no tombstone then; since 1.16.0 it does). So an ORDINARY save (the debounced one),
+  // the boot push of unsent turns, and a return to the page READ THE RECORDS FIRST. A record for the campaign on screen
+  // records the F9 question (uploads pause in _syncNow) and raises it: Keep and upload again, or remove from this device.
+  // Nothing here removes anything.
+  //   • Only a campaign whose list row is the server's (onServer) is looked up: a campaign made, kept or imported here is
+  //     this device's own, and the record a Keep is about to clear must not hold its own upload back.
+  //   • A save NEVER waits on a failure: an unreadable answer is said and the save goes up; a server that keeps no records
+  //     (404) is not asked again this page.
+  //   • The direct flushes (syncNow: a switch, a new game, an import, the page going away) do not look — the switch builds
+  //     the old campaign's payload before the world is swapped and cannot wait. They are covered when a save, a return to
+  //     the page or the picker looked first; otherwise the campaign goes back up (nothing is lost; the delete is undone).
+  //   • One read at a time; whoever arrives meanwhile waits for it and then runs (a save builds from the latest state).
+  var _delRecordsOff = false, _delLooking = false, _delWaiting = [], _delAskedId = null, _delCarSaid = null;
+  function _activeCampNow() { return ((typeof getActiveCampId === "function") ? getActiveCampId() : null) || ((typeof worldState !== "undefined" && worldState && worldState.campId) ? worldState.campId : null) || null; }
+  function _campRow(id) { var meta = (typeof getCampMeta === "function") ? getCampMeta() : [], i; for (i = 0; i < meta.length; i++) if (meta[i] && meta[i].id === id) return meta[i]; return null; }
+  function _deletedElsewhereDue(id) {
+    if (!_serverUrl || !_token || !id || _delRecordsOff || _delElsewhere()) return false;
+    var row = _campRow(id); return !!(row && row.onServer);
+  }
+  // THE ONE DOOR to the on-screen question. → true when it was raised now. `again` raises it even if this page already
+  // did (the reconcile and the list sync, which have always asked each time they find it). Never under the car screen:
+  // the pause is said once and the question is owed until the drive ends (the car hosts call this when they close).
+  function askDeletedElsewhere(again) {
+    var p = _delElsewhere(), id = _activeCampNow(), nm;
+    if (!p || !id || p.id !== id) return false;
+    if (_delAskedId === id && !again) return false;
+    nm = p.name || id;
+    if (typeof carMode !== "undefined" && carMode) {
+      if (_delCarSaid !== id) { _delCarSaid = id; if (typeof showToast === "function") showToast("&#9729; " + ((typeof escHtml === "function") ? escHtml(nm) : "This campaign") + " was deleted on another device — its uploads are paused. You will be asked what to do when the drive ends.", 9000); }
+      return false;
+    }
+    _delAskedId = id;
+    if (typeof onCampaignDeletedElsewhere === "function") onCampaignDeletedElsewhere(id, nm);
+    else if (typeof showToast === "function") showToast("&#9729; This campaign was deleted on another device — its uploads are paused.", 8000);
+    return true;
+  }
+  // then(): runs once the records have been read (or need not be). A save that follows pauses itself on the question.
+  // quiet: record the question without raising it (the boot push — the reconcile that follows it asks).
+  function _deletedElsewhereLook(then, quiet) {
+    var id = _activeCampNow(), p = _delElsewhere();
+    if (p && id && p.id === id) { if (!quiet) askDeletedElsewhere(); then(); return; }
+    if (!_deletedElsewhereDue(id)) { then(); return; }
+    _delWaiting.push(then);
+    if (_delLooking) return;
+    _delLooking = true;
+    listDeletedCampaigns(function (err, recs) {
+      var waiting = _delWaiting, hit = null, i, row;
+      _delLooking = false; _delWaiting = [];
+      if (err) console.warn("[storage] the deletion records could not be read before this save (" + err + ") — the save goes up without them");
+      else if (!recs) _delRecordsOff = true;   /* 404: a server older than 1.16.0, or the switch — not asked again this page */
+      else if (Array.isArray(recs)) for (i = 0; i < recs.length; i++) if (recs[i] && recs[i].id === id) hit = recs[i];
+      if (hit && _activeCampNow() === id && _deletedElsewhereDue(id)) {   /* read NOW: the answer may land after a switch or a Keep */
+        row = _campRow(id);
+        _delElsewhereSet({ id: id, name: (row && (row.campName || row.name)) || (typeof hit.name === "string" && hit.name) || id, at: Date.now() });
+        console.warn("[storage] " + id + " (on screen) was deleted on another device — the server holds the record. Its uploads are paused until you answer");
+        _updateSyncUI();
+        if (!quiet) askDeletedElsewhere();
+      }
+      for (i = 0; i < waiting.length; i++) {
+        try { waiting[i](); } catch (e) { console.error("[storage] what waited on the deletion records failed:", e); }
+      }
+    });
+  }
+  function lookDeletedElsewhere() { _deletedElsewhereLook(function () {}); }
+  // The player came back to the page (TODO #24's app-foreground retry, and S12 live): unsent turns are saved — and the save
+  // looks before it posts — and with nothing to save the records are read anyway, so the question is up before the next turn.
+  function pageVisible() { if (!_serverUrl) return; if (syncStatus().unsynced > 0) syncToServer(); else lookDeletedElsewhere(); }
 
   function _reconcileFromServer(localOk) {
     // Timed (audit E76): the reconcile GET had no timeout and its failure was only console.warn'd —
@@ -1093,8 +1167,7 @@ var storageAdapter = (function() {
         if (_gone) {   /* #481 F9: the server once held it — deleted on another device (or lost): ask, and pause its pushes */
           _delElsewhereSet({ id: _rcId, name: _gone.name || _rcId, at: Date.now() });
           console.warn("[storage] reconcile: " + _rcId + " was on the server and is gone (deleted on another device?) — its uploads are paused until you answer");
-          if (typeof onCampaignDeletedElsewhere === "function") onCampaignDeletedElsewhere(_rcId, _gone.name || _rcId);
-          else if (typeof showToast === "function") showToast("&#9729; This campaign was deleted on another device — its uploads are paused.", 8000);
+          askDeletedElsewhere(true);
           syncCampaignList(null); return;
         }
         console.info("[storage] reconcile: " + _rcId + " has no cloud copy yet — keeping local state until its first push lands"); syncCampaignList(null); return;
@@ -1513,7 +1586,7 @@ var storageAdapter = (function() {
   }
   if (typeof document !== "undefined") {
     document.addEventListener("visibilitychange", function() {
-      if (document.visibilityState === "visible" && _serverUrl && syncStatus().unsynced > 0) syncToServer();
+      if (document.visibilityState === "visible") pageVisible();
     });
   }
 
@@ -1586,6 +1659,9 @@ var storageAdapter = (function() {
     putCampaignPortrait:   putCampaignPortrait,
     listBlueprintCatalog:       listBlueprintCatalog,
     resolveDeletedElsewhere:    resolveDeletedElsewhere,   /* #481 F9: the player's answer — keep (upload again) or remove */
+    askDeletedElsewhere:        function () { return askDeletedElsewhere(false); },   /* S12 live: raise a question still owed (the car hosts, when the drive ends) */
+    lookDeletedElsewhere:       lookDeletedElsewhere,      /* S12 live: read the records for the campaign on screen */
+    pageVisible:                pageVisible,               /* S12 live: what the visibilitychange listener runs (exposed for the engine tests) */
     publishBlueprintToCatalog:  publishBlueprintToCatalog,
     listBlueprintLibrary:       listBlueprintLibrary,
     saveBlueprintToLibrary:     saveBlueprintToLibrary,

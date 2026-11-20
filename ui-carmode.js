@@ -71,6 +71,9 @@ function _carUpdateParty() {
 }
 
 // ── THE HOST — one row per line, in CAR_HOST_ROWS order (dev/tests-631-car-seam.js reads the keys from here) ────────────
+/* S12 live: a question that could not open under the car screen (the campaign on screen was deleted on another device) is
+   raised when the overlay closes. Both car hosts call it from their `closed` row. */
+function carOwedQuestions() { if (typeof storageAdapter !== "undefined" && storageAdapter && storageAdapter.askDeletedElsewhere) storageAdapter.askDeletedElsewhere(); }
 var CAR_HOST = {
   voice: function() { return (typeof TTS !== "undefined") ? TTS : null; },
   mic: function() { return (typeof STT !== "undefined") ? STT : null; },
@@ -79,7 +82,7 @@ var CAR_HOST = {
     closeAllMenus();
     try { store.set("tnd_carmode_v1", JSON.stringify({on:1,t:Date.now()})); } catch (e) {} // rank 13 — reload survival, expired by ui-boot.js's restore check
   },
-  closed: function() { try { store.del("tnd_carmode_v1"); } catch (e) {} },
+  closed: function() { try { store.del("tnd_carmode_v1"); } catch (e) {} carOwedQuestions(); },
   paint: function() { _carUpdate(); },
   nowPlaying: function() {
     var c = worldState && activePlayer();/* TODO #1 P2: lockscreen metadata follows the spotlight PC */
