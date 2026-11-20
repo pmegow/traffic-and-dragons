@@ -17,14 +17,23 @@ var ATLAS_DIRECTIONS_KIND="map-directions";/* the usage row this request is coun
 var ATLAS_DIRECTIONS_NARRATION_MAX=6000,ATLAS_DIRECTIONS_PLAYER_MAX=500,ATLAS_DIRECTIONS_KNOWN_MAX=24,ATLAS_DIRECTIONS_TOKENS=400;
 /* What the place the party stands in owes: its OBSERVED features with no bearing (capped), beside the placed ones.
    null when the public map is off or the party has no place. A read: nothing is written. */
-function atlasDirectionsOwed(){
+/* audit 2026-11-19, A5: the ask is a paid call, and it was made on every turn the party stood in a place whose feature
+   the model declined to place — for good. A feature is now put to the model ATLAS_DIRECTIONS_TRIES times in a session;
+   after that the map stops asking for it (said once). The GM is still told the direction is owed (the rule), and may
+   state it. A request that fails before it is answered is not a try. Counted per campaign and feature, in the page
+   only: at most one small number per feature ever asked. */
+var ATLAS_DIRECTIONS_TRIES=3,_atlasDirectionsAsked=Object.create(null);
+function atlasDirectionsTryKey(id,label){return String((worldState&&worldState.campId)||"")+"\n"+String((worldState&&worldState.atlas&&worldState.atlas.seed)||"")+"\n"+id+"\n"+String(label||"");}/* the label too: after a rewind a handle can name another feature */
+function atlasDirectionsForget(){_atlasDirectionsAsked=Object.create(null);}/* with the rest of the atlas's session state (atlasForget: a new map, a campaign made public) */
+function atlasDirectionsGivenUp(id,label){return (_atlasDirectionsAsked[atlasDirectionsTryKey(id,label)]||0)>=ATLAS_DIRECTIONS_TRIES;}
+function atlasDirectionsOwed(skip){
   if(!atlasKnowledgeActive())return null;
   var k=atlasKnowledgeContext();if(!k)return null;
   var shown=atlasKnowledgeShown(k,atlasKnowledgeProjection(k).features),owed=[],known=[],i,f;
   for(i=0;i<shown.length;i++){
     f=shown[i];
     if(f.bearing!=="unknown"){if(known.length<ATLAS_DIRECTIONS_KNOWN_MAX)known.push({label:f.label,bearing:f.bearing});}
-    else if(f.mode==="observed"&&owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push({id:f.id,label:f.label});
+    else if(f.mode==="observed"&&!(skip&&skip(f.id,f.label))&&owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push({id:f.id,label:f.label});
   }
   return {container:k,place:(typeof locDisplayLeaf==="function")?locDisplayLeaf(k):String(k).split("|").pop(),owed:owed,known:known};
 }
@@ -86,14 +95,16 @@ function atlasDirectionsSaid(placed){return "Map: "+placed.map(function(x){retur
 /* The backstop, after a turn's commit. Never throws; returns what was placed, or null when nothing was asked or the
    ask failed (said). */
 async function atlasDirectionsSettle(resp,playerTxt){
-  var th=null,options={noHistory:true,kind:ATLAS_DIRECTIONS_KIND,noRetry:true},o,ask,context,text,read,filed;
+  var th=null,options={noHistory:true,kind:ATLAS_DIRECTIONS_KIND,noRetry:true},o,ask,context,text,read,filed,tried,gone;
   try{
     if(!atlasKnowledgeActive())return null;
     if(typeof detectModelRefusal==="function"&&detectModelRefusal(cleanTxt(resp)))return null;/* a refusal narrates nothing */
-    o=atlasDirectionsOwed();if(!o||!o.owed.length)return null;
+    o=atlasDirectionsOwed(atlasDirectionsGivenUp);if(!o||!o.owed.length)return null;/* A5: a feature given up on is not sent again */
+    tried=o.owed.map(function(x){return {key:atlasDirectionsTryKey(x.id,x.label),id:x.id,label:x.label};});
     context=atlasDiscoveryContext();ask=atlasDirectionsAsk(o,cleanTxt(resp),playerTxt);
     if(typeof addMsg==="function")th=addMsg("thinking","Asking the way for the map...");
     text=await callGM(ask.user,ask.system,ATLAS_DIRECTIONS_TOKENS,null,options);
+    tried.forEach(function(x){_atlasDirectionsAsked[x.key]=(_atlasDirectionsAsked[x.key]||0)+1;});/* A5: answered, so paid — whatever the answer holds */
     if(!atlasDiscoveryCurrent(context)){atlasKnowledgeSay("the campaign or its map changed while directions were asked; none were filed");return null;}
     read=atlasDirectionsRead(text,o.owed,options.finish);if(!read.ok)throw new Error(read.reason);
     filed=atlasDirectionsFile(read.records,"directions:"+worldState.turn+":"+Date.now().toString(36)+":"+Math.random().toString(36).slice(2));
@@ -102,6 +113,8 @@ async function atlasDirectionsSettle(resp,playerTxt){
       if(typeof saveAll==="function")saveAll();
       if(typeof showToast==="function")showToast(atlasDirectionsSaid(filed.placed),6000);
     }
+    gone=tried.filter(function(x){return _atlasDirectionsAsked[x.key]===ATLAS_DIRECTIONS_TRIES&&!filed.placed.some(function(p){return p.id===x.id;});});
+    if(gone.length)atlasKnowledgeSay("no direction could be settled for "+gone.map(function(x){return x.label;}).join(", ")+" after "+ATLAS_DIRECTIONS_TRIES+" asks; "+(gone.length>1?"they stay":"it stays")+" listed, and the map stops asking");
     return filed.placed;
   }catch(e){
     atlasKnowledgeSay("directions could not be settled: "+((e&&e.message)||e)+". The features stay listed and are asked again next turn.");

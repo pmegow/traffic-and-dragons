@@ -30,7 +30,7 @@ var region = [
   { label: "the writer keeps nothing", find: "A.spots[r.fresh[i].key]={at:r.fresh[i].at,turn:atlasTurn()};", replace: "", mustFail: T6 },
   { label: "the store is a plain object", find: "A.spots=keyedDict();", replace: "A.spots={};", mustFail: T6 },
   { label: "a kept spot is not saved", find: 'if(typeof saveAll==="function")saveAll();', replace: "", mustFail: T6 },
-  { label: "a kept spot is ignored: the place is set down again", find: "p=places[i];s=atlasRegionStored(A,p.key);", replace: "p=places[i];s=null;", mustFail: T6 },
+  { label: "a kept spot is ignored: the place is set down again", find: "p=places[i];s=kept[i];", replace: "p=places[i];s=null;", mustFail: T6 },
   { label: "a spot off the sheet is trusted", find: "&&r.at[0]<=ATLAS_REGION_SIZE[0]&&r.at[1]<=ATLAS_REGION_SIZE[1])return [r.at[0],r.at[1]];", replace: ")return [r.at[0],r.at[1]];", mustFail: T6 },
   { label: "the fog switch is ignored", find: "  if(A.fog===false)return null;\n  j=atlasRegionRead(A);doc=atlasRegionDoc(A);", replace: "  j=atlasRegionRead(A);doc=atlasRegionDoc(A);", mustFail: T8 },
   { label: "the travelled ways stay under the fog", find: "paths:(doc.ways||[]).map(function(w){return w.pts;}),", replace: "paths:[],", mustFail: T8 },

@@ -26,6 +26,6 @@ rc|=sabotage.prove({file:'atlas-public.js',command,only,cases:[
 ]});
 rc|=sabotage.prove({file:'atlas.js',command,only,cases:[
  {label:'the old public atlas version has no migration',find:',2:function(A){A.v=3;return A;}',replace:'',mustFail:only+'atlas v2 recovery retains earlier visited sheets current scope and feature notes'},
- {label:'public notes depend on the sheet rather than stable feature identity',find:'atlasNoteBucket()==="publicNotes"?String(id):zoneId+"|"+id',replace:'atlasNoteBucket()==="publicNotes"?zoneId+"|"+id:zoneId+"|"+id',mustFail:only+'canonical aliases coalesce sheets without losing either source feature or note'}
+ {label:'public notes depend on the sheet rather than stable feature identity',find:'atlasNoteBucket()==="publicNotes"?atlasPublicNoteKeys(zoneId,id):[zoneId+"|"+id]',replace:'atlasNoteBucket()==="publicNotes"?[zoneId+"|"+id]:[zoneId+"|"+id]',mustFail:only+'canonical aliases coalesce sheets without losing either source feature or note'}
 ]});
 process.exit(rc?1:0);

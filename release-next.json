@@ -1,5 +1,5 @@
 {
-  "version": "v1.1477",
+  "version": "v1.1478",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -133,6 +133,7 @@
     "A deleted campaign is cleared from other devices only when the cloud held all of it; otherwise you are asked, Keep first.",
     "Voice fixes: a cancelled dictation is discarded, mic failures are named, a hung local voice restarts, and a talk keeps its own overlay.",
     "Turn fixes: a failed roll can be sent again after a reload, four pop-ups hold keyboard focus, Define and Sync say why they wait.",
-    "A turn whose changes landed can no longer be applied twice by Retry; the kept roll's button works; rolls ignore the Table Talk tab."
+    "A turn whose changes landed can no longer be applied twice by Retry; the kept roll's button works; rolls ignore the Table Talk tab.",
+    "Map fixes: notes on ways and inner places show again, an old name clash no longer freezes a place's map, extra ways are listed."
   ]
 }

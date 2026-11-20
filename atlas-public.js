@@ -30,7 +30,12 @@ function atlasPublicFollow(){
     sig=JSON.stringify([p.world,p.sub]);id=atlasPublicPlacesFollow(A);changed=A.ptr!==sig||A.at!==id;
     A.at=id;A.spot=null;A.off=null;A.ptr=sig;delete worldState.placeDecls;
     return {changed:changed,at:A.at,spot:null,off:null,entered:[]};
-  }catch(e){atlasProblem("following the public map",e);return null;}
+  }catch(e){
+    /* audit 2026-11-19, A8: at the place limit every follow — every turn, every pane open — raised a toast and mailed an
+       error report. The limit is an answer: said once a session for the campaign, never reported. */
+    if(e&&e.atlasLimit){if(atlasOnce(atlasLive(),"place-limit"))atlasSay("warn",e.message);return null;}
+    atlasProblem("following the public map",e);return null;
+  }
 }
 function atlasPublicParty(zoneId){var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionParty(A);/* #771 P3 */var place=A?atlasPublicPlace(A,zoneId):null;var at=place?atlasSheetStand(atlasPublicDoc(zoneId)):null;/* #771 P2: a site's middle chamber, a drawn ground's middle, a pin sheet's */return place&&place.container===atlasPublicContext()?{x:at[0],y:at[1],exact:false,last:false,key:null,label:atlasSheetDrawn(atlasPublicDoc(zoneId))?(atlasSheetLeaf(place.container)||place.name):place.name}:null;}/* #764 (owner 2026-11-15: "the party is at Petrified Mire, might as well call it that"): a public sheet IS the place the party stands in, so its marker bears the place's name */
 
@@ -41,6 +46,29 @@ function atlasPublicChildSheet(A,place,label){
   if(!want)return null;
   for(i=0;i<rows.length;i++){r=rows[i];if(atlasSheetParent(r.container)===place.container&&atlasKnowledgeFold(atlasSheetLeaf(r.container))===want)return r.id;}/* #771: its OWN child — a den two steps down opens from the place it is in */
   return null;
+}
+/* audit 2026-11-19, A1 (owner ruling: notes are kept by sheet). The keys a note on a public sheet's thing is read under,
+   the first being where it is written. A way out and a place inside bear positional ids (way-1, in-1) that every sheet
+   repeats and that shift as the record grows, so their notes are keyed by the SHEET and by what the thing leads to:
+   zone|way|<the place it leads to>, zone|in|<the sheet inside>. A feature keeps its own id (unique in the campaign), so
+   notes saved before this build stay where they are; a feature that IS a way also reads the note the way had. The bare
+   positional id comes last: what the old build stored, shown until it is saved again (the save moves it). */
+function atlasPublicNoteKeys(zoneId,id){
+  var A=atlasLive(),place,doc,sheet,i,w;
+  id=String(id);
+  try{
+    if(!A||atlasPublicRegionIs(A,zoneId))return [id];
+    place=atlasPublicPlace(A,zoneId);if(!place)return [id];
+    doc=atlasPublicDoc(zoneId);if(!atlasSheetDrawn(doc))return [id];
+    sheet=atlasSheetOf(A,place,atlasKnowledgeShown(place.container,atlasKnowledgeProjection(place.container).features));if(!sheet)return [id];
+    for(i=0;i<sheet.ways.length;i++){
+      w=sheet.ways[i];
+      if(w.feature===id)return [id,zoneId+"|way|"+w.key];
+      if(w.id===id)return [zoneId+"|way|"+w.key,id];
+    }
+    for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===id)return [zoneId+"|in|"+sheet.inside[i].to,id];
+  }catch(e){if(typeof console!=="undefined")console.warn("[atlas] the note keys of "+id+" could not be read: "+((e&&e.message)||e));}
+  return [id];
 }
 function atlasPublicCard(zoneId,target){
   var A=atlasLive();if(atlasPublicRegionIs(A,zoneId))return atlasRegionCard(A,target);/* #771 P3 */
@@ -53,10 +81,10 @@ function atlasPublicCard(zoneId,target){
   at=atlasSheetStand(doc);stand=at;
   if(sheet)for(i=0;i<sheet.ways.length;i++)if(sheet.ways[i].id===target.id&&!sheet.ways[i].feature){
     w=sheet.ways[i];at=(doc.portals||[]).filter(function(x){return x.id===w.id;})[0];
-    return {id:w.id,x:at?at.x:stand[0],y:at?at.y:stand[1],title:"The way to "+w.name,word:w.bearing?"The party travelled this way. It leads "+ATLAS_KNOWLEDGE_DIRECTIONS[w.bearing]+".":"The party travelled between these places. Its direction was never stated, so the way is drawn dotted.",opens:w.to,unvisited:false,partyHere:false,place:null,added:null,note:null};
+    return {id:w.id,x:at?at.x:stand[0],y:at?at.y:stand[1],title:"The way to "+w.name,word:w.bearing?"The party travelled this way. It leads "+ATLAS_KNOWLEDGE_DIRECTIONS[w.bearing]+".":"The party travelled between these places. Its direction was never stated, so the way is drawn dotted.",opens:w.to,unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,w.id)};/* audit 2026-11-19, A1 */
   }
   if(sheet)for(i=0;i<sheet.inside.length;i++)if(sheet.inside[i].id===target.id){
-    w=sheet.inside[i];return {id:w.id,x:stand[0],y:stand[1],title:w.name,word:"A place within "+place.name+" the party has entered. Where it lies was never stated.",opens:w.to,unvisited:false,partyHere:false,place:null,added:null,note:null};
+    w=sheet.inside[i];return {id:w.id,x:stand[0],y:stand[1],title:w.name,word:"A place within "+place.name+" the party has entered. Where it lies was never stated.",opens:w.to,unvisited:false,partyHere:false,place:null,added:null,note:atlasNote(zoneId,w.id)};
   }
   for(i=0;i<p.features.length;i++)if(p.features[i].id===target.id){
     f=p.features[i];t=doc.features.filter(function(x){return x.id===f.id;})[0]||(doc.portals||[]).filter(function(x){return x.id===f.id;})[0];

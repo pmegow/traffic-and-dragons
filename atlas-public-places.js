@@ -23,7 +23,7 @@ function atlasPublicPlacesProblem(A,store){
 function atlasPublicPlacesAdd(A,store,key,turn){
   var resolved=atlasPublicPlaceKey(key),ids=Object.keys(store.places),i,id;
   for(i=0;i<ids.length;i++)if(atlasPublicPlaceKey(store.places[ids[i]].container)===resolved)return ids[i];
-  if(ids.length>=ATLAS_PUBLIC_PLACE_CAP)throw new Error("the public atlas has reached its "+ATLAS_PUBLIC_PLACE_CAP+" place limit; existing sheets are preserved");
+  if(ids.length>=ATLAS_PUBLIC_PLACE_CAP){var full=new Error("the public atlas has reached its "+ATLAS_PUBLIC_PLACE_CAP+" place limit; existing sheets are preserved");full.atlasLimit=true;throw full;}/* audit 2026-11-19, A8: a limit, not a fault — the follow says it once and mails nothing */
   id=ids.length?A.seed+"/public/"+(store.next++):A.seed;
   store.places[id]={container:resolved,name:atlasPublicPlaceName(resolved),turn:typeof turn==="number"&&isFinite(turn)&&turn>=0?Math.floor(turn):atlasTurn()};
   return id;

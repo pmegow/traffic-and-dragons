@@ -177,8 +177,7 @@ function atlasSheetWays(A,place){
       out.push({key:other,name:p?p.name:atlasPublicPlaceName(other),bearing:l.bearing?(l.a===k?l.bearing:ATLAS_JOURNEY_OPPOSITE[l.bearing]):null,lean:l.a===k?"S":"N",to:p?p.zone:null});
     }
   }
-  out=out.slice(0,ATLAS_SHEET_EXIT_CAP);
-  for(i=0;i<out.length;i++)out[i].id="way-"+(i+1);
+  for(i=0;i<out.length;i++)out[i].id="way-"+(i+1);/* audit 2026-11-19, A7: every way keeps its place in the record — the recipe draws the first ATLAS_SHEET_EXIT_CAP and LISTS the rest; they used to be cut here, neither drawn nor listed */
   return out;
 }
 /* The visited places INSIDE this one that none of its shown features names: [{id, name, to}]. */
@@ -193,8 +192,18 @@ function atlasSheetInside(A,place,features){
 }
 /* PURE over what it is handed: the place, its shown features, its ways and the places inside it → the recipe, or null
    when no ground is known. {terrain, params, ways, inside} — params is what TnDMaps.generate("wild", …) takes. */
+/* audit 2026-11-19, A7: THE list of what a sheet knows without a position. Past ATLAS_SHEET_LIST_CAP rows the list was cut
+   without a word; now its last row says how many it leaves out (a row of its own id, with no card). */
+var ATLAS_SHEET_MORE_ID="list-more";
+function atlasSheetListAdd(list,row){if(list.rows.length<ATLAS_SHEET_LIST_CAP)list.rows.push(row);else list.cut++;}
+function atlasSheetListDone(list){
+  if(!list.cut)return list.rows;
+  list.rows.pop();
+  list.rows.push({id:ATLAS_SHEET_MORE_ID,name:"and "+(list.cut+1)+" more, not listed here",mode:"observed"});
+  return list.rows;
+}
 function atlasSheetRecipe(place,features,ways,inside){
-  var kind=atlasSheetKind(place,features),terrain=kind&&kind.draws==="wild"?kind.terrain:null,used=Object.create(null),exits=[],edits=[],listed=[],isWay=Object.create(null),byName=Object.create(null),sorted,i,f,w,row,j,e,k,draw,params;
+  var kind=atlasSheetKind(place,features),terrain=kind&&kind.draws==="wild"?kind.terrain:null,used=Object.create(null),exits=[],edits=[],list={rows:[],cut:0},isWay=Object.create(null),byName=Object.create(null),sorted,i,f,w,row,j,e,k,draw,params;
   if(!kind)return null;
   draw=Object.prototype.hasOwnProperty.call(ATLAS_SHEET_DRAWS,kind.draws)?ATLAS_SHEET_DRAWS[kind.draws]:null;
   if(!draw)throw new Error("no drawing is defined for a "+kind.draws);
@@ -214,7 +223,9 @@ function atlasSheetRecipe(place,features,ways,inside){
      diagonal clamped the second onto the first, found by this change's review). Known limit: when an EARLIER way's direction is learned
      later, a dotted way that came after it may take the edge it frees — nothing is stored to say where it was drawn. */
   for(i=0;i<ways.length;i++){
-    w=ways[i];e={id:w.id,name:atlasSheetCut(w.name,ATLAS_SHEET_WAY_MAX),sure:!!w.bearing,bearing:w.bearing};
+    w=ways[i];
+    if(exits.length>=ATLAS_SHEET_EXIT_CAP){atlasSheetListAdd(list,{id:w.id,name:atlasSheetCut("The way to "+w.name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});continue;}/* A7: the sheet draws sixteen ways; a later one is listed */
+    e={id:w.id,name:atlasSheetCut(w.name,ATLAS_SHEET_WAY_MAX),sure:!!w.bearing,bearing:w.bearing};
     if(!e.bearing&&w.lean&&!used[w.lean])e.bearing=w.lean;/* an unstated way is laid DOWN the sheet: onward is south, the way back north, so both ends of one way agree */
     if(!e.bearing){for(j=0;j<ATLAS_JOURNEY_UNSURE_ORDER.length&&!e.bearing;j++)if(!used[ATLAS_JOURNEY_UNSURE_ORDER[j]])e.bearing=ATLAS_JOURNEY_UNSURE_ORDER[j];if(!e.bearing)e.bearing=ATLAS_JOURNEY_UNSURE_ORDER[0];}
     used[e.bearing]=true;
@@ -224,14 +235,14 @@ function atlasSheetRecipe(place,features,ways,inside){
     f=sorted[i];
     if(isWay[f.id])continue;/* the exit says it */
     if(atlasSheetIsGround(terrain,f.label))continue;/* "mire" on a mire, "ridge" on a ridge: the ground is drawn, not pinned */
-    if(f.bearing==="unknown"){if(listed.length<ATLAS_SHEET_LIST_CAP)listed.push({id:f.id,name:atlasSheetCut(f.label,ATLAS_SHEET_LIST_NAME_MAX),mode:f.mode});continue;}
+    if(f.bearing==="unknown"){atlasSheetListAdd(list,{id:f.id,name:atlasSheetCut(f.label,ATLAS_SHEET_LIST_NAME_MAX),mode:f.mode});continue;}
     row=f.mode==="observed"&&!atlasPublicLandscapeNamed(f.label)?atlasSheetRow(ATLAS_SHEET_KINDS,f.label):null;
     e={op:"add",id:f.id,kind:row?row.kind:"custom",name:atlasSheetCut(f.label,ATLAS_SHEET_NAME_MAX),bearing:f.bearing,mode:f.mode};
     if(!row)e.word="a place";
     edits.push(e);
   }
-  for(i=0;i<inside.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push({id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
-  return {draws:"wild",generator:draw.generator,terrain:terrain,ways:ways,inside:inside,params:{seed:place.id+"/sheet",width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,terrain:terrain,title:atlasSheetLeaf(place.container)||place.name,site:{exits:exits,unplaced:listed},edits:edits}};
+  for(i=0;i<inside.length;i++)atlasSheetListAdd(list,{id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
+  return {draws:"wild",generator:draw.generator,terrain:terrain,ways:ways,inside:inside,params:{seed:place.id+"/sheet",width:ATLAS_SHEET_SIZE,height:ATLAS_SHEET_SIZE,terrain:terrain,title:atlasSheetLeaf(place.container)||place.name,site:{exits:exits,unplaced:atlasSheetListDone(list)},edits:edits}};
 }
 /* A cave's sheet (TnDMaps.generate("dungeon", …), the library's story sheet for a natural site), or null when no way into
    it is on record (a cave has a mouth; the engine does not invent where). The FIRST way — how the party first came in — is
@@ -242,18 +253,18 @@ function atlasSheetRecipe(place,features,ways,inside){
    wall it stands toward (its bearing; unstated: south, the way a place inside another lays its way back), the things with
    a bearing in the order disclosed, and what is listed: a later way, a thing without a direction, a place inside. */
 function atlasSheetSiteStory(draws,sorted,ways,inside,isWay){
-  var first=ways[0],b,story=[],listed=[],i,f;
+  var first=ways[0],b,story=[],list={rows:[],cut:0},i,f;
   if(!first)return null;
   b=first.bearing||first.lean||"S";
-  for(i=1;i<ways.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push({id:ways[i].id,name:atlasSheetCut("The way to "+ways[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
+  for(i=1;i<ways.length;i++)atlasSheetListAdd(list,{id:ways[i].id,name:atlasSheetCut("The way to "+ways[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
   for(i=0;i<sorted.length;i++){
     f=sorted[i];if(isWay[f.id])continue;
     if(atlasSheetIsSite(draws,f.label))continue;/* "cave" in a cave, "inn" in an inn: the site is drawn, not named */
-    if(f.bearing==="unknown"||story.length>=ATLAS_SHEET_STORY_CAP){if(listed.length<ATLAS_SHEET_LIST_CAP)listed.push({id:f.id,name:atlasSheetCut(f.label,ATLAS_SHEET_LIST_NAME_MAX),mode:f.mode});continue;}
+    if(f.bearing==="unknown"||story.length>=ATLAS_SHEET_STORY_CAP){atlasSheetListAdd(list,{id:f.id,name:atlasSheetCut(f.label,ATLAS_SHEET_LIST_NAME_MAX),mode:f.mode});continue;}
     story.push({id:f.id,name:atlasSheetCut(f.label,ATLAS_SHEET_NAME_MAX),bearing:f.bearing,mode:f.mode});
   }
-  for(i=0;i<inside.length&&listed.length<ATLAS_SHEET_LIST_CAP;i++)listed.push({id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
-  return {first:first,b:b,story:story,listed:listed};
+  for(i=0;i<inside.length;i++)atlasSheetListAdd(list,{id:inside[i].id,name:atlasSheetCut(inside[i].name,ATLAS_SHEET_LIST_NAME_MAX),mode:"observed"});
+  return {first:first,b:b,story:story,listed:atlasSheetListDone(list)};
 }
 /* Where a site lies, in the story's words: within the place around it; nothing for a place of the world's own level. */
 function atlasSheetWithin(place){var parent=atlasSheetParent(place.container);return parent===null?null:"within "+atlasSheetLeaf(parent);}

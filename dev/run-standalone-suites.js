@@ -33,6 +33,7 @@ var SUITES = [
   "dev/tests-777-sync.js",/* audit 2026-11-19 (#777) section S: a sync answer belongs to the campaign posted; the cloud ahead mid-turn is a pause */
   "dev/tests-777-small.js",/* audit 2026-11-19 (#777): the small reproduced rows of sections C and D (C7, C8, C11, D4) */
   "dev/tests-777-voice.js",/* audit 2026-11-19 (#777) section V: the voice rows judged without a phone (V3, V6, V8, V9) */
+  "dev/tests-777-atlas.js",/* audit 2026-11-19 (#777) section A: notes by sheet, the merge collision, the ask cap, kept spots, listed ways, the place limit */
   "dev/tests-777-ui.js",/* audit 2026-11-19 (#777) U5: the four hand-built modals are dialogs on modalShell (a fake page) */
   "dev/tests-777-turn.js",/* audit 2026-11-19 (#777) batch 7: the turn's edges (U1-U3, U6, U8, U11-U13, V1, C3, C4) */
   "dev/tests-777-harden.js",/* audit 2026-11-19 (#777) section H and U4: what a file, a save or the model wrote is painted as text */

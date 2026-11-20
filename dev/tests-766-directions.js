@@ -14,7 +14,7 @@ const HERE = 'Petrified Mire';
 function setup() {
   engine.makeTestWorld(); worldState.world.location = HERE; worldState.world.sublocation = null; worldState.turn = 2; worldState.campId = 'c766'; memory.campId = 'c766';
   worldState.atlas = { v: ATLAS_VER, seed: 'k766', knowledge: 1 }; memory.map.nodes[HERE] = newMapNode(0, null); memory.map.nodes[HERE].visits = 1;
-  memory.map.geography = MapKnowledge.create(); toasts.length = 0; saves = 0;
+  memory.map.geography = MapKnowledge.create(); toasts.length = 0; saves = 0; atlasDirectionsForget();/* audit 2026-11-19, A5: each case is its own session — the asks a feature has had are counted per session */
 }
 function reveal(text) { const r = atlasKnowledgeCommitResult(text, null, { commit: 'gm:' + worldState.turn + ':' + Math.random() }); assert.equal(r.refusal, null, r.refusal && r.refusal.reason); return r; }
 const feats = () => atlasKnowledgeProjection(HERE).features;

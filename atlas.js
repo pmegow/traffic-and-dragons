@@ -160,7 +160,7 @@ function atlasDoc(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnow
   return doc;
 }
 /* drop every held document (a campaign switch, a test): the next read redraws from the recipes */
-function atlasForget(){if(typeof _atlasPublicMemo!=="undefined")_atlasPublicMemo=null;_atlasDocs={};_atlasDocOrder=[];_atlasDrawn={};_atlasWarned={};_atlasPeeks={};_atlasPeekOrder=[];}
+function atlasForget(){if(typeof _atlasPublicMemo!=="undefined")_atlasPublicMemo=null;if(typeof atlasDirectionsForget==="function")atlasDirectionsForget();/* audit 2026-11-19, A5 */_atlasDocs={};_atlasDocOrder=[];_atlasDrawn={};_atlasWarned={};_atlasPeeks={};_atlasPeekOrder=[];}
 /* WRITE: record what the library drew for a zone; a drawing that differs from the one on record is said out loud */
 function atlasSettle(A,zoneId){
   var rec=A.zones[zoneId],key=rec?atlasChainKey(A,zoneId):null,d=key?_atlasDrawn[key]:null,doc=key?_atlasDocs[key]:null,sch,exp;
@@ -1373,17 +1373,21 @@ function atlasTrailItems(shownZone){if(typeof atlasKnowledgeActive==="function"&
    ATLAS_NOTE_MAX; an empty note is removed. The card carries it (atlasCard's `note`). */
 var ATLAS_NOTE_MAX=600;
 function atlasNoteBucket(){return typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()?"publicNotes":"notes";}
-function atlasNoteKey(zoneId,id){return atlasNoteBucket()==="publicNotes"?String(id):zoneId+"|"+id;}
-function atlasNote(zoneId,id){var A=atlasLive(),notes=A&&A[atlasNoteBucket()],n;if(!notes||id==null)return "";n=notes[atlasNoteKey(zoneId,id)];return typeof n==="string"?n:"";}
+/* audit 2026-11-19, A1: the keys a note is read under, the first being where it is written — one for a drawn-map thing
+   (zone|id); for a public sheet, atlasPublicNoteKeys (atlas-public.js). */
+function atlasNoteKeys(zoneId,id){return atlasNoteBucket()==="publicNotes"?atlasPublicNoteKeys(zoneId,id):[zoneId+"|"+id];}
+function atlasNoteKey(zoneId,id){return atlasNoteKeys(zoneId,id)[0];}
+function atlasNote(zoneId,id){var A=atlasLive(),notes=A&&A[atlasNoteBucket()],keys,i,n;if(!notes||id==null)return "";keys=atlasNoteKeys(zoneId,id);for(i=0;i<keys.length;i++){n=notes[keys[i]];if(typeof n==="string"&&n)return n;}return "";}
 function atlasNoteSet(zoneId,id,text){
-  var A=atlasLive(),k,bucket=atlasNoteBucket(),notes;
+  var A=atlasLive(),k,bucket=atlasNoteBucket(),notes,keys,i;
   if(!A)return {ok:false,reason:"this campaign has no drawn map"};
   if(!atlasZoneKnown(A,zoneId))return {ok:false,reason:"that sheet is not in the atlas"};
-  if(id==null||!atlasThingById(atlasDoc(zoneId),id))return {ok:false,reason:"that thing is not on the sheet"};
+  if(id==null||!(bucket==="publicNotes"?atlasCard(zoneId,{id:id}):atlasThingById(atlasDoc(zoneId),id)))return {ok:false,reason:"that thing is not on the sheet"};/* A1: on a public sheet a thing is what has a card — a way, a place inside, a feature */
   notes=A[bucket];if(!notes||typeof notes!=="object")notes=A[bucket]=keyedDict();
   text=String(text==null?"":text).replace(/\r\n?/g,"\n").trim();
   if(text.length>ATLAS_NOTE_MAX)return {ok:false,reason:"a note is at most "+ATLAS_NOTE_MAX+" characters ("+text.length+" given)"};
-  k=atlasNoteKey(zoneId,id);
+  keys=atlasNoteKeys(zoneId,id);k=keys[0];
+  for(i=1;i<keys.length;i++)delete notes[keys[i]];/* A1: the note lives in ONE place — an older key it was read from is let go */
   if(!text){delete notes[k];return {ok:true,text:"",removed:true};}
   notes[k]=text;return {ok:true,text:text};
 }

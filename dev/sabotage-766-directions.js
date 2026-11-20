@@ -13,8 +13,8 @@ var T1 = P + "what is owed: the seen features of this place with no bearing; nev
   T7 = P + "the GM is told it is the author: a seen feature gets a bearing the turn it is declared; hearsay may wait",
   T8 = P + "the backstop runs after the commit on a story turn and on the opening, and the file is loaded where the game loads";
 var directions = [
-  { label: "hearsay is asked for a direction", find: 'else if(f.mode==="observed"&&owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push(', replace: "else if(owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push(", mustFail: T1 },
-  { label: "the ask is not capped", find: 'else if(f.mode==="observed"&&owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push(', replace: 'else if(f.mode==="observed")owed.push(', mustFail: T1 },
+  { label: "hearsay is asked for a direction", find: 'else if(f.mode==="observed"&&!(skip&&skip(f.id,f.label))&&owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push(', replace: "else if(!(skip&&skip(f.id,f.label))&&owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push(", mustFail: T1 },
+  { label: "the ask is not capped", find: 'else if(f.mode==="observed"&&!(skip&&skip(f.id,f.label))&&owed.length<ATLAS_KNOWLEDGE_OWED_CAP)owed.push(', replace: 'else if(f.mode==="observed"&&!(skip&&skip(f.id,f.label)))owed.push(', mustFail: T1 },
   { label: "the place itself is asked for", find: "var shown=atlasKnowledgeShown(k,atlasKnowledgeProjection(k).features),owed=[]", replace: "var shown=atlasKnowledgeProjection(k).features,owed=[]", mustFail: T1 },
   { label: "a campaign without the public map is read anyway", find: "  if(!atlasKnowledgeActive())return null;\n  var k=atlasKnowledgeContext();if(!k)return null;", replace: "  var k=atlasKnowledgeContext();if(!k)return null;", mustFail: T1 },
   { label: "the narration is sent unbounded", find: ".slice(0,ATLAS_DIRECTIONS_NARRATION_MAX)", replace: "", mustFail: T2 },
@@ -33,7 +33,7 @@ var directions = [
   { label: "the player is not told", find: 'if(typeof showToast==="function")showToast(atlasDirectionsSaid(filed.placed),6000);', replace: "", mustFail: T5 },
   { label: "the request carries the story's history", find: 'options={noHistory:true,kind:ATLAS_DIRECTIONS_KIND,noRetry:true}', replace: 'options={kind:ATLAS_DIRECTIONS_KIND,noRetry:true}', mustFail: T5 },
   { label: "the request carries the reply's tags", find: "ask=atlasDirectionsAsk(o,cleanTxt(resp),playerTxt);", replace: "ask=atlasDirectionsAsk(o,resp,playerTxt);", mustFail: T5 },
-  { label: "a request is made with nothing owed", find: "o=atlasDirectionsOwed();if(!o||!o.owed.length)return null;", replace: "o=atlasDirectionsOwed();if(!o)return null;", mustFail: T5 },
+  { label: "a request is made with nothing owed", find: "o=atlasDirectionsOwed(atlasDirectionsGivenUp);if(!o||!o.owed.length)return null;", replace: "o=atlasDirectionsOwed(atlasDirectionsGivenUp);if(!o)return null;", mustFail: T5 },
   { label: "an answer for a campaign that moved on is filed", find: "if(!atlasDiscoveryCurrent(context)){", replace: "if(false){", mustFail: T6 },
   { label: "a failed ask says nothing", find: 'atlasKnowledgeSay("directions could not be settled: "', replace: 'String("directions could not be settled: "', mustFail: T6 }
 ];

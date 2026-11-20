@@ -66,7 +66,24 @@ var MapKnowledge=(function(){
     if(s.next<=max)return "feature counter would reuse an identity";
     return "";
   }
-  function problem(s){return validate(s,CURRENT);}
+  /* audit 2026-11-19, A4: every projection used to validate the whole store again (5 ms at 2,000 disclosures, several
+     reads a pane show, two a travelled way). A READ now validates a store once per revision: the last store object
+     that passed, at the revision it passed. A different object — what a load, an import or a writer hands over — is
+     always checked; so is every WRITE (prepare) and every direct problem() call. What this gives up: a store changed
+     IN PLACE without a new revision is read unchecked until its next write, which refuses it; no writer does that
+     (prepare and upgrade return detached candidates). checks() counts the full validations, for the tests.
+     NOT done here, on purpose: the store still keeps every receipt (about 465 bytes a disclosure, and the 8,192-receipt
+     cap still ends disclosure for a campaign that reaches it). Letting superseded receipts go would break a rule this
+     store was built on — prior evidence is never evicted (K15; the protocol suite reads a report's own receipt after
+     the feature was seen) — so it waits on the owner's ruling. */
+  var _checks=0,_readState=null,_readRevision=-1;
+  function problem(s){_checks++;return validate(s,CURRENT);}
+  function readProblem(s){
+    if(s&&s===_readState&&s.revision===_readRevision)return "";
+    var p=problem(s);
+    if(!p){_readState=s;_readRevision=s.revision;}
+    return p;
+  }
   function copyFields(o,names){var c={},i;for(i=0;i<names.length;i++)c[names[i]]=o[names[i]];return c;}
   function eventCopy(e){return copyFields(e,CURRENT.eventFields);}
   function copy(s){
@@ -142,7 +159,7 @@ var MapKnowledge=(function(){
   function project(s,container,audience,resolveContainer){
     if(audience!=="player")throw new Error("MapKnowledge: unsupported audience");
     if(!str(container,300))throw new Error("MapKnowledge: invalid container");
-    var p=problem(s),out,ks,i,f,r;
+    var p=readProblem(s),out,ks,i,f,r;
     if(p)throw new Error("MapKnowledge: "+p);
     out={container:container,revision:s.revision,features:[]};
     ks=Object.keys(s.features).sort(function(a,b){return Number(a.slice(1))-Number(b.slice(1));});
@@ -152,5 +169,5 @@ var MapKnowledge=(function(){
     }
     return out;
   }
-  return {create:create,prepare:prepare,project:project,problem:problem,eventProblem:eventProblem,upgrade:upgrade,version:VERSION};
+  return {create:create,prepare:prepare,project:project,problem:problem,eventProblem:eventProblem,upgrade:upgrade,version:VERSION,checks:function(){return _checks;}};
 }());

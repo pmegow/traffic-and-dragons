@@ -67,7 +67,7 @@ else{
   ]});
   rc|=sabotage.prove({file:"atlas.js",command,only:PREFIX,cases:[
     {label:"legacy and public note identities share the old dictionary",find:'return typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()?"publicNotes":"notes";',replace:'return "notes";',mustFail:PREFIX+"legacy note keys cannot attach old notes to unrelated new public identities"},
-    {label:"public notes follow labels instead of stable feature handles",find:'return atlasNoteBucket()==="publicNotes"?String(id):zoneId+"|"+id;',replace:'return atlasNoteBucket()==="publicNotes"?atlasThingById(atlasDoc(zoneId),id).name:zoneId+"|"+id;',mustFail:PREFIX+"public notes follow stable feature handles through rename merge save and import"},
+    {label:"public notes follow labels instead of stable feature handles",find:'return atlasNoteBucket()==="publicNotes"?atlasPublicNoteKeys(zoneId,id):[zoneId+"|"+id];',replace:'return atlasNoteBucket()==="publicNotes"?[atlasThingById(atlasDoc(zoneId),id).name]:[zoneId+"|"+id];',mustFail:PREFIX+"public notes follow stable feature handles through rename merge save and import"},
     {label:"the public map reader falls through to private procedural recipes",find:'function atlasDoc(zoneId){if(typeof atlasKnowledgeActive==="function"&&atlasKnowledgeActive()){return atlasPublicDoc(zoneId);}',replace:'function atlasDoc(zoneId){',mustFail:PREFIX+"all five legacy scale recipes remain withheld from every public map surface"}
   ]});
   rc|=sabotage.prove({file:"state.js",command,only:PREFIX,cases:[

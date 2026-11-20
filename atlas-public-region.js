@@ -78,9 +78,14 @@ function atlasRegionStored(A,key){
    place it shares a travelled way with (along the way's stated bearing when there is one), else beside the place visited
    before it; one whose ground is owed waits. Nothing is written: atlasRegionSettle keeps what is fresh. */
 function atlasRegionSpots(A){
-  var places=atlasJourneyPlaces(A),legs=atlasJourneyLegs(places),spots=Object.create(null),fresh=[],waiting=[],taken=[],base=null,i,j,p,s,g,l,q,from,dir,hit,last=null;
+  var places=atlasJourneyPlaces(A),legs=atlasJourneyLegs(places),spots=Object.create(null),fresh=[],waiting=[],taken=[],kept=[],base=null,i,j,p,s,g,l,q,from,dir,hit,last=null;
+  /* audit 2026-11-19, A6: EVERY kept spot is a point to avoid, whatever its place's turn in the order. Only the places
+     already handled were avoided, so a place set down afresh (its record unreadable, its key re-resolved) could land on
+     the kept spot of a place visited after it. In the ordinary case — every earlier place kept, the newest fresh — the
+     points avoided are the same as before, in the same order. */
+  for(i=0;i<places.length;i++){kept[i]=atlasRegionStored(A,places[i].key);if(kept[i])taken.push(kept[i]);}
   for(i=0;i<places.length;i++){
-    p=places[i];s=atlasRegionStored(A,p.key);
+    p=places[i];s=kept[i];
     if(!s){
       g=atlasRegionGround(A,p);if(g.owed){waiting.push(p.key);continue;}
       from=null;dir=null;
@@ -89,9 +94,9 @@ function atlasRegionSpots(A){
       if(!from)from=last;
       if(!base)base=atlasRegionBase(A);
       hit=TnDMaps.region.place(base,{ground:g.ground,from:from?spots[from]:null,bearing:from?dir:null,taken:taken});
-      s=hit.at;fresh.push({key:p.key,at:[s[0],s[1]]});
+      s=hit.at;fresh.push({key:p.key,at:[s[0],s[1]]});taken.push(s);
     }
-    spots[p.key]=s;taken.push(s);last=p.key;
+    spots[p.key]=s;last=p.key;
   }
   return {places:places,legs:legs,spots:spots,fresh:fresh,waiting:waiting};
 }

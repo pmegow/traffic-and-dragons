@@ -103,15 +103,20 @@ function atlasKnowledgeRead(raw,R){
   return out;
 }
 /* Alias repair can fold distinct filing keys into one public place. Refuse ambiguous labels
-   in touched scopes before any candidate or public receipt becomes part of the turn. */
-function atlasKnowledgeCollision(s,groups){
+   in touched scopes before any candidate or public receipt becomes part of the turn.
+   audit 2026-11-19, A2: only a clash THIS TURN makes is refused — one that involves a feature the turn created, renamed
+   or moved (`before` is the store as it stood before the turn). The scan used to cover every feature of the scope, so
+   once a place merge had left two features with one name, everything disclosed there was refused for good, with a
+   toast telling the GM to use a handle (which could not help). The old pair stays as it is: two pins of one name. */
+function atlasKnowledgeCollision(s,groups,before){
   var scopes=Object.create(null),labels=Object.create(null),keys=Object.keys(s.features),i,f,k,label,resolve=function(x){return typeof locResolve==="function"?locResolve(x):x;};
+  function touched(x){var o=before&&before.features&&Object.prototype.hasOwnProperty.call(before.features,x.id)?before.features[x.id]:null;return !o||o.label!==x.label||o.container!==x.container;}
   for(i=0;i<groups.length;i++)scopes[resolve(groups[i].container)]=1;
   for(i=0;i<keys.length;i++){
     f=s.features[keys[i]];k=resolve(f.container);if(!Object.prototype.hasOwnProperty.call(scopes,k))continue;
     label=JSON.stringify([k,f.label.replace(/\s+/g," ").toLowerCase()]);
-    if(Object.prototype.hasOwnProperty.call(labels,label))return "public label already identifies "+labels[label]+" in this resolved place; use its handle or a distinct label";
-    labels[label]=f.id;
+    if(Object.prototype.hasOwnProperty.call(labels,label)){if(touched(f)||touched(labels[label]))return "public label already identifies "+(touched(f)?labels[label].id:f.id)+" in this resolved place; use its handle or a distinct label";continue;}
+    labels[label]=f;
   }
   return "";
 }
@@ -166,7 +171,7 @@ function atlasKnowledgeCommitResult(raw,parsed,opts){
   function refuse(kind,reason,suffix){result.refusal={kind:kind,reason:reason};atlasKnowledgeSay(reason+(suffix||""));return result;}
   if(!atlasKnowledgeActive())return result;
   try{
-    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out,items,accepted;
+    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,s0=s,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out,items,accepted;
     if(q.reason)return refuse("source",q.reason,"; no new map discoveries were filed");
     if(q.raw!==String(raw||""))return refuse("source","the queued map disclosure source changed","; no new map discoveries were filed");
     if(!Array.isArray(q.items))return refuse("source","the queued map disclosures are malformed","; no new map discoveries were filed");
@@ -187,7 +192,7 @@ function atlasKnowledgeCommitResult(raw,parsed,opts){
       group=groups[j];r=MapKnowledge.prepare(s,group.events,{channel:"gm",commit:token+":"+j,turn:worldState.turn,container:group.container,text:visible});
       if(!r.ok)return refuse("state",r.reason,"; these map declarations were not filed");s=r.state;
     }
-    problem=atlasKnowledgeCollision(s,groups);if(problem)return refuse("state",problem,"; these map declarations were not filed");
+    problem=atlasKnowledgeCollision(s,groups,s0);if(problem)return refuse("state",problem,"; these map declarations were not filed");
     accepted=JSON.parse(JSON.stringify(items));
     memory.map.geography=s;
     result.text=out;result.accepted=accepted;
