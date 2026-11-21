@@ -9,7 +9,7 @@ const assert = require('assert/strict'), fs = require('fs'), path = require('pat
 const engine = require('./load-engine.js'); engine.loadEngine('game.js');
 const only = process.argv.indexOf('--only') >= 0 ? process.argv[process.argv.indexOf('--only') + 1] : null;
 let count = 0, failed = 0;
-global.showToast = function () {}; global.syncUI = function () {}; global.saveAll = global.saveAll || function () {};
+const said = []; global.showToast = function (m) { said.push(String(m)); }; global.syncUI = function () {}; global.saveAll = global.saveAll || function () {};
 function test(name, fn) {
   if (only && name !== only) return;
   try { fn(); count++; console.log('PASS #762 ' + name); } catch (e) { failed++; console.error('FAIL #762 ' + name + ': ' + e.message); }
@@ -20,27 +20,29 @@ const HERE = 'Petrified Mire';
 function setup() {
   engine.makeTestWorld(); worldState.world.location = HERE; worldState.world.sublocation = null; worldState.turn = 2;
   worldState.atlas = { v: ATLAS_VER, seed: 'k762', knowledge: 1 }; memory.map.nodes[HERE] = newMapNode(0, null); memory.map.nodes[HERE].visits = 1;
-  memory.map.geography = MapKnowledge.create();
+  memory.map.geography = MapKnowledge.create(); said.length = 0;
 }
 function commit(text) { const r = atlasKnowledgeCommitResult(text, null, { commit: 'gm:' + worldState.turn + ':' + Math.random() }); assert.equal(r.refusal, null, r.refusal && r.refusal.reason); return cleanTxt(r.text); }
 const RIDGE = 'You see Shattered Ridge to the north.', TRACK = 'You see Crossroads Track to the south.';
 
-test('a disclosure the reply states twice prints its receipt once, at the first statement', () => {
+/* #775: no receipt line is printed any more. #763's rule lives on in two places: the Console names a feature once however
+   often the reply states it, and the evidence the core checks (atlasKnowledgePublish) holds each receipt once a place. */
+test('a disclosure the reply states twice is filed once and said once; the story gains no line', () => {
   setup();
   const out = commit('A.[MAP_REVEAL:new|Shattered Ridge|N|observed][MAP_REVEAL:new|Shattered Ridge|N|observed] B.[MAP_REVEAL:new|Crossroads Track|S|observed] C.[MAP_REVEAL:new|Crossroads Track|S|observed] D.');
-  assert.equal(times(out, RIDGE), 1, 'the ridge once'); assert.equal(times(out, TRACK), 1, 'the track once');
-  assert.ok(out.indexOf(RIDGE) < out.indexOf('B.') && out.indexOf(TRACK) > out.indexOf('B.') && out.indexOf(TRACK) < out.indexOf('C.'), 'each at its first statement');
+  assert.equal(times(out, 'You see'), 0, 'a receipt line in the story'); assert.ok(/A\..*B\..*C\..*D\./.test(out.replace(/\s+/g, ' ')), 'the reply\'s own words stand: ' + out);
+  assert.deepEqual(said, ['Map: Shattered Ridge lies to the north; Crossroads Track lies to the south.'], 'each said once');
   assert.deepEqual(atlasKnowledgeProjection(HERE).features.map(f => f.label + ':' + f.bearing), ['Shattered Ridge:N', 'Crossroads Track:S'], 'the record holds each once');
 });
 
-test('two different disclosures, and one disclosure from two places, each keep their own receipt', () => {
+test('two different disclosures are each filed; the evidence holds one receipt a place', () => {
   setup();
   const out = commit('A.[MAP_REVEAL:new|Shattered Ridge|N|observed] B.[MAP_REVEAL:new|Crossroads Track|S|observed]');
-  assert.equal(times(out, RIDGE), 1); assert.equal(times(out, TRACK), 1);
+  assert.equal(times(out, 'You see'), 0); assert.equal(atlasKnowledgeProjection(HERE).features.length, 2);
   const a = { container: 'Petrified Mire', event: atlasKnowledgeFields(['new', 'Shattered Ridge', 'N', 'observed']), start: 0, end: 43, directive: '[MAP_REVEAL:new|Shattered Ridge|N|observed]' };
   const text = a.directive + a.directive, b = Object.assign({}, a, { container: 'Ashen Road', start: 43, end: 86 });
-  assert.equal(times(atlasKnowledgePublish(text, [a, b]), RIDGE), 2, 'seen from two places: said at each');
-  assert.equal(times(atlasKnowledgePublish(text, [a, Object.assign({}, a, { start: 43, end: 86 })]), RIDGE), 1, 'the same place: said once');
+  assert.equal(times(atlasKnowledgePublish(text, [a, b]), RIDGE), 2, 'seen from two places: evidence at each');
+  assert.equal(times(atlasKnowledgePublish(text, [a, Object.assign({}, a, { start: 43, end: 86 })]), RIDGE), 1, 'the same place: once');
 });
 
 test('the public sheet\'s party marker bears the place\'s name', () => {

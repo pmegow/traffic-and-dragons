@@ -80,7 +80,7 @@ let pass=0,fail=0;
   });
   for(const mode of ['error','malformed','cut'])await test(mode+' extraction preserves original narration and explicit declarations',async page=>{
    const r=await page.evaluate(async mode=>{__extractMode=mode;__response+='\n[MAP_REVEAL:new|Stone arch|S|observed]';const turn=worldState.turn;await sendAction('Inspect the arch.');return {turn,now:worldState.turn,calls:__calls,notices:__notices,text:worldState.transcript.at(-1).x,features:atlasKnowledgeProjection().features};},mode);
-   assert.equal(r.calls.length,2);assert.equal(r.now,r.turn+1);assert(r.text.includes(raw));assert(r.text.includes('You see Stone arch'));assert.deepEqual(r.features.map(f=>f.label),['Stone arch']);assert(r.notices.some(x=>/landmarks could not be checked/i.test(x)),'failure must name its discovery cause');
+   assert.equal(r.calls.length,2);assert.equal(r.now,r.turn+1);assert(r.text.includes(raw));assert(!r.text.includes('You see'),'#775: the story gains no receipt line');assert.deepEqual(r.features.map(f=>f.label),['Stone arch']);assert(r.notices.some(x=>/landmarks could not be checked/i.test(x)),'failure must name its discovery cause');
   });
   await test('help reroll and sheet sync never launch geographic extraction',async page=>{
    const r=await page.evaluate(async()=>{activeChatTab='tabletalk';await sendAction('Explain the map.');activeChatTab='story';await rerollLast();__response='[MAP_REVEAL:new|Sync hut|unknown|observed]';await syncCharSheet();return {calls:__calls,features:atlasKnowledgeProjection().features};});

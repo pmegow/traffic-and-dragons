@@ -36,7 +36,7 @@ async function check(name,fn){try{await fn();pass++;console.log('PASS #733 brows
  });
  await check('three stationary narrated landmarks update the open drawer immediately',async()=>{
    const r=await page.evaluate(()=>{const before=JSON.stringify(worldState.world),id=worldState.atlas.seed,doc=atlasDoc(id);window.__mapDrawnText=[];commitGmTurn('You remain beside the First Pact stones.\n[MAP_REVEAL:new|Bear Spring|spring|SW|observed]\n[MAP_REVEAL:new|The Boar Tree|tree|N|observed]\n[MAP_REVEAL:new|The Waystone Arch|arch|S|observed]',{userMsg:'Look around without moving.',playerTxt:'Look around without moving.'});syncUI();return {before,after:JSON.stringify(worldState.world),replaced:doc!==atlasDoc(id),shown:_atlasPane.view.doc().features.map(f=>f.name),keys:atlasPaneKeyList(id).map(f=>f.name),transcript:worldState.transcript[worldState.transcript.length-1].x};});await settle();
-   assert.equal(r.after,r.before);assert.equal(r.replaced,true);assert.deepEqual(r.shown,['Bear Spring','The Boar Tree','The Waystone Arch']);assert.equal(r.keys.length,3);assert.match(r.transcript,/You see Bear Spring/);
+   assert.equal(r.after,r.before);assert.equal(r.replaced,true);assert.deepEqual(r.shown,['Bear Spring','The Boar Tree','The Waystone Arch']);assert.equal(r.keys.length,3);assert.doesNotMatch(r.transcript,/You see /,'#775: the story gains no receipt line; the drawer shows the three');
    const drawn=await page.evaluate(()=>__mapDrawnText.join('\n'));for(const name of r.shown)assert.ok(drawn.includes(name),'Canvas actually drew '+name);assert.doesNotMatch(drawn,/Stalgind|secret cellar/);
    await page.screenshot({path:path.join(shots,'map-733-stationary-460x740.png')});
  });

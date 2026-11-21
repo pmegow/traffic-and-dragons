@@ -5,7 +5,7 @@
 const assert = require('assert/strict'), engine = require('./load-engine.js'); engine.loadEngine('game.js');
 const only = process.argv.indexOf('--only') >= 0 ? process.argv[process.argv.indexOf('--only') + 1] : null;
 let count = 0, failed = 0;
-global.showToast = function () {}; global.syncUI = function () {}; global.saveAll = global.saveAll || function () {};
+const said = []; global.showToast = function (m) { said.push(String(m)); }; global.syncUI = function () {}; global.saveAll = global.saveAll || function () {};
 function test(name, fn) {
   if (only && name !== only) return;
   try { fn(); count++; console.log('PASS #756 ' + name); } catch (e) { failed++; console.error('FAIL #756 ' + name + ': ' + e.message); }
@@ -81,8 +81,8 @@ test('the GM\'s answer places the feature: it is drawn, the ask is gone, and a s
   setup(); reveal('[MAP_REVEAL:new|hollow green hall|unknown|observed]');
   const id = byLabel('hollow green hall').id;
   assert.equal(atlasPublicDoc(worldState.atlas.seed).features[0].unplaced, true, 'listed, not drawn');
-  worldState.turn = 6; const r = reveal('The hall opens ahead. [MAP_REVEAL:' + id + '|hollow green hall|E|observed]');
-  assert.ok(r.text.indexOf('You see hollow green hall to the east.') >= 0, 'the player is told');
+  worldState.turn = 6; said.length = 0; const r = reveal('The hall opens ahead. [MAP_REVEAL:' + id + '|hollow green hall|E|observed]');
+  assert.deepEqual(said, ['Map: hollow green hall lies to the east.'], 'the player is told, in the Console (#775)'); assert.ok(r.text.indexOf('You see') < 0, 'and the story gains no line');
   const f = atlasPublicDoc(worldState.atlas.seed).features[0];
   assert.equal(f.unplaced, false); assert.equal(f.bearing, 'E'); assert.equal(feats().length, 1, 'the same feature, not a second one');
   assert.ok(atlasKnowledgePlayerBlock().indexOf('DIRECTION OWED') < 0, 'nothing is owed any more');

@@ -84,6 +84,7 @@ test('filing places the feature through the core\'s door, all or nothing, and ma
 
 test('the backstop asks once, files the answer, saves and tells the player; with nothing owed it asks nothing', async () => {
   setup(); reveal(MIRE); const log = [], trail = byLabel('frozen trail').id, pool = byLabel('sunken pool').id;
+  toasts.length = 0;/* #775: the disclosure itself is said in the Console too; what is read here is the ask's own line */
   gm(answer([{ id: trail, bearing: 'N' }, { id: pool, bearing: 'W' }]), log);
   const placed = await atlasDirectionsSettle('You head north along the frozen trail.[LOCATION:Petrified Mire]', 'Head north along the trail.');
   assert.equal(log.length, 1, 'one request'); assert.equal(log[0].system, ATLAS_DIRECTIONS_PROMPT); assert.equal(log[0].max, ATLAS_DIRECTIONS_TOKENS); assert.equal(log[0].model, null);

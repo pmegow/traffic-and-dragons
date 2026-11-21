@@ -1,6 +1,9 @@
 // dev/tests-768-receipt-written.js — #768 (owner 2026-11-15, v1.1435: "You see subterranean rift to the southwest."
 // twice, after #763). The GM writes the receipt sentence itself beside its [MAP_REVEAL:] (its own history shows the
 // engine's line after every tag); the engine adds no second one. A quotation inside other prose suppresses nothing.
+// #775 (owner 2026-11-18/20): the engine writes NO receipt line any more, and the line the reply wrote itself is TAKEN OUT
+// by the same scanner. The cases below are #768's, read the new way: the reply's own receipt line → gone (0); a quotation
+// or a line that is not that receipt → the reply's prose, kept once (1), nothing added.
 //   node dev/tests-768-receipt-written.js [--only "<test name>"]
 'use strict';
 const assert = require('assert/strict'), engine = require('./load-engine.js'); engine.loadEngine('game.js');
@@ -17,40 +20,50 @@ function commit(text) {
   worldState.atlas = { v: ATLAS_VER, seed: 'k768', knowledge: 1 }; memory.map.nodes[HERE] = newMapNode(0, null); memory.map.nodes[HERE].visits = 1; memory.map.geography = MapKnowledge.create();
   const muts = applyMuts(text, { deferSave: true }), r = atlasKnowledgeCommitResult(text, muts && muts.mapReveals);
   assert.equal(r.refusal, null, r.refusal && r.refusal.reason);
-  return { text: cleanTxt(r.text), features: atlasKnowledgeProjection(HERE).features.map(f => f.label + ':' + f.bearing) };
+  return { raw: r.text, text: cleanTxt(r.text), features: atlasKnowledgeProjection(HERE).features.map(f => f.label + ':' + f.bearing) };
 }
 const RIFT = 'You see subterranean rift to the southwest.', TAG = '[MAP_REVEAL:new|subterranean rift|SW|observed]';
 const SPUR = 'You see ridge spur to the north.', TRACK = 'You hear of Crossroads Track; its precise position is not established.';
 
-test('a receipt the reply wrote itself, directly after its tag, is the receipt: the engine adds no second line', () => {
+test('a receipt the reply wrote itself, directly after its tag, is taken out of the story', () => {
   const r = commit(TAG + '\n' + RIFT + '\nYou kick into the drift of splintered bone.');
-  assert.equal(times(r.text, RIFT), 1, r.text); assert.deepEqual(r.features, ['subterranean rift:SW'], 'and the feature is filed as ever');
-  assert.ok(r.text.indexOf(RIFT) < r.text.indexOf('You kick'), 'where the reply put it');
-  assert.equal(times(commit(TAG + ' ' + RIFT + ' You kick into the drift.').text, RIFT), 1, 'on the tag\'s own line, with prose after it');
-  assert.equal(times(commit(TAG + '\n\n  ' + RIFT + '\n').text, RIFT), 1, 'blank space between');
+  assert.equal(times(r.text, RIFT), 0, r.text); assert.deepEqual(r.features, ['subterranean rift:SW'], 'and the feature is filed as ever');
+  assert.equal(r.text.trim(), 'You kick into the drift of splintered bone.', 'the rest of the reply stands');
+  const same = commit(TAG + ' ' + RIFT + ' You kick into the drift.');
+  assert.equal(times(same.text, RIFT), 0, 'on the tag\'s own line, with prose after it'); assert.equal(same.raw, TAG + ' You kick into the drift.');
+  assert.equal(times(commit(TAG + '\n\n  ' + RIFT + '\n').text, RIFT), 0, 'blank space between');
 });
 
-test('a block of tags followed by a block of their lines prints each once', () => {
+test('a block of tags followed by a block of their lines loses each line', () => {
   const r = commit('[MAP_REVEAL:new|ridge spur|N|observed]\n' + TAG + '\n[MAP_REVEAL:new|Crossroads Track|unknown|reported]\n[TIME_ADVANCE:20]\n' + SPUR + '\n' + RIFT + '\n' + TRACK + '\nYou uncork your flask.');
-  for (const q of [SPUR, RIFT, TRACK]) assert.equal(times(r.text, q), 1, q + ' in: ' + r.text);
-  assert.equal(r.features.length, 3);
+  for (const q of [SPUR, RIFT, TRACK]) assert.equal(times(r.text, q), 0, q + ' in: ' + r.text);
+  assert.equal(r.features.length, 3); assert.equal(r.text.trim(), 'You uncork your flask.');
   const half = commit('[MAP_REVEAL:new|ridge spur|N|observed]\n' + TAG + '\n' + RIFT + '\nYou uncork your flask.');
-  assert.equal(times(half.text, RIFT), 1); assert.equal(times(half.text, SPUR), 1, 'a feature the reply wrote no line for still gets the engine\'s');
+  assert.equal(times(half.text, RIFT), 0); assert.equal(times(half.text, SPUR), 0, 'and the engine writes none for the feature the reply wrote no line for');
+  assert.equal(half.features.length, 2);
 });
 
-test('a receipt written directly before its tag counts too', () => {
-  assert.equal(times(commit(RIFT + '\n' + TAG + '\nYou kick.').text, RIFT), 1);
-  assert.equal(times(commit('You kick.\n' + RIFT + '   \n\n' + TAG).text, RIFT), 1);
+test('a receipt written directly before its tag is taken out too', () => {
+  assert.equal(times(commit(RIFT + '\n' + TAG + '\nYou kick.').text, RIFT), 0);
+  const r = commit('You kick.\n' + RIFT + '   \n\n' + TAG);
+  assert.equal(times(r.text, RIFT), 0); assert.equal(r.text.trim(), 'You kick.');
 });
 
-test('a quotation inside other prose, or a line past a change of place, is not the receipt: the engine still says it', () => {
-  assert.equal(times(commit('No one says "' + RIFT + '" ' + TAG).text, RIFT), 2, 'quoted in dialogue before the tag (the #733 rule)');
-  assert.equal(times(commit(TAG + ' The guide mutters, "' + RIFT + '"').text, RIFT), 2, 'quoted in dialogue after the tag');
-  assert.equal(times(commit(TAG + '\nYou wade on for an hour.\n' + RIFT).text, RIFT), 2, 'prose stands between the tag and the line');
-  assert.equal(times(commit('He warned: ' + RIFT + '\n' + TAG).text, RIFT), 2, 'the end of another sentence before the tag');
+test('a quotation inside other prose, or a line past a change of place, is the reply\'s own prose: it stays, and nothing is added', () => {
+  assert.equal(times(commit('No one says "' + RIFT + '" ' + TAG).text, RIFT), 1, 'quoted in dialogue before the tag (the #733 rule)');
+  assert.equal(times(commit(TAG + ' The guide mutters, "' + RIFT + '"').text, RIFT), 1, 'quoted in dialogue after the tag');
+  assert.equal(times(commit(TAG + '\nYou wade on for an hour.\n' + RIFT).text, RIFT), 1, 'prose stands between the tag and the line');
+  assert.equal(times(commit('He warned: ' + RIFT + '\n' + TAG).text, RIFT), 1, 'the end of another sentence before the tag');
   const moved = commit(TAG + '\n[LOCATION:Ashen Road]\n' + RIFT);
-  assert.equal(times(moved.text, RIFT), 2, 'after an arrival the line belongs to another place');
-  assert.ok(moved.text.indexOf(RIFT) < moved.text.lastIndexOf(RIFT));
+  assert.equal(times(moved.text, RIFT), 1, 'after an arrival the line belongs to another place');
+  assert.deepEqual(commit('No one says "' + RIFT + '" ' + TAG).features, ['subterranean rift:SW'], 'and the disclosure is filed all the same');
+});
+
+test('a line taken out leaves no gap: the paragraphs it stood between keep one blank line', () => {
+  assert.equal(commit('A.\n\n' + TAG + '\n\n' + RIFT + '\n\nB.').raw, 'A.\n\n' + TAG + '\n\nB.');
+  assert.equal(commit('A.\n' + TAG + '\n' + RIFT).raw, 'A.\n' + TAG, 'the last line of the reply');
+  assert.equal(commit(RIFT + '\n' + TAG + '\nB.').raw, TAG + '\nB.', 'the first line of the reply');
+  assert.equal(commit('A.\n' + TAG + '\nB.').raw, 'A.\n' + TAG + '\nB.', 'a reply with no such line is stored byte for byte');
 });
 
 console.log(count + ' passed, ' + failed + ' failed' + (only && !count && !failed ? ' — matched 0 tests' : ''));

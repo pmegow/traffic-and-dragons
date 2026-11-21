@@ -42,7 +42,9 @@ function atlasDiscoveryCommit(offer,committed){
     if(!committed||!Array.isArray(committed.accepted))throw new Error("the narrated map commit outcome is missing or malformed");
     var prepared=atlasExtractionPrepare(offer.source,offer.events,memory.map.geography,{commit:offer.token,turn:worldState.turn,explicit:committed.accepted});
     if(!prepared.ok)throw new Error(prepared.reason);
+    var _was=memory.map.geography;
     memory.map.geography=prepared.state;
+    if(typeof atlasKnowledgeNews==="function")atlasKnowledgeNews(_was,prepared.state);/* #775: what the map gained is said in the Console */
   }catch(e){atlasKnowledgeSay("extracted landmarks were not recorded: "+((e&&e.message)||e)+". Existing map knowledge was preserved.");}
 }
 

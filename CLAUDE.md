@@ -36,7 +36,7 @@ All logic has been extracted from the HTML into separate JS files.
 | `clock.js` | ✅ Active (#73) | The CAMPAIGN CLOCK — ONE monotonic scalar `worldState.clock.min`. → [full contract](DOC/contracts/clock.md#clockjs) |
 | `identity.js` | ✅ Active (#156) | ⛨ **THE IDENTITY LAYER spine** — `IDENTITY_DOMAINS` registry (npc = full adapter. → [full contract](DOC/contracts/identity.md#identityjs) |
 | `map-knowledge.js` | Transition core (#733) | Pure bounded disclosure records and detached player projection. No movement, generator, DOM or model calls. |
-| `atlas-knowledge.js` | Transition admission (#733) | Commit-only public MAP_REVEAL receipts, canonical scope, player/GM briefs, reroll preservation. Dormant unless atlas.knowledge is 1. |
+| `atlas-knowledge.js` | Transition admission (#733) | Commit-only public MAP_REVEAL admission, canonical scope, player/GM briefs, reroll preservation. **A disclosure adds no line to the story (#775):** the map shows the feature, the Console says what the map gained (`atlasKnowledgeNews`), and a "You see …" line the reply wrote itself beside its tag is taken out (`atlasKnowledgeUnsaid`); the receipt sentence lives on only as the map record's own evidence. Dormant unless atlas.knowledge is 1. |
 | `atlas-knowledge-migrate.js` | Transition migration (#733) | Explicit writer-side geography schema upgrade, preserving a detached pre-image before conversion. |
 | `atlas-knowledge-source.js` | Transition provenance (#733) | Carries admitted map declarations back to their original narration positions across transaction preprocessing. |
 | `atlas-knowledge-exits.js` | Transition exits (#733) | Source-scoped current public EXIT declarations share map admission; display notes never establish geometry. |

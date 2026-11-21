@@ -6,7 +6,7 @@
 const assert = require('assert/strict'), engine = require('./load-engine.js'); engine.loadEngine('game.js');
 const only = process.argv.indexOf('--only') >= 0 ? process.argv[process.argv.indexOf('--only') + 1] : null;
 let count = 0, failed = 0;
-global.showToast = function () {}; global.syncUI = function () {}; global.saveAll = global.saveAll || function () {};
+const said = []; global.showToast = function (m) { said.push(String(m)); }; global.syncUI = function () {}; global.saveAll = global.saveAll || function () {};
 function test(name, fn) {
   if (only && name !== only) return;
   try { fn(); count++; console.log('PASS #769 ' + name); } catch (e) { failed++; console.error('FAIL #769 ' + name + ': ' + e.message); }
@@ -31,7 +31,7 @@ test('scenery is kept out at the GM\'s door and the reader\'s, and the rest of t
   setup();
   const out = turn('You drop into the den.[MAP_REVEAL:new|stone floor|S|observed][MAP_REVEAL:new|shadowed fissure|SW|observed]');
   assert.deepEqual(labels(HERE), ['shadowed fissure'], 'the floor is not filed; the fissure is');
-  assert.equal(times(out, 'You see stone floor'), 0, 'and no line is printed for it'); assert.equal(times(out, 'You see shadowed fissure to the southwest.'), 1);
+  assert.equal(times(out, 'You see'), 0, 'no line is printed for either (#775)'); assert.ok(said.some(m => m === 'Map: shadowed fissure lies to the southwest.'), 'the fissure is said in the Console, the floor is not: ' + JSON.stringify(said));
   const quote = 'A stone floor spreads below, and a bone cairn stands to the east.', s = atlasExtractionSource(quote); assert(s.ok, s.reason);
   const rec = (label, b, bq) => ({ source: 's1', label: label, quote: quote, mode: 'observed', bearing: b, bearingQuote: bq });
   const r = atlasExtractionRecords([rec('stone floor', 'unknown', ''), rec('bone cairn', 'E', 'stands to the east')], s);

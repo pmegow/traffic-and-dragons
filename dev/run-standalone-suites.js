@@ -28,7 +28,8 @@ var SUITES = [
   "dev/tests-771-place-sheet.js",/* #771 P1: a place whose name says its ground is drawn, with its exits and features, from public facts */
   "dev/tests-771-region.js",/* #771 P3: the region — the ground alone from the seed, every visited world place set on it once, under fog */
   "dev/tests-771-sites.js",/* #771 P2: a cave is drawn as a site — nameless rock, the mouth back out, the story's things on its chambers; nesting and the trail */
-  "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again */
+  "dev/tests-768-receipt-written.js",/* #768: a receipt the reply wrote itself beside its map tag is not printed again (#775: it is taken out) */
+  "dev/tests-775-map-quiet.js",/* #775: a map disclosure adds no line to the story; the Console says what the map gained */
   "dev/tests-777-campaign.js",/* audit 2026-11-19 (#777) section X: a model call that outlives its campaign writes nothing */
   "dev/tests-777-sync.js",/* audit 2026-11-19 (#777) section S: a sync answer belongs to the campaign posted; the cloud ahead mid-turn is a pause */
   "dev/tests-777-small.js",/* audit 2026-11-19 (#777): the small reproduced rows of sections C and D (C7, C8, C11, D4) */

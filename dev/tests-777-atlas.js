@@ -114,7 +114,7 @@ kase("A2: after a merge leaves two features with one name, the place's map still
   said.toasts.length = 0;
   r = turn("A broken cart lies to the east. [MAP_REVEAL:new|broken cart|E|observed]");
   assert.strictEqual(r.refusal, null, "a new, distinct feature is refused because of the OLD pair: " + JSON.stringify(r.refusal));
-  assert.deepStrictEqual(said.toasts, [], "the player is told to use a handle that cannot help: " + JSON.stringify(said.toasts));
+  assert.deepStrictEqual(said.toasts, ["Map: broken cart lies to the east."], "the player is told to use a handle that cannot help (only what the map gained is said, #775): " + JSON.stringify(said.toasts));
   assert.ok(atlasKnowledgeProjection("Mirefen").features.some(function (x) { return x.label === "broken cart"; }), "the new feature was not filed");
   r = turn("A leaning post to the south. [MAP_REVEAL:new|leaning post|unknown|observed]");
   assert.strictEqual(r.refusal, null); var post = atlasKnowledgeProjection("Mirefen").features.filter(function (x) { return x.label === "leaning post"; })[0];

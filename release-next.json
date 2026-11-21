@@ -1,5 +1,5 @@
 {
-  "version": "v1.1483",
+  "version": "v1.1484",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -139,6 +139,7 @@
     "Fixes: an unreadable picture is refused, Back from an imported character restores the wizard, and buttons no longer name unseen blueprint places.",
     "Corrections: Back from an import also restores the name and level fields; a very long reply skips the coin check instead of misreporting.",
     "A campaign open on this device when another device deletes it now asks to keep or remove it before saving again.",
-    "Corrections to the deleted-campaign question: a stalled check no longer holds saves, and a campaign first uploaded this session is checked too."
+    "Corrections to the deleted-campaign question: a stalled check no longer holds saves, and a campaign first uploaded this session is checked too.",
+    "Map discoveries no longer add \"You see … to the north\" lines to the story; the map shows them and the Console notes them."
   ]
 }

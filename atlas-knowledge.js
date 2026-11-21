@@ -1,6 +1,8 @@
-/* atlas-knowledge.js — narrated geography admission. MAP_REVEAL is public narrative content:
-   a committed, validated declaration publishes its readable receipt in the GM turn. Parsing,
-   cleanTxt, Table Talk, sheet sync, and prose rerolls cannot disclose a new feature. */
+/* atlas-knowledge.js — narrated geography admission. MAP_REVEAL is a public declaration: a committed,
+   validated one files its feature on the player's map. Since #775 (owner 2026-11-18 and 2026-11-20) NOTHING is
+   written into the story for it: the receipt sentence is the map record's own evidence (the store keeps it), the
+   map shows the feature, and the Console says what the map gained. Parsing, cleanTxt, Table Talk, sheet sync,
+   and prose rerolls cannot disclose a new feature. */
 function atlasKnowledgeActive(){return !!(typeof worldState!=="undefined"&&worldState&&worldState.atlas&&worldState.atlas.knowledge===1);}
 function atlasKnowledgeContext(){
   var k=(typeof currentNodeKey==="function")?currentNodeKey():null,w=(typeof worldState!=="undefined"&&worldState)?worldState.world:null;
@@ -131,17 +133,65 @@ function atlasKnowledgeCollision(s,groups,before){
    change of place) or directly before it. A quotation inside other prose is not that line and suppresses nothing
    (the #733 rule stands). */
 function atlasKnowledgeLineStart(text,i){while(i>0&&/[ \t]/.test(text.charAt(i-1)))i--;return i===0||/[\r\n\]]/.test(text.charAt(i-1));}
-function atlasKnowledgeWritten(text,start,end,quote){
+function atlasKnowledgeWrittenAt(text,start,end,quote){
   var i=end,rest,m,before;
   for(;;){
     rest=text.slice(i);m=/^\s+/.exec(rest);if(m){i+=m[0].length;continue;}
-    if(rest.slice(0,quote.length)===quote&&atlasKnowledgeLineStart(text,i))return true;
+    if(rest.slice(0,quote.length)===quote&&atlasKnowledgeLineStart(text,i))return i;
     m=/^\[([A-Z_]+)(?::[^\[\]\r\n]*)?\]/.exec(rest);if(m&&!/^(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)$/.test(m[1])){i+=m[0].length;continue;}
     m=/^You (?:see|hear of) [^\r\n]*/.exec(rest);if(m&&atlasKnowledgeLineStart(text,i)){i+=m[0].length;continue;}/* another feature's receipt line */
     break;
   }
   before=text.slice(0,start).replace(/\s+$/,"");
-  return before.slice(-quote.length)===quote&&atlasKnowledgeLineStart(before,before.length-quote.length);
+  return before.slice(-quote.length)===quote&&atlasKnowledgeLineStart(before,before.length-quote.length)?before.length-quote.length:-1;
+}
+function atlasKnowledgeWritten(text,start,end,quote){return atlasKnowledgeWrittenAt(text,start,end,quote)>=0;}
+/* #775 (owner 2026-11-18: "Let's get rid of this text. These should be markers on the map"; 2026-11-20: "Let's drop this
+   part of the narrative. Let's let the map fill in those details unless the player asks"). The engine no longer writes
+   its receipt into the story, so the turn is stored as the reply wrote it — with ONE exception: a receipt sentence the
+   reply wrote ITSELF beside its directive (the #768 habit: older turns of the GM's own history still show the pair) is
+   taken out, by the #768 scanner's own rule of what that line is. A quotation inside other prose is not that line and
+   stays. A line left empty goes with it; nothing else of the reply is touched. */
+function atlasKnowledgeUnsaid(raw,items){
+  var text=String(raw||""),cuts=[],seen=Object.create(null),i,at,q,ls,le,pe,ne;
+  for(i=0;i<items.length;i++){
+    q=items[i].event.quote;at=atlasKnowledgeWrittenAt(text,items[i].start,items[i].end,q);
+    if(at>=0&&!seen[at]){seen[at]=1;cuts.push({at:at,n:q.length,label:items[i].event.label});}
+  }
+  cuts.sort(function(a,b){return b.at-a.at;});/* from the end, so an earlier position stays true */
+  for(i=0;i<cuts.length;i++){
+    at=cuts[i].at;text=text.slice(0,at)+text.slice(at+cuts[i].n);
+    ls=at>0?text.lastIndexOf("\n",at-1)+1:0;le=text.indexOf("\n",at);if(le<0)le=text.length;
+    if(!text.slice(ls,le).trim()){/* the line held nothing else: it goes, and one of two blank lines it stood between */
+      text=le<text.length?text.slice(0,ls)+text.slice(le+1):text.slice(0,ls>0?ls-1:0);
+      pe=ls>=2?text.lastIndexOf("\n",ls-2)+1:-1;ne=text.indexOf("\n",ls);
+      if(pe>=0&&ls<=text.length&&!text.slice(pe,ls-1).trim()&&ne>=0&&!text.slice(ls,ne).trim())text=text.slice(0,ls)+text.slice(ne+1);
+    }else if(at>0&&/[ \t]/.test(text.charAt(at-1))&&/[ \t]/.test(text.charAt(at)))text=text.slice(0,at)+text.slice(at+1);/* "tag␣sentence␣prose" keeps one space */
+    if(typeof console!=="undefined")console.info("[map knowledge] #775 the reply wrote its own receipt for '"+cuts[i].label+"'; it is taken out of the story (the map shows it)");
+  }
+  return text;
+}
+/* #775: what the map gained is said in the Console (#772), never in the story — one line a commit, naming each feature
+   that is new, or whose name, direction or standing changed (worded as atlas-directions.js words its own notice). What the player's sheet does not show (scenery, the place's own name) is
+   not announced. */
+function atlasKnowledgeNewsLine(f){
+  var d=Object.prototype.hasOwnProperty.call(ATLAS_KNOWLEDGE_DIRECTIONS,f.bearing)?ATLAS_KNOWLEDGE_DIRECTIONS[f.bearing]:"position not established";
+  if(d==="position not established")return f.label+(f.mode==="reported"?" is spoken of":"")+" (position not established)";
+  return f.label+(f.mode==="reported"?" is said to lie to the ":" lies to the ")+d;
+}
+function atlasKnowledgeNews(before,after){
+  var lines=[],ids,i,f,o;
+  try{
+    ids=Object.keys(after.features);
+    for(i=0;i<ids.length;i++){
+      f=after.features[ids[i]];o=before&&before.features&&Object.prototype.hasOwnProperty.call(before.features,ids[i])?before.features[ids[i]]:null;
+      if(o&&o.label===f.label&&o.bearing===f.bearing&&o.mode===f.mode)continue;
+      if(atlasKnowledgeScenery(f.label)||atlasKnowledgeSelfLabel(f.container,f.label))continue;
+      lines.push(atlasKnowledgeNewsLine(f));
+    }
+    if(lines.length&&typeof showToast==="function")showToast("Map: "+lines.join("; ")+".",5000);
+  }catch(e){if(typeof console!=="undefined")console.warn("[map knowledge] #775 what the map gained could not be said: "+((e&&e.message)||e));}
+  return lines;
 }
 function atlasKnowledgePublish(raw,items){
   var text=String(raw||""),out="",cursor=0,i,item,m,fields,e,said=Object.create(null),sk;
@@ -155,7 +205,7 @@ function atlasKnowledgePublish(raw,items){
        The record already kept one; the page says it once, at the first statement. A different place or a different
        receipt is another line. */
     sk=JSON.stringify([item.container,e.quote]);
-    if(!said[sk]&&atlasKnowledgeWritten(text,item.start,item.end,e.quote)){said[sk]=1;if(typeof console!=="undefined")console.info("[map knowledge] #768 the reply wrote its own receipt for '"+e.label+"'; the engine adds no second line");}
+    if(!said[sk]&&atlasKnowledgeWritten(text,item.start,item.end,e.quote))said[sk]=1;/* #768: the reply's own line is the evidence here; #775 takes it out of the stored turn (atlasKnowledgeUnsaid says so) */
     out+=text.slice(cursor,item.end)+(said[sk]?"":"\n\n"+e.quote+"\n\n");said[sk]=1;cursor=item.end;
   }
   return out+text.slice(cursor);
@@ -164,8 +214,8 @@ function atlasKnowledgeSay(reason){
   if(typeof console!=="undefined")console.warn("[map knowledge] "+reason);
   if(typeof showToast==="function")showToast("Map: "+reason,6000);
 }
-/* A detached candidate is installed only when every scoped group passes. The resulting receipt
-   text is stored in the same narrated turn; cleanTxt later strips the original directive normally. */
+/* A detached candidate is installed only when every scoped group passes. The narrated turn is stored as the reply
+   wrote it (#775: no receipt line; one the reply wrote itself is taken out); cleanTxt later strips the directive. */
 function atlasKnowledgeCommitResult(raw,parsed,opts){
   var result={text:raw,accepted:[],refusal:null};
   function refuse(kind,reason,suffix){result.refusal={kind:kind,reason:reason};atlasKnowledgeSay(reason+(suffix||""));return result;}
@@ -187,7 +237,7 @@ function atlasKnowledgeCommitResult(raw,parsed,opts){
       if(!Object.prototype.hasOwnProperty.call(lookup,item.container)){lookup[item.container]=groups.length;groups.push({container:item.container,events:[]});}
       group=groups[lookup[item.container]];group.events.push(item.event);
     }
-    out=atlasKnowledgePublish(raw,items);visible=cleanTxt(out);
+    out=atlasKnowledgePublish(raw,items);visible=cleanTxt(out);/* #775: the receipts at their directives are the EVIDENCE the core checks (a directive inside another tag has none in public text); they are no longer the stored turn */
     for(j=0;j<groups.length;j++){
       group=groups[j];r=MapKnowledge.prepare(s,group.events,{channel:"gm",commit:token+":"+j,turn:worldState.turn,container:group.container,text:visible});
       if(!r.ok)return refuse("state",r.reason,"; these map declarations were not filed");s=r.state;
@@ -195,24 +245,34 @@ function atlasKnowledgeCommitResult(raw,parsed,opts){
     problem=atlasKnowledgeCollision(s,groups,s0);if(problem)return refuse("state",problem,"; these map declarations were not filed");
     accepted=JSON.parse(JSON.stringify(items));
     memory.map.geography=s;
-    result.text=out;result.accepted=accepted;
+    result.text=atlasKnowledgeUnsaid(raw,items);result.accepted=accepted;/* #775: the story gains no line */
+    atlasKnowledgeNews(s0,s);
     return result;
   }catch(e){return refuse("source","the discovery could not be recorded: "+((e&&e.message)||e));}
 }
 /* Compatibility callers consume narration only; the turn handoff consumes the atomic outcome. */
 function atlasKnowledgeCommit(raw,parsed,opts){return atlasKnowledgeCommitResult(raw,parsed,opts).text;}
 
-function atlasKnowledgeTurnReceipts(){
+function atlasKnowledgeTurnReceipts(bare){
   var s=memory&&memory.map&&memory.map.geography,out=[],keys,i,j,r;
   var problem=MapKnowledge.problem(s);if(problem){atlasKnowledgeSay(problem+"; committed map receipts could not be read");return out;}
   keys=Object.keys(s.receipts).sort();
-  for(i=0;i<keys.length;i++){r=s.receipts[keys[i]];if(r.turn!==worldState.turn)continue;for(j=0;j<r.events.length;j++){var scope=typeof locResolve==="function"?locResolve(r.container):r.container,line="At "+scope.replace(/\|/g," — ")+": "+atlasKnowledgeReceipt(r.events[j]);if(out.indexOf(line)<0)out.push(line);}}
+  for(i=0;i<keys.length;i++){r=s.receipts[keys[i]];if(r.turn!==worldState.turn)continue;for(j=0;j<r.events.length;j++){var scope=typeof locResolve==="function"?locResolve(r.container):r.container,line=(bare?"":"At "+scope.replace(/\|/g," — ")+": ")+atlasKnowledgeReceipt(r.events[j]);if(out.indexOf(line)<0)out.push(line);}}
   return out;
+}
+function atlasKnowledgeUnlist(text,restated){
+  var rows=String(text||"").split("\n"),out=[],i,bare;
+  for(i=0;i<rows.length;i++){
+    bare=rows[i].trim();
+    if(bare&&(restated.indexOf(bare)>=0||bare==="Retained discoveries from this turn:")){if(out.length&&!out[out.length-1].trim()&&i+1<rows.length&&!rows[i+1].trim())i++;continue;}
+    out.push(rows[i]);
+  }
+  return out.join("\n").replace(/\s+$/,"");
 }
 function atlasKnowledgeRerollNote(){
   if(!atlasKnowledgeActive())return "";
   var lines=atlasKnowledgeTurnReceipts();
-  return "\n\nPROSE REROLL: keep all committed geography unchanged. Do not add MAP_REVEAL or EXIT directives or introduce new locations, landmarks, names, directions, or rooms. Preserve these public discoveries: "+(lines.length?lines.join(" "):"none were committed in this turn.");
+  return "\n\nPROSE REROLL: keep all committed geography unchanged. Do not add MAP_REVEAL or EXIT directives or introduce new locations, landmarks, names, directions, or rooms. The player's map already shows this turn's discoveries; keep the prose true to them and do not restate them as lines of their own: "+(lines.length?lines.join(" "):"none were committed in this turn.");
 }
 function atlasKnowledgeReroll(raw,previous){
   if(!atlasKnowledgeActive())return raw;
@@ -224,8 +284,9 @@ function atlasKnowledgeReroll(raw,previous){
   var text=String(raw||""),lines=atlasKnowledgeTurnReceipts(),i;
   if(/\[(?:MAP_REVEAL|EXIT)(?::|\])/.test(text))atlasKnowledgeSay("a prose reroll cannot add map discoveries; the committed discoveries are retained");
   text=text.replace(/\[(?:MAP_REVEAL|EXIT)(?::[^\]]*)?\]/g,"").replace(/\[(?:MAP_REVEAL|EXIT)[^\]]*$/,"");
-  if(lines.length)text+=(text?"\n\n":"")+"Retained discoveries from this turn:\n"+lines.join("\n");
-  return text;
+  /* #775: nothing is appended — the map holds the turn's discoveries, and the reroll changes none of them. A line of the
+     reroll that ONLY restates one (the note above lists them, and a model echoes lists) is dropped. */
+  return atlasKnowledgeUnlist(text,lines.concat(atlasKnowledgeTurnReceipts(true)));
 }
 /* Filing keys remain immutable across place repairs. Resolve container identity at the read
    boundary, so a merge/reparent cannot orphan the disclosures or duplicate persistent records. */
@@ -254,7 +315,7 @@ function atlasKnowledgePrompt(){
     "On EVERY narrated turn, disclose newly introduced FIXED geographic features that help the player navigate or act: distinctive trees or stones, buildings, paths, exits, and destinations. Include features described in NPC dialogue, directions, EXIT descriptions, and SUGGEST targets, even while the party stands still. Exclude the place the party stands in and any phrase that only describes it, NPCs, creatures (including a living stone elemental), portable items, ordinary terrain texture, and absent, removed, or hypothetical structures. Suggestion-only utility calls are read-only: no new map facts or MAP_REVEAL.\n"+
     "Before finalizing, check each such feature against PLAYER-KNOWN GEOGRAPHY. For a new feature emit [MAP_REVEAL:new|public label|bearing|observed]; use reported instead of observed for testimony. For an existing feature use its f-handle only when disclosing a new name or other newly learned attribute, or to settle a direction listed under DIRECTION OWED. Do not repeat unchanged discoveries or declare an existing feature as new. Do not change its established direction.\n"+
     "Bearings: N, NE, E, SE, S, SW, W, NW, unknown. A feature the party perceives (observed) lies somewhere: give it a real bearing. You are the author; where the narration has not said, decide, and your choice becomes the fact. unknown is only for testimony (reported) whose direction was not told. A direction is not a distance. Disclose only the label actually learned. Do not classify its type; the map uses neutral labelled pins. Seeing a hut reveals neither owner nor interior; keep a generic label until its name is learned. Testimony remains reported until the party actually perceives the feature; do not narrate a reported destination as newly seen.\n"+
-    "Place each directive at top level, never inside another tag. Narrate naturally; do not write or imitate the engine's formulaic \"You see/hear of [label]\" confirmations. This directive is PUBLIC NARRATION: the engine inserts and speaks its discovery sentence here. Never use a disclosure for secrets, negation, hypotheticals, or private preparation.\n"+
+    "Place each directive at top level, never inside another tag. The directive puts the feature on the player's map; nothing is added to your narration for it. Narrate naturally: never write a formulaic \"You see/hear of [label] to the [direction]\" line (older turns show some; do not imitate them), and do not recite a place's features or their directions unless the player asks or the scene calls for it \u2014 the map shows them. A directive is a PUBLIC statement all the same: never use a disclosure for secrets, negation, hypotheticals, or private preparation.\n"+
     "ENCLOSED SITES: when the party goes INSIDE a site within this place \u2014 a den, a lair, a nest, a cave, a tunnel, ruins, a building, a camp \u2014 declare it that turn with [SUBLOCATION:its name], using the name the map already knows it by when one is listed, BEFORE anything disclosed inside it. What is found inside belongs to that site's own sheet, never to the place around it; [SUBLOCATION_LEAVE] when the party comes back out: it steps out ONE place, to the place the site lies in. A site inside a sub-location the party already stands in is written as a path, [SUBLOCATION:that sub-location \u2014 the site]. The floor, the ground, rubble, mist and the like are scenery, never map features.\n"+
     "Put LOCATION/SUBLOCATION before disclosures belonging there: each directive belongs to the place in force at its position. For a new room, use the full building — room path in SUBLOCATION; a bare room name cannot establish its building. Never invent a feature, owner, interior, or measurement to populate the drawing; choosing the bearing of a feature the party sees is authorship, not invention.\n"+"\n";
 }

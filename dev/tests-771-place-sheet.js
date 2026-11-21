@@ -53,7 +53,7 @@ test('a plain observed feature may say the ground; a NAME elsewhere, or a report
 test('no ground known: the pin sheet stays — the engine never guesses a ground', () => {
   setup('Ashenveil'); turn('[MAP_REVEAL:new|the Iron Gate|N|observed]');
   const d = atlasDoc(worldState.atlas.at);
-  assert.equal(d.generator.name, 'schematic'); assert.deepEqual(d.features.map(f => f.name), ['the Iron Gate']); assert.equal(toasts.length, 0, 'and nothing is said: it is not a failure');
+  assert.equal(d.generator.name, 'schematic'); assert.deepEqual(d.features.map(f => f.name), ['the Iron Gate']); assert.deepEqual(toasts, ['Map: the Iron Gate lies to the north.'], 'only what the map gained is said (#775): a missing ground is not a failure');
 });
 
 test('the recipe: features in the order disclosed, each toward its bearing; a plain observed noun picks its mark', () => {
@@ -177,7 +177,7 @@ test('the campaign switch: atlas.drawn === false keeps every place a pin sheet, 
   setup(MIRE); const mire = worldState.atlas.at; turn('[MAP_REVEAL:new|bone cairn|E|observed]');
   assert.equal(atlasDoc(mire).generator.name, 'wild'); worldState.atlas.drawn = false; atlasForget();
   const d = atlasDoc(mire); assert.equal(d.generator.name, 'schematic'); assert.deepEqual(d.features.map(f => f.name), ['bone cairn']); assert.equal(atlasCard(mire, { id: d.features[0].id }).title, 'bone cairn');
-  const back = parseWorldState(serializeWorldState(worldState)); assert.equal(back.atlas.drawn, false, 'the switch is the campaign’s'); assert.equal(toasts.length, 0);
+  const back = parseWorldState(serializeWorldState(worldState)); assert.equal(back.atlas.drawn, false, 'the switch is the campaign’s'); assert.deepEqual(toasts, ['Map: bone cairn lies to the east.'], 'nothing but what the map gained is said (#775)');
   delete worldState.atlas.drawn; atlasForget(); assert.equal(atlasDoc(mire).generator.name, 'wild', 'absent = drawn');
 });
 
