@@ -16,7 +16,7 @@ rc|=sabotage.prove({file:'atlas-knowledge.js',command:command,only:only,cases:[
 ]});
 rc|=sabotage.prove({file:'atlas-knowledge.js',command:command,only:only,cases:[
   /* #775: the two clauses that stood here guarded WHERE the receipt was printed in the story and that a quotation never suppressed it. Nothing is printed now; what they become: the story is stored as written, and a quotation is never cut. */
-  {label:'#775: the engine writes its receipt into the story again',find:'result.text=atlasKnowledgeUnsaid(raw,items);',replace:'result.text=out;',mustFail:only+'a directive before a later arrival is filed where it stood, and the turn is stored as written'},
+  {label:'#775: the engine writes its receipt into the story again',find:'shown=atlasKnowledgeUnsaid(raw,q.items);/* #775: the story gains no line */',replace:'shown=out;',mustFail:only+'a directive before a later arrival is filed where it stood, and the turn is stored as written'},
   {label:'#775: a quotation of the sentence inside other prose is cut out of the reply',find:'q=items[i].event.quote;at=atlasKnowledgeWrittenAt(text,items[i].start,items[i].end,q);',replace:'q=items[i].event.quote;at=text.indexOf(q);',mustFail:only+'a quotation of the sentence inside other prose stays, and the disclosure is filed'},
   {label:'#775: what the map gained is not said',find:'    atlasKnowledgeNews(s0,s);',replace:'',mustFail:only+'a valid directive files its feature at admission and adds no line to the story'},
   {label:'#775: an unchanged repeat is announced again',find:'      if(o&&o.label===f.label&&o.bearing===f.bearing&&o.mode===f.mode)continue;\n',replace:'',mustFail:only+'exact new repeats after an alias retain the scoped handle beside new landmarks'},

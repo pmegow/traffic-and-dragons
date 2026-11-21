@@ -29,9 +29,9 @@ test('a receipt the reply wrote itself, directly after its tag, is taken out of 
   const r = commit(TAG + '\n' + RIFT + '\nYou kick into the drift of splintered bone.');
   assert.equal(times(r.text, RIFT), 0, r.text); assert.deepEqual(r.features, ['subterranean rift:SW'], 'and the feature is filed as ever');
   assert.equal(r.text.trim(), 'You kick into the drift of splintered bone.', 'the rest of the reply stands');
-  const same = commit(TAG + ' ' + RIFT + ' You kick into the drift.');
-  assert.equal(times(same.text, RIFT), 0, 'on the tag\'s own line, with prose after it'); assert.equal(same.raw, TAG + ' You kick into the drift.');
-  assert.equal(times(commit(TAG + '\n\n  ' + RIFT + '\n').text, RIFT), 0, 'blank space between');
+  assert.equal(commit('A.\n' + TAG + ' ' + RIFT + '\nB.').raw, 'A.\n' + TAG + '\nB.', 'on the tag\'s own line, nothing after it');
+  assert.equal(commit('A.\n' + TAG + ' ' + RIFT + ' [TIME_ADVANCE:5]\nB.').raw, 'A.\n' + TAG + ' [TIME_ADVANCE:5]\nB.', 'tags beside it stay');
+  assert.equal(times(commit(TAG + '\n\n  ' + RIFT + '\nYou kick.').text, RIFT), 0, 'blank space between');
 });
 
 test('a block of tags followed by a block of their lines loses each line', () => {
@@ -52,11 +52,36 @@ test('a receipt written directly before its tag is taken out too', () => {
 test('a quotation inside other prose, or a line past a change of place, is the reply\'s own prose: it stays, and nothing is added', () => {
   assert.equal(times(commit('No one says "' + RIFT + '" ' + TAG).text, RIFT), 1, 'quoted in dialogue before the tag (the #733 rule)');
   assert.equal(times(commit(TAG + ' The guide mutters, "' + RIFT + '"').text, RIFT), 1, 'quoted in dialogue after the tag');
-  assert.equal(times(commit(TAG + '\nYou wade on for an hour.\n' + RIFT).text, RIFT), 1, 'prose stands between the tag and the line');
+  assert.equal(times(commit(TAG + '\nYou wade on for an hour.\n' + RIFT + '\nYour boots fill.').text, RIFT), 1, 'prose stands between the tag and the line');
   assert.equal(times(commit('He warned: ' + RIFT + '\n' + TAG).text, RIFT), 1, 'the end of another sentence before the tag');
-  const moved = commit(TAG + '\n[LOCATION:Ashen Road]\n' + RIFT);
+  const moved = commit(TAG + '\n[LOCATION:Ashen Road]\n' + RIFT + '\nThe road is empty.');
   assert.equal(times(moved.text, RIFT), 1, 'after an arrival the line belongs to another place');
   assert.deepEqual(commit('No one says "' + RIFT + '" ' + TAG).features, ['subterranean rift:SW'], 'and the disclosure is filed all the same');
+});
+
+/* The independent review of #775: once the line is CUT, "begins with the sentence" is not enough. */
+test('the sentence with anything after it on its line is the reply\'s prose: nothing is cut', () => {
+  const keeps = t => { const r = commit(t); assert.equal(r.raw, t, 'cut: ' + JSON.stringify(r.raw)); assert.deepEqual(r.features, ['subterranean rift:SW']); };
+  keeps(TAG + ' ' + RIFT + ' You kick into the drift.');
+  keeps(TAG + '\n' + RIFT + '.. and beyond it, the grey line of the sea.');
+  keeps(TAG + '\n' + RIFT + '" she says.');
+  keeps(TAG + '\n' + RIFT + ' Its mouth breathes cold.');
+  keeps(TAG + '\n[SAY:Old Tam]' + RIFT + '\nThe old man points.');
+  keeps(TAG + '\n[SAY:Old Tam]' + RIFT + ' That is where they took her.');
+  keeps(TAG + '\nYou see smoke rising beyond the ridge.\n' + RIFT + '\nAsh drifts down.');
+  keeps(TAG + '\n' + RIFT + ' ' + RIFT);
+});
+
+test('one directive stated twice with one line of its own: the line is cut once, and the prose after it is whole', () => {
+  const r = commit('A.\n' + TAG + '\n' + TAG + '\n' + RIFT + '\nThe wind howls across the moor tonight, and the rain comes.');
+  assert.equal(r.raw, 'A.\n' + TAG + '\n' + TAG + '\nThe wind howls across the moor tonight, and the rain comes.');
+  assert.equal(commit('A.\r\n' + TAG + '\r\n' + RIFT).raw, 'A.\r\n' + TAG, 'CRLF: no lone carriage return is left at the end');
+});
+
+test('a reply of map tags alone, or of tags and their own lines, keeps receipts as its narration: never a turn with nothing to show', () => {
+  assert.equal(commit(TAG).text.trim(), RIFT, 'tags alone');
+  assert.equal(commit(TAG + '\n' + RIFT).text.trim(), RIFT, 'a tag and its own line: said once');
+  assert.equal(commit(TAG + '\n[TIME_ADVANCE:5]').text.trim(), RIFT);
 });
 
 test('a line taken out leaves no gap: the paragraphs it stood between keep one blank line', () => {

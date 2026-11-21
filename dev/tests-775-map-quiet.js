@@ -60,6 +60,28 @@ test('the Console names what changed, once: new, heard of, a direction settled â
   said.length = 0; assert.deepEqual(atlasKnowledgeNews(empty, old.state), [], 'scenery on file was announced'); assert.deepEqual(said, []);
 });
 
+/* The independent review, finding 1: with the lines gone, a reply of map tags alone showed NOTHING â€” no narration, no
+   buttons, and the exchange left the GM's history (the bookkeeping rule). Such a reply keeps the receipts as its narration. */
+test('a reply of map tags alone is never a turn with nothing to show: the receipts are its narration', () => {
+  for (const raw of [GATE + '\n' + MARSH, GATE + '\nYou see Crossroads Keep Gate to the north.\n' + MARSH + '\nYou see Blighted Reach Marshland to the east.']) {
+    setup(); commitGmTurn(raw, { userMsg: 'I look around.', playerTxt: 'I look around.' });
+    const last = worldState.transcript[worldState.transcript.length - 1];
+    assert.equal(last.x.replace(/\s+/g, ' ').trim(), 'You see Crossroads Keep Gate to the north. You see Blighted Reach Marshland to the east.', 'what the player reads: ' + JSON.stringify(last.x));
+    assert.ok(!last.bk && !sessionLog[sessionLog.length - 1].bk, 'the turn was filed as bookkeeping: it would leave the GM\'s history');
+    assert.equal(labels().length, 2);
+  }
+});
+
+test('the Console line is bounded, and judges the place\'s own name against the resolved place', () => {
+  setup();
+  reveal('Stones everywhere. ' + ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'].map(n => '[MAP_REVEAL:new|stone ' + n + '|N|observed]').join(''));
+  assert.deepEqual(said, ['Map: stone one lies to the north; stone two lies to the north; stone three lies to the north; stone four lies to the north; stone five lies to the north; stone six lies to the north; and 2 more.']);
+  const empty = MapKnowledge.create(), ev = { op: 'disclose', id: 'new', label: HERE, proposalKind: '', bearing: 'N', mode: 'observed', quote: 'You see ' + HERE + ' to the north.' };
+  const filed = MapKnowledge.prepare(empty, [ev], { channel: 'gm', commit: 'm:0', turn: 0, container: 'Old Mill', text: ev.quote }); assert.ok(filed.ok, filed.reason);
+  const real = global.locResolve; global.locResolve = k => (k === 'Old Mill' ? HERE : real(k));   /* 'Old Mill' was merged into this place */
+  try { said.length = 0; assert.deepEqual(atlasKnowledgeNews(empty, filed.state), [], 'the place\'s own name, filed under a name since merged into it, was announced'); } finally { global.locResolve = real; }
+});
+
 test('a refused group says its refusal and announces no marker', () => {
   setup();
   const r = atlasKnowledgeCommitResult(GATE + '[MAP_REVEAL:new|a spring|impossible|observed]', null, { commit: 'gm:0:bad' });

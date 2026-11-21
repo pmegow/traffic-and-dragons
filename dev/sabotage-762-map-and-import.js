@@ -11,7 +11,7 @@ var T1 = P + "a disclosure the reply states twice is filed once and said once; t
   T5 = P + "in the wizard an import skips the Play-as chooser; the sheet is admitted first either way";
 var knowledge = [
   { label: "every statement adds its receipt to the evidence again (#775: the evidence, no longer the story)", find: '+(said[sk]?"":"\\n\\n"+e.quote+"\\n\\n");said[sk]=1;', replace: '+"\\n\\n"+e.quote+"\\n\\n";', mustFail: T2 },
-  { label: "#775: the engine writes its receipt into the story again", find: "result.text=atlasKnowledgeUnsaid(raw,items);", replace: "result.text=out;", mustFail: T1 },
+  { label: "#775: the engine writes its receipt into the story again", find: "shown=atlasKnowledgeUnsaid(raw,q.items);/* #775: the story gains no line */", replace: "shown=out;", mustFail: T1 },
   { label: "the receipt is remembered across places: a second place's view is unsaid", find: "sk=JSON.stringify([item.container,e.quote]);", replace: "sk=JSON.stringify([e.quote]);", mustFail: T2 },
   { label: "one receipt silences every other disclosure of its place", find: "sk=JSON.stringify([item.container,e.quote]);", replace: "sk=JSON.stringify([item.container]);", mustFail: T2 }
 ];

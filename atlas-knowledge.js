@@ -133,25 +133,41 @@ function atlasKnowledgeCollision(s,groups,before){
    change of place) or directly before it. A quotation inside other prose is not that line and suppresses nothing
    (the #733 rule stands). */
 function atlasKnowledgeLineStart(text,i){while(i>0&&/[ \t]/.test(text.charAt(i-1)))i--;return i===0||/[\r\n\]]/.test(text.charAt(i-1));}
+/* #775, independent review: once the line is CUT (not merely counted), "begins with the sentence" is not enough — it took the
+   opening off real prose ("You see a ruined tower to the east... and beyond it, the sea" → ".. and beyond it, the sea"; a
+   speaker's unquoted line; a sentence with a quotation mark after it). The receipt is a line of its OWN: nothing else stands on
+   its line but blank space and tags, and no speaker tag stands before it. And only a line of the receipt's own SHAPE is another
+   feature's receipt to step over — a paragraph that merely begins "You see" ends the search. */
+var ATLAS_KNOWLEDGE_RECEIPT_LINE=/^You (?:see|hear of) [^\r\n]*?(?: to the (?:north|northeast|east|southeast|south|southwest|west|northwest)\.|; its precise position is not established\.)[ \t]*(?=\r?\n|$)/;
+function atlasKnowledgeOwnLine(text,at,n){
+  var ls=at>0?text.lastIndexOf("\n",at-1)+1:0,le=text.indexOf("\n",at+n),before,after,m,tag=/\[([A-Z_]+)(?::[^\[\]\r\n]*)?\]/g;
+  if(le<0)le=text.length;before=text.slice(ls,at);after=text.slice(at+n,le);
+  if(after.replace(/\[[A-Z_]+(?::[^\[\]\r\n]*)?\]/g,"").trim())return false;
+  while((m=tag.exec(before)))if(/^SAY/.test(m[1]))return false;/* a speaker's line is dialogue, whatever it says */
+  return !before.replace(/\[[A-Z_]+(?::[^\[\]\r\n]*)?\]/g,"").trim();
+}
 function atlasKnowledgeWrittenAt(text,start,end,quote){
   var i=end,rest,m,before;
   for(;;){
     rest=text.slice(i);m=/^\s+/.exec(rest);if(m){i+=m[0].length;continue;}
-    if(rest.slice(0,quote.length)===quote&&atlasKnowledgeLineStart(text,i))return i;
+    if(rest.slice(0,quote.length)===quote&&atlasKnowledgeLineStart(text,i)&&atlasKnowledgeOwnLine(text,i,quote.length))return i;
     m=/^\[([A-Z_]+)(?::[^\[\]\r\n]*)?\]/.exec(rest);if(m&&!/^(?:LOCATION|SUBLOCATION|SUBLOCATION_LEAVE)$/.test(m[1])){i+=m[0].length;continue;}
-    m=/^You (?:see|hear of) [^\r\n]*/.exec(rest);if(m&&atlasKnowledgeLineStart(text,i)){i+=m[0].length;continue;}/* another feature's receipt line */
+    m=ATLAS_KNOWLEDGE_RECEIPT_LINE.exec(rest);if(m&&atlasKnowledgeLineStart(text,i)){i+=m[0].length;continue;}/* another feature's receipt line */
     break;
   }
   before=text.slice(0,start).replace(/\s+$/,"");
-  return before.slice(-quote.length)===quote&&atlasKnowledgeLineStart(before,before.length-quote.length)?before.length-quote.length:-1;
+  i=before.length-quote.length;
+  return before.slice(-quote.length)===quote&&atlasKnowledgeLineStart(before,i)&&atlasKnowledgeOwnLine(text,i,quote.length)?i:-1;
 }
 function atlasKnowledgeWritten(text,start,end,quote){return atlasKnowledgeWrittenAt(text,start,end,quote)>=0;}
 /* #775 (owner 2026-11-18: "Let's get rid of this text. These should be markers on the map"; 2026-11-20: "Let's drop this
    part of the narrative. Let's let the map fill in those details unless the player asks"). The engine no longer writes
    its receipt into the story, so the turn is stored as the reply wrote it — with ONE exception: a receipt sentence the
    reply wrote ITSELF beside its directive (the #768 habit: older turns of the GM's own history still show the pair) is
-   taken out, by the #768 scanner's own rule of what that line is. A quotation inside other prose is not that line and
-   stays. A line left empty goes with it; nothing else of the reply is touched. */
+   taken out, by the #768 scanner's rule of where that line stands — and only when it is a line of its OWN (blank space and
+   tags beside it, no speaker tag before it). A sentence with prose after it on its line, a quotation, a speaker's line
+   stay as the reply wrote them. The line goes with it; nothing else of the reply is touched. `items` are ALL the directives
+   the reply stated, filed or not (a scenery one's line is that formula too). */
 function atlasKnowledgeUnsaid(raw,items){
   var text=String(raw||""),cuts=[],seen=Object.create(null),i,at,q,ls,le,pe,ne;
   for(i=0;i<items.length;i++){
@@ -163,10 +179,10 @@ function atlasKnowledgeUnsaid(raw,items){
     at=cuts[i].at;text=text.slice(0,at)+text.slice(at+cuts[i].n);
     ls=at>0?text.lastIndexOf("\n",at-1)+1:0;le=text.indexOf("\n",at);if(le<0)le=text.length;
     if(!text.slice(ls,le).trim()){/* the line held nothing else: it goes, and one of two blank lines it stood between */
-      text=le<text.length?text.slice(0,ls)+text.slice(le+1):text.slice(0,ls>0?ls-1:0);
+      text=le<text.length?text.slice(0,ls)+text.slice(le+1):text.slice(0,ls>0?ls-1:0).replace(/\r$/,"");
       pe=ls>=2?text.lastIndexOf("\n",ls-2)+1:-1;ne=text.indexOf("\n",ls);
       if(pe>=0&&ls<=text.length&&!text.slice(pe,ls-1).trim()&&ne>=0&&!text.slice(ls,ne).trim())text=text.slice(0,ls)+text.slice(ne+1);
-    }else if(at>0&&/[ \t]/.test(text.charAt(at-1))&&/[ \t]/.test(text.charAt(at)))text=text.slice(0,at)+text.slice(at+1);/* "tag␣sentence␣prose" keeps one space */
+    }else if(at>0&&/[ \t]/.test(text.charAt(at-1))&&(at>=text.length||/[ \t\r\n]/.test(text.charAt(at))))text=text.slice(0,at-1)+text.slice(at);/* "tag␣sentence" beside other tags: the space before it goes too */
     if(typeof console!=="undefined")console.info("[map knowledge] #775 the reply wrote its own receipt for '"+cuts[i].label+"'; it is taken out of the story (the map shows it)");
   }
   return text;
@@ -174,6 +190,7 @@ function atlasKnowledgeUnsaid(raw,items){
 /* #775: what the map gained is said in the Console (#772), never in the story — one line a commit, naming each feature
    that is new, or whose name, direction or standing changed (worded as atlas-directions.js words its own notice). What the player's sheet does not show (scenery, the place's own name) is
    not announced. */
+var ATLAS_KNOWLEDGE_NEWS_MAX=6;/* features named in one Console line; the rest are counted (where the Console is shut the line is a pill on screen) */
 function atlasKnowledgeNewsLine(f){
   var d=Object.prototype.hasOwnProperty.call(ATLAS_KNOWLEDGE_DIRECTIONS,f.bearing)?ATLAS_KNOWLEDGE_DIRECTIONS[f.bearing]:"position not established";
   if(d==="position not established")return f.label+(f.mode==="reported"?" is spoken of":"")+" (position not established)";
@@ -186,10 +203,10 @@ function atlasKnowledgeNews(before,after){
     for(i=0;i<ids.length;i++){
       f=after.features[ids[i]];o=before&&before.features&&Object.prototype.hasOwnProperty.call(before.features,ids[i])?before.features[ids[i]]:null;
       if(o&&o.label===f.label&&o.bearing===f.bearing&&o.mode===f.mode)continue;
-      if(atlasKnowledgeScenery(f.label)||atlasKnowledgeSelfLabel(f.container,f.label))continue;
+      if(atlasKnowledgeScenery(f.label)||atlasKnowledgeSelfLabel(typeof locResolve==="function"?locResolve(f.container):f.container,f.label))continue;
       lines.push(atlasKnowledgeNewsLine(f));
     }
-    if(lines.length&&typeof showToast==="function")showToast("Map: "+lines.join("; ")+".",5000);
+    if(lines.length&&typeof showToast==="function")showToast("Map: "+lines.slice(0,ATLAS_KNOWLEDGE_NEWS_MAX).join("; ")+(lines.length>ATLAS_KNOWLEDGE_NEWS_MAX?"; and "+(lines.length-ATLAS_KNOWLEDGE_NEWS_MAX)+" more":"")+".",5000);
   }catch(e){if(typeof console!=="undefined")console.warn("[map knowledge] #775 what the map gained could not be said: "+((e&&e.message)||e));}
   return lines;
 }
@@ -221,7 +238,7 @@ function atlasKnowledgeCommitResult(raw,parsed,opts){
   function refuse(kind,reason,suffix){result.refusal={kind:kind,reason:reason};atlasKnowledgeSay(reason+(suffix||""));return result;}
   if(!atlasKnowledgeActive())return result;
   try{
-    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,s0=s,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out,items,accepted;
+    var q=parsed||atlasKnowledgeRead(raw),s=memory&&memory.map&&memory.map.geography,s0=s,problem=MapKnowledge.problem(s),groups=[],lookup=Object.create(null),i,j,item,group,r,token,visible,out,items,accepted,shown;
     if(q.reason)return refuse("source",q.reason,"; no new map discoveries were filed");
     if(q.raw!==String(raw||""))return refuse("source","the queued map disclosure source changed","; no new map discoveries were filed");
     if(!Array.isArray(q.items))return refuse("source","the queued map disclosures are malformed","; no new map discoveries were filed");
@@ -244,8 +261,10 @@ function atlasKnowledgeCommitResult(raw,parsed,opts){
     }
     problem=atlasKnowledgeCollision(s,groups,s0);if(problem)return refuse("state",problem,"; these map declarations were not filed");
     accepted=JSON.parse(JSON.stringify(items));
-    memory.map.geography=s;
-    result.text=atlasKnowledgeUnsaid(raw,items);result.accepted=accepted;/* #775: the story gains no line */
+    shown=atlasKnowledgeUnsaid(raw,q.items);/* #775: the story gains no line */
+    if(!cleanTxt(shown).trim())shown=out;/* …unless the reply holds NOTHING else: a turn of map tags alone would show no narration, offer no buttons and leave the GM's history (the bookkeeping rule). The receipts are its narration then, as they were before #775. */
+    memory.map.geography=s;/* installed last: nothing after this line can fail and report a refusal for what was filed */
+    result.text=shown;result.accepted=accepted;
     atlasKnowledgeNews(s0,s);
     return result;
   }catch(e){return refuse("source","the discovery could not be recorded: "+((e&&e.message)||e));}

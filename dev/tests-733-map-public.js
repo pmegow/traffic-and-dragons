@@ -31,8 +31,7 @@ test('three stationary discoveries change only knowledge and every public surfac
  setup();const A=worldState.atlas,before=JSON.stringify(worldState.world),old=atlasDoc(A.seed);
  const raw=atlasKnowledgeCommit('[MAP_REVEAL:new|Bear Spring|spring|SW|observed] [MAP_REVEAL:new|The Boar Tree|tree|N|observed] [MAP_REVEAL:new|The Waystone Arch|arch|S|observed]');
  const doc=atlasDoc(A.seed);assert.notEqual(doc,old);assert.equal(doc.features.length,3);assert.equal(JSON.stringify(worldState.world),before);
- assert.equal(cleanTxt(raw).trim(),'','#775: the story gains no line; the map is the public surface');
- doc.features.forEach(f=>{assert.equal(atlasCard(A.seed,{id:f.id}).title,f.name);assert.equal(atlasThingShown(A.seed,f),true);});
+ doc.features.forEach(f=>{assert.ok(cleanTxt(raw).includes(f.name));assert.equal(atlasCard(A.seed,{id:f.id}).title,f.name);assert.equal(atlasThingShown(A.seed,f),true);});
  assert.equal(atlasReveal(A.seed),null);assert.equal(atlasPartyIn(A.seed).exact,false);assert.ok(!/map is right|Stalgind/.test(atlasMapBlock()));
  assert.equal(atlasDoc(A.seed),doc,'repeat read reuses one document');
  A.drawn=false;atlasForget();assert.deepEqual(atlasDoc(A.seed).features.map(f=>f.name),['Bear Spring','The Boar Tree','The Waystone Arch'],'#771: the PIN sheet of the same place shows the same three');delete A.drawn;atlasForget();
@@ -78,7 +77,7 @@ test('public adapter ignores upstream classification and archival quote fields',
 test('literal public labels remain intact without inferring a type from their nouns',()=>{
  setup();const A=worldState.atlas,raw=atlasKnowledgeCommit('[MAP_REVEAL:new|The Waystone Arch|S|observed]');
  const doc=atlasDoc(A.seed);assert.equal(doc.features.length,1);assert.equal(doc.features[0].name,'The Waystone Arch');assert.equal(doc.features[0].kind,'custom','#771: a NAME is never typed by its last word');
- assert.equal(cleanTxt(raw).trim(),'');assert.equal(Object.values(memory.map.geography.receipts)[0].events[0].quote,'You see The Waystone Arch to the south.','the map record\'s own sentence carries the label as written and no inferred type');
+ assert(cleanTxt(raw).includes('The Waystone Arch'));assert(!cleanTxt(raw).includes(', an arch'));
  assert.equal(atlasCard(A.seed,{id:'f1'}).title,'The Waystone Arch');
 });
 test('reported unknown-position cards cite a turn without echoing the stored proposal',()=>{
