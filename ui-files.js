@@ -170,6 +170,22 @@ function campaignFolderRestamp(oldId,newId){
     return _campReadMarker(dir).then(function(mk){if(mk&&mk.campId&&mk.campId!==oldId&&mk.campId!==newId)return false;return _campWriteMarker(dir,newId,row.campName).then(function(){return true;});});
   }).catch(function(e){if(typeof console!=="undefined")console.warn("[files] #481 F1 the rehome could not re-stamp "+slug+"/ for "+newId+" — "+((e&&e.message)||e)+"; the next write re-stamps it (the old id is no longer on the list)");return false;});
 }
+/* #778 (owner report 2026-11-22: a Frizwick render saved to "The_Silence_Between_Leaves_--_Kaelon/Frizwick/renders/"): the picker took
+   ANY folder as the campaigns root, a campaign's own folder included — every campaign then nested inside that one. A campaign's
+   folder is known by its #481 F1 marker (readable or not), so ONE test answers both doors: the pick (_openCampaignSubfolder) REFUSES
+   such a folder and changes nothing; a root already stored that way keeps saving (the parent cannot be reached through the API, and
+   dropping it would send saves to Downloads) and is said loudly once (_campRootCheck: boot, and the save that re-arms a lapsed root). */
+var _campRootWarned=false;
+function _campRootIsCampaign(h){return _campReadMarker(h).then(function(mk){return !!mk;});}
+function _campRootCheck(h){
+  return _campRootIsCampaign(h).then(function(is){
+    if(!is||_campRootWarned)return;
+    _campRootWarned=true;
+    var msg="Your campaigns folder is set to "+h.name+"/, which is one campaign's own folder — every campaign is being saved inside it. File ▸ 📁 "+h.name+" × to clear it, then File ▸ Set campaigns folder and pick the folder above it. Files already saved stay where they are.";
+    console.warn("[files] #778 "+msg);
+    showToast("📁 "+msg,12000);
+  },function(e){console.warn("[files] #778 the campaigns folder could not be checked for a campaign marker: "+((e&&e.message)||e));});
+}
 function persistCampaignFolder(){
   if(!_campRootHandle)return Promise.resolve(false);
   return _idbSet(FS_IDB_KEY,_campRootHandle).catch(function(e){
@@ -190,9 +206,9 @@ function restoreCampaignFolder(){
         return _idbSet(FS_IDB_KEY_LEGACY,null).then(function(){return false;},function(){return false;});
       });
     }
-    if(!h.queryPermission){_campRootHandle=h;updateCampFolderUI();return true;}
+    if(!h.queryPermission){_campRootHandle=h;updateCampFolderUI();return _campRootCheck(h).then(function(){return true;});}/* #778 */
     return h.queryPermission({mode:"readwrite"}).then(function(p){
-      if(p==="granted"){_campRootHandle=h;updateCampFolderUI();return true;}
+      if(p==="granted"){_campRootHandle=h;updateCampFolderUI();return _campRootCheck(h).then(function(){return true;});}/* #778 */
       _campFolderPending=h;
       console.info("[files] campaign folder restored but needs re-permission — will ask on the next save");
       return false;
@@ -207,7 +223,7 @@ function _ensureFolderPerm(){
   return h.requestPermission({mode:"readwrite"}).then(function(p){
     if(p!=="granted")return false;
     _campRootHandle=h;_campFolderPending=null;updateCampFolderUI();
-    return true;
+    return _campRootCheck(h).then(function(){return true;});/* #778 */
   }).catch(function(e){return _folderPickerFailure(e,"permission");});
 }
 
@@ -336,10 +352,14 @@ function _attachRestoredRender(file,ptr){
 function _slugFolderName(s){return(s||"Campaign").replace(/[^a-zA-Z0-9_\-]/g,"_");}
 function _openCampaignSubfolder(rootHandle,campName){
   /* #336: the pick is the ROOT; the campaign subfolder is derived beneath it (campName is the active one) */
-  _campRootHandle=rootHandle;_campFolderHandle=null;_campFolderSlug=null;_campFolderPending=null;_campFolderCache={};/* #481 F1: a new root, new folders */
-  persistCampaignFolder();   // #30: survive the next reload — the ROOT is what persists
-  updateCampFolderUI();
-  return campaignFolder(true);
+  /* #778: a campaign's own folder is refused BEFORE anything is set, persisted or created — the callers' catch says why */
+  return _campRootIsCampaign(rootHandle).then(function(is){
+    if(is)throw new Error(rootHandle.name+"/ is one campaign's own folder (it holds "+CAMP_MARKER+") — pick the folder above it, the one that holds all your campaigns. Nothing was changed.");
+    _campRootHandle=rootHandle;_campFolderHandle=null;_campFolderSlug=null;_campFolderPending=null;_campFolderCache={};_campRootWarned=false;/* #481 F1: a new root, new folders */
+    persistCampaignFolder();   // #30: survive the next reload — the ROOT is what persists
+    updateCampFolderUI();
+    return campaignFolder(true);
+  });
 }
 function _folderPickerFailure(e,action){
   if(e&&e.name==="AbortError"){
@@ -459,7 +479,7 @@ function renameCampaignFolder(newName){
   }).catch(function(e){showToast("Folder rename failed: "+e.message);return {failed:true};});
 }
 function clearCampaignFolder(){
-  _campFolderHandle=null;_campFolderSlug=null;_campRootHandle=null;_campFolderPending=null;_campFolderCache={};/* #481 F1 */
+  _campFolderHandle=null;_campFolderSlug=null;_campRootHandle=null;_campFolderPending=null;_campFolderCache={};_campRootWarned=false;/* #481 F1 */
   // #30: forget the PERSISTED handle too — otherwise "cleared" would silently un-clear itself on
   // the next reload, which is exactly the kind of lie the persistence was added to remove.
   updateCampFolderUI();

@@ -169,6 +169,7 @@ var SUITES = [
   "dev/tests-441-home-handoff.js",
   "dev/tests-442-modal-focus.js",
   "dev/tests-336-campaign-root.js",
+  "dev/tests-778-campaign-root-guard.js",/* #778: a campaign's own folder is never taken as the campaigns root; a root stored that way is said */
   "dev/tests-dedup-a.js",
   "dev/tests-160-portrait-builder.js",
   "dev/tests-5-story-compiler.js",

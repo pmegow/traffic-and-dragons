@@ -1,5 +1,5 @@
 {
-  "version": "v1.1485",
+  "version": "v1.1486",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -141,6 +141,7 @@
     "A campaign open on this device when another device deletes it now asks to keep or remove it before saving again.",
     "Corrections to the deleted-campaign question: a stalled check no longer holds saves, and a campaign first uploaded this session is checked too.",
     "Map discoveries no longer add \"You see … to the north\" lines to the story; the map shows them and the Console notes them.",
-    "Corrections to the quieter map lines: a reply of map tags alone still shows its lines, and real prose is never clipped."
+    "Corrections to the quieter map lines: a reply of map tags alone still shows its lines, and real prose is never clipped.",
+    "Set campaigns folder refuses a single campaign's folder and says to pick the one above it; a folder already set that way is flagged."
   ]
 }
