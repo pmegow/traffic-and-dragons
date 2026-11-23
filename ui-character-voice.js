@@ -84,7 +84,7 @@ function csPrimaryVoiceOptions(char,slot){
   var cur=char[slot.field]||"",catalog=slot.catalog(),voices=TTS.filterCharacterVoices(char,catalog);
   var empty=catalog.length?"No matching actors":"Load actors in Voice Settings";
   var opts="<option value=''"+(cur?"":" selected")+">"+(voices.length?"Automatic (gender matched)":empty)+"</option>";
-  voices.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(v.label+" · "+(v.g==="M"?"Male":v.g==="F"?"Female":v.g==="NB"?"Non-binary":"Unspecified"))+"</option>";});
+  voices.forEach(function(v){opts+="<option value='"+escHtml(v.id)+"'"+(v.id===cur?" selected":"")+">"+escHtml(voiceActorLabel(v,true))+"</option>";});/* #779: the one actor line — accent and age, as Voice Settings shows them */
   if(cur&&!voices.some(function(v){return v.id===cur;}))opts+=csUnlistedVoiceOption(cur);
   return opts;
 }

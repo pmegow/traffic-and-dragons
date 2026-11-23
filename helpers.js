@@ -4318,6 +4318,14 @@ function voiceNoteTrim(note){
   s=s.replace(/(^|[^A-Za-z]),?[ ]*(?:(?:ideal|perfect|great|well[- ]suited|suited|suitable)[ ]+)?for(?![A-Za-z]).*$/i,"$1");
   return s.replace(/[ ,;:.]+$/,"");
 }
+/* #779 (owner 2026-11-23, screenshot of the sheet's voice picker reading "Tessa · Female"): THE actor line — name · gender · accent ·
+   age (· the trimmed description unless compact). Voice Settings built this in its own closure and the character voice control
+   (ui-character-voice.js, split out 37 minutes before the accent landed) built a second label of name and gender alone, so the accent
+   never reached the sheet or the wizard. ONE function now, called by both; a new segment is added here once. Pure. */
+function voiceActorLabel(v,compact){
+  var accent=voiceAccentOf(v.language),age=voiceAgeLabel(v.age),note=(!compact&&v.note)?voiceNoteTrim(v.note):"";
+  return v.label+" · "+(v.g==="M"?"Male":v.g==="F"?"Female":v.g==="NB"?"Non-binary":"Unspecified")+(accent?" · "+accent:"")+(age?" · "+age:"")+(note?" · "+note:"");
+}
 
 
 // ── #671 THE STORY SO FAR (owner 2026-10-27) ──────────────────────────────────────────────────

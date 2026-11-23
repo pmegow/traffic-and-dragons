@@ -14,18 +14,32 @@ prove("helpers.js", [
     find: "var region=parts[parts.length-1].toUpperCase();", replace: "var region=parts[0].toUpperCase();",
     mustFail: "voice accent: voiceAccentOf reads the region" }
 ]);
-prove("ui-voice-settings.js", [
+/* #779: the label is ONE pure function in helpers.js (voiceActorLabel); the two pickers only call it */
+prove("helpers.js", [
   { label: "the label drops the accent segment (name · gender · description again)",
-    find: ' + (accent ? " · " + accent : "") + (age ? " · " + age : "") + (note ? " · " + note : "")', replace: ' + (age ? " · " + age : "") + (note ? " · " + note : "")',
+    find: '+(accent?" · "+accent:"")+(age?" · "+age:"")+(note?" · "+note:"");', replace: '+(age?" · "+age:"")+(note?" · "+note:"");',
     mustFail: "voice accent: the picker's actorLabel places the accent" },
   /* owner 2026-10-14, the second ask: the age group */
   { label: "the label drops the age segment (name · gender · accent · description)",
-    find: ' + (age ? " · " + age : "") + (note ? " · " + note : "")', replace: ' + (note ? " · " + note : "")',
+    find: '+(accent?" · "+accent:"")+(age?" · "+age:"")+(note?" · "+note:"");', replace: '+(accent?" · "+accent:"")+(note?" · "+note:"");',
     mustFail: "voice age: the Inworld actor carries ageGroup" },
   /* owner 2026-10-14, the third ask: the usage pitch is dropped */
   { label: "the label serves the vendor's description untrimmed again (the usage pitch crowds the list)",
-    find: '((typeof voiceNoteTrim === "function") ? voiceNoteTrim(v.note) : v.note)', replace: 'v.note',
-    mustFail: "voice note: actorLabel reads the note through voiceNoteTrim" }
+    find: 'note=(!compact&&v.note)?voiceNoteTrim(v.note):"";', replace: 'note=(!compact&&v.note)?v.note:"";',
+    mustFail: "voice note: actorLabel reads the note through voiceNoteTrim" },
+  { label: "#779 a non-binary voice reads as Unspecified",
+    find: 'v.g==="NB"?"Non-binary":"Unspecified")+(accent', replace: '"Unspecified")+(accent',
+    mustFail: "voice accent: the picker's actorLabel places the accent" }
+]);
+prove("ui-character-voice.js", [
+  { label: "#779 the character voice picker (sheet, wizard) builds its own label again — name alone, no accent",
+    find: 'escHtml(voiceActorLabel(v,true))', replace: 'escHtml(v.label)',
+    mustFail: "voice accent: the picker's actorLabel places the accent" }
+]);
+prove("ui-voice-settings.js", [
+  { label: "#779 Voice Settings labels its actors by name alone",
+    find: 'function actorLabel(v, compact) { return voiceActorLabel(v, compact); }', replace: 'function actorLabel(v, compact) { return v.label; }',
+    mustFail: "voice accent: the picker's actorLabel places the accent" }
 ]);
 prove("helpers.js", [
   { label: "the age mapping loses middle_aged — 193 of 275 Inworld voices read as the raw 'Middle aged'",

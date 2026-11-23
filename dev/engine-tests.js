@@ -36068,12 +36068,19 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return bare.length?"regions in the live catalog with no accent word (they would read as a code): "+bare.join(", "):true;
   });
   t("voice accent: the picker's actorLabel places the accent between the gender and the description, from the actor's stored language, and the search placeholders say so",function(){
-    var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
-    if(s<0)return "actorLabel not found";
-    if(fn.indexOf("voiceAccentOf(v.language)")<0)return "actorLabel does not derive the accent from the stored language: "+fn.slice(0,200);
-    var gi=fn.indexOf("\"Female\")"),ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),ni=fn.indexOf("(note ? \" · \" + note : \"\")");
-    if(ai<0)return "the accent segment is missing from the label: "+fn.slice(0,300);
-    if(!(gi<ai&&ai<ni))return "the label order is not name · gender · accent · description: gender@"+gi+" accent@"+ai+" note@"+ni;
+    /* #779 (owner 2026-11-23: the sheet's voice picker read "Tessa · Female" — the accent had only ever reached Voice Settings): the
+       label is ONE pure function, voiceActorLabel (helpers.js), and both pickers call it. Behaviour, not source text. */
+    if(typeof voiceActorLabel!=="function")return "no voiceActorLabel (helpers.js) — each picker builds its own label";
+    var a={id:"Amara",label:"Amara",g:"F",note:"Warm voice, ideal for narration.",language:"EN_NG",age:"young"};
+    if(voiceActorLabel(a)!=="Amara · Female · Nigerian · Young · Warm voice")return "the full label: "+voiceActorLabel(a);
+    if(voiceActorLabel(a,true)!=="Amara · Female · Nigerian · Young")return "the compact label: "+voiceActorLabel(a,true);
+    if(voiceActorLabel({label:"Clive",g:"M"})!=="Clive · Male")return "a voice with no language gains a segment: "+voiceActorLabel({label:"Clive",g:"M"});
+    if(voiceActorLabel({label:"Sol",g:"NB",language:"en-GB"})!=="Sol · Non-binary · British")return "a non-binary voice: "+voiceActorLabel({label:"Sol",g:"NB",language:"en-GB"});
+    if(voiceActorLabel({label:"X",g:""})!=="X · Unspecified")return "a voice with no gender: "+voiceActorLabel({label:"X",g:""});
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),csrc=__fsForTests.readFileSync(__rootForTests+"/ui-character-voice.js","utf8");
+    if(src.indexOf("function actorLabel(v, compact) { return voiceActorLabel(v, compact); }")<0)return "Voice Settings builds its own actor label";
+    if(csrc.indexOf(">\"+escHtml(voiceActorLabel(v,true))+\"</option>")<0)return "the character voice picker (sheet, wizard) does not label its actors through voiceActorLabel — no accent, no age";
+    if(/"Male"|"Female"/.test(csrc))return "the character voice picker still spells a gender label of its own";
     return /Name, gender, accent, age or description/.test(src)?true:"the actor search placeholders do not name the accent and the age";
   });
   /* Owner 2026-10-14, second ask: the age group too — name · gender · accent · AGE (· description). Inworld sends ageGroup per
@@ -36089,11 +36096,9 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var row=TTS.settings._compactActors("inworld",[{id:"Amara",label:"Amara",g:"F",note:"Warm.",language:"EN_NG",age:"young"},{id:"Clive",label:"Clive",g:"M",language:"EN_GB"}]);
     if(row[0].age!=="young")return "the compact row drops the age: "+JSON.stringify(row[0]);
     if(row[1].age!==undefined)return "an actor without an age gains one: "+JSON.stringify(row[1]);
-    var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
-    if(fn.indexOf("voiceAgeLabel(v.age)")<0)return "actorLabel does not read the age: "+fn.slice(0,200);
-    var ai=fn.indexOf("(accent ? \" · \" + accent : \"\")"),gi=fn.indexOf("(age ? \" · \" + age : \"\")"),ni=fn.indexOf("(note ? \" · \" + note : \"\")");
-    if(gi<0)return "the age segment is missing from the label";
-    if(!(ai<gi&&gi<ni))return "the label order is not name · gender · accent · age · description: accent@"+ai+" age@"+gi+" note@"+ni;
+    var lab=voiceActorLabel({label:"Amara",g:"F",note:"Warm.",language:"EN_NG",age:"middle_aged"}),ai=lab.indexOf("Nigerian"),gi=lab.indexOf("Middle-aged"),ni=lab.indexOf("Warm");
+    if(gi<0)return "the age segment is missing from the label: "+lab;
+    if(!(ai>=0&&ai<gi&&gi<ni))return "the label order is not name · gender · accent · age · description: "+lab;
     var tsrc=__fsForTests.readFileSync(__rootForTests+"/tts.js","utf8");
     return tsrc.indexOf("age: v.ageGroup || \"\"")>=0?true:"the Inworld actor normaliser does not carry ageGroup";
   });
@@ -36116,9 +36121,10 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return voiceNoteTrim(null)===""?true:"a missing note must trim to nothing";
   });
   t("voice note: actorLabel reads the note through voiceNoteTrim and writes no separator for a note that trims to nothing",function(){
-    var src=__fsForTests.readFileSync(__rootForTests+"/ui-voice-settings.js","utf8"),s=src.indexOf("  function actorLabel(v, compact)"),e=src.indexOf("\n",s),fn=src.slice(s,e);
-    if(fn.indexOf("voiceNoteTrim(v.note)")<0)return "actorLabel does not trim the note: "+fn.slice(0,300);
-    return fn.indexOf("(note ? \" · \" + note : \"\")")>=0?true:"an empty trimmed note would still get its separator";
+    var lab=voiceActorLabel({label:"A",g:"F",note:"Steady narrator, well-suited for audiobooks."});
+    if(lab!=="A · Female · Steady narrator")return "actorLabel does not trim the note: "+lab;
+    lab=voiceActorLabel({label:"A",g:"F",note:"Ideal for narration."});
+    return lab==="A · Female"?true:"an empty trimmed note would still get its separator: "+JSON.stringify(lab);
   });
 
   section("#654 — the damage roll on a hit (owner ruling 2026-10-21: the player rolls damage like the check — [CHECK:] carries the dice as a fourth field, the click rolls them with the d20, the continuation brings the faces, the clips play when the settled d20 is dismissed)");
