@@ -2664,6 +2664,23 @@ function observeDriftAxes(raw,clean){
   else{var dc=detectDatedCommitment(clean);if(dc)worldState.commitmentPing={text:dc,turn:turn};}
   if(worldState.commitmentPing&&turn-worldState.commitmentPing.turn>COMMITMENT_PING_MAX_AGE)delete worldState.commitmentPing;/* P4b (#169): a commitment nobody could deliver a note for in 10 turns is stale context, not a live gap */
 }
+/* #785 (field 2026-11-25, owner ruling "refuse, offer Retry"): a reply CUT before its story text. At high thinking a turn
+   spent its output cap on thought and came back as tags ending mid-tag: no prose, no buttons. isBookkeepingResponse cannot
+   tell that from a complete tags-only answer to an engine note, so the turn committed in silence - the party moved, the
+   clock ran two hours, a quest closed, and the story showed nothing. The finish reason can tell them apart: a reply that
+   was cut (the cap, or any early stop) and shows neither prose nor a dice card is refused BEFORE the commit. A reply cut
+   mid-prose still commits, as before (#132 says so). */
+function replyCutBeforeProse(resp,fin){
+  if(!fin||!fin.cut||!String(resp||"").trim())return false;
+  return !String(cleanTxt(resp)||"").trim()&&!String(diceTxt(resp)||"").trim();
+}
+/* Throws for such a reply; the caller's failed-turn path does the rest (nothing applied, the action put back, Retry). */
+function refuseCutReply(resp,fin){
+  if(!replyCutBeforeProse(resp,fin))return;
+  if(typeof console!=="undefined")console.warn("[truncation] #785 the reply was cut before any story text (finish: "+(fin.reason||"?")+") - refused, nothing applied");
+  if(typeof erCrumb==="function")erCrumb("turn-cut-refused",String(fin.reason||"?").slice(0,24));
+  var e=new Error("The GM's reply was cut off before any story text"+(fin.cap?" (it ran out of room)":(fin.reason?" ("+fin.reason+")":""))+". Nothing was applied. Retry to ask again.");e.cutReply=true;throw e;
+}
 function isBookkeepingResponse(raw,clean,dice){
   if(String(clean||"").trim()||String(dice||"").trim())return false;
   var s=String(raw||""),known=keyedDict(),i,m,ms;
@@ -3103,6 +3120,7 @@ async function sendAction(override,opts){
       }else throw _e0;
     }
     th.remove();
+    var _respFin=gmTurnFinish;/* #785: how THIS reply ended - read as it arrives, before any retry below makes another call */
     if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
     /* #323 (owner call 2026-09-03): a model refusal gets ONE automatic retry with the narrate-the-beat
        note before anything is shown — the t140 kiss comes back as a kiss, not a policy sentence. The
@@ -3113,11 +3131,12 @@ async function sendAction(override,opts){
       var _rrTh=addMsg("thinking","Rephrasing the ask\u2026");
       try{
         var _rr2=await callGM(refusalRetryNote()+"\n\n"+apiTxt,sys,null,null,undefined);
-        if(!detectModelRefusal(cleanTxt(_rr2))){resp=_rr2;if(typeof console!=="undefined")console.info("[refusal] #323 the retry narrated the beat");}
+        if(!detectModelRefusal(cleanTxt(_rr2))){resp=_rr2;_respFin=gmTurnFinish;if(typeof console!=="undefined")console.info("[refusal] #323 the retry narrated the beat");}
         else if(typeof console!=="undefined")console.warn("[refusal] #323 the retry declined too \u2014 committing the refusal as non-canon (#197)");
       }catch(_rrE){if(typeof console!=="undefined")console.warn("[refusal] #323 retry call failed: "+(_rrE&&_rrE.message)+" \u2014 committing the original refusal");}
       if(_rrTh&&_rrTh.remove)_rrTh.remove();
     }
+    if(!isTT)refuseCutReply(resp,_respFin);/* #785: before the roll's record rides in front and before anything commits */
     if(opts&&opts.rollTag&&!isTT)resp=opts.rollTag+"\n"+String(resp||"");/* #329: the player's roll rides the continuation as the [DICE:] record the transcript keeps */
     if(isTT){
       // #74 ①: the TT pane never ran cleanTxt, unlike the narrative path, so any stray tag
@@ -3997,6 +4016,7 @@ async function beginAdventure(){
     if(typeof atlasClassifyStart==="function")await atlasClassifyStart(function(tx){setThinking(th,tx||"The world stirs...");});/* #708: the start's kind is asked of the story BEFORE the opening is written, so its MAP block shows the start as the story has it */
     var _openingMapContext=(typeof atlasDiscoveryContext==="function"&&atlasKnowledgeActive())?atlasDiscoveryContext():null;
     var resp=await callGM(intro);th.remove();
+    refuseCutReply(resp,gmTurnFinish);/* #785: an opening cut before its prose is refused, never committed as a silent first scene */
     if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_openingMapContext);
     // Unified commit (audit 07-16 #5): inherits sendAction's canonical UA6 order — transcript/
     // sessionLog/state now persist BEFORE the opening scene renders, so a display throw can no

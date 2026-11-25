@@ -36905,4 +36905,44 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return status<btn?true:"the connection status must stay above New Campaign, under the title";
   });
 
+  section("#785 a reply cut before its story text is refused");
+  t("#785 replyCutBeforeProse: tags and no prose under a cut finish is a cut reply; a complete reply, a reply with prose and a reply carrying a dice record are not (owner ruling 2026-11-25: refuse, offer Retry)",function(){
+    var cut={reason:"MAX_TOKENS",cap:true,cut:true},early={reason:"OTHER",cap:false,cut:true},whole={reason:"STOP",cap:false,cut:false};
+    var field="[TIME_CHECK:evening]\n[TIME_ADVANCE:2h]\n[ITEM_GAINED:Woven marsh token]\n[QUEST:The Wild Skirmish|completed]\n[LOCATION:The Ironwood Heart]\n[LOCATION_DESC:A hollow redoubt carved into the colossal trunk of an ironwood tree. Ch";
+    if(typeof replyCutBeforeProse!=="function")return "replyCutBeforeProse is missing";
+    if(!replyCutBeforeProse(field,cut))return "the field reply (tags, then cut mid-tag at the cap) was not seen as cut before its prose";
+    if(!replyCutBeforeProse(field,early))return "an early stop that is not the cap (a provider's OTHER/SAFETY finish) with no prose must be refused too";
+    if(replyCutBeforeProse(field,whole))return "a COMPLETE tags-only reply was refused - that is a bookkeeping answer to an engine note and must still commit";
+    if(replyCutBeforeProse(field,null)||replyCutBeforeProse(field,undefined))return "no finish information must never refuse a reply";
+    if(replyCutBeforeProse("[TIME_ADVANCE:2m]\n\nThe axe falls, and the heron guard dissolves into mist. The pik",cut))return "a reply cut mid-prose was refused - it has story text; only a prose-less one is refused";
+    if(replyCutBeforeProse("[DICE:Attack|d20 = 17 + 7 = 24|success]\n[ENEMY_HP:-19]\n[LOCATION_DESC:A hollow",cut))return "a reply that shows a dice card was refused";
+    return replyCutBeforeProse("",cut)?"an empty reply is the adapter's Empty response error, not this refusal":true;
+  });
+  t("#785 refuseCutReply throws before anything is applied, says nothing was applied, and leaves a complete reply alone",function(){
+    if(typeof refuseCutReply!=="function")return "refuseCutReply is missing";
+    var field="[TIME_ADVANCE:2h]\n[LOCATION:The Ironwood Heart]\n[LOCATION_DESC:A hollow redoubt. Ch",err=null,turn=worldState.turn,loc=worldState.world&&worldState.world.location;
+    try{refuseCutReply(field,{reason:"STOP",cap:false,cut:false});refuseCutReply("The hall falls quiet.",{reason:"MAX_TOKENS",cap:true,cut:true});}catch(e0){return "a reply that must commit was refused: "+e0.message;}
+    try{refuseCutReply(field,{reason:"MAX_TOKENS",cap:true,cut:true});}catch(e){err=e;}
+    if(!err)return "a cut, prose-less reply was let through to the commit";
+    if(!err.cutReply)return "the error is not marked cutReply";
+    if(!/cut off before any story text/.test(err.message)||!/nothing was applied/i.test(err.message))return "the message does not say what happened and that nothing was applied: "+err.message;
+    return (worldState.turn===turn&&(worldState.world&&worldState.world.location)===loc)?true:"refusing changed the campaign";
+  });
+  t("#785 the story turn and the opening refuse a cut reply BEFORE the commit, on the finish of the very call whose text they keep; callGM records a story turn's finish and no other kind's",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),a=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8");
+    var i=g.indexOf("async function sendAction("),body=g.slice(i,g.indexOf("\nfunction ",i+10));
+    var ref=body.indexOf("if(!isTT)refuseCutReply(resp,_respFin);"),commit=body.indexOf("commitGmTurn(resp,"),roll=body.indexOf('resp=opts.rollTag+"\\n"');
+    if(ref<0)return "sendAction does not refuse a cut reply (story turns only - Table Talk has no state to protect)";
+    if(commit<0||roll<0)return "sendAction's commit or roll-tag line was not found";
+    if(ref>commit)return "the refusal comes after the commit - the state would already have landed";
+    if(ref>roll)return "the refusal comes after the roll's [DICE:] record is put in front of the reply - a roll's cut reply would read as having a dice card and commit";
+    if(body.indexOf("var _respFin=gmTurnFinish;")<0||body.indexOf("var _respFin=gmTurnFinish;")>ref)return "the finish is not captured after the reply arrives";
+    if(!/if\(!detectModelRefusal\(cleanTxt\(_rr2\)\)\)\{resp=_rr2;_respFin=gmTurnFinish;/.test(body))return "when the #323 retry's text replaces the reply, its finish must replace the finish too (and a discarded retry's must not)";
+    var j=g.indexOf("async function beginAdventure("),ob=g.slice(j,g.indexOf("\nfunction ",j+10)),oref=ob.indexOf("refuseCutReply(resp,gmTurnFinish);"),ocommit=ob.indexOf("commitGmTurn(resp,");
+    if(oref<0||ocommit<0||oref>ocommit)return "the opening does not refuse a cut reply before its commit";
+    var k=a.indexOf("async function callGM("),cb=a.slice(k);
+    if(!/if\(_kind==="turn"\)gmTurnFinish=null;/.test(cb))return "callGM does not clear the last turn's finish when a new story-turn call starts - a failed call would leave a stale verdict";
+    return /if\(_kind==="turn"\)gmTurnFinish=_fi;/.test(cb)?true:"callGM does not record a story turn's finish (and only a story turn's: other kinds run beside a turn and would overwrite it)";
+  });
+
 }
