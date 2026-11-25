@@ -1,5 +1,5 @@
 {
-  "version": "v1.1490",
+  "version": "v1.1491",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -146,6 +146,7 @@
     "The voice pickers on the character sheet and in character creation show each voice's accent and age, as Voice Settings does.",
     "The Language Model chooser offers Gemini at low, medium or high thinking for story turns; low stays the default.",
     "Inworld narration is read plainly at the speed you set; the voice model still chooses the delivery of each character's lines.",
-    "Scrollbars are easier to see: a visible groove and a darker handle, in light and dark mode."
+    "Scrollbars are easier to see: a visible groove and a darker handle, in light and dark mode.",
+    "In the Campaigns window, New Campaign is now the first button, above the list."
   ]
 }

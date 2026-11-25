@@ -36872,4 +36872,15 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return bad.length?bad.join("; "):true;
   });
 
+  section("#783 New Campaign leads the campaigns list");
+  t("#783 the campaigns modal puts New Campaign above the list, not under it (owner 2026-11-25) - with many campaigns the button was below the fold",function(){
+    var src=__fsForTests.readFileSync(__rootForTests+"/ui-campaigns.js","utf8"),from=src.indexOf("function _showCampaignPickerModal("),to=src.indexOf("{align:",from);
+    if(from<0||to<0)return "the campaigns modal's markup was not found";
+    var body=src.slice(from,to),btn=body.indexOf("onclick='campNew()'"),list=body.indexOf("id='camp-list'"),status=body.indexOf("id='camp-sync-status'");
+    if(btn<0||list<0||status<0)return "the modal lost its New Campaign button, its list or its status line";
+    if(body.indexOf("onclick='campNew()'",btn+1)>=0)return "the modal has two New Campaign buttons";
+    if(btn>list)return "New Campaign sits under the campaign list";
+    return status<btn?true:"the connection status must stay above New Campaign, under the title";
+  });
+
 }

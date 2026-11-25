@@ -189,8 +189,8 @@ function _showCampaignPickerModal(){
     +"<button id='camp-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button>"
     +"</div></div>"
     +"<div id='camp-sync-status' style='display:none;font-size:11px;color:var(--t2);margin-bottom:10px;text-align:center;'></div>"
-    +"<div id='camp-list'></div>"
-    +"<button onclick='campNew()' style='width:100%;margin-top:14px;padding:12px;font-size:13px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>",
+    +"<button onclick='campNew()' style='width:100%;margin-bottom:14px;padding:12px;font-size:13px;font-family:var(--font);background:var(--bg3);border:1px solid var(--brd2);border-radius:var(--r);color:var(--t0);cursor:pointer;'>&#10022; New Campaign</button>"/* #783 (owner 2026-11-25): first, above the list - under a long list it sat below the fold */
+    +"<div id='camp-list'></div>",
     {align:"flex-start",overlayExtra:"overflow-y:auto;",maxWidth:500,boxExtra:"margin-top:40px;",closeId:"camp-x"});
   document.getElementById("camp-svr-btn").addEventListener("click",function(){
     modal.remove();
