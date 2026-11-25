@@ -16,7 +16,9 @@ async function appearance(page){return page.evaluate(()=>({theme:document.docume
  });
  await check('a preference change repaints without losing filter or card nodes',async()=>{
   await page.locator('#q').fill('fire');await page.evaluate(()=>window.themeProbeCard=document.querySelector('.card'));const dark=await appearance(page);
-  await scheme(page,'light');await page.waitForFunction(()=>matchMedia('(prefers-color-scheme: light)').matches);await new Promise(r=>setTimeout(r,100));
+  await scheme(page,'light');await page.waitForFunction(()=>matchMedia('(prefers-color-scheme: light)').matches);
+  // The page repaints in the media query's change event, which waits for the next rendering update: wait for the repaint itself, as the dark half below does. A fixed 100 ms lost that race beside three other suites (2026-11-25).
+  await page.waitForFunction(()=>document.documentElement.getAttribute('data-theme')==='light');
   const light=await appearance(page);assert.equal(light.theme,'light');assert.notEqual(light.bg,dark.bg);assert.equal(await page.locator('#q').inputValue(),'fire');assert.ok(await page.evaluate(()=>window.themeProbeCard===document.querySelector('.card')));
   await scheme(page,'dark');await page.waitForFunction(()=>document.documentElement.getAttribute('data-theme')==='dark');assert.equal((await appearance(page)).bg,dark.bg);
  });
