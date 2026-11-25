@@ -1,5 +1,5 @@
 {
-  "version": "v1.1487",
+  "version": "v1.1488",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -143,6 +143,7 @@
     "Map discoveries no longer add \"You see … to the north\" lines to the story; the map shows them and the Console notes them.",
     "Corrections to the quieter map lines: a reply of map tags alone still shows its lines, and real prose is never clipped.",
     "Set campaigns folder refuses a single campaign's folder and says to pick the one above it; a folder already set that way is flagged.",
-    "The voice pickers on the character sheet and in character creation show each voice's accent and age, as Voice Settings does."
+    "The voice pickers on the character sheet and in character creation show each voice's accent and age, as Voice Settings does.",
+    "The Language Model chooser offers Gemini at low, medium or high thinking for story turns; low stays the default."
   ]
 }

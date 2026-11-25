@@ -338,6 +338,7 @@ function saveProviderSettings(){
   store.set(PROV_K,activeProvider);
   store.set(PKEYS_K,JSON.stringify(providerKeys));
   store.set(PMDL_K,JSON.stringify(providerModels));
+  store.set(PTHINK_K,JSON.stringify(providerThinking));/* #780 */
   store.set(UPGRADE_K,allowModelUpgrade?"true":"false");
 }
 /* audit B7 (2026-09-18): for a provider whose upgradeModel IS its defaultModel — anthropic, gemini and
@@ -357,7 +358,8 @@ function showProviderModal(){
   // left the change applied for the rest of the session.
   var _pvStaged={};(function(){var _k=Object.keys(providerKeys),_i;for(_i=0;_i<_k.length;_i++)_pvStaged[_k[_i]]=providerKeys[_k[_i]];})();
   function provRows(){var ids=Object.keys(PROVIDERS),items=[],i;for(i=0;i<ids.length;i++)items.push({id:ids[i],label:PROVIDERS[ids[i]].label});return radioRowsHTML("pv-row",items,selProv,function(p,sel){return "<span style='font-size:13px;color:"+(sel?"var(--acc)":"var(--t1)")+"'>"+p.label+"</span>";});}
-  function modelOpts(){var p=PROVIDERS[selProv],cur=providerModels[selProv]||p.defaultModel,o="",i;for(i=0;i<p.models.length;i++){o+="<option value='"+p.models[i]+"'"+(p.models[i]===cur?" selected":"")+">"+p.models[i]+"</option>";}return o;}
+  /* #780: the rows are providerModelChoices (globals.js) - one per model, or one per model and thinking level where the provider offers levels */
+  function modelOpts(){var p=PROVIDERS[selProv],cur=providerModels[selProv]||p.defaultModel,lvl=thinkingLevelFor(p,(p.thinkingKinds||[])[0]),rows=providerModelChoices(p),o="",i;for(i=0;i<rows.length;i++){o+="<option value='"+escHtml(rows[i].value)+"'"+(rows[i].model===cur&&rows[i].level===lvl?" selected":"")+">"+escHtml(rows[i].label)+"</option>";}return o;}
   var modal=modalShell("provider-modal",/* #14 */
     "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;'><span style='font-size:15px;color:var(--t0);font-weight:bold;'>🧠 Language Model</span><button id='pv-x' style='background:none;border:none;color:var(--t2);font-size:20px;cursor:pointer;'>&#215;</button></div>"
     +"<div style='font-size:10px;text-transform:uppercase;letter-spacing:.07em;color:var(--t2);margin-bottom:8px;'>Provider</div>"
@@ -390,13 +392,16 @@ function showProviderModal(){
     _pvStaged[selProv]=keyInp.value.trim();
     // Commit the staged keys into the live map now (E88) — this is the only place providerKeys is mutated.
     Object.keys(_pvStaged).forEach(function(pid){if(_pvStaged[pid])providerKeys[pid]=_pvStaged[pid];else delete providerKeys[pid];});
-    providerModels[selProv]=modelSel.value;activeProvider=selProv;apiKey=providerKeys[activeProvider]||"";
+    var _pick=providerModelChoiceRead(modelSel.value);/* #780: a row is a model, or a model and its thinking level */
+    providerModels[selProv]=_pick.model;if(_pick.level)providerThinking[selProv]=_pick.level;else delete providerThinking[selProv];
+    activeProvider=selProv;apiKey=providerKeys[activeProvider]||"";
     allowModelUpgrade=document.getElementById("pv-upgrade").checked;
     if(activeProvider==="anthropic"&&apiKey)store.set(AKK,apiKey);
     saveProviderSettings();
+    if(worldState&&typeof updateMemStatus==="function")updateMemStatus();/* #780: the session bar names the model and level in play - repaint it now, not at the next turn */
     var msg=document.getElementById("pv-msg");
     if(!apiKey){msg.textContent="No key set for "+PROVIDERS[activeProvider].label+".";msg.style.color="var(--red)";return;}
-    msg.textContent="Using "+PROVIDERS[activeProvider].label+" · "+modelSel.value;msg.style.color="var(--grn)";
+    msg.textContent="Using "+PROVIDERS[activeProvider].label+" · "+modelSel.options[modelSel.selectedIndex].text;msg.style.color="var(--grn)";
     setTimeout(function(){var m=document.getElementById("provider-modal");if(m)m.remove();},900);
   });
 }

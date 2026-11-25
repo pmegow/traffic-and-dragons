@@ -540,7 +540,7 @@ function updateCombat(){
 function activeModelLabel(){
   var prov=(typeof PROVIDERS!=="undefined"&&PROVIDERS[activeProvider])||null;if(!prov)return"";
   var m=(typeof providerModels!=="undefined"&&providerModels[activeProvider])||prov.defaultModel||"";
-  return String(m).replace(/^claude-/,"").replace(/-20\d{6}$/,"");
+  return String(m).replace(/^claude-/,"").replace(/-20\d{6}$/,"")+thinkingLabelFor(prov);/* #780: the thinking level in play, where the provider has levels */
 }
 function updateMemStatus(){if(!worldState)return;var dot=document.getElementById("memdot"),txt=document.getElementById("memstatus");var t=sessionTokens();dot.className=t>=SUMMARIZE_AT?"mdot c":t>=SUMMARIZE_AT*0.8?"mdot w":"mdot";var _al=(typeof membarActLabel==="function")?membarActLabel():null,actPart=_al?" | "+(_al.done?"<span class='mem-done'>":"")+escHtml(_al.text)+(_al.done?"</span>":""):"";/* #364 */var mdl=activeModelLabel();
 // #73 campaign clock: show the in-game day next to the turn counter. Same day number the clock

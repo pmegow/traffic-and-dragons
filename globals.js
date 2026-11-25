@@ -422,7 +422,16 @@ var PROVIDERS={
     // measured 0 thought tokens vs a median 275/call, ~35% less billable output, ~2x faster,
     // and MORE narration (thinking-on spends its budget deliberating instead of writing).
     // ⚠ "minimal" is NOT a legal tightening — this model rejects it with HTTP 400.
-    buildBody:function(msgs,sys,maxTok,model){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={thinkingConfig:{thinkingLevel:"low"}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
+    // #780 (owner 2026-11-24, "I want to see what the difference in play is"): the level is a CHOICE in
+    // the Language Model chooser, low by default — so nothing changes until the owner picks another.
+    // thinkingLevels is what 3.8-flash accepts (Google's thinking page, read 2026-11-24: low, medium,
+    // high; its own default is medium; minimal refused; 3.6-flash, the fallback rung, accepts all
+    // three too). thinkingKinds names the call kinds that TAKE the choice: the story turn alone. Every
+    // other kind keeps defaultThinking — the small no-history asks run on caps of a few hundred
+    // tokens that thinking shares (the #198 starvation class), and they are not the narration being
+    // compared. A caller that states no kind (the Blueprint Designer) gets the default.
+    thinkingLevels:["low","medium","high"],defaultThinking:"low",thinkingKinds:["turn"],
+    buildBody:function(msgs,sys,maxTok,model,kind){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={thinkingConfig:{thinkingLevel:thinkingLevelFor(PROVIDERS.gemini,kind)}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     // #621 (owner ruling 2026-10-12, "just use Gemini for this"): the vendor's image grammar is an inlineData
     // part beside the text part; the system prompt rides systemInstruction exactly as buildBody sends it, and
     // thinking stays low (the mandatory-thinking cost lesson above). buildBody is byte-untouched.
@@ -451,7 +460,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1487";
+var APP_VERSION="v1.1488";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -470,6 +479,32 @@ var providerKeys={};            // {providerId: apiKey}
 var gmRouting="auto";
 var serverAccount=null;
 var providerModels={};          // {providerId: modelOverride} — falls back to defaultModel
+// #780: the THINKING LEVEL a provider's story turns run at — {providerId: level}, per device
+// (PTHINK_K, state.js), set in the Language Model chooser. A provider offers levels by DECLARING
+// them (thinkingLevels, defaultThinking, thinkingKinds); one that declares none has none, and
+// nothing here names a provider. The four functions below are the only readers.
+var providerThinking={};
+// The level a call of this kind is sent at: the player's choice when the provider offers it AND
+// the kind takes it, else the provider's default. null for a provider without levels.
+function thinkingLevelFor(prov,kind){
+  if(!prov||!prov.thinkingLevels||!prov.thinkingLevels.length)return null;
+  var chosen=providerThinking[prov.id];
+  if((prov.thinkingKinds||[]).indexOf(kind)<0||prov.thinkingLevels.indexOf(chosen)<0)return prov.defaultThinking;
+  return chosen;
+}
+// What the session bar says after the model's name: " (medium)", or "" without levels.
+function thinkingLabelFor(prov){var l=thinkingLevelFor(prov,(prov&&prov.thinkingKinds||[])[0]);return l?" ("+l+")":"";}
+// The chooser's rows: one per model, or one per model AND level where the provider offers levels.
+// `value` is what the <select> carries; providerModelChoiceRead turns it back into its two halves.
+function providerModelChoices(prov){
+  var rows=[],L=(prov&&prov.thinkingLevels)||[],i,j;
+  for(i=0;i<prov.models.length;i++){
+    if(!L.length){rows.push({value:prov.models[i],label:prov.models[i],model:prov.models[i],level:null});continue;}
+    for(j=0;j<L.length;j++)rows.push({value:prov.models[i]+"|"+L[j],label:prov.models[i]+" ("+L[j]+")",model:prov.models[i],level:L[j]});
+  }
+  return rows;
+}
+function providerModelChoiceRead(value){var s=String(value),at=s.indexOf("|");return at<0?{model:s,level:null}:{model:s.slice(0,at),level:s.slice(at+1)};}
 // Per-turn model attribution (#45): the model id callGM resolved for the LAST GAMEPLAY call
 // (sysOverride calls — summarize/actions/skeleton/TT — never touch it). logTranscript stamps it
 // onto GM entries as the additive `m:` field so every narration is attributable to the model

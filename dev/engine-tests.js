@@ -5089,6 +5089,69 @@ function runEngineTests(R){
     }
     return true;
   });
+  // #780 (owner 2026-11-24: "add the three thought levels to the llm chooser ... I want to see what the
+  // difference in play is"): the chooser's level rides the GM STORY TURN only. Every other call kind
+  // keeps the #22 pin: the small no-history asks run on caps of a few hundred tokens that thinking
+  // shares (the #198 starvation class), and they are not what the owner is comparing.
+  t("#780 gemini thinking: the chosen level rides the story turn only, an unoffered level is never sent, every other kind stays low",function(){
+    var had=Object.prototype.hasOwnProperty.call(providerThinking,"gemini"),saved=providerThinking.gemini,P=PROVIDERS.gemini,sys={stable:"S",volatile:"V"},L=["low","medium","high"],others=["actions","summarize","skeleton","sync","talk","item-kind","other",undefined],i,j;
+    function lvl(kind){return P.buildBody([{role:"user",content:"hi"}],sys,1000,"gemini-3.8-flash",kind).generationConfig.thinkingConfig.thinkingLevel;}
+    try{
+      if(JSON.stringify(P.thinkingLevels)!==JSON.stringify(L))return "gemini offers "+JSON.stringify(P.thinkingLevels)+" (3.8-flash accepts low, medium, high; minimal is refused with HTTP 400)";
+      delete providerThinking.gemini;
+      if(lvl("turn")!=="low")return "with no choice stored a turn runs at '"+lvl("turn")+"' - the #22 default is low";
+      for(i=0;i<L.length;i++){
+        providerThinking.gemini=L[i];
+        if(lvl("turn")!==L[i])return "chose "+L[i]+", the turn was sent at '"+lvl("turn")+"'";
+        for(j=0;j<others.length;j++)if(lvl(others[j])!=="low")return "chose "+L[i]+": the '"+others[j]+"' call was sent at '"+lvl(others[j])+"' - only the story turn takes the choice";
+      }
+      providerThinking.gemini="minimal";
+      if(lvl("turn")!=="low")return "a level the provider does not offer was sent: '"+lvl("turn")+"'";
+      providerThinking.gemini="high";
+      var v=P.vision("s","t","image/png","AAAA",400,"gemini-3.8-flash").generationConfig.thinkingConfig.thinkingLevel;
+      if(v!=="low")return "the portrait vision call took the choice: '"+v+"'";
+      if(thinkingLevelFor(PROVIDERS.anthropic,"turn")!==null)return "a provider that declares no levels answered one: "+thinkingLevelFor(PROVIDERS.anthropic,"turn");
+      return true;
+    }finally{if(had)providerThinking.gemini=saved;else delete providerThinking.gemini;}
+  });
+  t("#780 callGM hands its call kind to every buildBody it calls (the first build and the fallback rung's rebuild)",function(){
+    var src=callGM.toString(),re=/prov\.buildBody\(([^)]*)\)/g,m,n=0,def=src.indexOf("var _kind=");
+    if(def<0)return "callGM no longer resolves _kind";
+    while((m=re.exec(src))){n++;
+      if(!/,_kind$/.test(m[1]))return "buildBody call "+n+" does not pass the call kind: ("+m[1]+")";
+      if(m.index<def)return "buildBody call "+n+" runs before the kind is resolved";}
+    return n>=2?true:"expected the first build and the fallback rebuild, found "+n+" buildBody call(s)";
+  });
+  t("#780 the model chooser lists one row per offered thinking level, and a plain row for a provider without levels",function(){
+    var g=providerModelChoices(PROVIDERS.gemini),a=providerModelChoices(PROVIDERS.anthropic),i;
+    if(g.length!==3)return "gemini rows: "+JSON.stringify(g);
+    for(i=0;i<3;i++){var lv=PROVIDERS.gemini.thinkingLevels[i];
+      if(g[i].model!=="gemini-3.8-flash"||g[i].level!==lv||g[i].label!=="gemini-3.8-flash ("+lv+")")return "row "+i+": "+JSON.stringify(g[i]);
+      var back=providerModelChoiceRead(g[i].value);if(back.model!==g[i].model||back.level!==lv)return "row "+i+" does not read back: "+JSON.stringify(back);}
+    if(a.length!==PROVIDERS.anthropic.models.length||a[0].level!==null||a[0].label!==a[0].model||a[0].value!==a[0].model)return "anthropic rows: "+JSON.stringify(a);
+    var plain=providerModelChoiceRead("claude-sonnet-5");
+    return plain.model==="claude-sonnet-5"&&plain.level===null?true:"a plain value read back as "+JSON.stringify(plain);
+  });
+  t("#780 the session bar names the level in play beside the model, and nothing for a provider without levels",function(){
+    var had=Object.prototype.hasOwnProperty.call(providerThinking,"gemini"),saved=providerThinking.gemini;
+    try{
+      delete providerThinking.gemini;if(thinkingLabelFor(PROVIDERS.gemini)!==" (low)")return "default label: '"+thinkingLabelFor(PROVIDERS.gemini)+"'";
+      providerThinking.gemini="high";if(thinkingLabelFor(PROVIDERS.gemini)!==" (high)")return "chosen label: '"+thinkingLabelFor(PROVIDERS.gemini)+"'";
+      return thinkingLabelFor(PROVIDERS.anthropic)===""?true:"anthropic label: '"+thinkingLabelFor(PROVIDERS.anthropic)+"'";
+    }finally{if(had)providerThinking.gemini=saved;else delete providerThinking.gemini;}
+  });
+  t("#780 a stored thinking level is kept across a load; one the provider no longer offers is dropped with a warning by name",function(){
+    var savedK=store.get(PTHINK_K),savedV=JSON.stringify(providerThinking),w,got;
+    try{
+      store.set(PTHINK_K,JSON.stringify({gemini:"medium"}));loadProviderSettings();
+      if(providerThinking.gemini!=="medium")return "a legal stored level was lost: "+JSON.stringify(providerThinking);
+      store.set(PTHINK_K,JSON.stringify({gemini:"minimal",nobody:"high"}));w=auditWarns(function(){loadProviderSettings();});got=JSON.stringify(providerThinking);
+      if(got!=="{}")return "an unoffered level or an unknown provider survived the load: "+got;
+      if(!w.some(function(x){return /minimal/.test(x);}))return "the drop must warn by name: "+JSON.stringify(w);
+      if(store.get(PTHINK_K)!=="{}")return "the healed map was not written back: "+store.get(PTHINK_K);
+      return true;
+    }finally{if(savedK===null||savedK===undefined)store.del(PTHINK_K);else store.set(PTHINK_K,savedK);providerThinking=JSON.parse(savedV);}
+  });
   // #198 (owner ruling 2026-08-20, live probe on the t2004 prompt): gpt-5.x reasoning bills
   // against max_completion_tokens — at the implicit medium a combat turn spent 1034 of its
   // tokens reasoning (variance 218–1034 on one prompt) and the 200-token suggestion call came

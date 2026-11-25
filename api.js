@@ -4001,8 +4001,8 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   // Hashed AFTER the reinforce append so what's checked is exactly what's sent.
   if(!sysOverride&&sys&&typeof sys!=="string")_checkStablePurity(sys.stable);
   var _tok=maxTok||1500;/* 1000→1500 (v1.540, user call): the cap is runaway insurance, not a style lever — the model never sees it, and at 1000 it was scissoring legitimate long prose turns mid-tag (the #132 field toast). #132's crumb frequency is the tuning gauge */if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
-  var body=prov.buildBody(msgs,sys,_tok,model);
-  var _kind=(opts&&opts.kind)||(sysOverride?"other":"turn");
+  var _kind=(opts&&opts.kind)||(sysOverride?"other":"turn");/* #780: resolved before the body is built - a provider may send a call kind its own way (the thinking level) */
+  var body=prov.buildBody(msgs,sys,_tok,model,_kind);
   var _tp=gmTransport(prov,model,key,_kind,sys);var url=_tp.url; // account mode rides the gateway; BYOK resolves the vendor endpoint exactly as before
   // #29 transport loop. The payload is serialized ONCE — a retried request is byte-identical,
   // so provider-side prompt caches see the same prefix on every attempt.
@@ -4054,7 +4054,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
         _fellBack=true;
         var _primary=model;
         model=prov.fallbackModel;
-        body=prov.buildBody(msgs,sys,_tok,model);
+        body=prov.buildBody(msgs,sys,_tok,model,_kind);
         _payload=JSON.stringify(body);
         _tp=gmTransport(prov,model,key,_kind,sys);url=_tp.url; // the rung rides the same transport (gateway or vendor) as the primary
         if(!sysOverride)_lastTurnModel=model; // #45: the transcript m: stamp must credit the model that actually wrote the turn
