@@ -36848,4 +36848,28 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return !/Stalgind/.test(JSON.stringify([doc,scene]))?true:"private hut leaked into the public landscape";
   });
 
+  section("#782 scrollbar contrast");
+  t("#782 a scrollbar is visible in both colour schemes: the handle contrasts with its groove (3:1 at least) and the groove is not the page colour (owner 2026-11-25, light mode: handle #b6a17a on a groove and page of #b0a68b)",function(){
+    var ih=__fsForTests.readFileSync(__rootForTests+"/index.html","utf8");
+    function block(re){var m=re.exec(ih);if(!m)return null;var o={},r=/(--[a-z0-9-]+):(#[0-9a-fA-F]{6})\b/g,x;while((x=r.exec(m[1])))o[x[1]]=x[2];return o;}
+    var dark=block(/:root\{([^}]*)\}/),light=block(/:root\[data-theme="light"\]\{([^}]*)\}/);
+    if(!dark||!light)return "the palette blocks were not found in index.html";
+    function lum(h){var c=[1,3,5].map(function(i){var v=parseInt(h.substr(i,2),16)/255;return v<=0.04045?v/12.92:Math.pow((v+0.055)/1.055,2.4);});return 0.2126*c[0]+0.7152*c[1]+0.0722*c[2];}
+    function ratio(a,b){var x=lum(a),y=lum(b);return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05);}
+    var re=/([^{}\n]*)::-webkit-scrollbar-(track|thumb)\{background:var\((--[a-z0-9-]+)\)/g,m,groups={},bad=[];
+    while((m=re.exec(ih))){var who=m[1].replace(/^.*\}/,"")||"general";if(!groups[who])groups[who]={};groups[who][m[2]]=m[3];}
+    var names=Object.keys(groups);
+    if(names.indexOf("general")<0)return "no general scrollbar colour rules found (found: "+names.join(", ")+")";
+    names.forEach(function(g){
+      var track=groups[g].track,thumb=groups[g].thumb;
+      if(!track||!thumb){bad.push(g+": no track or no thumb rule");return;}
+      if(track==="--bg0")bad.push(g+": the groove is the page colour (--bg0), so no groove shows");
+      [["dark",dark],["light",light]].forEach(function(p){
+        if(!p[1][track]||!p[1][thumb]){bad.push(g+" "+p[0]+": "+track+" or "+thumb+" is not a colour in that scheme");return;}
+        var r=ratio(p[1][thumb],p[1][track]);if(r<3)bad.push(g+" "+p[0]+": handle "+p[1][thumb]+" on groove "+p[1][track]+" is "+r.toFixed(2)+":1");
+      });
+    });
+    return bad.length?bad.join("; "):true;
+  });
+
 }
