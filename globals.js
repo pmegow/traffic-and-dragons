@@ -431,6 +431,10 @@ var PROVIDERS={
     // tokens that thinking shares (the #198 starvation class), and they are not the narration being
     // compared. A caller that states no kind (the Blueprint Designer) gets the default.
     thinkingLevels:["low","medium","high"],defaultThinking:"low",thinkingKinds:["turn"],
+    // #784: thought tokens are spent from maxOutputTokens. The cap (tokScale) was sized for low; at high a turn
+    // spent its 6,000 on thinking and was cut after its tags, before any story text. A higher level multiplies
+    // the cap of the calls that take it: 12,000 at medium, 24,000 at high (the model's limit is 65,536).
+    thinkingTokScale:{medium:2,high:4},
     buildBody:function(msgs,sys,maxTok,model,kind){var contents=[],i;for(i=0;i<msgs.length;i++){contents.push({role:msgs[i].role==="assistant"?"model":"user",parts:[{text:msgs[i].content}]});}var gc={thinkingConfig:{thinkingLevel:thinkingLevelFor(PROVIDERS.gemini,kind)}};if(maxTok)gc.maxOutputTokens=maxTok;return {systemInstruction:{parts:[{text:sysJoin(sys)}]},contents:contents,generationConfig:gc};},
     // #621 (owner ruling 2026-10-12, "just use Gemini for this"): the vendor's image grammar is an inlineData
     // part beside the text part; the system prompt rides systemInstruction exactly as buildBody sends it, and
@@ -460,7 +464,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1491";
+var APP_VERSION="v1.1492";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -493,6 +497,9 @@ function thinkingLevelFor(prov,kind){
   return chosen;
 }
 // What the session bar says after the model's name: " (medium)", or "" without levels.
+/* #784: how much more output room a call needs at the level it will be sent at - 1 for the default level, for a
+   call kind that does not take the choice, and for a provider that declares no scale. */
+function thinkingTokScaleFor(prov,kind){var l=thinkingLevelFor(prov,kind),s=prov&&prov.thinkingTokScale,v=(l&&s&&Object.prototype.hasOwnProperty.call(s,l))?Number(s[l]):1;return v>0?v:1;}
 function thinkingLabelFor(prov){var l=thinkingLevelFor(prov,(prov&&prov.thinkingKinds||[])[0]);return l?" ("+l+")":"";}
 // The chooser's rows: one per model, or one per model AND level where the provider offers levels.
 // `value` is what the <select> carries; providerModelChoiceRead turns it back into its two halves.

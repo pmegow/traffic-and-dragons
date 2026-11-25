@@ -5093,6 +5093,28 @@ function runEngineTests(R){
   // difference in play is"): the chooser's level rides the GM STORY TURN only. Every other call kind
   // keeps the #22 pin: the small no-history asks run on caps of a few hundred tokens that thinking
   // shares (the #198 starvation class), and they are not what the owner is comparing.
+  t("#784 gemini thinking: a turn at medium or high gets a larger output cap, because thought tokens are spent from it (field 2026-11-25: at high, turn 9 was cut after its tags and the story text never came)",function(){
+    var had=Object.prototype.hasOwnProperty.call(providerThinking,"gemini"),saved=providerThinking.gemini,P=PROVIDERS.gemini;
+    try{
+      if(typeof thinkingTokScaleFor!=="function")return "thinkingTokScaleFor is missing";
+      delete providerThinking.gemini;
+      if(thinkingTokScaleFor(P,"turn")!==1)return "at the default level the turn cap is scaled by "+thinkingTokScaleFor(P,"turn")+" - request bodies must stay as they were";
+      providerThinking.gemini="low";
+      if(thinkingTokScaleFor(P,"turn")!==1)return "low is the level the cap was sized for; it is scaled by "+thinkingTokScaleFor(P,"turn");
+      providerThinking.gemini="medium";var m=thinkingTokScaleFor(P,"turn");
+      providerThinking.gemini="high";var h=thinkingTokScaleFor(P,"turn");
+      if(!(m>=2))return "medium scales the turn cap by "+m+" - it needs at least twice the room";
+      if(!(h>m))return "high ("+h+") must get more room than medium ("+m+")";
+      if(1500*P.tokScale*h>65536)return "the high cap ("+(1500*P.tokScale*h)+") is over the model's output limit - Gemini would refuse the request";
+      if(thinkingTokScaleFor(P,"actions")!==1||thinkingTokScaleFor(P,"summarize")!==1||thinkingTokScaleFor(P,undefined)!==1)return "a call that does not take the chosen level had its cap scaled";
+      providerThinking.gemini="minimal";
+      if(thinkingTokScaleFor(P,"turn")!==1)return "a level the provider does not offer scaled the cap";
+      if(thinkingTokScaleFor(PROVIDERS.anthropic,"turn")!==1)return "a provider with no thinking levels had its cap scaled";
+      var src=__fsForTests.readFileSync(__rootForTests+"/api.js","utf8"),from=src.indexOf("var _tok=maxTok||1500;"),to=src.indexOf("var body=prov.buildBody(msgs,sys,_tok,model,_kind);");
+      if(from<0||to<from)return "callGM's cap and first build were not found";
+      return /_tok=Math\.round\(_tok\*thinkingTokScaleFor\(prov,_kind\)\)/.test(src.slice(from,to))?true:"callGM does not scale the cap before it builds the body";
+    }finally{if(had)providerThinking.gemini=saved;else delete providerThinking.gemini;}
+  });
   t("#780 gemini thinking: the chosen level rides the story turn only, an unoffered level is never sent, every other kind stays low",function(){
     var had=Object.prototype.hasOwnProperty.call(providerThinking,"gemini"),saved=providerThinking.gemini,P=PROVIDERS.gemini,sys={stable:"S",volatile:"V"},L=["low","medium","high"],others=["actions","summarize","skeleton","sync","talk","item-kind","other",undefined],i,j;
     function lvl(kind){return P.buildBody([{role:"user",content:"hi"}],sys,1000,"gemini-3.8-flash",kind).generationConfig.thinkingConfig.thinkingLevel;}

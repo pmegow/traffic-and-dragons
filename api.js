@@ -4002,6 +4002,7 @@ async function callGM(msg,sysOverride,maxTok,modelOverride,opts){
   if(!sysOverride&&sys&&typeof sys!=="string")_checkStablePurity(sys.stable);
   var _tok=maxTok||1500;/* 1000→1500 (v1.540, user call): the cap is runaway insurance, not a style lever — the model never sees it, and at 1000 it was scissoring legitimate long prose turns mid-tag (the #132 field toast). #132's crumb frequency is the tuning gauge */if(prov.tokScale!=null)_tok=prov.tokScale===0?null:Math.round(_tok*prov.tokScale);
   var _kind=(opts&&opts.kind)||(sysOverride?"other":"turn");/* #780: resolved before the body is built - a provider may send a call kind its own way (the thinking level) */
+  if(_tok!=null)_tok=Math.round(_tok*thinkingTokScaleFor(prov,_kind));/* #784: a turn sent at more thinking gets more room - thought tokens are spent from this cap */
   var body=prov.buildBody(msgs,sys,_tok,model,_kind);
   var _tp=gmTransport(prov,model,key,_kind,sys);var url=_tp.url; // account mode rides the gateway; BYOK resolves the vendor endpoint exactly as before
   // #29 transport loop. The payload is serialized ONCE — a retried request is byte-identical,
