@@ -586,22 +586,23 @@ var TTS = (function() {
      production reader passes its own (_voiceReader). */
   function _geminiGroupUnits(units, voiceId, voices, forceVoice, voiceFor, caps) {
     voiceFor = voiceFor || _geminiVoiceFor;
-    var groups = [], cur = null, useDir = !caps || caps.direction, useRate = !caps || caps.rate, useMood = !caps || caps.mood;
+    var groups = [], cur = null, useDir = !caps || caps.direction, useRate = !caps || caps.rate, useMood = !caps || caps.mood, useCast = !caps || caps.cast;
     for (var i = 0; i < units.length; i++) {
       var v = forceVoice || voiceFor((voices && voices[i]) || "", i);
       var t = units[i].text || "";
       var dir = (useDir && voices && ((voices.directions && voices.directions[i]) || voices.direction)) || "";/* #456: a character's delivery direction — a group never spans two; #774: `voices.direction` is the audition's uniform direction, like `voices.rate` */
       var rt = (useRate && voices && ((voices.rates && voices.rates[i]) || voices.rate)) || 0;/* #457: a character's speed — likewise; `voices.rate` is the audition's uniform speed */
       var md = (useMood && voices && voices.moods && voices.moods[i]) || "";/* #458: the line's mood — a group never spans two */
+      var cast = !!(useCast && voices && (voices[i] || voices.cast));/* #781: a CHARACTER speaks this unit (the map names a speaker; `voices.cast` is the sheet audition's uniform flag) - a group never mixes speech with narration for a reader that reads them differently */
       // #41b fast start: while building the FIRST group, the accumulation cap is small — the cold
       // open is gated on group 1's whole non-streaming synthesis, so a big opener means many
       // seconds of silence before the first sound. Later groups keep the big cap (call count).
       var cap = groups.length ? GEMINI_TTS_MAX_GROUP_CH : GEMINI_TTS_FAST_START_CH;
-      if (cur && cur.voice === v && (cur.direction || "") === dir && (cur.rate || 0) === rt && (cur.mood || "") === md && (cur.text.length + t.length + 1) <= cap) {
+      if (cur && cur.voice === v && (cur.direction || "") === dir && (cur.rate || 0) === rt && (cur.mood || "") === md && !!cur.cast === cast && (cur.text.length + t.length + 1) <= cap) {
         cur.text += " " + t; cur.last = units[i];
       } else {
         if (cur) groups.push(cur);
-        cur = { voice: v, text: t, last: units[i], direction: dir, rate: rt, mood: md };
+        cur = { voice: v, text: t, last: units[i], direction: dir, rate: rt, mood: md, cast: cast };
       }
     }
     if (cur) groups.push(cur);
@@ -683,7 +684,9 @@ var TTS = (function() {
   var INWORLD_SOUNDS = ["laugh", "giggle", "chuckle", "sigh", "breathe", "gasp", "clear throat", "cough", "yawn", "sob", "groan"];
   /* #774 (owner 2026-11-16, after the live A/B — "reasoning on was consistently better"; ruling: always reasoning): TTS-2's
      REASONING — a language model reads the line before synthesis and writes its own delivery instruction. It rides every
-     Inworld request. The request's `instruction` field is never sent: the A/B showed it switches reasoning off (both sent,
+     Inworld request for a CHARACTER's line; narration is read plain (#781, owner 2026-11-24: on a narrator passage the model
+     invented a character's delivery - "low, weary, like a tavern keeper hiding secrets" - and read it far slower than
+     Inworld's own sandbox; measured with dev/inworld-speed-probe.js). The request's `instruction` field is never sent: the A/B showed it switches reasoning off (both sent,
      no instruction came back). A character's own direction (the sheet's voiceDirection) is the NOTE the model reads
      (reasoningContext: never spoken, never billed, 600 characters at most — a longer one is refused by Inworld, so it is
      cut here). A line's mood still rides the text as a tag (#458): Inworld lets an inline tag outrank what reasoning wrote. */
@@ -702,12 +705,12 @@ var TTS = (function() {
     gemini: { label: "Google · Gemini TTS", key: true, credential: { store: "byok", key: "gemini", keepEmpty: true }, direction: true, languages: [""],
       note: "30 actors. Uses your existing Google key. Test bills that key. Backup Gemini model retains the cast.", catalog: function() { return GEMINI_VOICES; },
       defaults: function() { return { narrator: geminiNarratorVoice(), direction: geminiDirection() }; } },
-    inworld: { credential: { store: "voice", key: "inworld" }, keyHint: "Paste the encoded API key from Inworld, without the Basic prefix.", label: "Inworld · TTS-2", depth: 4, server: true,/* #622 (owner 2026-10-12, "the second reader when the credits allow"): the T&D server carries the entry; it is LISTED for a keyless player only while the account readout names it among narration.readers — i.e. once the operator sets INWORLD_API_KEY *//* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true,/* #774: no model-level `direction` — the model directs every line itself (reasoning); a character's own direction is the note it reads */ rate: true, unitRate: true, unitDirection: true,/* #481 E6 */ markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
+    inworld: { credential: { store: "voice", key: "inworld" }, keyHint: "Paste the encoded API key from Inworld, without the Basic prefix.", label: "Inworld · TTS-2", depth: 4, server: true,/* #622 (owner 2026-10-12, "the second reader when the credits allow"): the T&D server carries the entry; it is LISTED for a keyless player only while the account readout names it among narration.readers — i.e. once the operator sets INWORLD_API_KEY *//* #463 (owner on the Builder plan, 2026-09-25): 50 concurrent requests — four groups in flight hide the seam at a voice change; a skip aborts them all */ key: true,/* #774: no model-level `direction` — the model directs every line itself (reasoning); a character's own direction is the note it reads */ rate: true, unitRate: true, unitDirection: true,/* #481 E6 */ unitCast: true,/* #781: a character's line is a different request from narration (reasoning) - the two never share a group */ markups: true,/* #458: square-bracket steering tags ride the text */ sounds: INWORLD_SOUNDS,/* #462: non-verbal tags stand alone */ languages: ["", "en-US", "ko-KR"],
       delivery: ["STABLE", "BALANCED", "CREATIVE"],
-      note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. The model decides how to deliver each line; a character's own direction on its sheet guides it. Test bills your Inworld key.",
+      note: "Load your actor catalog to begin. Korean speech is available; this setting does not translate a campaign. Narration is read plainly. The model decides how to deliver each character's line; a character's own direction on its sheet guides it. Test bills your Inworld key.",
       defaults: function() { return { narrator: "", delivery: "STABLE" }; },
       auth: "Basic", accept: "application/json", endpoint: "https://api.inworld.ai/tts/v1/voice", catalogUrl: "https://api.inworld.ai/voices/v1/voices?pageSize=2000",
-      request: function(g, c, direction) { return { text: g.text, voiceId: g.voice, modelId: "inworld-tts-2", synthesisContext: _inworldReasoning(direction),/* #774: reasoning on every request; `instruction` is never sent — it switches reasoning off */
+      request: function(g, c, direction) { return { text: g.text, voiceId: g.voice, modelId: "inworld-tts-2", synthesisContext: g.cast ? _inworldReasoning(direction) : undefined,/* #781: reasoning for a character's line only - narration is read plain; #774: `instruction` is never sent — it switches reasoning off */
         deliveryMode: c.delivery, language: c.language || undefined, audioConfig: { audioEncoding: "PCM", sampleRateHertz: 24000, speakingRate: _effRate(c, g)/* #457 */ } }; },
       audio: function(r) { return r.json().then(function(j) { return _voiceDecode64(j.audioContent); }); },
       page: function(j) { return { voices: j.voices, next: j.nextPageToken || "" }; }, cursor: "pageToken",
@@ -744,7 +747,7 @@ var TTS = (function() {
       catalog: function() { return _voiceList().map(function(v) { return { id: v.name, label: v.name, note: v.lang }; }); },
       defaults: function() { return { narrator: getNativeVoice(), rate: getRate() }; } }
   };
-  function _unitCaps(id) { var m = VOICE_MODELS[id]; return { rate: !!(m && m.unitRate), direction: !!(m && m.unitDirection), mood: !!(m && m.markups) }; }/* #481 E6 */
+  function _unitCaps(id) { var m = VOICE_MODELS[id]; return { rate: !!(m && m.unitRate), direction: !!(m && m.unitDirection), mood: !!(m && m.markups), cast: !!(m && m.unitCast)/* #781 */ }; }/* #481 E6 */
   function _unitReaders(flag) { return Object.keys(VOICE_MODELS).filter(function(id) { return !!VOICE_MODELS[id][flag]; }).map(function(id) { return VOICE_MODELS[id].label; }); }
   function _voiceGender(g) { g = String(g || "").trim().toLowerCase(); return g === "male" || g === "m" ? "M" : g === "female" || g === "f" ? "F" : ""; }
   var VOICE_SETTINGS_MAX = 1048576;
@@ -1021,7 +1024,7 @@ var TTS = (function() {
     return r;
   }
   function _voiceLiveReader(id) { return _voiceReader(id, _voiceConfig(id), _voiceKey(id), false); }
-  function _voiceTest(d, text, actor, onPhase, charRate, charDirection) {/* #457: charRate rides the audition as a group rate — the validated model rate is never multiplied; #774: charDirection likewise, as the group's direction */
+  function _voiceTest(d, text, actor, onPhase, charRate, charDirection, cast) {/* #781: `cast` - the audition is a CHARACTER's (the sheet Test), so it is read as that character's lines are *//* #457: charRate rides the audition as a group rate — the validated model rate is never multiplied; #774: charDirection likewise, as the group's direction */
     var error = _voiceValidate(d); if (error) throw new Error(error);
     text = String(text || "").trim(); if (!text || text.length > 1000) throw new Error("Test passage must contain 1–1000 characters.");
     stop();
@@ -1029,7 +1032,7 @@ var TTS = (function() {
     var id = d.primary, c = JSON.parse(JSON.stringify(d.models[id]));
     _auditionCb = onPhase; _auditionPhase("loading");
     if (CLOUD_READERS[id]) {
-      _queue.push({ text: text, cloud: id, reader: _voiceReader(id, c, d.keys[id].trim(), true), forceVoice: actor || c.narrator, voiceId: "", voices: (charRate || charDirection) ? { rate: charRate || 0, direction: charDirection || "" } : null }); _drain();
+      _queue.push({ text: text, cloud: id, reader: _voiceReader(id, c, d.keys[id].trim(), true), forceVoice: actor || c.narrator, voiceId: "", voices: (charRate || charDirection || cast) ? { rate: charRate || 0, direction: charDirection || "", cast: !!cast } : null }); _drain();
     } else if (id === "native") {
       _auditionPhase("playing"); _queue.push({ text: text, native: true, audition: { voice: c.narrator, rate: c.rate } }); _drain();
     } else {
@@ -1055,7 +1058,7 @@ var TTS = (function() {
        Inworld catalog (no bench — the owner's ear found the catalog uniformly good). */
     { provider: "inworld", options: "catalog", speakerMap: true, field: "inworldVoiceId", label: "Inworld voice", service: "Inworld", key: "inworld-voice",
       catalog: function() { return _voiceCatalog("inworld", _voiceConfig("inworld")); },
-      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0, char.voiceDirection || "");/* #457; #774: the direction rides the audition's group, as it does in a read */ } },
+      test: function(char, actor, onPhase) { var d = _voiceDraft(); d.primary = "inworld"; actor = actor || _voiceActor("inworld", char.voiceId || autoCastVoiceId(char) || resolvePiperVoice(), d.models.inworld); d.models.inworld.narrator = actor; _voiceTest(d, TTS_TEST_LINE, actor, onPhase, Number(char.voiceRate) || 0, char.voiceDirection || "", true);/* #457; #774: the direction rides the audition's group, as it does in a read */ } },
     { provider: "piper", options: "backup", speakerMap: false, field: "voiceId", label: "Backup voice", service: "Piper", key: "voice", catalog: starsList, defaultCatalog: function() { return DEFAULT_SPEAKER_STARS; },
       test: function(char, actor) { testVoice(actor || autoCastVoiceId(char) || resolvePiperVoice()); }, release: releaseVoiceIfUnused }
   ];

@@ -196,7 +196,7 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   assert.deepEqual(bodies.map(function(b){return b.text;}),['First line.','[speak surprised] [laugh] Second line.','[laugh] Third line.']);
   var sp=TTS.settings.models.speechify.request({text:'Second line.',voice:'a',mood:'surprised, laugh'},{rate:1});assert.ok(sp.input.indexOf('[')<0,'speechify body carries a bracket: '+sp.input);
  });
- await test('#774 every Inworld request asks the model to direct the line (reasoning): no instruction field, a character\'s own direction rides as the note, a saved model-level direction never rides, the note is cut at 600, and the sheet Test carries the note',async function(){
+ await test('#774 every Inworld character line asks the model to direct it (reasoning): no instruction field, a character\'s own direction rides as the note, a saved model-level direction never rides, the note is cut at 600, and the sheet Test carries the note',async function(){
   var d=draft('inworld');d.models.inworld.rate=1;d.models.inworld.direction='STALE MODEL DIRECTION';d.models.inworld.voices=[{id:'a',label:'A',g:'F'},{id:'b',label:'B',g:'M'},{id:'c',label:'C',g:'F'}];d.models.inworld.narrator='a';S.save(d);
   var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
   TTS.speak('First line. Second line.',null,{0:'en_GB-alba-medium',1:'en_GB-alba-medium',providers:{inworld:{0:'b',1:'c'}},directions:{1:'gruff and unhurried'}});await sleep(40);
@@ -204,12 +204,33 @@ function draft(id){const d=S.draft();d.primary=id;d.keys[id]='fixture';d.models[
   bodies.forEach(function(b,i){assert.ok(!('instruction' in b),'request '+i+' carries the instruction field, which switches reasoning off: '+JSON.stringify(b.instruction));assert.equal(b.synthesisContext&&b.synthesisContext.reasoning,'REASONING_ON','request '+i+' does not ask for reasoning: '+JSON.stringify(b.synthesisContext));});
   assert.equal(bodies[0].synthesisContext.reasoningContext,undefined,'an undirected line carries no note - a saved model-level direction must never ride: '+bodies[0].synthesisContext.reasoningContext);
   assert.equal(bodies[1].synthesisContext.reasoningContext,'How this character speaks: gruff and unhurried','the character\'s direction is the note the model reads');
-  var long=TTS.settings.models.inworld.request({text:'Line.',voice:'a'},{rate:1},new Array(701).join('x'));
+  var long=TTS.settings.models.inworld.request({text:'Line.',voice:'a',cast:true},{rate:1},new Array(701).join('x'));
   assert.equal(long.synthesisContext.reasoningContext.length,600,'Inworld refuses a note over 600 characters - it is cut, got '+long.synthesisContext.reasoningContext.length);
   bodies=[];var iw=TTS.characterVoiceSlots().filter(function(s){return s.provider==='inworld';})[0];
   iw.test({name:'Daeris',gender:'F',inworldVoiceId:'a',voiceDirection:'gruff'},'a',function(){});await sleep(40);
   assert.equal(bodies.length,1,'no Inworld audition request');assert.equal(bodies[0].synthesisContext.reasoningContext,'How this character speaks: gruff','the sheet Test reads without the character\'s note');
   assert.ok(!TTS.settings.models.inworld.direction,'the Inworld entry still declares a model-level direction field - Voice Settings would show a control nothing reads');
+ });
+ await test('#781 Inworld narration is read plain: reasoning rides a character\'s lines only, a character sharing the narrator\'s actor still gets its own request, the Voice Settings Test reads as narration and the sheet Test as a character',async function(){
+  var d=draft('inworld');d.models.inworld.rate=1;S.save(d);
+  var bodies=[];global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return {ok:true,json:async function(){return {audioContent:Buffer.from([0,0,255,127]).toString('base64')};}};};
+  TTS.speak('First line. Second line.');await sleep(40);
+  assert.equal(bodies.length,1,'fixture: narration alone is one request, got '+bodies.length);
+  assert.ok(!('synthesisContext' in bodies[0]),'narration asks the model to direct it - it invents a character\'s delivery for the narrator: '+JSON.stringify(bodies[0].synthesisContext));
+  /* The character is pinned to the narrator's own actor ('a'): one voice, two kinds of line, two requests. */
+  bodies=[];TTS.stop();TTS.speak('First line. Second line. Third line.',null,{1:'en_GB-alba-medium',providers:{inworld:{1:'a'}}});await sleep(40);
+  assert.deepEqual(bodies.map(function(b){return b.voiceId;}),['a','a','a'],'fixture: three requests on one actor, got '+JSON.stringify(bodies.map(function(b){return b.text;})));
+  assert.deepEqual(bodies.map(function(b){return b.synthesisContext?b.synthesisContext.reasoning:'none';}),['none','REASONING_ON','none'],'a character\'s line sharing the narrator\'s actor must be its own directed request, the narration around it plain');
+  bodies=[];TTS.stop();S.test(d,'The lamps gutter.','a',function(){});await sleep(40);
+  assert.equal(bodies.length,1,'no Voice Settings Test request');assert.ok(!('synthesisContext' in bodies[0]),'the Voice Settings Test auditions the narrator - it must read plain, as narration does');
+  bodies=[];TTS.stop();var iw=TTS.characterVoiceSlots().filter(function(s){return s.provider==='inworld';})[0];
+  iw.test({name:'Daeris',gender:'F',inworldVoiceId:'a'},'a',function(){});await sleep(40);
+  assert.equal(bodies.length,1,'no sheet Test request');assert.equal(bodies[0].synthesisContext&&bodies[0].synthesisContext.reasoning,'REASONING_ON','the sheet Test auditions a character with no direction and no speed - it must still be directed, as that character\'s lines are');
+  assert.equal(TTS.settings.models.inworld.unitCast,true,'Inworld must declare that it reads a character\'s line differently from narration');assert.ok(!TTS.settings.models.speechify.unitCast,'Speechify reads narration and speech alike - the flag would split its requests for nothing');
+  /* A reader that does not declare the flag never splits narration from speech on one actor. */
+  var sd=draft('speechify');S.save(sd);bodies=[];TTS.stop();global.fetch=async function(u,o){bodies.push(JSON.parse(o.body));return pcm();};
+  TTS.speak('First line. Second line. Third line.',null,{1:'en_GB-alba-medium',providers:{speechify:{1:'a'}}});await sleep(40);
+  assert.equal(bodies.length,1,'Speechify split one actor\'s narration and speech into '+bodies.length+' requests');
  });
  console.log((process.exitCode?'FAILED':'ALL GREEN')+' — '+passed+' character-voice integration groups');
 })().catch(e=>{console.error(e);process.exitCode=1});
