@@ -660,6 +660,7 @@ function migrateWorldState(){
   if(typeof identityAliasAudit==="function"&&identityAliasAudit())_mig=true;
   if(typeof atlasHeal==="function"&&atlasHeal())_mig=true;/* #684: the atlas store's shape at every load door — an unreadable one is set aside, loudly */
   if(typeof itemKindsHeal==="function"&&itemKindsHeal(worldState))_mig=true;/* #776: the item-section answers — a record that cannot be read is dropped (said) and the item is asked again */
+  if(typeof namesHeal==="function"&&!worldState.nameGate){namesHeal(worldState,memory);_mig=true;}/* #786: a world saved before the name gate - every character play has touched counts as named, once */
   if(typeof stashJournalEnsure==="function"&&stashJournalEnsure(worldState,false))_mig=true;
   /* #100: class rename + spell-label re-sync — player and every NPC sheet (companions AND former
      companions keep working). Both are display-half heals; the injected canon was never wrong. */

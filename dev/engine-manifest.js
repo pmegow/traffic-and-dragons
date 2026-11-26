@@ -50,6 +50,7 @@ var ENGINE_MANIFEST = [
   { file: "atlas-ground.js", sym: "atlasGroundSettle" },
   { file: "atlas-public-region.js", sym: "atlasRegionSettle" },
   { file: "atlas-public.js",       sym: "atlasPublicEnable" },
+  { file: "npc-names.js",          sym: "namesObserve" },/* #786: whether the hero has been given a character's name */
   { file: "admission.js",          sym: "sheetAdmit" },/* #599 (b): ONE sheet admission registry, every door */
   { file: "item-kinds.js",         sym: "itemKindsSettle" },/* #776: the story files a carried item under its obvious inventory section */
   { file: "tag_table.js",          sym: "TAG_TABLE" },

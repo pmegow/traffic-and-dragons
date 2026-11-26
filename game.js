@@ -18,7 +18,7 @@ function startGame(char,toneName,toneVoice,authorId){
   // snapshotted and "New Game" deleted it with no save. The import/campNew paths already mint one.
   var _aid=getActiveCampId();if(!_aid||campaignIdOccupied(_aid))setActiveCampId(newCampaignId());/* E13b: never inherit an OCCUPIED id — a new campaign is a new campaign */
   campaignEpochBump();/* audit X: a new game is another state, even when it takes the id that was active */
-  worldState={ver:SAVE_VER,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */
+  worldState={ver:SAVE_VER,campId:getActiveCampId(),campName:char._campName||char.name,legacyCharsUsed:[],pendingLegacy:null,character:char,world:{location:char._startLoc||"The Crossroads of Ashenveil",region:"The Blighted Reach",time:"dusk",weather:"cold wind carrying ash",threat:"low",sublocation:null},tone:{name:toneName||"Sword and Sorcery",voice:toneVoice||""},npcs:[],questLog:[],eventHistory:[],combat:null,turn:0,transcript:[],actStartTurn:0,nameGate:1,clock:{min:12*MIN_PER_HOUR,schedule:[]}};/* #786: nameGate - a character is called by a description until the story gives the name *//* #73: new campaigns open at the declared dusk; rendered time derives from this scalar */
   /* #354: the preset carries the opening hour — the clock is engine-owned, so the preset sets it (never the GM) */
   if(typeof char._startHour==="number"){worldState.clock={min:startClockMin(char._startHour),schedule:[]};worldState.world.time=clockHourLabel(char._startHour);}
   delete worldState.character._startLoc;delete worldState.character._campName;delete worldState.character._startHour;
@@ -49,6 +49,7 @@ function startGame(char,toneName,toneVoice,authorId){
   catch(_ae){delete worldState.atlas;atlasProblem("starting the public map",_ae);}
   seatRecordPeopleFromLibrary();/* #623: the hero's own people, from their library sheets, before the opening is written */
   if(typeof guestbookSeedStart==="function")guestbookSeedStart();/* #173: the creation-time party stands at the opening node — turn-0 provenance (runs even when a blueprint pre-seeded the node: the party is there either way) */
+  if(typeof namesBegin==="function")namesBegin();/* #786: a backstory bond is someone the hero knows by name */
   saveAll();showGame();syncUI();initAbilities();initSpells();
   if(typeof takeCheckpoint==="function")takeCheckpoint("campaign start");/* #300: the campaign start is the first camp — a hero who dies before ever resting has somewhere to wake */
   addMsg("system",char.name+" the "+char.cls+" enters the world.");
@@ -2829,6 +2830,7 @@ function commitGmTurn(resp,opts){
   if(typeof erCrumb==="function")erCrumb("turn","t"+worldState.turn+" "+String(resp||"").length+"ch");
   var clean=cleanTxt(resp),dice=diceTxt(resp),_bookkeeping=isBookkeepingResponse(resp,clean,dice);
   if(!o.isOpening&&!_refusal&&typeof observeDriftAxes==="function")observeDriftAxes(resp,clean);/* #197: refusal text is meta-voice, not narration — no drift-axis candidates from it */
+  if(!_refusal&&typeof namesObserve==="function")namesObserve(resp,clean,worldState.turn);/* #786: a name said aloud is given; a name the narrator or a button used before that arms the note. The opening is read too */
   // UA6: persist HISTORY before any display step. applyMuts' trailing saveAll already
   // persisted the mutated state, so a throw in addMsg/TTS used to strand a saved state
   // whose sessionLog/transcript lacked this GM turn — next prompt desynced from state,

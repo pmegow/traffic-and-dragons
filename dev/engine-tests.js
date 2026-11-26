@@ -9732,7 +9732,7 @@ function runEngineTests(R){
     // #408 (v1.926): +LAYOUT strip entry — source grew exactly 7 chars = "LAYOUT|". The room graph is engine-only in the
     // doc (the doc golden is byte-unchanged) but MUST strip: a leaked [LAYOUT:] would read the floor plan aloud in TTS
     // and put it in the transcript's clean text. Golden diffed by eye in the same commit.
-    if(__djb2(_CT_TAGS.source)!==785192134||_CT_TAGS.source.length!==1893)return "_CT_TAGS diverged from the frozen literal";/* #751 (v1.1426): ABILITY_USED and COMPANION_ABILITY_USED join the strip vocabulary (+36, after SPELL_USED; the golden diffed on exactly those two names) */ /* #743 (v1.1419): FORM joins the strip vocabulary (+5 = "FORM|", after COMBAT_GROUP; the name list diffed: one added, none removed, order kept) *//* MAP_REVEAL is stripped in every channel; only a canonical narrated commit publishes its validated readable receipt. *//* #702 (v1.1362): MAP_PLACE joins the strip vocabulary (+10) *//* #612 (v1.1241): COMBAT_GROUP joins the strip vocabulary (+13) *//* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
+    if(__djb2(_CT_TAGS.source)!==-203260799||_CT_TAGS.source.length!==1915)return "_CT_TAGS diverged from the frozen literal";/* #786 (v1.1494): NPC_NAMED and NPC_SEEN_AS join the strip vocabulary (+22, after NPC_PRONOUN; the golden diffed on exactly those two names) *//* #751 (v1.1426): ABILITY_USED and COMPANION_ABILITY_USED join the strip vocabulary (+36, after SPELL_USED; the golden diffed on exactly those two names) */ /* #743 (v1.1419): FORM joins the strip vocabulary (+5 = "FORM|", after COMBAT_GROUP; the name list diffed: one added, none removed, order kept) *//* MAP_REVEAL is stripped in every channel; only a canonical narrated commit publishes its validated readable receipt. *//* #702 (v1.1362): MAP_PLACE joins the strip vocabulary (+10) *//* #612 (v1.1241): COMBAT_GROUP joins the strip vocabulary (+13) *//* #481 B4 (2026-09-30): SHOP_KEEPER joins the strip vocabulary (+12) *//* audit 2026-09-18 A10: the body quantifier is `*` (an empty [HP:] strips too) — same length, new hash; golden re-baselined in the same commit *//* #415 (v1.949): EXIT joins the strip vocabulary (+5) *//* #388 (v1.869): WORN + OUTFIT join the strip vocabulary (+12). *//* #386 (v1.867): COMPANION_INITIATIVE joins the strip vocabulary. *//* #370 (v1.855): COMPANION_GROWTH joins the strip vocabulary. *//* #357 (v1.841): COMPANION_SKILL_SUCCESS joins the strip vocabulary (+24 chars = "COMPANION_SKILL_SUCCESS|"). *//* #329 (v1.805): CHECK joins the strip vocabulary. *//* #328 (v1.804): SUGGEST joins the strip vocabulary. *//* #317/#207 (v1.785): WHISPER + LOCATION_HOURS join the strip vocabulary; the LOCATION_HOURS doc line lands (WHISPER is engine-only). *//* #301 (v1.775): DEATH_ANSWER joins the strip vocabulary (+13 chars). *//* #300 (v1.774): DOWNED_RESOLVED joins the strip vocabulary (+16 chars). *//* #303 (v1.772): WARES + WANTED join the strip vocabulary (+13 chars = "WARES|WANTED|"). *//* #216 (v1.700): TIME_CHECK joins the strip vocabulary (+11 chars). *//* #168 W7: explicit bond/dynamic/pair-removal tags for player and companion; compatibility tags remain stripped. */
     return _CT_BARE.source==="\\[(ENEMY_SURRENDERS|ENEMY_SLAIN|SUBLOCATION_LEAVE|NO_CHANGE)\\]"?true:"_CT_BARE diverged";/* v1.463: bare ENEMY_SLAIN strips (unsupported form — warn + no-op, but never leaks) */
   });
   t("the cast-cost prohibition rides the SPELL_USED doc line; the [MANA:] external-effects line exists (#138 narrowing of the v1.555 clause)",function(){
@@ -36943,6 +36943,153 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     var k=a.indexOf("async function callGM("),cb=a.slice(k);
     if(!/if\(_kind==="turn"\)gmTurnFinish=null;/.test(cb))return "callGM does not clear the last turn's finish when a new story-turn call starts - a failed call would leave a stale verdict";
     return /if\(_kind==="turn"\)gmTurnFinish=_fi;/.test(cb)?true:"callGM does not record a story turn's finish (and only a story turn's: other kinds run beside a turn and would overwrite it)";
+  });
+
+
+  // ── #786 a character is called by a description until the story gives the name ──────────────
+  section("#786 a name is written only after the story gives it");
+  function q786(fn){return quiet(fn).r;}
+  function names786(){
+    makeWorld();worldState.nameGate=1;worldState.turn=2;
+    worldState.npcs.push({name:"Farren Rushmere",status:"hostile",rel:"enemy",met:2,partyMember:false,aliases:[]});
+    worldState.npcs.push({name:"Ebonfeather",rel:"unknown",met:0,partyMember:false,aliases:[]});
+    worldState.npcs.push({name:"The Forest King",rel:"unknown",met:0,partyMember:false,aliases:[]});
+    worldState.npcs.push({name:"Brannoc",status:"ally",rel:"companion",met:0,partyMember:true,aliases:[]});
+  }
+  var T2_786="\"Stand down, intruder,\" the guard murmurs, their pale yellow eyes unblinking beneath the swept feather crest. High above, the cloaked raven watches.";
+  var T4_786="Your heavy iron bites through Farren's woven reed mantle. \"Iron and fury,\" the heron guard breathes. Upon his ironwood bough, Ebonfeather unfurls broad black wings.";
+  t("#786 nameWords keeps the words that identify a person: a title, a short word and a description name are not one",function(){
+    if(nameWords("Farren Rushmere").join("|")!=="Farren|Rushmere")return "full name: "+nameWords("Farren Rushmere").join("|");
+    if(nameWords("Princess Willow").join("|")!=="Willow")return "a title is not the name: "+nameWords("Princess Willow").join("|");
+    if(nameWords("The Forest King").length)return "a name that opens with 'the' is a description";
+    if(nameWords("Old Mother").length)return "titles alone identify nobody";
+    if(nameHit("the weeping willows bend","Princess Willow"))return "a lower-case word inside another word is not the name";
+    if(nameHit("Farren's mantle","Farren Rushmere")!=="Farren")return "a possessive is the name";
+    if(nameHit("Farrenton lies north","Farren Rushmere"))return "a longer word is not the name";
+    return true;
+  });
+  t("#786 nameProseSplit separates what is said from what is told",function(){
+    var p=nameProseSplit("He nods. \"I am Dael,\" he says. Farren waits.\n\n“Come,” says the guard.");
+    if(p.said.indexOf("Dael")<0||p.said.indexOf("Come")<0)return "said: "+p.said;
+    if(p.told.indexOf("Dael")>=0||p.told.indexOf("Farren")<0)return "told: "+p.told;
+    p=nameProseSplit("\"An open quotation runs on\n\nFarren waits.");
+    return p.told.indexOf("Farren")>=0?true:"a blank line ends an open quotation: "+JSON.stringify(p);
+  });
+  t("#786 npcNameKnown: nothing is held back without the gate; under it a registered stranger is not known, and a party member, a resident, a description name and a backstory bond at Begin are",function(){
+    names786();var far=wsNpcByName("Farren Rushmere");
+    delete worldState.nameGate;if(!npcNameKnown(far))return "no gate: every name is known";
+    worldState.nameGate=1;
+    if(npcNameKnown(far))return "a registered stranger's name is not the hero's";
+    if(!npcNameKnown(wsNpcByName("Brannoc")))return "a party member is known";
+    if(!npcNameKnown(wsNpcByName("The Forest King")))return "a description name is never held back";
+    far.resident=true;if(!npcNameKnown(far))return "a resident is known";delete far.resident;
+    worldState.character.relationships=[{entity:"Farren Rushmere",bond:"Old rival"}];
+    if(npcNameKnown(far))return "a relationship the story filed in play says nothing about a name (the field save: a bond filed for a guard nobody had named)";
+    if(namesBegin()!==1||!npcNameKnown(far))return "at Begin a backstory bond is someone the hero knows by name";
+    delete far.nameGiven;worldState.character.relationships=[];far.nameGiven=3;
+    return npcNameKnown(far)?true:"a given name is known";
+  });
+  t("#786 the FIELD case: the registration turn is clean, the next turn's narration uses the name - a slip is filed and the note armed; a name inside quotation marks is given",function(){
+    names786();var far=wsNpcByName("Farren Rushmere"),eb=wsNpcByName("Ebonfeather"),r;
+    r=q786(function(){return namesObserve(T2_786,T2_786,2);});
+    if(r.slips.length||r.given.length||worldState.namePing)return "a clean turn files nothing: "+JSON.stringify(r);
+    r=q786(function(){return namesObserve(T4_786,T4_786,4);});
+    if(r.slips.length!==2)return "both names were used by the narrator: "+JSON.stringify(r);
+    if(!worldState.namePing||worldState.namePing.slips[0].name!=="Farren Rushmere"||worldState.namePing.slips[0].word!=="Farren")return "ping: "+JSON.stringify(worldState.namePing);
+    if(far.nameGiven||eb.nameGiven||far.nameSlips!==1)return "a slip does not give the name: "+JSON.stringify(far);
+    r=q786(function(){return namesObserve("x","\"Farren, hold the line!\" a pikeguard cries.",5);});
+    if(far.nameGiven!==5||r.given[0]!=="Farren Rushmere")return "a name spoken aloud is given: "+JSON.stringify(far);
+    return eb.nameGiven?"Ebonfeather was never said":true;
+  });
+  t("#786 a button that uses the name is a slip too; after NAME_SLIP_MAX corrections the engine counts the name as read and stops asking",function(){
+    names786();var far=wsNpcByName("Farren Rushmere"),r,i;
+    r=q786(function(){return namesObserve("The guard waits. [SUGGEST:Accept Farren's terms|Strike the guard|Withdraw]","The guard waits.",3);});
+    if(r.slips.length!==1||r.slips[0].word!=="Farren")return "button slip: "+JSON.stringify(r);
+    for(i=0;i<NAME_SLIP_MAX-1;i++)quiet(function(){namesObserve("","Farren waits.",4+i);});
+    if(far.nameGiven)return "still asked at the cap";
+    delete worldState.namePing;
+    r=q786(function(){return namesObserve("","Farren waits.",9);});
+    if(!far.nameGiven||far.nameGivenBy!=="use")return "past the cap the name counts as read: "+JSON.stringify(far);
+    return worldState.namePing?"no further note once the name counts as read":true;
+  });
+  t("#786 [NPC_NAMED:] gives the name and [NPC_SEEN_AS:] files the description; both strip from prose, both are engine-only in the standing doc, an unknown character is refused loudly",function(){
+    names786();var d0=buildStateTagsDoc(),r;
+    r=quiet(function(){return applyMuts("[NPC_SEEN_AS:Farren Rushmere|\"the heron-crested guard\"]");});
+    var far=wsNpcByName("Farren Rushmere");
+    if(far.seenAs!=="the heron-crested guard")return "seenAs: "+JSON.stringify(far.seenAs);
+    if(far.nameGiven)return "a description does not give the name";
+    worldState.turn=6;quiet(function(){applyMuts("[NPC_NAMED:Farren Rushmere]");});
+    if(far.nameGiven!==6)return "NPC_NAMED: "+JSON.stringify(far);
+    var w=[],ow=console.warn;console.warn=function(m){w.push(String(m));};
+    try{applyMuts("[NPC_NAMED:Nobody Atall] [NPC_SEEN_AS:Nobody Atall|a shadow]");}finally{console.warn=ow;}
+    if(wsNpcByName("Nobody Atall"))return "a name tag must never register a character";
+    if(w.filter(function(m){return /NPC_NAMED|NPC_SEEN_AS/.test(m);}).length<2)return "an unknown character must be refused loudly: "+JSON.stringify(w);
+    quiet(function(){applyMuts("[NPC_SEEN_AS:Ebonfeather|Ebonfeather the raven]");});
+    if(wsNpcByName("Ebonfeather").seenAs)return "a description that carries the name is refused";
+    if(cleanTxt("A [NPC_NAMED:x] B [NPC_SEEN_AS:x|y] C")!=="A  B  C")return "not stripped: "+cleanTxt("A [NPC_NAMED:x] B [NPC_SEEN_AS:x|y] C");
+    if(TAG_DOC_ENGINE_ONLY.indexOf("NPC_NAMED")<0||TAG_DOC_ENGINE_ONLY.indexOf("NPC_SEEN_AS")<0)return "both tags are engine-only";
+    return buildStateTagsDoc()===d0&&d0.indexOf("NPC_NAMED")<0&&d0.indexOf("NPC_SEEN_AS")<0?true:"the standing doc must not carry them";
+  });
+  t("#786 buildNameSlipNote fires once, names the character, the word and the description, teaches both tags, and is registered",function(){
+    names786();wsNpcByName("Farren Rushmere").seenAs="the heron-crested guard";
+    quiet(function(){namesObserve(T4_786,T4_786,4);});
+    var n=buildNameSlipNote();
+    if(n.indexOf("Farren Rushmere")<0||n.indexOf("'Farren'")<0||n.indexOf("the heron-crested guard")<0)return "note: "+n;
+    if(n.indexOf("[NPC_NAMED:")<0||n.indexOf("[NPC_SEEN_AS:")<0)return "the note teaches both tags: "+n;
+    if(worldState.namePing||buildNameSlipNote()!=="")return "one shot";
+    quiet(function(){namesObserve(T4_786,T4_786,5);});wsNpcByName("Farren Rushmere").nameGiven=5;wsNpcByName("Ebonfeather").nameGiven=5;
+    if(buildNameSlipNote()!=="")return "a name given since the slip is not corrected";
+    return NOTE_BUILDERS.indexOf(buildNameSlipNote)>=0&&NOTE_SHAPES.buildNameSlipNote&&NOTE_LATCH_FIELDS.indexOf("namePing")>=0?true:"not registered";
+  });
+  t("#786 buildNamesBlock: nothing without the gate; under it the rule, the two tags and the characters not yet given with their descriptions - volatile half only, the stable half byte-identical",function(){
+    names786();wsNpcByName("Farren Rushmere").seenAs="the heron-crested guard";
+    var on=buildSysPrompt(),b=buildNamesBlock();
+    if(b.indexOf("NOT YET GIVEN")<0||b.indexOf("Farren Rushmere (write: the heron-crested guard)")<0||b.indexOf("Ebonfeather")<0)return "block: "+b;
+    if(b.indexOf("The Forest King")>=0||b.indexOf("Brannoc")>=0)return "a known name is not listed: "+b;
+    if(b.indexOf("[NPC_NAMED:")<0||b.indexOf("[NPC_SEEN_AS:")<0)return "the block teaches both tags";
+    if(b.indexOf("Farren Rushmere")>b.indexOf("Ebonfeather"))return "a character play has touched leads the list: "+b;
+    if(on.volatile.indexOf(b)<0)return "the block rides the volatile half";
+    if(on.stable.indexOf("NOT YET GIVEN")>=0||on.stable.indexOf("NPC_SEEN_AS")>=0)return "leaked into the stable half";
+    delete worldState.nameGate;var off=buildSysPrompt();
+    if(buildNamesBlock()!=="")return "no gate, no block";
+    if(off.volatile.indexOf("NAMES THE HERO")>=0)return "no gate, nothing in the prompt";
+    return on.stable===off.stable?true:"the stable half changed";
+  });
+  t("#786 the load door: a world saved before the gate counts every character play has touched as named, leaves a seeded stranger held back, and runs once",function(){
+    names786();delete worldState.nameGate;
+    memory.npcs["Ebonfeather"]={attitude:"",knowledge:[],events:[]};
+    var c=namesHeal(worldState,memory);
+    if(c<1||!worldState.nameGate)return "healed "+c+" gate "+worldState.nameGate;
+    if(wsNpcByName("Farren Rushmere").nameGiven!==2)return "a met character is named at the turn it was met";
+    if(wsNpcByName("Ebonfeather").nameGiven)return "a seeded character nobody has met is still held back";
+    wsNpcByName("Ebonfeather").met=5;
+    if(namesHeal(worldState,memory)!==0||wsNpcByName("Ebonfeather").nameGiven)return "the heal runs once";
+    var rt=parseWorldState(serializeWorldState(worldState)),far=null,i;
+    for(i=0;i<rt.npcs.length;i++)if(rt.npcs[i].name==="Farren Rushmere")far=rt.npcs[i];
+    return rt.nameGate===1&&far&&far.nameGiven===2?true:"the record must survive a save: "+JSON.stringify(far);
+  });
+  t("#786 the panels print the description until the name is given: the World State rows and a foe's on-screen name; the row keeps the real name as its key",function(){
+    names786();var far=wsNpcByName("Farren Rushmere");far.seenAs="the heron-crested guard";
+    wsNpcByName("Ebonfeather").met=3;var rows=worldStateNpcRows(worldState.npcs,memory.npcs,null),row=null,i;
+    for(i=0;i<rows.length;i++)if(rows[i].name==="Farren Rushmere")row=rows[i];
+    if(!row||row.shown!=="the heron-crested guard")return "row: "+JSON.stringify(rows);
+    if(rows.filter(function(x){return x.name==="Ebonfeather"&&x.shown===NAME_UNNAMED_LABEL;}).length!==1)return "a met character with no description shows the plain label: "+JSON.stringify(rows);
+    if(foePublicName({name:"Farren Rushmere"})!=="the heron-crested guard")return "foe: "+foePublicName({name:"Farren Rushmere"});
+    delete far.seenAs;if(npcShownName("Farren Rushmere")!==NAME_UNNAMED_LABEL)return "no description: the plain label";
+    far.nameGiven=4;
+    rows=worldStateNpcRows(worldState.npcs,memory.npcs,null);for(i=0;i<rows.length;i++)if(rows[i].name==="Farren Rushmere")row=rows[i];
+    if(row.shown!=="Farren Rushmere"||foePublicName({name:"Farren Rushmere"})!=="Farren Rushmere")return "a given name is printed";
+    delete worldState.nameGate;delete far.nameGiven;
+    return npcShownName("Farren Rushmere")==="Farren Rushmere"?true:"no gate: the name as before";
+  });
+  t("#786 wiring: every committed reply is read (the opening too, a refusal never), a new campaign is gated, the load door heals, the panel prints the shown name",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),s=__fsForTests.readFileSync(__rootForTests+"/state.js","utf8"),p=__fsForTests.readFileSync(__rootForTests+"/ui-panels.js","utf8");
+    if(!/if\(!_refusal&&typeof namesObserve==="function"\)namesObserve\(resp,clean,worldState\.turn\);/.test(g))return "commitGmTurn does not read the reply for names (opening included)";
+    if(!/transcript:\[\],actStartTurn:0,nameGate:1,/.test(g))return "startGame does not gate a new campaign";
+    if(!/namesBegin\(\);[^\n]*\n  saveAll\(\);showGame\(\);/.test(g))return "startGame does not mark the backstory bonds before the first save";
+    if(!/namesHeal\(worldState,memory\)/.test(s))return "migrateWorldState does not run the load door";
+    if(p.indexOf("<span class=\"sb-k\">'+escHtml(_sbRows[i].shown)+'</span>")<0)return "the World State panel's label does not print the shown name";
+    return p.indexOf("data-npc=\"'+escHtml(_sbRows[i].name)+'\"")>=0?true:"the row must keep the real name as its key (the sheet opens by it)";
   });
 
 }

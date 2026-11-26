@@ -3789,7 +3789,7 @@ function formView(rec,form){
    its own name. The row's tag identity (foe.name) never changes. */
 function foePublicName(foe){
   var own=String(foe&&foe.name||""),rec=bestiaryRecord(own),pub=rec&&typeof rec.displayName==="string"?rec.displayName.trim():"";
-  if(!pub)return own;
+  if(!pub)return (typeof npcShownName==="function")?npcShownName(own):own;/* #786: a registered character whose name the story has not given shows as its description */
   return formOf(foe,rec)==="true"?String(rec.name):pub;
 }
 /* Does this entry (a bestiary record or a roster row) have an authored alternate? A public name is one (the pre-#743
@@ -4020,7 +4020,7 @@ function worldStateNpcRows(npcs,memNpcs,npcFactions){
     if(n.status)bits.push(n.status);
     if(n.rel&&n.rel!=="unknown")bits.push(n.rel);
     facs=(npcFactions&&Array.isArray(npcFactions[n.name]))?npcFactions[n.name].filter(function(e){return !!e&&typeof e==="object"&&!!e.faction;}):[];/* audit 2026-11-19, U13: a null entry threw and blanked the panel */
-    out.push({name:n.name,text:bits.join(" / "),faction:facs.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", ")});
+    out.push({name:n.name,shown:(typeof npcShownName==="function")?npcShownName(n.name):n.name,/* #786: the label; `name` stays the key */text:bits.join(" / "),faction:facs.map(function(e){return e.faction+(e.role?" ["+e.role+"]":"");}).join(", ")});
   }
   return out;
 }
