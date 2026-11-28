@@ -2877,6 +2877,9 @@ function commitGmTurn(resp,opts){
      second device rendered the newest narration buttonless. UA6 unchanged: state+history+speakers
      still persist here, before any display step. */
   var _held=!_refusal&&/\[CHECK:/.test(String(resp))&&checkHoldsProse(worldState.pendingCheck);/* #767: this reply asks for a roll the player's own action needs — its prose waits for the dice (computed before the persist: it displays nothing) */
+  var _rollFor=_rollReply;_rollReply=null;
+  var _rollUp=!!(_rollFor&&_rollReveal&&_rollReveal.tag===_rollFor&&_rollReveal.el&&typeof document!=="undefined"&&document.contains(_rollReveal.el));/* #793: the roll's own card already shows this result */
+  if(_rollUp)dice=rollReplyDiceHtml(resp,_rollFor,true);/* the cards this reply is PAINTED with; `dice` has no reader after the paint. Kept off the paint line: suites anchor on it */
   var _audioSaved=saveLocal();
   var narEl=addMsg("narrator",(dice||"")+preRollProseHtml(clean,_held),{replayText:clean,turn:worldState.turn,ck:(typeof clockNow==="function"?clockNow():null)});/* escProse (in preRollProseHtml): escape model output before it hits the story DOM (audit E11) */
   preRollReveal(narEl);/* #767: prose an EARLIER roll held is shown once a new turn lands (a roll the player answered by typing has no dice to wait for); this turn's own stays held */
@@ -3158,6 +3161,7 @@ async function sendAction(override,opts){
       // beginAdventure. This path's order is the canonical one commitGmTurn reproduces.
       if(typeof atlasDiscoveryCheck==="function")atlasDiscoveryCheck(_mapTurnContext);
       var _mapDiscoveries=(typeof atlasDiscoveryRequest==="function")?await atlasDiscoveryRequest(resp):null;
+      _rollReply=(opts&&opts.rollTag)||null;/* #793: which roll this reply answers - taken once by the commit below. Set here, above the #759 wait: suites pin the wait to the commit */
       if(opts&&opts.silent&&opts.rollTag&&typeof diceRevealWait==="function")await diceRevealWait();/* #759: the reply to a roll is shown only once its dice have come to rest — requested at the click, held here, bounded by DICE_REVEAL_MAX_MS */
       if(opts&&opts.deathArrival&&worldState.deathScene)delete worldState.deathScene.arrivalOwed;/* the arrival is in the book with this commit */
       commitGmTurn(resp,{mapExtraction:_mapDiscoveries,userMsg:apiTxt,playerTxt:txt,logPlayer:(!isTT&&!(opts&&opts.silent))/* #28: same exclusions the old pre-call write had — TT and silent engine sends leave no player line */,audioScope:_audioScope,latchSnap:(typeof _latchSnap!=="undefined"?_latchSnap:null)/* #197: a refusal commit un-burns the delivered note latches — same snapshot the catch below uses */,onMutated:function(){_committed=true;/* a later throw must NOT offer a re-applying Retry (E82) */},replacesRefusal:!!_rfPair,onLogged:function(){_rfLogged=true;if(_rfPair)lastNarratorRemove();},resend:{txt:txt,silent:!!(opts&&opts.silent),rollTag:(opts&&opts.rollTag)||null}/* U3 */});
@@ -3201,6 +3205,8 @@ function preRollReveal(except){
   if(typeof document==="undefined"||typeof document.querySelectorAll!=="function")return 0;
   var els=document.querySelectorAll(".pre-roll-held"),i;var n=0;for(i=0;i<els.length;i++){if(except&&typeof except.contains==="function"&&except.contains(els[i]))continue;els[i].className="pre-roll";n++;}return n;
 }
+var _rollReply=null;/* #793: the roll the reply being committed answers (set by sendAction on the line before its commit, taken by commitGmTurn) */
+var _rollReveal=null;/* #793: the result card the last roll put on the page, {tag, el} - the reply to that roll is painted without its own copy while this one stands */
 function rollPendingCheck(){
   var chk=worldState&&worldState.pendingCheck;if(!chk||busy)return;
   var faces=(chk.dmg&&typeof rollDamageFaces==="function")?rollDamageFaces(chk.dmg):null;/* #654: the damage is rolled with the d20 — resolveCheck keeps it only on a hit */
@@ -3212,7 +3218,7 @@ function rollPendingCheck(){
      DICE REVEAL THE ROLL). live = this page will show dice; otherwise the card says everything at once, as it always did. */
   var live=(typeof diceRevealLive==="function")&&diceRevealLive(),rev=diceRevealBegin(r,live),holder=null;
   function paint(){if(holder)holder.innerHTML=diceRevealCardHtml(r.diceTag,rev.stage);}
-  if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){holder=document.createElement("div");holder.className="dice-reveal";el.parentNode.replaceChild(holder,el);paint();}}
+  if(typeof document!=="undefined"){var el=document.querySelector(".dice-pending");if(el){holder=document.createElement("div");holder.className="dice-reveal";el.parentNode.replaceChild(holder,el);paint();_rollReveal={tag:r.diceTag,el:holder};}}
   if(typeof Sound!=="undefined")Sound.play("click_glass");
   if(typeof savePendingRoll==="function")savePendingRoll(r.note,r.diceTag);/* audit 2026-11-19, U7: kept BEFORE the send — a page closed while the request is in flight has the roll too; the commit clears it */
   if(typeof saveAll==="function")saveAll();

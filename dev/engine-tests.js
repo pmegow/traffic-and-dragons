@@ -37237,4 +37237,24 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     }finally{diceStakeClause=keep;}
   });
 
+
+  // ── #793 the result is shown once on the page ───────────────────────────────────────────────
+  section("#793 the roll result is on the page once");
+  t("#793 when the roll's own card already shows the result, the reply is painted without its copy; with no such card on the page the reply keeps it; another label's dice are always painted",function(){
+    var tag="[DICE:Great axe attack|d20 = 13 + 6 = 19|success|1d12+4 = 10 + 4 = 14]",resp=tag+"\n[TIME_ADVANCE:2m]\n\nThe great axe descends. [DICE:Heron guard save|d20 = 4|failed]";
+    var both=rollReplyDiceHtml(resp,tag,false),once=rollReplyDiceHtml(resp,tag,true);
+    if((both.match(/dice-block/g)||[]).length!==2||both!==diceTxt(resp))return "nothing above it: the reply paints every card, as before";
+    if((once.match(/dice-block/g)||[]).length!==1||once.indexOf("Heron guard save")<0||once.indexOf("Great axe attack")>=0)return "the result stands above: only the other roll is painted: "+once;
+    if(rollReplyDiceHtml(resp,"",true)!==diceTxt(resp))return "no roll record, nothing left out";
+    return rollReplyDiceHtml(tag+"\n\nProse.",tag,true)===""?true:"a reply with only the roll's record paints no card";
+  });
+  t("#793 wiring: the roll's card is remembered when it is put on the page, the reply is told its roll, and the copy is left out only while that very card is still on the page",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8");
+    if(g.indexOf("_rollReveal={tag:r.diceTag,el:holder};")<0)return "rollPendingCheck does not remember the card it put on the page";
+    if(g.indexOf("      _rollReply=(opts&&opts.rollTag)||null;")<0||g.indexOf("  var _rollFor=_rollReply;_rollReply=null;")<0)return "sendAction does not tell the commit which roll the reply answers, or the commit does not take it once";
+    if(g.indexOf("var _rollUp=!!(_rollFor&&_rollReveal&&_rollReveal.tag===_rollFor&&_rollReveal.el&&typeof document!==\"undefined\"&&document.contains(_rollReveal.el));")<0)return "the copy must be left out only for the very roll whose card is still on the page";
+    var set=g.indexOf("  if(_rollUp)dice=rollReplyDiceHtml(resp,_rollFor,true);"),paint=g.indexOf("  var narEl=addMsg(\"narrator\",(dice||\"\")+preRollProseHtml(clean,_held),");
+    return set>=0&&paint>set?true:"the reply's cards are not narrowed before it is painted";
+  });
+
 }

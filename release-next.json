@@ -1,5 +1,5 @@
 {
-  "version": "v1.1498",
+  "version": "v1.1499",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -156,6 +156,7 @@
     "An imported character raised to a higher level at Review now reaches Assign level perks.",
     "The Shatter dice exit breaks at once in the game, without the cracks that ran first.",
     "A roll's result card is shown once: a repeat of the roll written by the GM is removed.",
-    "With \"Name the stake before a roll\" on, a roll asked for without a stake reminds the GM to name one next time."
+    "With \"Name the stake before a roll\" on, a roll asked for without a stake reminds the GM to name one next time.",
+    "A roll's result is shown once: the card you rolled keeps it, and the reply no longer repeats it."
   ]
 }

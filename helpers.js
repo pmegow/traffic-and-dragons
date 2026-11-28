@@ -279,6 +279,15 @@ function resolveDamageOnly(chk,faces){var f=(faces&&faces.length)?faces:rollDama
    turns in the field save). An instruction that loses to the model's own output is not repeated louder: the engine takes
    the echo out. Every [DICE:] in the reply that bears the roll's own label is the echo, whatever numbers it states - the
    engine's record is the roll. A [DICE:] under another label (a foe's save, a second check) stays. */
+/* #793 (owner 2026-11-28, screenshot: the same result card under TURN 5 and again under TURN 6). The card that asked for
+   the roll becomes the result when the die is thrown (rollPendingCheck, #759), and the reply then drew the roll's [DICE:]
+   record as a second card right under it. The dice cards a reply to a roll is PAINTED with: every card, or - when the
+   roll's own card is still on the page above (`above`) - every card but the roll's own. Display only: the reply, the
+   transcript and a rebuilt page keep the record (there the asking card is inert and the record is the one result). */
+function rollReplyDiceHtml(resp,rollTag,above){
+  if(!above||!rollTag)return diceTxt(resp);
+  return diceTxt(rollEchoDrop(resp,rollTag).text);
+}
 function rollEchoDrop(resp,rollTag){
   var text=String(resp==null?"":resp),m=String(rollTag||"").match(/\[DICE:([^|\]]+)/),out={text:text,dropped:0};
   if(!m||!text)return out;
