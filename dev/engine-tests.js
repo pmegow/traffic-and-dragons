@@ -37189,4 +37189,32 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return ex.indexOf("if (cracks) sound('crack', topWorld);")>=0?true:"the shipped roller still sounds the crack";
   });
 
+
+  // ── #791 one card for one roll ──────────────────────────────────────────────────────────────
+  section("#791 the roll card is shown once");
+  t("#791 the FIELD reply: the GM repeats the roll's own [DICE:] record - the echo is taken out, so the record the engine prepends is the only one; another label's dice stay",function(){
+    var tag="[DICE:Great axe attack|d20 = 2 + 6 = 8|failed]";
+    var field=tag+"\n[TIME_CHECK:evening]\n[HP:-5]\n\nYou surge across the sodden turf.";
+    var r=rollEchoDrop(field,tag);
+    if(r.dropped!==1||r.text.indexOf("[DICE:")>=0)return "the echo must go: "+JSON.stringify(r);
+    if(r.text.indexOf("[TIME_CHECK:evening]\n[HP:-5]\n\nYou surge")!==0)return "the rest of the reply is untouched: "+JSON.stringify(r.text);
+    var whole=tag+"\n"+r.text;
+    if((diceTxt(whole).match(/dice-block/g)||[]).length!==1)return "one card for one roll: "+diceTxt(whole);
+    if((diceTxt(tag+"\n"+field).match(/dice-block/g)||[]).length!==2)return "this test must see the doubled card without the fix";
+    r=rollEchoDrop("[DICE:great AXE attack|d20 = 9 + 6 = 15|success] He falls. [DICE:Heron guard save|d20 = 4|failed] [DICE:Great axe attack]",tag);
+    if(r.dropped!==2)return "the same label is the echo whatever it states, in any case, with or without fields: "+JSON.stringify(r);
+    if(r.text.indexOf("[DICE:Heron guard save|d20 = 4|failed]")<0)return "another label's roll must stay: "+r.text;
+    r=rollEchoDrop("[DICE:Great axe attack follow-through|d20 = 3|failed] text",tag);
+    if(r.dropped)return "a longer label is another roll";
+    r=rollEchoDrop("No dice here.",tag);if(r.dropped||r.text!=="No dice here.")return "a reply without the echo is returned as it is";
+    r=rollEchoDrop(field,"");
+    return r.dropped===0&&r.text===field?true:"no roll record, nothing dropped";
+  });
+  t("#791 wiring: sendAction takes the echo out before the roll's record is put in front, and says so",function(){
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),a=g.indexOf("var _re=rollEchoDrop(resp,opts.rollTag);if(_re.dropped){resp=_re.text;"),b=g.indexOf('if(opts&&opts.rollTag&&!isTT)resp=opts.rollTag+"\\n"+String(resp||"");'),c=g.indexOf("if(!isTT)refuseCutReply(resp,_respFin);");
+    if(a<0||b<0)return "the echo is not taken out in sendAction";
+    if(!(c<a&&a<b))return "order: the cut-reply refusal reads the reply as it came, then the echo goes, then the record rides in front";
+    return g.slice(a,b).indexOf('console.warn("[dice] #791')>=0?true:"a dropped echo must be said on the console";
+  });
+
 }

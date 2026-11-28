@@ -3140,6 +3140,7 @@ async function sendAction(override,opts){
       if(_rrTh&&_rrTh.remove)_rrTh.remove();
     }
     if(!isTT)refuseCutReply(resp,_respFin);/* #785: before the roll's record rides in front and before anything commits */
+    if(opts&&opts.rollTag&&!isTT){var _re=rollEchoDrop(resp,opts.rollTag);if(_re.dropped){resp=_re.text;if(typeof console!=="undefined")console.warn("[dice] #791 the GM repeated the roll's own [DICE:] record "+_re.dropped+" time"+(_re.dropped>1?"s":"")+" - taken out; the engine's record is the roll");}}/* #791: one card for one roll */
     if(opts&&opts.rollTag&&!isTT)resp=opts.rollTag+"\n"+String(resp||"");/* #329: the player's roll rides the continuation as the [DICE:] record the transcript keeps */
     if(isTT){
       // #74 ①: the TT pane never ran cleanTxt, unlike the narrative path, so any stray tag

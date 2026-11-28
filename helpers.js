@@ -273,6 +273,19 @@ function preRollProseHtml(clean,held){var p="<p>"+escProse(clean)+"</p>";return 
 function resolveDamageOnly(chk,faces){var f=(faces&&faces.length)?faces:rollDamageFaces(chk.dmg),dt=damageTotal(chk.dmg,f),dx=damageRollText(chk.dmg,f);
   return {roll:null,total:dt,outcome:"damage",dmgOnly:true,damage:{text:dx,faces:f.slice(),total:dt,sides:chk.dmg.sides},diceTag:"[DICE:"+chk.label+"|"+dx+"|damage]",
     note:"[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": "+dt+" damage ("+dx+"). No attack roll was called for. This is the damage BEFORE any saving throw: roll each target's save yourself, halve or cancel it as the ability's own rules say, and apply the result with [ENEMY_HP:]. The damage is final \u2014 never roll it again and do not emit another [DICE:] for it.]"};}
+/* #791 (owner 2026-11-27, screenshot: the GREAT AXE ATTACK card printed twice). The reply to a player's roll carries the
+   roll's [DICE:] record in front (sendAction, #329), and that record is what the model sees as the opening of its own past
+   replies - so it writes the record again itself, against the note's "do not emit another [DICE:] for it" (2 of the 3 rolled
+   turns in the field save). An instruction that loses to the model's own output is not repeated louder: the engine takes
+   the echo out. Every [DICE:] in the reply that bears the roll's own label is the echo, whatever numbers it states - the
+   engine's record is the roll. A [DICE:] under another label (a foe's save, a second check) stays. */
+function rollEchoDrop(resp,rollTag){
+  var text=String(resp==null?"":resp),m=String(rollTag||"").match(/\[DICE:([^|\]]+)/),out={text:text,dropped:0};
+  if(!m||!text)return out;
+  var label=m[1].trim().toLowerCase();if(!label)return out;
+  out.text=text.replace(/\[DICE:([^|\]]*)(?:\|[^\]]*)?\][ \t]*(?:\r?\n)?/g,function(tag,lab){if(lab.trim().toLowerCase()!==label)return tag;out.dropped++;return "";});
+  return out;
+}
 function resolveCheck(chk,roll,faces){if(chk&&chk.dmgOnly&&chk.dmg)return resolveDamageOnly(chk,faces);var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
   /* #654: a hit keeps the damage the click rolled (success, or no DC to judge by \u2014 the GM decides whether it lands); a miss
      or a fumble drops the faces and says so. No faces (a caller that rolled none) leaves the damage to the GM, silently. */
