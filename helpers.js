@@ -286,6 +286,14 @@ function rollEchoDrop(resp,rollTag){
   out.text=text.replace(/\[DICE:([^|\]]*)(?:\|[^\]]*)?\][ \t]*(?:\r?\n)?/g,function(tag,lab){if(lab.trim().toLowerCase()!==label)return tag;out.dropped++;return "";});
   return out;
 }
+/* #792 (owner 2026-11-28, save t5: three rolls in a row with "Name the stake before a roll" on and no stake). The GM's
+   first [CHECK:] of the fight named none and every later one copied it - its own output outweighs the standing rule. The
+   roll's result note is the engine's next word to the GM, so the reminder rides there, with the example, only while the
+   setting is on and the check named no stake. A damage-only roll never comes here (resolveDamageOnly answers it). */
+function checkStakeOwedText(chk){
+  if(!(typeof diceStakeClause!=="undefined"&&diceStakeClause)||!chk||chk.stake)return "";
+  return " Your [CHECK:] for this roll named no stake, so the player rolled without knowing what failure would cost. On every later roll put it as the LAST field of the tag, one short clause the hero can see - [CHECK:Pick the lock|+4|DC 15|a snapped pick and the guard's attention] - an attack's dice field comes before it.";
+}
 function resolveCheck(chk,roll,faces){if(chk&&chk.dmgOnly&&chk.dmg)return resolveDamageOnly(chk,faces);var total=roll+(chk.mod||0),outcome=(chk.dc!=null)?(total>=chk.dc?"success":"failed"):(roll===20?"critical":(roll===1?"fumble":"rolled"));
   /* #654: a hit keeps the damage the click rolled (success, or no DC to judge by \u2014 the GM decides whether it lands); a miss
      or a fumble drops the faces and says so. No faces (a caller that rolled none) leaves the damage to the GM, silently. */
@@ -293,7 +301,7 @@ function resolveCheck(chk,roll,faces){if(chk&&chk.dmgOnly&&chk.dmg)return resolv
   if(chk.dmg&&hit&&faces&&faces.length){var dt=damageTotal(chk.dmg,faces),dx=damageRollText(chk.dmg,faces);damage={text:dx,faces:faces.slice(),total:dt,sides:chk.dmg.sides};
     dmgLine=(chk.dc!=null?" The blow lands for "+dt+" damage ("+dx+")":" If the blow lands it deals "+dt+" damage ("+dx+")")+" \u2014 apply it with [ENEMY_HP:]; the damage is rolled too, never roll it again.";}
   else if(chk.dmg&&!hit)dmgLine=" A miss deals no damage; roll none.";
-  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+((chk.stake&&!hit)?" The player was told before rolling that failure would cost: "+chk.stake+" \u2014 it is owed now.":"")/* #750 */+dmgLine+" Narrate the attempt and its outcome now, as one moment — nothing of it has been told yet (#767); the roll is final \u2014 do not roll again and do not emit another [DICE:] for it.]";
+  var note="[ENGINE NOTE \u2014 THE PLAYER ROLLED (not a player action): "+chk.label+": d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod):"")+" = "+total+(chk.dc!=null?" against DC "+chk.dc:"")+" \u2192 "+outcome.toUpperCase()+"."+((chk.stake&&!hit)?" The player was told before rolling that failure would cost: "+chk.stake+" \u2014 it is owed now.":"")/* #750 */+dmgLine+" Narrate the attempt and its outcome now, as one moment — nothing of it has been told yet (#767); the roll is final \u2014 do not roll again and do not emit another [DICE:] for it."+checkStakeOwedText(chk)+"]";
   /* #666 (owner 2026-10-24): the record STATES its face — "d20 = 1 + 1 = 2", "d20 = 7" when nothing is added — the GM's own
      #350 stated form, so the card prints the natural roll and the handler reads the total after the last "=" (#660). */
   var stated="d20 = "+roll+(chk.mod?(chk.mod>0?" + ":" \u2212 ")+Math.abs(chk.mod)+" = "+total:"");

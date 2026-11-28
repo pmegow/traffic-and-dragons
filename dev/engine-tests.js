@@ -37217,4 +37217,24 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return g.slice(a,b).indexOf('console.warn("[dice] #791')>=0?true:"a dropped echo must be said on the console";
   });
 
+
+  // ── #792 a roll asked for without its stake ─────────────────────────────────────────────────
+  section("#792 a stake the GM left out is asked for");
+  t("#792 the FIELD case: with the setting on, a [CHECK:] that named no stake gets the reminder on its roll result; a check that named one, a damage-only roll and the setting off get none",function(){
+    var keep=diceStakeClause;
+    try{
+      diceStakeClause=true;
+      var bare=parseCheckTag("Great axe attack|+6|DC 13|1d12+4"),r=resolveCheck(bare,12,[5]);
+      if(bare.stake)return "the field tag names no stake";
+      if(r.note.indexOf("named no stake")<0||r.note.indexOf("[CHECK:Pick the lock|+4|DC 15|a snapped pick and the guard's attention]")<0)return "the reminder with its example must ride the result: "+r.note;
+      if(!/\]$/.test(r.note)||r.note.indexOf("do not emit another [DICE:] for it.")<0)return "the note keeps its own ending: "+r.note;
+      var staked=parseCheckTag("Pick the lock|+4|DC 15|a snapped pick and the guard's attention");
+      if(resolveCheck(staked,3).note.indexOf("named no stake")>=0)return "a check that named its stake is not reminded";
+      var dmg=parseCheckTag("Draconic Breath|2d6");
+      if(resolveCheck(dmg,0,[3,4]).note.indexOf("named no stake")>=0)return "a damage-only roll has no stake to name";
+      diceStakeClause=false;
+      return resolveCheck(parseCheckTag("Great axe attack|+6|DC 13|1d12+4"),12,[5]).note.indexOf("named no stake")<0?true:"with the setting off nothing is asked";
+    }finally{diceStakeClause=keep;}
+  });
+
 }
