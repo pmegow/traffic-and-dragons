@@ -37177,4 +37177,16 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return s.split("statBumpsOwed(c.level,pendingBumpFloor)").length===3?true:"both bump counts must read the arrival level";
   });
 
+
+  // ── #790 in the game the Shatter exit breaks at once ────────────────────────────────────────
+  section("#790 Shatter without its cracks in the game");
+  t("#790 the game asks the dice for Shatter without its cracks, and the roller it ships can do it",function(){
+    var u=__fsForTests.readFileSync(__rootForTests+"/ui-dice.js","utf8"),ov=__fsForTests.readFileSync(__rootForTests+"/roller/embed/overlay.js","utf8"),et=__fsForTests.readFileSync(__rootForTests+"/roller/render/exit-table.js","utf8"),ex=__fsForTests.readFileSync(__rootForTests+"/roller/render/exits.js","utf8");
+    if(!/var DICE_EXIT_OPTIONS=\{shatter:\{crack:false\}\};/.test(u))return "the game's exit options must ask Shatter for no crack";
+    if(u.indexOf("createDiceOverlay({exitOptions:DICE_EXIT_OPTIONS,container:diceLiveLayer(),")<0)return "the one overlay is not made with the game's exit options";
+    if(ov.indexOf("exitOptions = null,")<0||ov.indexOf("view.setExitOptions(checkExit(name), options);")<0)return "the shipped roller's overlay takes no exit options (publish dice-sim 0.99.24 or later)";
+    if(et.indexOf("cutLead:")<0||et.indexOf("export function exitSeconds(")<0)return "the shipped roller has no short lead for the break";
+    return ex.indexOf("if (cracks) sound('crack', topWorld);")>=0?true:"the shipped roller still sounds the crack";
+  });
+
 }

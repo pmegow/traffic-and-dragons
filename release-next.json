@@ -1,5 +1,5 @@
 {
-  "version": "v1.1495",
+  "version": "v1.1496",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -153,6 +153,7 @@
     "A character is called by a description until the story gives their name; the World State panel shows the description too.",
     "The line under a reply and the suggested actions use a description for a character the story has not named.",
     "With \"Name the stake before a roll\" off, no stake is asked for or shown.",
-    "An imported character raised to a higher level at Review now reaches Assign level perks."
+    "An imported character raised to a higher level at Review now reaches Assign level perks.",
+    "The Shatter dice exit breaks at once in the game, without the cracks that ran first."
   ]
 }

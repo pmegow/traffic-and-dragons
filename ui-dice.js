@@ -162,11 +162,15 @@ function diceLiveLayer(){
 }
 /* The one overlay for the session (one WebGL context, one sound engine): made by diceLiveWarm once the module is there,
    or by the first roll where that did not happen. */
+/* #790 (owner 2026-11-27: "there's a crack, and then a shatter. While this is cool on its own, in the game, I think we need
+   to lose the initial crack and just go to the shatter"): the game's options for the dice's exits, by exit name. Shatter
+   breaks at once - no crack drawn or heard (dice-sim 0.99.24, exitOptions). The standalone roller keeps its cracks. */
+var DICE_EXIT_OPTIONS={shatter:{crack:false}};
 function diceLiveOverlay(){
   if(_diceLive.overlay)return _diceLive.overlay;
   var ctx=null;
   try{if(typeof Sound!=="undefined"&&typeof Sound.context==="function")ctx=Sound.context();}catch(e){ctx=null;}
-  _diceLive.overlay=window.DiceSim.createDiceOverlay({container:diceLiveLayer(),look:diceLookStyle(),context:ctx||null,exit:diceExitName()});
+  _diceLive.overlay=window.DiceSim.createDiceOverlay({exitOptions:DICE_EXIT_OPTIONS,container:diceLiveLayer(),look:diceLookStyle(),context:ctx||null,exit:diceExitName()});
   _diceLive.overlay.view.setOrbit({zoom:1/DICE_LIVE_SIZE});
   if(!_diceLive.muteHooked&&typeof AudioMaster!=="undefined"&&typeof AudioMaster.onChange==="function"){_diceLive.muteHooked=true;AudioMaster.onChange(function(){diceLiveMute();});}
   return _diceLive.overlay;

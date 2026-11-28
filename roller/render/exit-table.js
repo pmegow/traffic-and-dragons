@@ -93,7 +93,13 @@ export const SHATTER = {
   hitSpeed: 0.02, hitsHeard: 2, loudHit: 0.2,
   cutBudget: 3,
   fly: 1.0, fade: 0.5,
+  // A host may ask for the break without the cracks (exit options { crack: false }; TnD, owner 2026-11-27: "lose the
+  // initial crack and just go to the shatter"). The die is still cut a few pieces a frame, over this short unseen lead.
+  cutLead: 0.1,
 };
+
+/** Shatter's lead before the break (s): the cracks' run, or with { crack: false } only the short unseen time the die is cut in. */
+export function shatterLead(options = null) { return options && options.crack === false ? SHATTER.cutLead : SHATTER.crack; }
 
 /**
  * Melt, in seconds. Round 2 (owner 2026-10-28: "what we have now reads as just the die scaling flat ... It's the
@@ -176,6 +182,14 @@ export function exitMenu() {
 export const RANDOM_EXITS = Object.keys(EXIT_TABLE).filter((k) => !EXIT_TABLE[k].random && !EXIT_TABLE[k].shelved && EXIT_TABLE[k].seconds > 0);
 
 /** Preserve old saved/API choices without replaying a retired animation. */
+/**
+ * How long an exit plays (s) under a host's options for it (DiceView.setExitOptions): the table's, but Shatter without
+ * its cracks ({ crack: false }) is shorter by the cracks' run less the short lead the die is cut in.
+ */
+export function exitSeconds(name, options = null) {
+  const active = resolveExit(name), secs = EXIT_TABLE[active].seconds;
+  return active === 'shatter' ? secs - SHATTER.crack + shatterLead(options) : secs;
+}
 export function resolveExit(name) { return EXIT_TABLE[name]?.shelved ? 'fade' : name; }
 
 /** The exit a die leaves by when `name` is asked for: Random picks one of RANDOM_EXITS; any other is itself. */
@@ -318,11 +332,12 @@ function easeOutCubic(x) {
  * Shatter: crack (0 … 1) is how far the cracks have spread, quickly at first as cracks run; broken from the end of
  * the crack, when the pieces take over (render/shards.js moves them); opacity falls to 0 over the fade at the end.
  */
-export function shatterTimeline(u) {
-  const t = clamp01(u) * EXIT_TABLE.shatter.seconds, gone = SHATTER.crack + SHATTER.fly;
+export function shatterTimeline(u, options = null) {
+  const lead = shatterLead(options), cracks = lead === SHATTER.crack;
+  const t = clamp01(u) * exitSeconds('shatter', options), gone = lead + SHATTER.fly;
   return {
-    crack: Math.pow(clamp01(t / SHATTER.crack), 0.7),
-    broken: t >= SHATTER.crack,
+    crack: cracks ? Math.pow(clamp01(t / lead), 0.7) : 0,   // { crack: false }: no crack is ever drawn
+    broken: t >= lead,
     opacity: t < gone ? 1 : 1 - smooth((t - gone) / SHATTER.fade),
   };
 }

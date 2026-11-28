@@ -59,10 +59,11 @@ export const OVERLAY_DEFAULTS = { tilt: 68, tray: { width: 0.15, depth: 0.10 } }
  * container: the host's element (required). look: a die style {body, ink, finish, font}, or a bag of them to deal
  * each die one of ({ bag: [styles] }, render/die-looks.js: the mixed bag; DiceSim.presetStyle gives either) (default the
  * view's). sound: false for none. context: the host's own AudioContext, so the dice share its unlock
- * and its output. exit: how dismiss() takes the dice away (an EXIT_TABLE name; 'none', at once). tilt,
+ * and its output. exit: how dismiss() takes the dice away (an EXIT_TABLE name; 'none', at once). exitOptions: the
+ * host's options for exits, by name ({ shatter: { crack: false } }: the break without the cracks that run first). tilt,
  * tray: the view's (OVERLAY_DEFAULTS).
  */
-export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, sound = true, context = null, exit = 'none', tilt = OVERLAY_DEFAULTS.tilt, tray = OVERLAY_DEFAULTS.tray } = {}) {
+export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, sound = true, context = null, exit = 'none', exitOptions = null, tilt = OVERLAY_DEFAULTS.tilt, tray = OVERLAY_DEFAULTS.tray } = {}) {
   if (!container) throw new Error('createDiceOverlay: a container element is required');
   const view = new DiceView({ container, transparent: true, tilt, tray, dieStyle: look && look.bag ? look.bag[0] : look });
   if (look && look.bag) view.setDieBag(look).catch((e) => console.error('dice-sim: the mixed bag could not be put on the dice:', e));
@@ -76,6 +77,7 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
     return resolveExit(name);
   };
   let leaveBy = checkExit(exit);
+  for (const [name, options] of Object.entries(exitOptions || {})) view.setExitOptions(checkExit(name), options);
   // An exit compiles shaders the first time it plays (a burn's first frame stalled 6.9 s on glass, measured
   // 2026-10-25): they are readied while the dice rest, and for a new look — never in the middle of a dismiss.
   const warm = () => { view.warmTable(); if (leaveBy !== 'none') view.warmExits(); };
@@ -210,6 +212,8 @@ export function createDiceOverlay({ container, look = VIEW_DEFAULTS.dieStyle, so
     /** How dismiss() takes the dice away from now on (an EXIT_TABLE name); an unknown one is refused. */
     setExit(name) { leaveBy = checkExit(name); warm(); },
     get exit() { return leaveBy; },
+    /** The host's options for an exit from now on ({ crack: false } for 'shatter'); null clears them; an unknown exit is refused. */
+    setExitOptions(name, options = null) { view.setExitOptions(checkExit(name), options); },
     /** The dice present() laid out and still lying there, by type in order; null when the table is not a presentation. */
     get presented() { return laid ? laid.slice() : null; },
     /** Takes the dice away (presented or rolled) and stops their sound; a roll in progress resolves null. */

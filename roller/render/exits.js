@@ -577,7 +577,8 @@ function wanderingPath(view, centre, heading0, R) {
 // test." Its seeds are drawn as it starts, so its cracks run along the lines it will break on; it is cut into its
 // pieces (render/fracture.js) a few a frame while they run, so no frame stalls; the pieces share its material, kept
 // in its own space, so its veins run on through every break.
-function startShatter({ view, entry, sound = () => {} }) {
+function startShatter({ view, entry, sound = () => {}, options = null }) {
+  const cracks = !(options && options.crack === false);   // a host may ask for the break alone (exit-table.js ▸ SHATTER.cutLead)
   const mesh = entry.mesh, m = mesh.material, uniforms = m.userData.dice.uniforms, R = entry.die.boundingRadius;
   m.transparent = true;   // the pieces fade at the end: one compile per finish (warmed ahead), now rather than then
   m.needsUpdate = true;
@@ -629,8 +630,8 @@ function startShatter({ view, entry, sound = () => {} }) {
   let states = null, cracking = false;
   return {
     step(u, dt) {
-      const t = shatterTimeline(u);
-      if (!cracking) { cracking = true; sound('crack', topWorld); }
+      const t = shatterTimeline(u, options);
+      if (!cracking) { cracking = true; if (cracks) sound('crack', topWorld); }
       if (!t.broken) { uniforms.uExitCrack.value = t.crack * SHATTER.reach * R; cutFor(SHATTER.cutBudget); return; }
       if (!states) {
         cutFor(Infinity);   // whatever the cracks left uncut (a frame that ran long)

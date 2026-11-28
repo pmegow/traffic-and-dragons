@@ -22,7 +22,7 @@ import { buildDieGeometry, setDim, paintGlyphMask, facesShowing } from './die-me
 import { VIEW_DEFAULTS, viewOptions } from './view-defaults.js';
 import { supersampleRatio, stepDown, SUPERSAMPLE } from './supersample.js';
 import { orbitPose, standCamera, blendOrbit, screenBounds } from './framing.js';
-import { exitDelays, chooseExit, exitsFor } from './exit-table.js';
+import { exitDelays, chooseExit, exitsFor, exitSeconds } from './exit-table.js';
 import { towardEye, tossSpin, restHeight, cupFor, keepInFrame } from './hand.js';
 import { bagOf, deal, looksFor, retire, pairsOf, lookKey } from './die-looks.js';
 import { createBaker } from './baker.js';
@@ -78,6 +78,7 @@ export class DiceView {
     this.playing = null;
     this.animators = new Set();   // what moves each frame (a roll, a die leaving): one render per frame for all
     this.frameRequested = false;
+    this.exitOptions = {};        // a host's options for an exit, by name (setExitOptions): { shatter: { crack: false } }
     this.exiting = new Set();     // dice off the table, still drawn until their exit ends: { die, finish }
     this.fonts = new Map();       // a font reference's shared load promise and per-view repaint (readyFont)
     this.warmed = new Map();      // the dice's pipeline readied, by finish and font (warmTable)
@@ -685,11 +686,22 @@ export class DiceView {
   }
 
   /**
+   * A host's options for an exit from now on, by its name (an EXITS key): { crack: false } for 'shatter' breaks the die
+   * without the cracks that run first. null clears them. An unknown exit is refused.
+   */
+  setExitOptions(name, options = null) {
+    if (!EXITS[name]) throw new Error('DiceView: no exit "' + name + '" (known: ' + Object.keys(EXITS).join(', ') + ')');
+    if (options === null) delete this.exitOptions[name];
+    else this.exitOptions[name] = { ...options };
+  }
+
+  /**
    * Plays an exit on a die already off the table: drawn where it was until the effect has run, then
    * freed. A start or a step that throws is reported, and the die goes at once.
    */
   runExit(d, exit, delay = 0, onSound = null) {
-    const name = chooseExit(exit), spec = EXITS[name];   // Random picks here for a die on its own (clear() picks for all)
+    const name = chooseExit(exit), spec = EXITS[name];
+    const options = this.exitOptions[name] || null, seconds = exitSeconds(name, options);   // the host's options for this exit, and how long it plays under them   // Random picks here for a die on its own (clear() picks for all)
     // What an exit hears itself make (a spider's step): kind, how hard (0 … 1) and where, handed to the
     // host's onSound with the die's type, the table's surface and the pan.
     const sound = (kind, position, strength = 1) => {
@@ -718,9 +730,9 @@ export class DiceView {
         if (now < start) return true;
         const dt = effect ? Math.min(EXIT_FRAME_MAX, (now - last) / 1000) : 0;
         elapsed += dt;
-        let u = spec.seconds > 0 ? Math.min(1, elapsed / spec.seconds) : 1;
+        let u = seconds > 0 ? Math.min(1, elapsed / seconds) : 1;
         try {
-          if (!effect) effect = spec.start({ view: scope.view, entry: d, sound });
+          if (!effect) effect = spec.start({ view: scope.view, entry: d, sound, options });
           effect.step(u, dt);
         } catch (e) {
           console.error('DiceView: the "' + name + '" exit failed, so the die goes at once:', e);
