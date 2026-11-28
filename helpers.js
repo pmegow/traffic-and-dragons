@@ -1371,6 +1371,27 @@ function classXpLevels(){return CLASS_XP_LEVELS;}
 // Level-row features (#72 C3/C4): class rows at 2/5/7/9/11/13/15/17, archetype rows
 // at 3/6/10/14/18 + capstone 20. Both return [] when nothing lands at that level —
 // callers grant with no per-shape branching.
+/* #788 (owner 2026-11-27): an imported character whose Review level was set ABOVE its own. The import branch of confirmChar
+   read neither the level nor the XP field, so "Assign level perks" started the campaign at the old level. This raises the
+   sheet the way a fresh high-level start is built (confirmChar): hit points per level, the class's named rows for each
+   level crossed, the archetype's rows when it already has one, and XP at least the level's floor. Stat bumps, the
+   archetype pick and spells belong to the perk flow. Never lowers; a row the sheet already holds is not added twice. */
+function sheetRaiseLevel(c,to){
+  var from=Math.max(1,parseInt(c&&c.level,10)||1),out={from:from,to:from,hp:0,gained:[]},cls,lv,i,rows;
+  to=parseInt(to,10)||0;if(!c||to<=from)return out;
+  cls=classDef(c.cls);if(!(c.abilities instanceof Array))c.abilities=[];
+  var has=function(nm){var j;for(j=0;j<c.abilities.length;j++)if(c.abilities[j]&&c.abilities[j].nm===nm)return true;return false;};
+  for(lv=from+1;lv<=to;lv++){
+    out.hp+=Math.max(1,cls?(Math.ceil(cls.hd/2)+1+Math.floor((((c.stats&&c.stats.CON)||10)-10)/2)):3);
+    rows=classFeaturesAt(c.cls,lv);if(c.archetype&&lv>=3)rows=rows.concat(archFeaturesAt(c.cls,c.archetype,lv));
+    for(i=0;i<rows.length;i++)if(!has(rows[i].nm)){c.abilities.push({nm:rows[i].nm,ds:rows[i].ds,gained:0});out.gained.push(rows[i].nm);}
+  }
+  c.maxHp=(Number(c.maxHp)||0)+out.hp;c.hp=(Number(c.hp)||0)+out.hp;c.level=to;out.to=to;
+  var floor=classXpLevels()[to-1]||0;if(!(Number(c.xp)>=floor))c.xp=floor;
+  return out;
+}
+/* The stat bumps a start at `level` still owes when the levels up to `floor` are already on the sheet. */
+function statBumpsOwed(level,floor){var n=0,i;for(i=0;i<STAT_BUMP_LEVELS.length;i++)if(STAT_BUMP_LEVELS[i]<=level&&STAT_BUMP_LEVELS[i]>(floor||0))n++;return n;}
 function classFeaturesAt(clsId,lvl){
   var d=classDef(clsId);
   return (d&&d.levels&&d.levels[lvl]&&d.levels[lvl].features)||[];

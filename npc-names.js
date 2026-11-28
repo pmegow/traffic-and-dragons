@@ -101,6 +101,29 @@ function npcShownName(name){
   var d=String(n.seenAs||"").trim();
   return d||NAME_UNNAMED_LABEL;
 }
+/* What the player READS outside the story's prose - the changes line under a reply and the suggested actions - with every
+   name the story has not given replaced by the character's description (owner 2026-11-27: the prose kept to descriptions,
+   the line and a button still printed "Theron Wyndfall"). A run of the name's own words that holds an identifying word is
+   one mention; a title alone ("the Princess") is left. Display only: the record, the tags and the prompt keep the name. */
+var NAME_MASK_LABEL="the stranger";
+function nameMaskText(text){
+  var s=String(text==null?"":text);
+  if(!s||typeof worldState==="undefined"||!worldState||!worldState.nameGate||!(worldState.npcs instanceof Array))return s;
+  var edge=new RegExp("^[^"+NAME_LETTER+"]+|[^"+NAME_LETTER+"]+$","g"),i;
+  for(i=0;i<worldState.npcs.length;i++){
+    (function(n){
+      if(!n||npcNameKnown(n)||!nameHit(s,n.name))return;
+      var toks=String(n.name).split(/\s+/).map(function(w){return w.replace(edge,"").replace(/[.*+?^${}()|[\]\\]/g,"\\$&");}).filter(function(w){return !!w;});
+      if(!toks.length)return;
+      var alt="(?:"+toks.join("|")+")",label=String(n.seenAs||"").trim()||NAME_MASK_LABEL;
+      s=s.replace(new RegExp("(^|[^"+NAME_LETTER+"])("+alt+"(?:\\s+"+alt+")*)(?!["+NAME_LETTER+"])","g"),function(m,pre,run,at){
+        if(!nameHit(run,n.name))return m;
+        return pre+((at+pre.length===0)?label.charAt(0).toUpperCase()+label.slice(1):label);
+      });
+    })(worldState.npcs[i]);
+  }
+  return s;
+}
 /* A description as stored: one line, no quotation marks, capped. "" when nothing usable is left. */
 function nameSeenAsClean(text){
   return String(text||"").replace(/[\r\n]+/g," ").replace(/["“”]/g,"").replace(/\s+/g," ").trim().slice(0,NAME_SEEN_AS_MAX).trim();
@@ -144,8 +167,8 @@ function namesObserve(raw,clean,turn){
 function buildNamesBlock(){
   if(typeof worldState==="undefined"||!worldState||!worldState.nameGate)return "";
   var list=namesNotGiven(),show=list.slice(0,NAME_BLOCK_CAP),more=list.length-show.length;
-  var s="NAMES THE HERO HAS BEEN GIVEN: registering a character gives the ENGINE their name; it does not give the hero that name. Until the story gives it (they say it, someone says it in the hero's hearing, the hero reads it), narration and [SUGGEST:] buttons call the character by what the hero sees - \"the heron-crested guard\" - never by the name. Tags always carry the real name ([NPC:], [SAY:], every operand). A name spoken in quoted dialogue is given; a name the hero learns any other way: [NPC_NAMED:Name]. When you register a character whose name the story has not given, add [NPC_SEEN_AS:Name|a few words for what the hero sees].\n";
-  if(show.length)s+="NOT YET GIVEN - write the description, never the name: "+show.map(function(n){return n.name+(n.seenAs?" (write: "+n.seenAs+")":"");}).join("; ")+(more>0?"; and "+more+" more on record":"")+"\n";
+  var s="NAMES THE HERO HAS BEEN GIVEN: registering a character gives the ENGINE their name; it does not give the hero that name. Until the story gives it (they say it, someone says it in the hero's hearing, the hero reads it), narration and [SUGGEST:] buttons call the character by what the hero sees - \"the heron-crested guard\" - never by the name. Tags always carry the REGISTERED name, never the description: [NPC:Name|...], and [SAY:Name] before a line the prose gives to \"the guard\" - a description in a tag files a second person and loses the voice. A name spoken in quoted dialogue is given; a name the hero learns any other way: [NPC_NAMED:Name]. When you register a character whose name the story has not given, add [NPC_SEEN_AS:Name|a few words for what the hero sees].\n";
+  if(show.length)s+="NOT YET GIVEN - write the description, never the name: "+show.map(function(n){return n.name+(n.seenAs?" (write: "+n.seenAs+")":(typeof npcDiscovered==="function"&&npcDiscovered(n,null)?" (no description on record - emit [NPC_SEEN_AS:"+n.name+"|a few words])":""));}).join("; ")+(more>0?"; and "+more+" more on record":"")+"\n";
   return s+"\n";
 }
 /* The load door (migrateWorldState): a world saved before the gate. Every character play has already touched counts as

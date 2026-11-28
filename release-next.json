@@ -1,5 +1,5 @@
 {
-  "version": "v1.1494",
+  "version": "v1.1495",
   "actions": [
     "Maps retain explored places through travel and returns, draw publicly established woods and roads, and recover quoted landmarks when a map declaration is refused.",
     "Blueprint NPC portraits fill matching companions and stay with their sheets, conversations, scene references, framing, and exports.",
@@ -150,6 +150,9 @@
     "In the Campaigns window, New Campaign is now the first button, above the list.",
     "A Gemini turn at medium or high thinking no longer arrives with its story text cut off.",
     "A reply cut off before any story text is refused: nothing is applied, your action is put back and Retry is offered.",
-    "A character is called by a description until the story gives their name; the World State panel shows the description too."
+    "A character is called by a description until the story gives their name; the World State panel shows the description too.",
+    "The line under a reply and the suggested actions use a description for a character the story has not named.",
+    "With \"Name the stake before a roll\" off, no stake is asked for or shown.",
+    "An imported character raised to a higher level at Review now reaches Assign level perks."
   ]
 }

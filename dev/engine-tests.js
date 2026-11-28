@@ -37092,4 +37092,89 @@ t("#527(15) own speaker stays exempt and current memories remain available",func
     return p.indexOf("data-npc=\"'+escHtml(_sbRows[i].name)+'\"")>=0?true:"the row must keep the real name as its key (the sheet opens by it)";
   });
 
+
+  t("#786 the changes line and the buttons never print a name the story has not given: the description stands in, a title alone is left, a given name is printed",function(){
+    names786();var far=wsNpcByName("Farren Rushmere");far.seenAs="the heron-crested guard";
+    worldState.npcs.push({name:"Princess Willow",rel:"unknown",met:3,partyMember:false,aliases:[]});
+    if(nameMaskText("Check on Farren Rushmere.")!=="Check on the heron-crested guard.")return "full name: "+nameMaskText("Check on Farren Rushmere.");
+    if(nameMaskText("Farren's pike wavers.")!=="The heron-crested guard's pike wavers.")return "first word, possessive: "+nameMaskText("Farren's pike wavers.");
+    if(nameMaskText("NPC: Ebonfeather")!=="NPC: "+NAME_MASK_LABEL)return "no description on record: "+nameMaskText("NPC: Ebonfeather");
+    if(nameMaskText("Ask Princess Willow, then the Princess of the fen.")!=="Ask "+NAME_MASK_LABEL+", then the Princess of the fen.")return "a title alone is not the name: "+nameMaskText("Ask Princess Willow, then the Princess of the fen.");
+    if(nameMaskText("Follow The Forest King and Brannoc.")!=="Follow The Forest King and Brannoc.")return "a known name is printed";
+    far.nameGiven=4;if(nameMaskText("Check on Farren Rushmere.")!=="Check on Farren Rushmere.")return "a given name is printed";
+    delete worldState.nameGate;delete far.nameGiven;
+    if(nameMaskText("Check on Farren Rushmere.")!=="Check on Farren Rushmere.")return "no gate: untouched";
+    var g=__fsForTests.readFileSync(__rootForTests+"/game.js","utf8"),tt=__fsForTests.readFileSync(__rootForTests+"/tag_table.js","utf8");
+    if(!/acts=acts\.map\(function\(a\)\{return nameMaskText\(a\);\}\);[^\n]*\n\s*acts=applySuggestionGate\(acts\);/.test(g))return "the suggested actions are not masked before they are painted and stored";
+    var em=tt.indexOf("function mutsSummaryEmit(R){"),mk=tt.indexOf("lines=lines.map(function(l){return nameMaskText(l);});",em),pr=tt.indexOf("addMsg(\"system\"",em);
+    return em>=0&&mk>em&&pr>mk?true:"the changes line is not masked before it is printed";
+  });
+  t("#786 the block asks for a description where a met character has none, and says a tag never carries the description",function(){
+    names786();var b=buildNamesBlock();
+    if(b.indexOf("Farren Rushmere (no description on record - emit [NPC_SEEN_AS:Farren Rushmere|a few words])")<0)return "a met character without a description is asked for one: "+b;
+    if(b.indexOf("Ebonfeather (")>=0)return "a seeded character nobody has met is not asked about: "+b;
+    return /Tags always carry the REGISTERED name, never the description/.test(b)&&b.indexOf("[SAY:Name]")>=0?true:"the block must say a tag keeps the registered name: "+b;
+  });
+
+  // ── #787 the stake is shown only while the setting asks for it ──────────────────────────────
+  section("#787 the stake setting off means no stake");
+  t("#787 with 'Name the stake before a roll' off, the [CHECK:] line does not teach the stake field and a stake the GM wrote anyway is dropped; on, both are as before",function(){
+    var keepS=diceStakeClause,keepR=playerRollsDice;
+    try{
+      makeWorld();playerRollsDice=true;diceStakeClause=true;
+      var on=buildStateTagsDoc();
+      if(on.indexOf("A LAST field of plain words is the STAKE")<0)return "on: the line teaches the stake";
+      quiet(function(){applyMuts("You reach for the lock. [CHECK:Pick the lock|+4|DC 15|a snapped pick and the guard's attention]");});
+      if(!worldState.pendingCheck||!worldState.pendingCheck.stake)return "on: the stake is kept: "+JSON.stringify(worldState.pendingCheck);
+      makeWorld();diceStakeClause=false;
+      var off=buildStateTagsDoc();
+      if(off.indexOf("STAKE")>=0||off.indexOf("a snapped pick")>=0)return "off: the doc still teaches the stake";
+      if(off.indexOf("[CHECK:Longsword attack|+5|DC 14|1d8+3]")<0)return "off: the rest of the line must stay";
+      if(off.length!==on.length-(on.indexOf("\n",on.indexOf(TAG_DOC_CHECK_STAKE))-on.indexOf(TAG_DOC_CHECK_STAKE)))return "off: exactly the one sentence is removed";
+      var r=quiet(function(){return applyMuts("You reach for the lock. [CHECK:Pick the lock|+4|DC 15|a snapped pick and the guard's attention]");}).r;
+      var pc=worldState.pendingCheck;
+      if(!pc||pc.dc!==15||pc.mod!==4)return "off: the check itself is filed: "+JSON.stringify(pc);
+      if(pc.stake)return "off: the stake must be dropped: "+pc.stake;
+      if(r.muts.join("|").indexOf("at stake")>=0)return "off: the changes line must not print it";
+      return rollModalHtml(pc).indexOf("roll-modal-stake")<0?true:"off: the roll modal shows no stake";
+    }finally{diceStakeClause=keepS;playerRollsDice=keepR;}
+  });
+
+  // ── #788 an imported character raised at Review reaches its level perks ─────────────────────
+  section("#788 an imported character raised at Review");
+  t("#788 sheetRaiseLevel raises a sheet the way a fresh high-level start is built: hit points per level, the class rows crossed, XP at the floor; never lowers, never adds a row twice",function(){
+    makeWorld();var c=worldState.character,cls=classDef(c.cls),hp0=c.maxHp,n0=c.abilities.length;
+    var per=Math.max(1,Math.ceil(cls.hd/2)+1+Math.floor((c.stats.CON-10)/2)),want=[],lv,i,rows;
+    for(lv=2;lv<=3;lv++){rows=classFeaturesAt(c.cls,lv);for(i=0;i<rows.length;i++)want.push(rows[i].nm);}
+    var r=sheetRaiseLevel(c,3);
+    if(c.level!==3||r.from!==1||r.to!==3)return "level: "+JSON.stringify(r);
+    if(c.maxHp!==hp0+2*per||c.hp!==14+2*per)return "hit points: "+c.hp+"/"+c.maxHp+" want +"+(2*per);
+    if(r.gained.join("|")!==want.join("|")||c.abilities.length!==n0+want.length)return "class rows: "+r.gained.join("|")+" want "+want.join("|");
+    if(c.xp!==classXpLevels()[2])return "xp floor: "+c.xp;
+    var again=sheetRaiseLevel(c,3),down=sheetRaiseLevel(c,2);
+    if(again.hp||down.hp||c.level!==3||c.abilities.length!==n0+want.length)return "the same level or a lower one changes nothing";
+    if(!want.length)return "the fixture class must gain a named row by level 3, or this clause proves nothing";
+    c.level=1;/* the rows of levels 2 and 3 are already on the sheet: a second raise over them adds none */
+    sheetRaiseLevel(c,3);
+    return c.abilities.length===n0+want.length?true:"a row the sheet already holds is added twice";
+  });
+  t("#788 statBumpsOwed counts only the bump levels past the level the character arrived at",function(){
+    var top=STAT_BUMP_LEVELS[0];
+    if(statBumpsOwed(top,0)!==1||statBumpsOwed(top-1,0)!==0)return "a fresh start owes every bump at or under its level";
+    if(statBumpsOwed(top,top)!==0)return "a bump the sheet already took is not owed again";
+    return statBumpsOwed(20,0)===STAT_BUMP_LEVELS.length&&statBumpsOwed(20,top)===STAT_BUMP_LEVELS.length-1?true:"count";
+  });
+  t("#788 wiring: the import branch raises the sheet and enters the perk flow before startGame; the flow counts bumps past the arrival level and skips a pick the sheet already made",function(){
+    var s=__fsForTests.readFileSync(__rootForTests+"/char-creation.js","utf8"),a=s.indexOf("if(pendingImportChar){\n    var ic="),b=s.indexOf("if(!enteredName)",a),br=s.slice(a,b);
+    if(a<0||b<0)return "import branch not found";
+    var raise=br.indexOf("if(_wantL>_fromL){"),start=br.lastIndexOf("startGame(ic,");
+    if(raise<0||raise>start)return "the level is not read before the campaign starts";
+    var blk=br.slice(raise,start);
+    if(blk.indexOf("sheetRaiseLevel(ic,_wantL);")<0||blk.indexOf("showCreationArchetype();\n      return;")<0)return "the raise does not enter the perk flow";
+    if(blk.indexOf("pendingBumpFloor=_fromL;pendingArchKept=!!ic.archetype;")<0)return "the flow is not told what the sheet already has";
+    if(s.indexOf("pendingBumpFloor=0;pendingArchKept=false;")<0)return "a character built in the wizard must reset the import's floor";
+    if(s.indexOf("if(!archs.length||pendingArchKept||c.level<3){")<0)return "an import with its archetype is shown the archetype pick again";
+    return s.split("statBumpsOwed(c.level,pendingBumpFloor)").length===3?true:"both bump counts must read the arrival level";
+  });
+
 }

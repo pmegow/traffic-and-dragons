@@ -118,3 +118,5 @@ The GM embeds hidden tags in every response. `applyMuts(text)` parses them and m
 ### Name-keyed storage (#545)
 
 Reserved JavaScript property names are ordinary game data. Tag operands are never filtered for those words: the shared dictionary factory, own-entry static reads, and parsed/clone admission schema keep them separate from object machinery. See [name-keyed stores](memory.md#name-keyed-stores-545).
+
+**The stake field follows the setting (#787, v1.1495 - owner 2026-11-27).** The `[CHECK:]` doc line taught the stake field to every campaign (#750) while "Name the stake before a roll" only removed the MECHANICS clause, so stakes kept coming with the box off. With `diceStakeClause` off, `buildStateTagsDoc` serves the line without its one stake sentence (`tagDocCheckNoStake`, cut at `TAG_DOC_CHECK_STAKE`) and the CHECK handler drops a stake the GM wrote anyway before it is filed, so the roll modal, the spoken roll and the changes line never show it. On is byte-identical to before (the frozen doc hash holds). Proof: section "#787" of the engine suite and `dev/sabotage-787-stake-off.js`.

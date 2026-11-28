@@ -464,7 +464,7 @@ var PROVIDERS={
     tokScale:4 // generous ceiling (maxTok*4 ≈ 4k-8k), NOT sky-high: the old x1000 sent maxOutputTokens=1,000,000+, which Gemini rejects with HTTP 400 on models capped well below that (audit E89). The prose voice still controls actual length.
   }
 };
-var APP_VERSION="v1.1494";
+var APP_VERSION="v1.1495";
 // #290: the home page's one-shot blueprint handoff — home.html writes {bp,at} here and navigates to
 // the game; initState (no save) / newGame consume it into _applyBlueprint. ONE name for both sides.
 // #307: the home page's QUICK START handoff — a pre-made hero + a curated blueprint, consumed at boot by
@@ -620,6 +620,10 @@ var _cbApplied=[];        // picks confirmed per creation stat-bump, so Back can
 var pendingSpellPool={};
 var pendingCompanions=[];
 var pendingImportChar=null;
+// #788: an imported character raised above its own level at Review. pendingBumpFloor is the level it arrived at (its
+// stat bumps up to there are already on the sheet; 0 for a character built in the wizard); pendingArchKept says it
+// arrived with an archetype, so the archetype screen is skipped.
+var pendingBumpFloor=0,pendingArchKept=false;
 var pendingBlueprint=null; // loaded .campaign blueprint; consumed by startGame
 var pendingRacialBonus={}; // {cantrips:N, "1":N, ...} — extra picks granted by racial spells
 var adultMode=false;

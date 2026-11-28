@@ -60,4 +60,19 @@ rc|=sabotage.prove({file:"ui-panels.js",command:CMD,cases:[
   {label:"#786 the World State panel prints the name",find:"<span class=\"sb-k\">'+escHtml(_sbRows[i].shown)+'</span>",replace:"<span class=\"sb-k\">'+escHtml(_sbRows[i].name)+'</span>",mustFail:WIRED},
   {label:"#786 the row's key is the description - the sheet no longer opens",find:"data-npc=\"'+escHtml(_sbRows[i].name)+'\"",replace:"data-npc=\"'+escHtml(_sbRows[i].shown)+'\"",mustFail:WIRED}
 ]});
+// The changes line and the buttons (owner 2026-11-27: the prose kept to descriptions, the line and a button did not).
+var MASK="#786 the changes line and the buttons never print a name the story has not given";
+var ASKS="#786 the block asks for a description where a met character has none";
+rc|=sabotage.prove({file:"npc-names.js",command:CMD,cases:[
+  {label:"#786 the mask hides a given name too",find:"      if(!n||npcNameKnown(n)||!nameHit(s,n.name))return;",replace:"      if(!n||!nameHit(s,n.name))return;",mustFail:MASK},
+  {label:"#786 a title alone is replaced",find:"        if(!nameHit(run,n.name))return m;",replace:"        ",mustFail:MASK},
+  {label:"#786 the description is ignored - every name reads 'the stranger'",find:"label=String(n.seenAs||\"\").trim()||NAME_MASK_LABEL;",replace:"label=NAME_MASK_LABEL;",mustFail:MASK},
+  {label:"#786 a met character with no description is never asked for one",find:"(typeof npcDiscovered===\"function\"&&npcDiscovered(n,null)?",replace:"(false?",mustFail:ASKS}
+]});
+rc|=sabotage.prove({file:"game.js",command:CMD,cases:[
+  {label:"#786 a button prints the name",find:"    if(typeof nameMaskText===\"function\")acts=acts.map(function(a){return nameMaskText(a);});",replace:"    ",mustFail:MASK}
+]});
+rc|=sabotage.prove({file:"tag_table.js",command:CMD,cases:[
+  {label:"#786 the changes line prints the name",find:"  if(typeof nameMaskText===\"function\")lines=lines.map(function(l){return nameMaskText(l);});",replace:"  ",mustFail:MASK}
+]});
 process.exit(rc);

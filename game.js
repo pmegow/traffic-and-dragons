@@ -851,6 +851,7 @@ async function generateActions(msgEl){
     if(!campaignStill(_actMark,null)||worldState.turn!==turnAt)throw new Error("stale"); // a newer turn landed, or another campaign is open; discard quietly
     var acts=parseSuggestionArray(resp);
     if(!acts||!acts.length){_cleanup();return;}/* remove the "…" placeholders on an empty result too (audit E25) */
+    if(typeof nameMaskText==="function")acts=acts.map(function(a){return nameMaskText(a);});/* #786: a button never prints a name the story has not given (the slip is still read off the raw reply and corrected) */
     acts=applySuggestionGate(acts);/* #126 affordance gate — an impossible button is never rendered (fail closed, loud log) */
     /* TODO #1 P3 (D4): in a multi-PC round, label whose options these are. Display prefix ONLY —
        data-action stays the bare action (the queue line re-attaches the name at submit). */

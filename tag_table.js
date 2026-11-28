@@ -275,7 +275,12 @@ function _docLineEngineOnly(line){
   var i;for(i=0;i<names.length;i++)if(TAG_DOC_ENGINE_ONLY.indexOf(names[i])<0)return false;
   return true;
 }
-function buildStateTagsDoc(){var out=[],i;for(i=0;i<TAG_DOC_LINES.length;i++){if(_docLineEngineOnly(TAG_DOC_LINES[i]))continue;if(TAG_DOC_LINES[i].indexOf("[SUGGEST:")===0&&typeof suggestInband!=="undefined"&&!suggestInband)continue;/* #328: the rollback switch removes the ask itself */if(TAG_DOC_LINES[i].indexOf("[CHECK:")===0&&!(typeof playerRollsDice!=="undefined"&&playerRollsDice))continue;/* #329: taught only while the player rolls */out.push(TAG_DOC_LINES[i]);}var _tdn=(typeof kindDef==="function"&&kindDef().tagDocNote)||"";return out.join("")+(_tdn&&!/\n$/.test(_tdn)?_tdn+"\n":_tdn);/* #481 C11: the note ends its own line ("…escalate.NAMING" glued two sections) *//* #6 phase B: a kind may append its own line (the village's combat refusal); adventure appends nothing — the frozen hash holds */}
+/* #787 (owner 2026-11-27: "Stakes are still being provided even though the checkmark is off"): the [CHECK:] line taught the
+   stake field to every campaign (#750) while the setting only removed the MECHANICS clause. With the setting off the line
+   loses that one sentence; a line without the sentence is returned as it is. */
+var TAG_DOC_CHECK_STAKE=" A LAST field of plain words is the "+"STAKE";/* joined: the #750 battery anchors on the doc line's own copy of the phrase, which must stay the only one */
+function tagDocCheckNoStake(line){var s=String(line),at=s.indexOf(TAG_DOC_CHECK_STAKE);return at<0?s:s.slice(0,at)+"\n";}
+function buildStateTagsDoc(){var out=[],i;for(i=0;i<TAG_DOC_LINES.length;i++){if(_docLineEngineOnly(TAG_DOC_LINES[i]))continue;if(TAG_DOC_LINES[i].indexOf("[SUGGEST:")===0&&typeof suggestInband!=="undefined"&&!suggestInband)continue;/* #328: the rollback switch removes the ask itself */if(TAG_DOC_LINES[i].indexOf("[CHECK:")===0&&!(typeof playerRollsDice!=="undefined"&&playerRollsDice))continue;/* #329: taught only while the player rolls */if(TAG_DOC_LINES[i].indexOf("[CHECK:")===0&&!(typeof diceStakeClause!=="undefined"&&diceStakeClause)){out.push(tagDocCheckNoStake(TAG_DOC_LINES[i]));continue;}/* #787: the stake field is taught only while the setting asks for it */out.push(TAG_DOC_LINES[i]);}var _tdn=(typeof kindDef==="function"&&kindDef().tagDocNote)||"";return out.join("")+(_tdn&&!/\n$/.test(_tdn)?_tdn+"\n":_tdn);/* #481 C11: the note ends its own line ("…escalate.NAMING" glued two sections) *//* #6 phase B: a kind may append its own line (the village's combat refusal); adventure appends nothing — the frozen hash holds */}
 
 // ── THE TABLE — ordered handler registry. Bodies are 1:1 transcriptions of the applyMuts blocks
 // (only `muts`→R.muts, `turn`→R.turn, `feGet`→R.feGet, `_xpMirror`→R._xpMirror renamed). ──────────
@@ -568,6 +573,7 @@ var TAG_TABLE=[
    rolls it anyway is the GM forgetting the contract: treated as engine-rolled, loudly, never a stuck die. */
 {t:"CHECK",apply:function(text,R){if(!(typeof playerRollsDice!=="undefined"&&playerRollsDice))return;var m=text.match(/\[CHECK:([^\]]+)\]/);if(!m)return;var chk=parseCheckTag(m[1]);if(!chk)return;
   if(/\[DICE:/.test(text)){if(typeof console!=="undefined")console.warn("[dice] #329 the GM emitted [CHECK:"+chk.label+"] and rolled it anyway \u2014 treated as engine-rolled this turn");R.muts.push("The GM rolled "+chk.label+" itself this time");return;}
+  if(!(typeof diceStakeClause!=="undefined"&&diceStakeClause))delete chk.stake;/* #787: "Name the stake before a roll" is off - a stake the GM wrote anyway is not shown, spoken or logged */
   chk.turn=R.turn;worldState.pendingCheck=chk;R.muts.push("Roll: "+chk.label+" ("+(chk.dmgOnly?chk.dmg.text+" damage"/* #754 */:"d20"+(chk.mod?(chk.mod>0?"+":"")+chk.mod:"")+(chk.dc!=null?" vs DC "+chk.dc:"")+(chk.dmg?", "+chk.dmg.text+" on a hit":""))+")"+(chk.stake?" \u2014 at stake: "+chk.stake:"")/* #750 */+" \u2014 yours to roll");}},/* #654: the damage dice ride the check */
 /* #330 companions with agendas — the three writes. Placement is the ENGINE's (first want active, later ones silent),
    completion promotes and arms the announce note, a beat resets the push clock. Companion sheets only. */
@@ -2018,6 +2024,7 @@ function mutsCollapseRepeats(lines){
 }
 function mutsSummaryEmit(R){
   var lines=mutsCollapseRepeats((R&&R.muts)?R.muts:[]),here=(typeof hereItemsLine==="function")?hereItemsLine():"";
+  if(typeof nameMaskText==="function")lines=lines.map(function(l){return nameMaskText(l);});/* #786: the line the player reads never prints a name the story has not given; R.muts and the provenance ring keep the names */
   if(here)lines.push(here);
   if(lines.length&&typeof addMsg==="function")addMsg("system",(typeof summaryLineHTML==="function")?summaryLineHTML(lines):escHtml(lines.join(" | ")),{html:true});/* H1: this caller hands HTML (the links) and says so *//* #452: Present names link to their sheets (helpers.js) */
 }

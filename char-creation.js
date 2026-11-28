@@ -332,6 +332,20 @@ function confirmChar(){
     var nid=newCampaignId();setActiveCampId(nid);
     campaignEpochBump();worldState=null;sessionLog=[];memory=blankMemory();
     document.getElementById("story-narrative").innerHTML="";document.getElementById("story-tabletalk").innerHTML="";
+    /* #788: the Review level set above the character's own. The sheet is raised and the perk flow runs for what the
+       new levels owe - the archetype when it has none, the stat bumps past the level it arrived at - and ends in
+       startGame as a fresh high-level start does. A level left alone (or set lower) starts as before. */
+    var _slI=document.getElementById("rv-start-level"),_wantL=_slI?parseInt(_slI.value,10)||0:0,_fromL=Math.max(1,parseInt(ic.level,10)||1);
+    if(_wantL>_fromL){
+      sheetRaiseLevel(ic,_wantL);
+      var _xpI=document.getElementById("rv-start-xp"),_xl=classXpLevels(),_xf=_xl[_wantL-1]||0,_xc=_wantL<_xl.length?_xl[_wantL]-1:Infinity,_xv=_xpI?parseInt(_xpI.value,10):NaN;
+      if(_xv>0)ic.xp=Math.min(Math.max(_xv,_xf),_xc);
+      pendingChar=ic;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=_ws2.loc;
+      pendingBumpFloor=_fromL;pendingArchKept=!!ic.archetype;
+      pendingPerkBase={stats:Object.assign({},ic.stats),abilLen:ic.abilities.length,maxHp:ic.maxHp,hp:ic.hp,conMod:Math.floor(((ic.stats.CON||10)-10)/2)};_cbApplied=[];
+      showCreationArchetype();
+      return;
+    }
     startGame(ic,getToneNm(),getToneVc(),cs.author||"");
     return;
   }
@@ -388,6 +402,7 @@ function confirmChar(){
   // every startLvl>1 (level 1 has no features); pickCreationArch no longer adds them, so no double.
   if(startLvl>1){var _cfi,_cfF,_cfRows;for(_cfi=2;_cfi<=startLvl;_cfi++){_cfRows=classFeaturesAt(cs.cls,_cfi);for(_cfF=0;_cfF<_cfRows.length;_cfF++)char.abilities.push({nm:_cfRows[_cfF].nm,ds:_cfRows[_cfF].ds,gained:0});}}/* C6 ②: bible class rows, NAMED (archetype rows land at the archetype pick) */
   char._campName=campNameVal;
+  pendingBumpFloor=0;pendingArchKept=false;/* #788: a character built here owes every bump and its archetype */
   if(startLvl>=3){pendingChar=char;pendingTone=getToneNm();pendingVoice=getToneVc();pendingAuthor=cs.author||"";pendingLoc=startLoc;
     // Snapshot for perk-flow Back (E2) + revert-safe CON→HP (E55): stats, abilities length, and the
     // pre-bump HP/CON-mod, so HP can be recomputed from base on every apply/revert.
@@ -401,9 +416,9 @@ function showCreationArchetype(){
   /* #192: an archetype-less custom class has no L3 milestone — skip straight to the bump/spell/
      start continuation (the same chain pickCreationArch runs) instead of rendering an
      un-closeable empty chooser. */
-  if(!archs.length){
-    var _naB=0,_naI;for(_naI=0;_naI<STAT_BUMP_LEVELS.length;_naI++){if(STAT_BUMP_LEVELS[_naI]<=c.level)_naB++;}
-    if(_naB>0){pendingBumps=_naB;currentBump=1;showCreationStatBump();}
+  if(!archs.length||pendingArchKept||c.level<3){/* #788: an import that arrived with its archetype, or was raised to level 2, has no pick to make */
+    var _naB=statBumpsOwed(c.level,pendingBumpFloor);
+    if(_naB>0){document.getElementById("char-screen").style.display="none";pendingBumps=_naB;currentBump=1;showCreationStatBump();}
     else if(buildPendingSpellPool(c)){showCreationSpellPick();}
     else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}
     return;
@@ -413,7 +428,7 @@ function showCreationArchetype(){
   var ch="",i;for(i=0;i<archs.length;i++){ch+="<div class='sc' id='arch-card-"+i+"' onclick='selectCreationArch("+i+")' style='text-align:left;padding:16px 18px;margin-bottom:10px;'><div class='nm' style='margin-bottom:6px;'>"+archs[i].nm+"</div><div style='font-size:12px;color:var(--t1);line-height:1.6;'>"+archs[i].desc+"</div></div>";}
   var featHtml="";/* C6 ②: preview reads the bible's named class rows */
   for(i=2;i<=c.level;i++){var _pf=classFeaturesAt(c.cls,i);if(!_pf.length)continue;var col=i===3?"var(--acc)":"var(--t0)";var bc=i===3?"var(--acc)":"var(--brd)";var _pfj,_pfTxt="";for(_pfj=0;_pfj<_pf.length;_pfj++)_pfTxt+=(_pfj?"<br>":"")+"<b>"+_pf[_pfj].nm+"</b> — "+_pf[_pfj].ds;featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid "+bc+";border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:"+col+";'>Lv"+i+"</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>"+_pfTxt+"</span></div>";}
-  for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:var(--t0);'>Lv"+STAT_BUMP_LEVELS[i]+": Stat bump</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>+2 to one or +1 to two. Max 20.</span></div>";}
+  for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level&&STAT_BUMP_LEVELS[i]>pendingBumpFloor)featHtml+="<div style='padding:6px 10px;background:var(--bg2);border:1px solid var(--brd);border-radius:6px;margin-bottom:6px;'><span style='font-size:11px;font-weight:bold;color:var(--t0);'>Lv"+STAT_BUMP_LEVELS[i]+": Stat bump</span><span style='font-size:10px;color:var(--t2);display:block;margin-top:2px;'>+2 to one or +1 to two. Max 20.</span></div>";}
   wrap.innerHTML="<div style='font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--acc);margin-bottom:6px;'>Starting level "+c.level+" -- required</div><h2 style='font-size:20px;color:var(--acc);margin-bottom:4px;'>Choose your archetype</h2><p style='font-size:13px;color:var(--t1);margin-bottom:20px;'>You are a <strong style='color:var(--t0);'>"+c.cls+"</strong>. At level 3, every "+c.cls.toLowerCase()+" commits to a path.</p>"+ch+(featHtml?"<div style='border:1px solid var(--brd);border-radius:10px;background:var(--bg1);padding:16px 18px;margin-top:20px;'><div style='font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--t2);margin-bottom:10px;'>Abilities at level "+c.level+"</div>"+featHtml+"</div>":"")+"<p id='arch-warn' style='font-size:12px;color:var(--dng);min-height:16px;margin-top:12px;'></p><button id='arch-confirm-btn' onclick='confirmCreationArch()' style='width:100%;margin-top:6px;padding:13px;font-size:15px;font-family:var(--font);background:var(--bg3);color:var(--t2);border:1px solid var(--brd);border-radius:var(--r);cursor:default;font-weight:bold;' disabled>Choose an archetype above</button>";
   document.body.appendChild(wrap);
   window._selectedArchIdx=-1;
@@ -461,7 +476,7 @@ function pickCreationArch(idx){
   // pick, mirroring in-game pickArchetype. Idempotent under E2's restorePerkBase reset above.
   var _caLv,_caF;for(_caLv=3;_caLv<=c.level;_caLv++){var _caRows=archFeaturesAt(c.cls,c.archetype,_caLv);for(_caF=0;_caF<_caRows.length;_caF++)c.abilities.push({nm:_caRows[_caF].nm,ds:_caRows[_caF].ds,gained:0});}
   var wrap=document.getElementById("creation-arch"),i;if(wrap)wrap.remove();
-  var bumpsNeeded=0;for(i=0;i<STAT_BUMP_LEVELS.length;i++){if(STAT_BUMP_LEVELS[i]<=c.level)bumpsNeeded++;}
+  var bumpsNeeded=statBumpsOwed(c.level,pendingBumpFloor);/* #788: an import owes only the bumps past the level it arrived at */
   if(bumpsNeeded>0){pendingBumps=bumpsNeeded;currentBump=1;showCreationStatBump();}
   else if(buildPendingSpellPool(c)){showCreationSpellPick();}
   else{c._startLoc=pendingLoc;startGame(c,pendingTone,pendingVoice,pendingAuthor);}
@@ -469,6 +484,7 @@ function pickCreationArch(idx){
 function buildPendingSpellPool(c){
   var src=SPELLS[c.cls]||(c.archetype?ARCH_SPELLS[c.archetype]:null);
   if(!src)return false;
+  if(pendingBumpFloor>0&&(c.spells||[]).some(function(s){return s&&!s.racial;}))return false;/* #788: an imported caster keeps the spells it arrived with - the starting pick is for a sheet that has none */
   var maxSlot=c.level>=5?3:c.level>=3?2:1,sl;
   pendingSpellPool={};
   // Count racial spells already on the character — each grants +1 pick in that tier
