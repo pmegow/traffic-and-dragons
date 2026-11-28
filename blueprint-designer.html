@@ -198,7 +198,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.83";
+var BP_DESIGNER_VERSION="v0.84";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 /* audit 2026-11-19, X6/X7: bpDoc counts the DOCUMENTS this page has held — it goes up when the working copy is replaced by
@@ -938,11 +938,12 @@ function llmReady(){
 // never writes the game's state keys).
 var LLM_PICK_K="bpd_llm_v1";
 // Authoring has a separate catalog from the sweep-certified gameplay menu.
+// The Anthropic id moved to claude-fable-5-2 on 2026-11-27 (owner; the server's allow-list accepts it from 1.16.1).
 // IDs verified 2026-10-01 against developers.openai.com/api/docs/models,
 // platform.claude.com/docs/en/models/overview and ai.google.dev/gemini-api/docs/models.
 var DESIGNER_MODELS={
   anthropic:{
-    models:["claude-fable-5-1"],
+    models:["claude-fable-5-2"],
     prepare:function(body){
       body.thinking={type:"adaptive"};
       body.max_tokens=Math.max(body.max_tokens||0,8192); // thinking shares the output ceiling
