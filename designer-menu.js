@@ -19,8 +19,8 @@ function showDesignerRenderOptions(){
 }
 function buildDesignerFileMenu(){
   var groups=[
-    [{id:"btn-new",label:"New blueprint"},{id:"btn-load",label:"Load…"},{id:"btn-save",label:"Save .blueprint"}],
-    [{id:"btn-library",label:"Library…"},{id:"btn-publish",label:"Save to My Library"},{id:"btn-publish-catalog",label:"Publish to Catalog",hidden:true}],
+    [{id:"btn-new",label:"New blueprint"},{id:"btn-load",label:"Load from local disk"},{id:"btn-save",label:"Save .blueprint"}],
+    [{id:"btn-library",label:"Load from Library / Catalog"},{id:"btn-publish",label:"Save to My Library"},{id:"btn-publish-catalog",label:"Publish to Catalog",hidden:true}],
     [{id:"btn-render-options",label:"Render Options…"},{id:"btn-render-missing",label:"Render all missing portraits"},{id:"btn-fit-text",label:"Shorten long text",hidden:true},{id:"btn-original-text",label:"Download original text",hidden:true}]
   ];
   var menu=document.getElementById("designer-file"),panel=document.getElementById("designer-file-panel");

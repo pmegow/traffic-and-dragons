@@ -24,6 +24,8 @@ const appearance='A lean humanoid fey with a mischievous humanlike face, pointed
  await test('file actions live in a compact accessible disclosure',async()=>{
   assert(await page.evaluate(()=>!!document.querySelector('details#designer-file > summary')),'File disclosure missing');
   assert(await page.evaluate(()=>['btn-new','btn-load','btn-save','btn-library','btn-publish','btn-publish-catalog','btn-fit-text','btn-original-text','llm-sel','btn-render-options'].every(id=>document.getElementById('designer-file').contains(document.getElementById(id)))));
+  /* owner 2026-11-27: the publish message sends the author to the catalog, so the menu names that door; the two loads say where they load from */
+  assert.deepEqual(await page.evaluate(()=>['btn-load','btn-library'].map(id=>document.getElementById(id).textContent.trim())),['Load from local disk','Load from Library / Catalog']);
   assert(await page.evaluate(()=>['btn-generate','btn-ask','btn-review'].every(id=>!document.getElementById('designer-file').contains(document.getElementById(id)))));
   assert(await page.evaluate(()=>document.getElementById('btn-publish-catalog').hidden),'non-admin catalog control hidden');
   await page.screenshot({path:path.join(shots,'menu-after-desktop.png')});await page.locator('#designer-file-toggle').click();await page.screenshot({path:path.join(shots,'menu-open-desktop.png')});

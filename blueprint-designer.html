@@ -188,7 +188,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 <script src="ui-shell.js"></script>
 <script src="ui-portrait.js"></script>
 <script src="designer-portrait-batch.js?v=0.73"></script>
-<script src="designer-menu.js?v=0.72"></script>
+<script src="designer-menu.js?v=0.83"></script>
 <script src="designer-acts.js"></script>
 <script src="designer-creatures.js?v=0.74"></script>
 <script src="designer-assistant.js"></script>
@@ -198,7 +198,7 @@ textarea.bpf{resize:vertical;line-height:21px;height:65px;min-height:65px;paddin
 // Designer version — SEPARATE from the game's APP_VERSION (user call 2026-07-05; the designer
 // is its own tool). Bump on every designer change; the engine version rides as a suffix in the
 // header because blueprint schema compatibility tracks the ENGINE, not this page.
-var BP_DESIGNER_VERSION="v0.82";
+var BP_DESIGNER_VERSION="v0.83";
 var ARC_TYPES=["","combat","investigation","exploration","social"];
 var bp=null,dirty=false,editionBaseline=null,editionSaving=false;
 /* audit 2026-11-19, X6/X7: bpDoc counts the DOCUMENTS this page has held — it goes up when the working copy is replaced by
@@ -1696,7 +1696,7 @@ function openCatalogPublish(){
         editionSaving=false;publishing=false;publish.disabled=false;cancel.disabled=false;
         if(publishError){console.warn("[designer] catalog publish failed",publishError);error.textContent="Could not publish: "+publishError;return;}
         if(bp===draft){bp.catalogId=result.id;editionSaved(result.blueprint||snapshot,draft,requestedStatus);}
-        dialog.close();setStatus("Published “"+snapshot.name+"” to the shared Catalog. Reopen the catalog to see the update.","ok");
+        dialog.close();setStatus("Published “"+snapshot.name+"” to the shared Catalog. Open File ▸ Load from Library / Catalog to see the update.","ok");
       });
     });
     dialog.showModal();setStatus("Review the catalog entry and description before publishing.","");
